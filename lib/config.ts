@@ -37,9 +37,13 @@ export const CONFIG = {
 
   /** Fréquence d'interrogation du serveur par l'écran d'affichage. */
   pollMs: 3000,
-  // Projecteur : à intervalle régulier, un donateur (au hasard) est mis en vedette sur l'écran, même si son morceau est trop petit pour être lu.
-  spotlightEveryMs: 12_000,
-  spotlightShowMs: 6_000,
+  // Visite de l'écran : un don est toujours en brillance. Vue d'ensemble → zoom sur le morceau → pause → dézoom → suivant.
+  tourOverviewMs: 1600, // vue d'ensemble, le prochain morceau déjà en brillance
+  tourZoomMs: 2000, // durée d'un zoom (et d'un dézoom)
+  tourHoldMs: 5000, // pause sur un morceau avec nom, message ou photo
+  tourHoldBareMs: 2500, // pause sur un morceau anonyme
+  tourTargetFraction: 0.2, // le morceau zoomé occupe (rayon inscrit) cette fraction de la hauteur de l'écran
+  tourMaxZoom: 40,
 } as const
 
 /** Verres disponibles (reprend les Glow Colors de Pay to Exist). */

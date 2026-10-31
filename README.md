@@ -58,9 +58,11 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 - **Base de données** : exécuter `supabase/migrations/2026-10-31-photos.sql` dans le SQL Editor de Supabase (colonne `photo_url` + bucket public `photos`). Un nouveau projet qui part de `supabase/schema.sql` l'a déjà.
 - **Modération** : la console admin affiche les photos et permet « Retirer la photo » ou « Effacer le nom » (efface aussi la photo). À prévoir avant l'événement : quelqu'un qui surveille la console.
 
-## Projecteur (défilement automatique)
+## Visite de l'écran (brillance + zoom)
 
-Sur `/ecran`, toutes les 12 s, un donateur qui a accepté d'afficher son nom est mis en vedette au hasard : son morceau s'illumine et une carte montre sa photo, son nom, son message et son total. Chacun passe une fois avant que le cycle recommence. Les vrais dons ont toujours priorité (le projecteur attend que l'annonce soit finie). Réglages : `spotlightEveryMs` (0 = désactivé) et `spotlightShowMs` dans `lib/config.ts`.
+Sur `/ecran`, un morceau est **toujours** en brillance. Le cycle : vue d'ensemble du vitrail (le prochain morceau s'allume déjà) → zoom sur le morceau (les petits sont zoomés jusqu'à occuper environ 20 % de la hauteur de l'écran, les grands ne bougent pas) → pause → dézoom complet → morceau suivant. L'ordre est aléatoire sans répétition avant que tous soient passés ; un nouveau don passe en premier (après au plus quelques secondes). Les morceaux anonymes ont une pause plus courte. Les durées sont dans `lib/config.ts` (`tour…`).
+
+Les noms et messages sont toujours placés **à l'intérieur** du morceau, avec une marge : la police est réduite jusqu'à ce que chaque ligne tienne dans le cercle utile du morceau, et rien ne s'affiche si ça ne rentre pas.
 
 ## Le jour J
 

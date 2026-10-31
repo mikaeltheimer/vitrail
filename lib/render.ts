@@ -46,7 +46,7 @@ export interface View {
 // Mêmes réglages que Pay to Exist (tailles en px à l'écran, pour un vitrail de 1000 unités de rayon)
 const PHOTO_MIN_SIDE = 34 // en dessous, pas de photo
 const LABEL_NAME_MIN = 40 // rayon inscrit minimal pour afficher le nom
-const LABEL_MESSAGE_MIN = 70 // … et le message
+const LABEL_MESSAGE_MIN = 55 // … et le message
 const SIDE_FACTOR = 1.7725 // côté du carré de même aire qu'un disque de rayon 1 (√π) : échelle des seuils du verre
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 
@@ -86,6 +86,9 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
     paintEmpty(ctx, view.scale)
   } else {
     for (const [id, tile] of s.tiles) {
+      // Hors champ (zoom) : inutile de dessiner
+      const [x0, y0, x1, y1] = tile.bbox
+      if (x1 * view.scale + view.ox < -4 || x0 * view.scale + view.ox > s.width + 4 || y1 * view.scale + view.oy < -4 || y0 * view.scale + view.oy > s.height + 4) continue
       const piece = s.pieces.get(id)
       const sidePx = tile.equivRadius * view.scale * SIDE_FACTOR
       const focused = s.focusId === id
@@ -149,7 +152,67 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
   return lines
 }
 
-/** Nom (et message si la pièce est assez grande) au bas de la pièce quand elle a une photo, au centre sinon. */
+interface LabelLine {
+  text: string
+  font: string
+  color: string
+  shadow: boolean
+  y: number // haut de la ligne, relatif au centre du cercle utile
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+/**
+ * Dispose le nom (et le message) à l'intérieur du cercle utile du morceau, avec une marge : chaque ligne doit tenir dans la corde du cercle
+ * à sa hauteur. On essaie des polices de plus en plus petites jusqu'à ce que tout rentre ; si rien ne rentre, rien ne s'affiche.
+ */
+function layoutLabel(ctx: CanvasRenderingContext2D, name: string, message: string | null, hasPhoto: boolean, r: number, u: number): LabelLine[] | null {
+  const rs = r * 0.84 // rayon sûr : le texte ne s'approche jamais du plomb
+  const nameBase = clamp(r * 0.2, 12 * u, 44 * u)
+  const msgBase = clamp(r * 0.16, 10 * u, 34 * u)
+
+  const attempt = (withMsg: boolean): LabelLine[] | null => {
+    for (const k of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52, 0.45]) {
+      const ns = nameBase * k
+      const ms = msgBase * k
+      if (ns < 10 * u || (withMsg && ms < 9 * u)) break
+      for (const wf of withMsg ? [1.75, 1.5, 1.25, 1.05] : [1.75, 1.4]) {
+        const rows: { text: string; font: string; color: string; shadow: boolean; h: number }[] = []
+        ctx.font = `600 ${ns}px ${FONT}`
+        for (const t of wrapLines(ctx, name, rs * wf, 2)) rows.push({ text: t, font: ctx.font, color: '#fff', shadow: true, h: ns * 1.08 })
+        if (withMsg && message) {
+          ctx.font = `italic 400 ${ms}px ${FONT}`
+          const font = ctx.font
+          rows.push({ text: '', font, color: '', shadow: false, h: ms * 0.35 })
+          for (const t of wrapLines(ctx, `« ${message} »`, rs * wf * 0.92, 4)) rows.push({ text: t, font, color: 'rgba(255,255,255,0.9)', shadow: true, h: ms * 1.22 })
+        }
+        const H = rows.reduce((a, row) => a + row.h, 0)
+        let y = hasPhoto ? rs * 0.78 - H : -H / 2
+        const lines: LabelLine[] = []
+        let ok = true
+        for (const row of rows) {
+          if (row.text) {
+            ctx.font = row.font
+            const half = ctx.measureText(row.text).width / 2
+            const far = Math.max(Math.abs(y), Math.abs(y + row.h))
+            if (far >= rs || half > Math.sqrt(rs * rs - far * far)) {
+              ok = false
+              break
+            }
+            lines.push({ text: row.text, font: row.font, color: row.color, shadow: row.shadow, y })
+          }
+          y += row.h
+        }
+        if (ok) return lines
+      }
+    }
+    return null
+  }
+
+  return (message ? attempt(true) : null) ?? attempt(false)
+}
+
+/** Nom (et message si la pièce est assez grande) au bas de la pièce quand elle a une photo, au centre sinon. Toujours à l'intérieur du morceau. */
 function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
   const { view } = s
   const u = s.uiScale ?? 1
@@ -165,43 +228,23 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
     const sy = tile.labelCenter[1] * view.scale + view.oy
     if (sx < -r || sx > s.width + r || sy < -r || sy > s.height + r) continue
 
-    const showMessage = r >= LABEL_MESSAGE_MIN * u && !!piece.message
+    const message = r >= LABEL_MESSAGE_MIN * u && piece.message ? piece.message : null
     const hasPhoto = !!(piece.photoUrl && s.images.peek(piece.photoUrl))
-    const nameSize = Math.min(22 * u, Math.max(12 * u, r * 0.19))
-    const msgSize = Math.min(14 * u, Math.max(9 * u, r * 0.09))
+    const lines = layoutLabel(ctx, piece.name, message, hasPhoto, r, u)
+    if (!lines) continue
 
-    ctx.font = `600 ${nameSize}px ${FONT}`
-    const nameLines = wrapLines(ctx, piece.name, r * 1.6, 2)
-    const nameHeight = nameLines.length * nameSize
-    let total = nameHeight
-    if (showMessage) total += msgSize * 4.5
-
-    let y = hasPhoto ? sy + r - total - r * 0.18 : sy - total / 2
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'
-    ctx.shadowBlur = 8
-    ctx.shadowOffsetY = 1
-    ctx.fillStyle = '#fff'
-    for (const line of nameLines) {
-      ctx.fillText(line, sx, y)
-      y += nameSize
-    }
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
-
-    if (showMessage && piece.message) {
-      ctx.font = `400 ${msgSize * 0.8}px ${FONT}`
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'
-      ctx.fillText('•', sx, y)
-      y += msgSize * 0.9
-      ctx.font = `italic 400 ${msgSize}px ${FONT}`
-      ctx.fillStyle = 'rgba(255,255,255,0.85)'
-      const lines = wrapLines(ctx, piece.message, r * 1.1, 3)
-      lines.forEach((line, i) => {
-        const text = (i === 0 ? '« ' : '') + line + (i === lines.length - 1 ? ' »' : '')
-        ctx.fillText(text, sx, y)
-        y += msgSize * 1.2
-      })
+    for (const line of lines) {
+      ctx.font = line.font
+      ctx.fillStyle = line.color
+      if (line.shadow) {
+        ctx.shadowColor = 'rgba(0,0,0,0.85)'
+        ctx.shadowBlur = 8
+        ctx.shadowOffsetY = 1
+      }
+      ctx.fillText(line.text, sx, sy + line.y)
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetY = 0
     }
   }
 }

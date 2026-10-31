@@ -131,3 +131,8 @@ select {
 .tv-banner-out {
   animation: tv-out 0.5s ease-in both;
 }
+
+/* Écran : les panneaux s'effacent pendant un zoom sur un morceau (--zoom va de 0 à 1) */
+.tv-panel {
+  opacity: calc(1 - 0.65 * var(--zoom, 0));
+}
