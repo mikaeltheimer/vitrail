@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS } from '@/lib/render'
 import type { Tile } from '@/lib/tiling'
@@ -15,6 +16,15 @@ export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces:
   const images = useMemo(() => new ImageCache(), [])
   const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
   const [imageVersion, setImageVersion] = useState(0)
+  const [fontsVersion, setFontsVersion] = useState(0)
+
+  useEffect(() => {
+    let stopped = false
+    void ensureFonts().then(() => !stopped && setFontsVersion(v => v + 1))
+    return () => {
+      stopped = true
+    }
+  }, [])
 
   useEffect(() => {
     return images.subscribe(() => setImageVersion(v => v + 1))
@@ -46,7 +56,7 @@ export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces:
       height: size,
       focusId: highlightId ?? null,
     })
-  }, [tiles, pieces, images, imageVersion, highlightId, size])
+  }, [tiles, pieces, images, imageVersion, fontsVersion, highlightId, size])
 
   return <canvas ref={ref} style={{ width: size, height: size }} className="mx-auto block" aria-label="Le vitrail de l'école" />
 }

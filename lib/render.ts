@@ -1,4 +1,5 @@
 import { CONFIG } from './config'
+import { FONT_DISPLAY, FONT_SANS } from './fonts'
 import { drawGlassTile, glassColors } from './glass'
 import type { ImageCache } from './images'
 import { UNIVERSE_RADIUS, seedFromIds, type Tile, type TilingItem } from './tiling'
@@ -58,7 +59,6 @@ const LABEL_MESSAGE_MIN = 55 // … et le message
 const SIDE_FACTOR = 1.7725 // côté du carré de même aire qu'un disque de rayon 1 (√π) : échelle des seuils du verre
 /** Part du voile coloré du vitrail conservée sur une photo qui porte du texte (0 = photo en couleurs, 1 = photo entièrement teintée). */
 const LIFT_VEIL = 0.7
-const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 
 /**
  * Caméra de l'aperçu : tout le vitrail si le morceau est grand, sinon un zoom centré sur le morceau
@@ -177,15 +177,23 @@ interface LabelLine {
   color: string
   shadow: boolean
   y: number // haut de la ligne, relatif au centre du cercle utile
+  size: number
+  spacing: string
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-const LABEL_STYLE: Record<LabelRow['kind'], { weight: string; italic: boolean; color: string; line: number }> = {
-  small: { weight: '400', italic: false, color: 'rgba(255,255,255,0.85)', line: 1.25 },
-  name: { weight: '600', italic: false, color: '#fff', line: 1.08 },
-  amount: { weight: '700', italic: false, color: '#fff', line: 1.15 },
-  message: { weight: '400', italic: true, color: 'rgba(255,255,255,0.92)', line: 1.22 },
+// Typographie : le nom et le montant en empattements (Fraunces, chaleureux et sobre), les petites mentions en capitales espacées (DM Sans),
+// le message en italique. Couleurs chaudes (crème, or pâle) ; un contour sombre garde tout lisible sur n'importe quel verre.
+const LABEL_STYLE: Record<LabelRow['kind'], { family: string; weight: string; italic: boolean; color: string; line: number; upper: boolean; spacing: number }> = {
+  small: { family: FONT_SANS, weight: '500', italic: false, color: 'rgba(255,238,205,0.88)', line: 1.3, upper: true, spacing: 0.2 },
+  name: { family: FONT_DISPLAY, weight: '600', italic: false, color: '#fff8ea', line: 1.08, upper: false, spacing: 0 },
+  amount: { family: FONT_DISPLAY, weight: '700', italic: false, color: '#ffe7a0', line: 1.1, upper: false, spacing: 0 },
+  message: { family: FONT_DISPLAY, weight: '400', italic: true, color: 'rgba(255,248,235,0.94)', line: 1.22, upper: false, spacing: 0 },
+}
+type SpacingCtx = CanvasRenderingContext2D & { letterSpacing?: string }
+const setSpacing = (ctx: CanvasRenderingContext2D, value: string) => {
+  if ('letterSpacing' in ctx) (ctx as SpacingCtx).letterSpacing = value
 }
 const LABEL_MAX_LINES: Record<LabelRow['kind'], number> = { small: 1, name: 2, amount: 1, message: 4 }
 
@@ -208,17 +216,29 @@ export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasP
     for (const k of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52, 0.45]) {
       if (list.some(row => base[row.kind] * k < min[row.kind])) break
       for (const wf of [1.75, 1.5, 1.25, 1.05]) {
-        const built: { text: string; font: string; color: string; h: number; gap: number }[] = []
+        const built: { text: string; font: string; color: string; h: number; gap: number; size: number; spacing: string }[] = []
         for (const row of list) {
           const st = LABEL_STYLE[row.kind]
           const size = base[row.kind] * k
-          const font = `${st.italic ? 'italic ' : ''}${st.weight} ${size}px ${FONT}`
+          const font = `${st.italic ? 'italic ' : ''}${st.weight} ${size}px ${st.family}`
+          const spacing = st.spacing ? `${(st.spacing * size).toFixed(2)}px` : '0px'
           ctx.font = font
-          const text = row.kind === 'message' ? `« ${row.text} »` : row.text
+          setSpacing(ctx, spacing)
+          const text = row.kind === 'message' ? `« ${row.text} »` : st.upper ? row.text.toLocaleUpperCase('fr-CA') : row.text
           const width = rs * wf * (row.kind === 'message' ? 0.92 : 1)
           wrapLines(ctx, text, width, LABEL_MAX_LINES[row.kind]).forEach((t, i) =>
-            built.push({ text: t, font, color: st.color, h: size * st.line, gap: i === 0 && row.kind === 'message' ? size * 0.35 : 0 }),
+            built.push({
+              text: t,
+              font,
+              color: st.color,
+              h: size * st.line,
+              // un peu d'air avant le montant et avant le message
+              gap: i === 0 ? (row.kind === 'message' ? size * 0.4 : row.kind === 'amount' ? size * 0.12 : 0) : 0,
+              size,
+              spacing,
+            }),
           )
+          setSpacing(ctx, '0px')
         }
         const H = built.reduce((a, b) => a + b.h + b.gap, 0)
         let y = hasPhoto ? rs * 0.78 - H : -H / 2
@@ -227,13 +247,15 @@ export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasP
         for (const b of built) {
           y += b.gap
           ctx.font = b.font
+          setSpacing(ctx, b.spacing)
           const half = ctx.measureText(b.text).width / 2
+          setSpacing(ctx, '0px')
           const far = Math.max(Math.abs(y), Math.abs(y + b.h))
           if (far >= rs || half > Math.sqrt(rs * rs - far * far)) {
             ok = false
             break
           }
-          lines.push({ text: b.text, font: b.font, color: b.color, shadow: true, y })
+          lines.push({ text: b.text, font: b.font, color: b.color, shadow: true, y, size: b.size, spacing: b.spacing })
           y += b.h
         }
         if (ok) return lines
@@ -281,11 +303,12 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
       let maxY = -Infinity
       let maxHalf = 0
       for (const line of lines) {
-        const size = parseFloat(/(\d+(\.\d+)?)px/.exec(line.font)?.[1] ?? '16')
         ctx.font = line.font
+        setSpacing(ctx, line.spacing)
         minY = Math.min(minY, line.y)
-        maxY = Math.max(maxY, line.y + size * 1.1)
+        maxY = Math.max(maxY, line.y + line.size * 1.1)
         maxHalf = Math.max(maxHalf, ctx.measureText(line.text).width / 2)
+        setSpacing(ctx, '0px')
       }
       ctx.save()
       ctx.setTransform(s.dpr * view.scale, 0, 0, s.dpr * view.scale, s.dpr * view.ox, s.dpr * view.oy)
@@ -304,14 +327,23 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
 
     for (const line of lines) {
       ctx.font = line.font
+      setSpacing(ctx, line.spacing)
+      const x = sx + parseFloat(line.spacing) / 2 // le dernier espacement de lettre est à droite du mot : on recentre
+      const y = sy + line.y
+      // Contour sombre doux, puis ombre, puis le texte : lisible sur tous les verres
+      ctx.lineJoin = 'round'
+      ctx.lineWidth = Math.max(1.2, line.size * 0.1)
+      ctx.strokeStyle = 'rgba(8,5,14,0.45)'
+      ctx.strokeText(line.text, x, y)
       ctx.fillStyle = line.color
-      ctx.shadowColor = 'rgba(0,0,0,0.85)'
+      ctx.shadowColor = 'rgba(0,0,0,0.7)'
       ctx.shadowBlur = 8
       ctx.shadowOffsetY = 1
-      ctx.fillText(line.text, sx, sy + line.y)
+      ctx.fillText(line.text, x, y)
       ctx.shadowColor = 'transparent'
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
+      setSpacing(ctx, '0px')
     }
   }
   ctx.globalAlpha = 1

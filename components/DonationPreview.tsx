@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CONFIG } from '@/lib/config'
+import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
 import { drawScene, focusView, pieceMap, tilePieces } from '@/lib/render'
 import type { Tile } from '@/lib/tiling'
@@ -30,6 +31,15 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
   const images = useMemo(() => new ImageCache(), [])
   const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
   const [imageVersion, setImageVersion] = useState(0)
+  const [fontsVersion, setFontsVersion] = useState(0)
+
+  useEffect(() => {
+    let stopped = false
+    void ensureFonts().then(() => !stopped && setFontsVersion(v => v + 1))
+    return () => {
+      stopped = true
+    }
+  }, [])
 
   const amount = Math.max(draft.amountCents, CONFIG.minAmountCents)
   const draftId = draft.donorId ?? DRAFT_ID
@@ -85,7 +95,7 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
       height: size,
       focusId: draftId,
     })
-  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, size])
+  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size])
 
   return (
     <figure className="m-0">

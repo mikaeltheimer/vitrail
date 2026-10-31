@@ -6,6 +6,7 @@ import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { hitTile, type Tile } from '@/lib/tiling'
+import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
 import { drawScene, layoutRows, pieceMap, tilePieces, UNIVERSE_RADIUS, type LabelRow, type PieceMap } from '@/lib/render'
 import type { Snapshot } from '@/lib/types'
@@ -427,6 +428,17 @@ export default function EcranPage() {
     }
   }, [apply, layout])
 
+  // ── Polices chargées : on redessine le verre avec les vraies polices ──
+  useEffect(() => {
+    let stopped = false
+    void ensureFonts().then(() => {
+      if (!stopped && world.R > 0) world.layer = buildLayer(world)
+    })
+    return () => {
+      stopped = true
+    }
+  }, [world])
+
   // ── Une photo vient d'arriver : on redessine le verre (regroupé, sans fondu) ──
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -649,10 +661,10 @@ export default function EcranPage() {
 
       {/* En-tête */}
       <div className="tv-panel absolute" style={{ left: '2.5em', top: '2em', maxWidth: '24em' }}>
-        <div className="muted" style={{ fontSize: '1.05em', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+        <div className="muted tv-kicker" style={{ fontSize: '1em' }}>
           {CONFIG.orgName}
         </div>
-        <div style={{ fontSize: '3em', fontWeight: 700, lineHeight: 1.05, marginTop: '0.2em' }}>{CONFIG.appName}</div>
+        <div className="tv-display" style={{ fontSize: '3.1em', fontWeight: 600, lineHeight: 1.04, marginTop: '0.2em' }}>{CONFIG.appName}</div>
         {event && (
           <div className="muted" style={{ fontSize: '1.4em', marginTop: '0.5em' }}>
             {event.name}
@@ -665,7 +677,7 @@ export default function EcranPage() {
         <div className="muted" style={{ fontSize: '1.1em' }}>
           Total amassé
         </div>
-        <div style={{ fontSize: '4.2em', fontWeight: 700, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalShown)}</div>
+        <div className="tv-display" style={{ fontSize: '4.2em', fontWeight: 700, lineHeight: 1.05, fontVariantNumeric: 'lining-nums tabular-nums' }}>{formatMoney(totalShown)}</div>
         <div className="muted" style={{ fontSize: '1.1em', marginTop: '0.3em' }}>
           {snap ? `${snap.pieces.length} morceau${snap.pieces.length > 1 ? 'x' : ''} de verre` : ''}
         </div>
@@ -699,7 +711,7 @@ export default function EcranPage() {
       {/* Vitrail vide */}
       {empty && (
         <div className="absolute text-center" style={{ left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '22em' }}>
-          <div style={{ fontSize: '1.8em', fontWeight: 650 }}>Le vitrail attend sa première pièce</div>
+          <div className="tv-display" style={{ fontSize: '1.9em', fontWeight: 600 }}>Le vitrail attend sa première pièce</div>
           <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.5em' }}>
             Scannez le code pour donner et voir votre morceau de verre apparaître.
           </div>
@@ -732,10 +744,10 @@ export default function EcranPage() {
               style={{ width: '5.5em', height: '5.5em', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 0.6em', display: 'block', border: '0.15em solid #f5c451' }}
             />
           )}
-          <div style={{ fontSize: '1.2em' }}>{banner.title}</div>
-          <div style={{ fontSize: '2.6em', fontWeight: 700, color: '#f5c451', lineHeight: 1.1 }}>{banner.amount}</div>
+          <div className="tv-display" style={{ fontSize: '1.3em', fontWeight: 600 }}>{banner.title}</div>
+          <div className="tv-display" style={{ fontSize: '2.6em', fontWeight: 700, color: '#ffe7a0', lineHeight: 1.1 }}>{banner.amount}</div>
           {banner.caption && <div className="muted" style={{ fontSize: '0.95em' }}>{banner.caption}</div>}
-          {banner.message && <div className="muted" style={{ fontSize: '1.1em', marginTop: '0.3em' }}>« {banner.message} »</div>}
+          {banner.message && <div className="tv-display" style={{ fontSize: '1.15em', marginTop: '0.3em', fontStyle: 'italic', opacity: 0.85 }}>« {banner.message} »</div>}
         </div>
       )}
 

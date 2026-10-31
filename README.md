@@ -66,6 +66,10 @@ L'annonce est **écrite sur le morceau agrandi** : « Merci à / nom / montant /
 
 Les noms et messages sur le verre sont toujours placés **à l'intérieur** du morceau, avec une marge : la police est réduite jusqu'à ce que chaque ligne tienne dans le cercle utile du morceau, et rien ne s'affiche si ça ne rentre pas.
 
+## Typographie
+
+Deux familles, auto-hébergées (paquets `@fontsource`, aucune requête externe : l'écran n'en dépend pas du Wi-Fi) : **Fraunces** (empattements, doux et sobre) pour les noms, les montants, les messages (en italique) et les titres, et **DM Sans** pour les petites mentions en capitales espacées (« MERCI À », « AU TOTAL ») et l'interface. Couleurs chaudes : crème pour les noms, or pâle pour les montants, avec un fin contour sombre pour la lisibilité sur n'importe quel verre. Les définitions sont dans `lib/fonts.ts` (familles) et `lib/render.ts` (`LABEL_STYLE` : tailles, graisses, couleurs, espacement).
+
 ## Le jour J
 
 - Ordinateur de l'écran **sur câble Ethernet** si possible ; sinon Wi-Fi + partage de connexion en plan B.

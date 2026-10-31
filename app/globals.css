@@ -19,7 +19,7 @@ body {
   background: var(--bg);
   color: var(--text);
   /* Polices du système : l'écran d'affichage ne doit dépendre d'aucun service externe. */
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -101,6 +101,14 @@ select {
 }
 
 /* ── Écran d'affichage : tailles proportionnelles à l'écran (1 em ≈ 1/54 de la hauteur en 16:9) ── */
+.tv-display {
+  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+.tv-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 500;
+}
 .tv {
   font-size: min(1.1vw, 1.95vh);
   line-height: 1.25;
