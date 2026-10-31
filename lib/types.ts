@@ -5,6 +5,8 @@ export interface Piece {
   /** Null si le donateur n'a pas consenti à l'affichage de son nom. */
   name: string | null
   message: string | null
+  /** Adresse de la photo, ou null (jamais sans consentement d'affichage). */
+  photoUrl: string | null
   color: string
   amountCents: number
 }
@@ -14,6 +16,7 @@ export interface RecentDonation {
   donorId: string
   name: string | null
   message: string | null
+  photoUrl: string | null
   amountCents: number
   at: string
 }

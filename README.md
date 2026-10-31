@@ -50,6 +50,14 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 - **Modération** : *Masquer* retire le morceau de l'écran en 3 s ; l'argent reste compté dans les totaux. *Effacer le nom* garde le morceau mais le rend anonyme. Les liens sont refusés dans le nom et le message.
 - **Reçus fiscaux** : l'école n'est pas encore un organisme enregistré. La page de don et le courriel de confirmation le disent. Plus tard : ajouter adresse, numéro de reçu (sur `donors` et `donations`).
 
+## Photos et aperçu
+
+- À la page de don, le donateur peut ajouter une photo (recadrée en carré et réduite à ≤ 768 px dans son navigateur, JPEG ≤ 700 Ko). Elle n'est affichée que s'il consent à afficher son nom.
+- Un **aperçu** montre le vrai vitrail avec le morceau à venir (taille, couleur, nom, message, photo), cerclé d'or. La position exacte peut bouger quand d'autres dons arrivent.
+- Sur l'écran, comme dans Pay to Exist : plus le morceau est grand, plus il montre (couleur → photo → nom → message). Seuils réglables dans `lib/config.ts` (`photoColorFromPx`, `photoColorToPx`).
+- **Base de données** : exécuter `supabase/migrations/2026-10-31-photos.sql` dans le SQL Editor de Supabase (colonne `photo_url` + bucket public `photos`). Un nouveau projet qui part de `supabase/schema.sql` l'a déjà.
+- **Modération** : la console admin affiche les photos et permet « Retirer la photo » ou « Effacer le nom » (efface aussi la photo). À prévoir avant l'événement : quelqu'un qui surveille la console.
+
 ## Le jour J
 
 - Ordinateur de l'écran **sur câble Ethernet** si possible ; sinon Wi-Fi + partage de connexion en plan B.

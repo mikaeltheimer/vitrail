@@ -22,6 +22,14 @@ export const CONFIG = {
    */
   minRelativeToMean: 0.4,
 
+  /**
+   * Photos : une pièce montre sa photo « peinte » (grisaille teintée par la couleur du verre) tant qu'elle est petite, puis la vraie
+   * photo en couleur entre ces deux tailles (côté du carré de même aire, en px à l'écran). Pay to Exist : 220 → 380.
+   * Ici plus tôt, car sur un écran de 1080p presque aucune pièce n'atteint 220 px.
+   */
+  photoColorFromPx: 110,
+  photoColorToPx: 230,
+
   nameMax: 30,
   messageMax: 100,
   /** Afficher les messages sur le grand écran. Dans une école, on peut le couper ici ou masquer en direct depuis l'admin. */

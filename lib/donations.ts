@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { getDb } from './db'
 import { paymentMode } from './env'
 import { ANON_LABEL } from './config'
+import { removePhotoFile } from './photos'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
 
@@ -74,7 +75,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   if (!donor) {
     const { data, error } = await db
       .from('donors')
-      .insert({ email: i.email, display_name: i.profile.name, show_name: i.profile.showName, message: i.profile.message, color: i.color })
+      .insert({ email: i.email, display_name: i.profile.name, show_name: i.profile.showName, message: i.profile.message, photo_url: i.profile.photoUrl, color: i.color })
       .select('id,email')
       .single()
     if (error) {
@@ -102,16 +103,19 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   return { donationId: donation.id, donorId: donor.id, duplicate: false }
 }
 
-export async function updateDonorProfile(donorId: string, profile: DonorProfileInput, color?: string): Promise<void> {
+export async function updateDonorProfile(donorId: string, profile: DonorProfileInput, color?: string, previousPhotoUrl?: string | null): Promise<void> {
   const patch: Record<string, unknown> = {
     display_name: profile.name,
     show_name: profile.showName,
     message: profile.message,
+    photo_url: profile.photoUrl,
     updated_at: new Date().toISOString(),
   }
   if (color) patch.color = color
   const { error } = await getDb().from('donors').update(patch).eq('id', donorId)
   if (error) throw error
+  // L'ancienne photo, remplacée ou retirée, quitte le stockage (après la mise à jour, jamais avant)
+  if (previousPhotoUrl && previousPhotoUrl !== profile.photoUrl) await removePhotoFile(previousPhotoUrl)
 }
 
 // ── Liens magiques ─────────────────────────────────────────────────────────────
@@ -139,6 +143,7 @@ export interface DonorView {
   showName: boolean
   name: string
   message: string | null
+  photoUrl: string | null
   color: string
   totalCents: number
 }
@@ -153,7 +158,7 @@ export async function resolveToken(token: string): Promise<DonorView | null> {
 
 export async function getDonorView(donorId: string): Promise<DonorView | null> {
   const db = getDb()
-  const { data: d } = await db.from('donors').select('id,email,display_name,show_name,message,color').eq('id', donorId).maybeSingle()
+  const { data: d } = await db.from('donors').select('id,email,display_name,show_name,message,photo_url,color').eq('id', donorId).maybeSingle()
   if (!d) return null
   const { data: t } = await db.from('donor_totals').select('total_cents').eq('donor_id', donorId).maybeSingle()
   return {
@@ -162,6 +167,7 @@ export async function getDonorView(donorId: string): Promise<DonorView | null> {
     showName: d.show_name,
     name: d.display_name,
     message: d.message,
+    photoUrl: d.photo_url,
     color: d.color,
     totalCents: Number(t?.total_cents ?? 0),
   }
@@ -189,6 +195,7 @@ interface DonorPublicRow {
   display_name: string
   show_name: boolean
   message: string | null
+  photo_url: string | null
   color: string
   hidden: boolean
 }
@@ -196,13 +203,13 @@ interface DonorPublicRow {
 export async function getSnapshot(): Promise<Snapshot> {
   const db = getDb()
   const [donors, totals, currentRes, grandRes, recentRes] = await Promise.all([
-    fetchAll<DonorPublicRow>('donors', 'id,display_name,show_name,message,color,hidden'),
+    fetchAll<DonorPublicRow>('donors', 'id,display_name,show_name,message,photo_url,color,hidden'),
     fetchAll<{ donor_id: string; total_cents: number | string }>('donor_totals', 'donor_id,total_cents'),
     db.from('events').select('id,name,goal_cents').eq('is_current', true).maybeSingle(),
     db.from('grand_total').select('total_cents,donations_count').maybeSingle(),
     db
       .from('donations')
-      .select('id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,hidden)')
+      .select('id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,photo_url,hidden)')
       .order('created_at', { ascending: false })
       .limit(15),
   ])
@@ -216,6 +223,7 @@ export async function getSnapshot(): Promise<Snapshot> {
       id: d.id,
       name: d.show_name ? d.display_name : null,
       message: d.show_name ? d.message : null,
+      photoUrl: d.show_name ? d.photo_url : null,
       color: d.color,
       amountCents: totalByDonor.get(d.id) ?? 0,
     }))
@@ -232,12 +240,13 @@ export async function getSnapshot(): Promise<Snapshot> {
     }
   }
 
+  type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; hidden: boolean }
   type RecentRow = {
     id: string
     donor_id: string
     amount_cents: number
     created_at: string
-    donors: { display_name: string; show_name: boolean; message: string | null; hidden: boolean } | { display_name: string; show_name: boolean; message: string | null; hidden: boolean }[]
+    donors: RecentDonor | RecentDonor[]
   }
   const recent: RecentDonation[] = ((recentRes.data ?? []) as unknown as RecentRow[])
     .map(r => ({ r, d: Array.isArray(r.donors) ? r.donors[0] : r.donors }))
@@ -247,6 +256,7 @@ export async function getSnapshot(): Promise<Snapshot> {
       donorId: r.donor_id,
       name: d.show_name ? d.display_name : null,
       message: d.show_name ? d.message : null,
+      photoUrl: d.show_name ? d.photo_url : null,
       amountCents: r.amount_cents,
       at: r.created_at,
     }))

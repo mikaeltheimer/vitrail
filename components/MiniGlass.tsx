@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { colorMap, paintEmptyGlass, paintGlass, tilePieces, UNIVERSE_RADIUS } from '@/lib/render'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ImageCache } from '@/lib/images'
+import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS } from '@/lib/render'
+import type { Tile } from '@/lib/tiling'
 import type { Piece } from '@/lib/types'
 
 /**
@@ -10,47 +12,41 @@ import type { Piece } from '@/lib/types'
  */
 export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces: Piece[]; highlightId?: string | null; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const images = useMemo(() => new ImageCache(), [])
+  const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
+  const [imageVersion, setImageVersion] = useState(0)
+
+  useEffect(() => {
+    return images.subscribe(() => setImageVersion(v => v + 1))
+  }, [images])
 
   useEffect(() => {
     let cancelled = false
-    const canvas = ref.current
-    if (!canvas) return
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    canvas.width = size * dpr
-    canvas.height = size * dpr
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const scale = (size / 2 - 4) / UNIVERSE_RADIUS
-
-    tilePieces(pieces).then(tiles => {
-      if (cancelled) return
-      ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.setTransform(scale * dpr, 0, 0, scale * dpr, (size / 2) * dpr, (size / 2) * dpr)
-      if (tiles.size === 0) {
-        paintEmptyGlass(ctx, scale)
-        return
-      }
-      paintGlass(ctx, tiles, colorMap(pieces), scale)
-      const mine = highlightId ? tiles.get(highlightId) : null
-      if (mine?.path) {
-        // Tout le reste s'assombrit, le morceau de la personne garde sa lumière et reçoit un liseré doré
-        ctx.save()
-        ctx.beginPath()
-        ctx.rect(-UNIVERSE_RADIUS, -UNIVERSE_RADIUS, UNIVERSE_RADIUS * 2, UNIVERSE_RADIUS * 2)
-        ctx.fillStyle = 'rgba(5,4,8,0.55)'
-        for (const [id, t] of tiles) if (id !== highlightId && t.path) ctx.fill(t.path)
-        ctx.restore()
-        ctx.lineJoin = 'round'
-        ctx.lineWidth = 4 / scale
-        ctx.strokeStyle = '#f5c451'
-        ctx.stroke(mine.path)
-      }
-    })
+    tilePieces(pieces).then(t => !cancelled && setTiles(t))
     return () => {
       cancelled = true
     }
-  }, [pieces, highlightId, size])
+  }, [pieces])
+
+  useEffect(() => {
+    const canvas = ref.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx || !tiles) return
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    canvas.width = size * dpr
+    canvas.height = size * dpr
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    drawScene(ctx, {
+      tiles,
+      pieces: pieceMap(pieces),
+      images,
+      view: { scale: (size / 2 - 4) / UNIVERSE_RADIUS, ox: size / 2, oy: size / 2 },
+      dpr,
+      width: size,
+      height: size,
+      focusId: highlightId ?? null,
+    })
+  }, [tiles, pieces, images, imageVersion, highlightId, size])
 
   return <canvas ref={ref} style={{ width: size, height: size }} className="mx-auto block" aria-label="Le vitrail de l'école" />
 }

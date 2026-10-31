@@ -1,4 +1,8 @@
-import { ANON_LABEL, CONFIG, VALID_COLORS, GLASS_COLORS } from './config'
+import { defaultColorFor } from './colors'
+import { ANON_LABEL, CONFIG, VALID_COLORS } from './config'
+import { validatePhotoPath } from './photos'
+
+export { defaultColorFor }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string }
 
@@ -49,29 +53,23 @@ export function validateColor(input: unknown): Result<string> {
   return { ok: true, value: input }
 }
 
-/** Couleur de départ, stable pour un courriel donné. */
-export function defaultColorFor(email: string): string {
-  let h = 2166136261
-  for (let i = 0; i < email.length; i++) {
-    h ^= email.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return GLASS_COLORS[(h >>> 0) % GLASS_COLORS.length].value
-}
-
 export interface DonorProfileInput {
   showName: boolean
   name: string
   message: string | null
+  /** Adresse publique de la photo (bucket « photos »), ou null. Jamais présente sans showName. */
+  photoUrl: string | null
 }
 
-/** Nom et message d'un profil. Sans consentement d'affichage, le nom est « Anonyme » et le message est vide. */
-export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown }): Result<DonorProfileInput> {
+/** Nom, message et photo d'un profil. Sans consentement d'affichage : « Anonyme », ni message ni photo. */
+export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown }): Result<DonorProfileInput> {
   const showName = raw.showName === true
-  if (!showName) return { ok: true, value: { showName: false, name: ANON_LABEL, message: null } }
+  if (!showName) return { ok: true, value: { showName: false, name: ANON_LABEL, message: null, photoUrl: null } }
   const name = validateName(raw.name)
   if (!name.ok) return name
   const message = validateMessage(raw.message)
   if (!message.ok) return message
-  return { ok: true, value: { showName: true, name: name.value, message: message.value } }
+  const photo = validatePhotoPath(raw.photoPath)
+  if (!photo.ok) return photo
+  return { ok: true, value: { showName: true, name: name.value, message: message.value, photoUrl: photo.value } }
 }

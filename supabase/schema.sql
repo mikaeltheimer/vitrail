@@ -24,6 +24,7 @@ create table if not exists public.donors (
   display_name  text not null default 'Anonyme',
   show_name     boolean not null default false,   -- consentement à l'affichage public du nom
   message       text,
+  photo_url     text,                             -- photo (bucket « photos »), affichée seulement avec show_name
   color         text not null,
   hidden        boolean not null default false,   -- masqué en direct par l'admin
   created_at    timestamptz not null default now(),
@@ -81,3 +82,10 @@ alter table public.edit_tokens enable row level security;
 
 revoke all on public.events, public.donors, public.donations, public.edit_tokens from anon, authenticated;
 revoke all on public.donor_totals, public.event_totals, public.grand_total from anon, authenticated;
+
+-- ── Photos des donateurs ─────────────────────────────────────────────────
+-- Bucket public en lecture (les photos s'affichent sur l'écran), écriture par le serveur seulement.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('photos', 'photos', true, 1048576, array['image/jpeg'])
+on conflict (id) do update
+  set public = true, file_size_limit = 1048576, allowed_mime_types = array['image/jpeg'];

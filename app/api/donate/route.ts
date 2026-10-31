@@ -33,13 +33,13 @@ export async function POST(request: NextRequest) {
     const donor = await resolveToken(body.token)
     if (!donor) return fail('Ce lien a expiré. Demandez-en un nouveau.', 400)
     email = donor.email
-    profile = { showName: donor.showName, name: donor.name, message: donor.message }
+    profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl }
     color = donor.color
   } else {
     const e = validateEmail(body.email)
     if (!e.ok) return fail(e.error)
     email = e.value
-    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message })
+    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath })
     if (!p.ok) return fail(p.error)
     profile = p.value
     const c = validateColor(body.color)

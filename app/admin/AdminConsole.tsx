@@ -11,6 +11,7 @@ interface Donor {
   display_name: string
   show_name: boolean
   message: string | null
+  photo_url: string | null
   color: string
   hidden: boolean
   totalCents: number
@@ -25,13 +26,19 @@ interface EventRow {
   totalCents: number
   donationsCount: number
 }
+interface DonationDonor {
+  display_name: string
+  email: string
+  hidden: boolean
+  photo_url: string | null
+}
 interface DonationRow {
   id: string
   donor_id: string
   amount_cents: number
   source: string
   created_at: string
-  donors: { display_name: string; email: string; hidden: boolean } | { display_name: string; email: string; hidden: boolean }[] | null
+  donors: DonationDonor | DonationDonor[] | null
 }
 interface Data {
   mode: 'stripe' | 'demo' | 'off'
@@ -139,7 +146,11 @@ export default function AdminConsole() {
             const d = one(n.donors)
             return (
               <div key={n.id} className="card flex items-center justify-between gap-3 !p-3">
-                <div className="min-w-0 text-sm">
+                {d?.photo_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={d.photo_url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                )}
+                <div className="min-w-0 flex-1 text-sm">
                   <div className="truncate">
                     <b>{formatMoney(n.amount_cents)}</b> · {d?.display_name ?? '—'} {d?.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
                   </div>
@@ -148,7 +159,12 @@ export default function AdminConsole() {
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <button className="chip !px-3 text-sm" onClick={() => act({ action: 'scrubDonor', donorId: n.donor_id }, 'Nom et message effacés.')}>
+                  {d?.photo_url && (
+                    <button className="chip !px-3 text-sm" onClick={() => act({ action: 'removePhoto', donorId: n.donor_id }, 'Photo retirée.')}>
+                      Retirer la photo
+                    </button>
+                  )}
+                  <button className="chip !px-3 text-sm" onClick={() => act({ action: 'scrubDonor', donorId: n.donor_id }, 'Nom, message et photo effacés.')}>
                     Effacer le nom
                   </button>
                   <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: n.donor_id, hidden: !d?.hidden })}>
@@ -177,7 +193,12 @@ export default function AdminConsole() {
           {donorsFiltered.map(d => (
             <div key={d.id} className="card flex items-center justify-between gap-3 !p-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: d.color, opacity: d.hidden ? 0.3 : 1 }} />
+                {d.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={d.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" style={{ opacity: d.hidden ? 0.3 : 1 }} />
+                ) : (
+                  <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: d.color, opacity: d.hidden ? 0.3 : 1 }} />
+                )}
                 <div className="min-w-0 text-sm">
                   <div className="truncate">
                     <b>{d.display_name}</b> · {formatMoney(d.totalCents)} {d.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
@@ -198,6 +219,11 @@ export default function AdminConsole() {
                   </button>
                 ) : (
                   <>
+                    {d.photo_url && (
+                      <button className="chip !px-3 text-sm" onClick={() => act({ action: 'removePhoto', donorId: d.id }, 'Photo retirée.')}>
+                        Retirer la photo
+                      </button>
+                    )}
                     <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: d.id, hidden: !d.hidden })}>
                       {d.hidden ? 'Réafficher' : 'Masquer'}
                     </button>

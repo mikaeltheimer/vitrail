@@ -63,6 +63,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       showName: req.profile.showName ? '1' : '0',
       name: req.profile.name,
       message: req.profile.message ?? '',
+      photo: req.profile.photoUrl ?? '',
       color: req.color,
     },
     success_url: `${siteUrl()}/merci?ref={CHECKOUT_SESSION_ID}`,

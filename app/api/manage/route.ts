@@ -13,10 +13,12 @@ export async function POST(request: NextRequest) {
   if (!donor) return NextResponse.json({ error: 'Ce lien a expiré. Demandez-en un nouveau.' }, { status: 401 })
 
   if (body.action === 'update') {
-    const profile = validateProfile({ showName: body.showName, name: body.name, message: body.message })
+    const profile = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath })
     if (!profile.ok) return NextResponse.json({ error: profile.error }, { status: 400 })
+    // photoPath absent = on garde la photo actuelle ; vide = on la retire ; un chemin = nouvelle photo
+    if (profile.value.showName && body.photoPath === undefined) profile.value.photoUrl = donor.photoUrl
     const color = validateColor(body.color)
-    await updateDonorProfile(donor.id, profile.value, color.ok ? color.value : undefined)
+    await updateDonorProfile(donor.id, profile.value, color.ok ? color.value : undefined, donor.photoUrl)
     return NextResponse.json({ ok: true })
   }
 
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
     showName: donor.showName,
     name: donor.showName ? donor.name : '',
     message: donor.message ?? '',
+    photoUrl: donor.photoUrl,
     color: donor.color,
     totalCents: donor.totalCents,
   })

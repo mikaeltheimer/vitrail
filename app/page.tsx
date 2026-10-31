@@ -3,6 +3,9 @@
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
+import DonationPreview from '@/components/DonationPreview'
+import PhotoField, { type PhotoValue } from '@/components/PhotoField'
+import { defaultColorFor } from '@/lib/colors'
 import { formatMoney } from '@/lib/format'
 import type { Snapshot } from '@/lib/types'
 
@@ -10,6 +13,7 @@ import type { Snapshot } from '@/lib/types'
 // Avec un lien magique (?t=…), le donateur est reconnu : il n'a qu'à choisir un montant pour agrandir son morceau.
 
 interface KnownDonor {
+  donorId: string
   name: string
   showName: boolean
   color: string
@@ -37,6 +41,8 @@ function DonForm() {
   const [message, setMessage] = useState('')
   // Sans choix du donateur, le serveur attribue une couleur à partir du courriel
   const [color, setColor] = useState<string | null>(null)
+  const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [known, setKnown] = useState<KnownDonor | null>(null)
   const [linkExpired, setLinkExpired] = useState(false)
   const token = linkExpired ? null : tokenParam
@@ -50,7 +56,7 @@ function DonForm() {
     if (!tokenParam) return
     fetch('/api/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: tokenParam }) })
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(d => setKnown({ name: d.name, showName: d.showName, color: d.color, totalCents: d.totalCents }))
+      .then(d => setKnown({ donorId: d.donorId, name: d.name, showName: d.showName, color: d.color, totalCents: d.totalCents }))
       .catch(() => setLinkExpired(true))
   }, [tokenParam])
 
@@ -81,7 +87,7 @@ function DonForm() {
   const mode = snap?.mode
   const event = snap?.event ?? null
   const goalPct = event && event.goalCents > 0 ? Math.min(100, Math.round((event.totalCents / event.goalCents) * 100)) : 0
-  const canSubmit = !busy && mode !== 'off' && amountCents >= CONFIG.minAmountCents && (token || email.includes('@')) && (!showName || name.trim().length >= 2)
+  const canSubmit = !busy && !photoBusy && mode !== 'off' && amountCents >= CONFIG.minAmountCents && (token || email.includes('@')) && (!showName || name.trim().length >= 2)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -91,7 +97,7 @@ function DonForm() {
       const res = await fetch('/api/donate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(token ? { token, amountCents } : { email, amountCents, showName, name, message, color: color ?? undefined }),
+        body: JSON.stringify(token ? { token, amountCents } : { email, amountCents, showName, name, message, color: color ?? undefined, photoPath: showName ? photo.path ?? undefined : undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur inattendue.')
@@ -215,7 +221,7 @@ function DonForm() {
               <label className="flex cursor-pointer items-start gap-3 text-sm">
                 <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
                 <span>
-                  <b>Afficher mon nom sur l&apos;écran</b>
+                  <b>Afficher mon nom et ma photo sur l&apos;écran</b>
                   <span className="muted block">Sinon, votre don apparaît comme « Anonyme ».</span>
                 </span>
               </label>
@@ -224,6 +230,7 @@ function DonForm() {
                 <div className="mt-3 space-y-3">
                   <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" />
                   <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
+                  <PhotoField value={photo} onChange={setPhoto} onBusyChange={setPhotoBusy} />
                 </div>
               )}
             </div>
@@ -247,6 +254,24 @@ function DonForm() {
               </div>
             </fieldset>
           </>
+        )}
+
+        {snap && (
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">Votre morceau de verre</h2>
+            <DonationPreview
+              pieces={snap.pieces}
+              draft={{
+                donorId: known?.donorId ?? null,
+                showName,
+                name,
+                message,
+                photoSrc: photo.src,
+                color: color ?? (token && known ? known.color : defaultColorFor(email.trim().toLowerCase())),
+                amountCents,
+              }}
+            />
+          </section>
         )}
 
         {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}

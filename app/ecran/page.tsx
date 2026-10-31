@@ -6,7 +6,8 @@ import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { hitTile, type Tile } from '@/lib/tiling'
-import { colorMap, paintEmptyGlass, paintGlass, tilePieces, UNIVERSE_RADIUS } from '@/lib/render'
+import { ImageCache } from '@/lib/images'
+import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import type { Snapshot } from '@/lib/types'
 
 // Écran d'affichage plein écran : le vitrail, le total, le QR code, et une animation à chaque nouveau don.
@@ -22,6 +23,7 @@ const RELOAD_MS = 6 * 60 * 60 * 1000
 
 interface Banner {
   id: string
+  photoUrl: string | null
   title: string
   message: string | null
   amount: string
@@ -30,7 +32,8 @@ interface Banner {
 
 interface World {
   tiles: Map<string, Tile>
-  colors: Map<string, string>
+  pieces: PieceMap
+  images: ImageCache
   layer: HTMLCanvasElement | null
   prevLayer: HTMLCanvasElement | null
   fadeStart: number
@@ -50,10 +53,17 @@ function buildLayer(w: World): HTMLCanvasElement {
   layer.width = layer.height = size
   const ctx = layer.getContext('2d')
   if (!ctx) return layer
-  const scale = w.R / UNIVERSE_RADIUS
-  ctx.setTransform(scale * w.dpr, 0, 0, scale * w.dpr, size / 2, size / 2)
-  if (w.tiles.size) paintGlass(ctx, w.tiles, w.colors, scale)
-  else paintEmptyGlass(ctx, scale)
+  // La couche couvre le disque du vitrail : le centre du monde est au milieu de la couche
+  drawScene(ctx, {
+    tiles: w.tiles,
+    pieces: w.pieces,
+    images: w.images,
+    view: { scale: w.R / UNIVERSE_RADIUS, ox: w.R, oy: w.R },
+    dpr: w.dpr,
+    width: w.R * 2,
+    height: w.R * 2,
+    uiScale: w.R / 475, // les seuils et les polices sont réglés pour un vitrail de 475 px de rayon (écran 1080p)
+  })
   return layer
 }
 
@@ -83,7 +93,8 @@ export default function EcranPage() {
   const world = useMemo<World>(
     () => ({
       tiles: new Map(),
-      colors: new Map(),
+      pieces: new Map(),
+      images: new ImageCache(),
       layer: null,
       prevLayer: null,
       fadeStart: 0,
@@ -171,6 +182,7 @@ export default function EcranPage() {
             if (seen.current.has(d.id)) continue
             bannerQueue.current.push({
               id: d.id,
+              photoUrl: d.photoUrl,
               title: d.name ? `${d.name} vient de donner` : 'Un don anonyme',
               message: CONFIG.showMessagesOnScreen ? d.message : null,
               amount: formatMoney(d.amountCents),
@@ -186,10 +198,10 @@ export default function EcranPage() {
           const tiles = await tilePieces(s.pieces)
           world.prevLayer = isFirst ? null : world.layer
           world.tiles = tiles
-          world.colors = colorMap(s.pieces)
+          world.pieces = pieceMap(s.pieces, CONFIG.showMessagesOnScreen)
           world.layer = buildLayer(world)
           world.fadeStart = performance.now()
-          const colorOf = (t: Tile): GlassColors => glassColors(world.colors.get(t.id) ?? '#f472b6', t.id)
+          const colorOf = (t: Tile): GlassColors => glassColors(world.pieces.get(t.id)?.color ?? '#f472b6', t.id)
           world.ambience.rebuild(tiles.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
             const t = hitTile(tiles.values(), x, y)
             return t ? colorOf(t) : null
@@ -263,6 +275,21 @@ export default function EcranPage() {
       window.removeEventListener('online', onOnline)
     }
   }, [apply, layout])
+
+  // ── Une photo vient d'arriver : on redessine le verre (regroupé, sans fondu) ──
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const unsubscribe = world.images.subscribe(() => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        if (world.R > 0) world.layer = buildLayer(world)
+      }, 250)
+    })
+    return () => {
+      clearTimeout(timer)
+      unsubscribe()
+    }
+  }, [world])
 
   // ── Boucle de dessin ──
   useEffect(() => {
@@ -465,6 +492,14 @@ export default function EcranPage() {
             boxShadow: '0 0 3em rgba(245,196,81,0.25)',
           }}
         >
+          {banner.photoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={banner.photoUrl}
+              alt=""
+              style={{ width: '5.5em', height: '5.5em', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 0.6em', display: 'block', border: '0.15em solid #f5c451' }}
+            />
+          )}
           <div style={{ fontSize: '1.2em' }}>{banner.title}</div>
           <div style={{ fontSize: '2.6em', fontWeight: 700, color: '#f5c451', lineHeight: 1.1 }}>{banner.amount}</div>
           {banner.message && <div className="muted" style={{ fontSize: '1.1em', marginTop: '0.3em' }}>« {banner.message} »</div>}

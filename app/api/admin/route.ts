@@ -4,6 +4,7 @@ import { getDb } from '@/lib/db'
 import { paymentMode } from '@/lib/env'
 import { isAdmin } from '@/lib/session'
 import { recordDonation } from '@/lib/donations'
+import { removePhotoFile } from '@/lib/photos'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 
 export const runtime = 'nodejs'
@@ -17,13 +18,13 @@ export async function GET() {
   const db = getDb()
 
   const [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes] = await Promise.all([
-    db.from('donors').select('id,email,display_name,show_name,message,color,hidden,created_at').order('created_at', { ascending: false }).limit(1000),
+    db.from('donors').select('id,email,display_name,show_name,message,photo_url,color,hidden,created_at').order('created_at', { ascending: false }).limit(1000),
     db.from('donor_totals').select('donor_id,total_cents,last_donation_at').limit(1000),
     db.from('events').select('id,name,starts_on,goal_cents,is_current,created_at').order('created_at', { ascending: false }),
     db.from('event_totals').select('event_id,total_cents,donations_count'),
     db
       .from('donations')
-      .select('id,donor_id,event_id,amount_cents,source,created_at,donors(display_name,email,hidden)')
+      .select('id,donor_id,event_id,amount_cents,source,created_at,donors(display_name,email,hidden,photo_url)')
       .order('created_at', { ascending: false })
       .limit(100),
   ])
@@ -62,12 +63,22 @@ export async function POST(request: NextRequest) {
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 
-    // Garder le morceau mais effacer le nom et le message
+    // Garder le morceau mais effacer le nom, le message et la photo
     case 'scrubDonor': {
+      const { data: before } = await db.from('donors').select('photo_url').eq('id', str(b.donorId)).maybeSingle()
       const { error } = await db
         .from('donors')
-        .update({ display_name: 'Anonyme', show_name: false, message: null, updated_at: new Date().toISOString() })
+        .update({ display_name: 'Anonyme', show_name: false, message: null, photo_url: null, updated_at: new Date().toISOString() })
         .eq('id', str(b.donorId))
+      if (!error) await removePhotoFile(before?.photo_url)
+      return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+
+    // Retirer seulement la photo (nom et message restent)
+    case 'removePhoto': {
+      const { data: before } = await db.from('donors').select('photo_url').eq('id', str(b.donorId)).maybeSingle()
+      const { error } = await db.from('donors').update({ photo_url: null, updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      if (!error) await removePhotoFile(before?.photo_url)
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 

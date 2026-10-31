@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import MiniGlass from '@/components/MiniGlass'
+import PhotoField, { type PhotoValue } from '@/components/PhotoField'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import type { Piece, Snapshot } from '@/lib/types'
@@ -19,6 +20,9 @@ export default function ManagePage() {
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
   const [color, setColor] = useState<string>(GLASS_COLORS[0].value)
+  const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
+  const [photoChanged, setPhotoChanged] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [pieces, setPieces] = useState<Piece[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -34,6 +38,7 @@ export default function ManagePage() {
         setName(d.name)
         setMessage(d.message)
         setColor(d.color)
+        setPhoto({ src: d.photoUrl ?? null, path: null })
         setLoaded('ok')
       })
       .catch(() => setLoaded('expired'))
@@ -52,11 +57,12 @@ export default function ManagePage() {
       const res = await fetch('/api/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'update', showName, name, message, color }),
+        body: JSON.stringify({ token, action: 'update', showName, name, message, color, ...(photoChanged ? { photoPath: photo.path ?? '' } : {}) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur inattendue.')
       setSaved(true)
+      setPhotoChanged(false)
       const snap = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
       setPieces(snap.pieces)
     } catch (err) {
@@ -95,7 +101,7 @@ export default function ManagePage() {
         <label className="flex cursor-pointer items-start gap-3 text-sm">
           <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
           <span>
-            <b>Afficher mon nom sur l&apos;écran</b>
+            <b>Afficher mon nom et ma photo sur l&apos;écran</b>
             <span className="muted block">Sinon, votre don apparaît comme « Anonyme ».</span>
           </span>
         </label>
@@ -104,6 +110,14 @@ export default function ManagePage() {
           <div className="space-y-3">
             <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} />
             <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
+            <PhotoField
+              value={photo}
+              onChange={v => {
+                setPhoto(v)
+                setPhotoChanged(true)
+              }}
+              onBusyChange={setPhotoBusy}
+            />
           </div>
         )}
 
@@ -127,7 +141,7 @@ export default function ManagePage() {
         {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
         {saved && <p className="text-sm" style={{ color: '#a3e635' }}>Enregistré. Votre morceau est à jour sur l&apos;écran.</p>}
 
-        <button className="btn" disabled={saving || (showName && name.trim().length < 2)}>
+        <button className="btn" disabled={saving || photoBusy || (showName && name.trim().length < 2)}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
         <Link href={`/?t=${token}`} className="btn btn-ghost">

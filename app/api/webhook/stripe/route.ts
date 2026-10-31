@@ -5,6 +5,7 @@ import { recordDonation, createToken } from '@/lib/donations'
 import { sendReceipt } from '@/lib/email'
 import { defaultColorFor, validateColor } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
+import { pathFromPublicUrl } from '@/lib/photos'
 
 export const runtime = 'nodejs'
 
@@ -37,7 +38,12 @@ export async function POST(request: NextRequest) {
     try {
       const result = await recordDonation({
         email,
-        profile: { showName: m.showName === '1', name: m.name || ANON_LABEL, message: m.message || null },
+        profile: {
+          showName: m.showName === '1',
+          name: m.name || ANON_LABEL,
+          message: m.message || null,
+          photoUrl: m.showName === '1' && pathFromPublicUrl(m.photo) ? m.photo : null,
+        },
         color: color.ok ? color.value : defaultColorFor(email),
         amountCents: session.amount_total,
         source: 'stripe',
