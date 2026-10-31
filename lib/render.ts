@@ -56,6 +56,8 @@ const PHOTO_MIN_SIDE = 34 // en dessous, pas de photo
 const LABEL_NAME_MIN = 40 // rayon inscrit minimal pour afficher le nom
 const LABEL_MESSAGE_MIN = 55 // … et le message
 const SIDE_FACTOR = 1.7725 // côté du carré de même aire qu'un disque de rayon 1 (√π) : échelle des seuils du verre
+/** Part du voile coloré du vitrail conservée sur une photo qui porte du texte (0 = photo en couleurs, 1 = photo entièrement teintée). */
+const LIFT_VEIL = 0.7
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 
 /**
@@ -103,7 +105,9 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
       const sidePx = tile.equivRadius * view.scale * SIDE_FACTOR
       const focused = s.focusId === id
       const avatar = piece?.photoUrl && sidePx >= PHOTO_MIN_SIDE ? s.images.get(piece.photoUrl) : null
-      const reveal = focused ? 1 : Math.min(1, Math.max(0, (sidePx - CONFIG.photoColorFromPx) / (CONFIG.photoColorToPx - CONFIG.photoColorFromPx)))
+      let reveal = focused ? 1 : Math.min(1, Math.max(0, (sidePx - CONFIG.photoColorFromPx) / (CONFIG.photoColorToPx - CONFIG.photoColorFromPx)))
+      // Morceau sorti avec du texte dessus : on garde le voile coloré du vitrail sur la photo, pour que le texte reste lisible
+      if (piece?.rows && avatar) reveal = 1 - LIFT_VEIL * (s.labelAlpha ?? 1)
       drawGlassTile(ctx, tile, {
         colors: glassColors(piece?.color ?? '#f472b6', id),
         sizePx: sidePx,
@@ -113,17 +117,10 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
         dim: s.focusId && !focused ? 0.55 : 1,
         hovered: false,
       })
-      // Texte sur une photo : voile sombre en bas du morceau pour que le nom et le montant restent lisibles
-      if (piece?.rows && avatar && tile.path && (s.labelAlpha ?? 1) > 0) {
-        const [bx0, by0, bx1, by1] = tile.bbox
-        ctx.save()
-        ctx.clip(tile.path)
-        const g = ctx.createLinearGradient(0, tile.labelCenter[1] - tile.inRadius * 0.2, 0, tile.labelCenter[1] + tile.inRadius)
-        g.addColorStop(0, 'rgba(0,0,0,0)')
-        g.addColorStop(1, `rgba(0,0,0,${0.7 * (s.labelAlpha ?? 1)})`)
-        ctx.fillStyle = g
-        ctx.fillRect(bx0, by0, bx1 - bx0, by1 - by0)
-        ctx.restore()
+      // Photo + texte : on l'assombrit un peu en plus du voile coloré (les photos très claires restent lisibles)
+      if (piece?.rows && avatar && tile.path) {
+        ctx.fillStyle = `rgba(4,3,8,${0.3 * (s.labelAlpha ?? 1)})`
+        ctx.fill(tile.path)
       }
     }
     const focus = s.focusId ? s.tiles.get(s.focusId) : null
@@ -277,6 +274,33 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
     }
     const lines = layoutRows(ctx, rows, hasPhoto, r, u)
     if (!lines) continue
+
+    // Texte sur une photo : un voile sombre et doux derrière le bloc de texte (limité au morceau)
+    if (piece.rows && hasPhoto && tile.path) {
+      let minY = Infinity
+      let maxY = -Infinity
+      let maxHalf = 0
+      for (const line of lines) {
+        const size = parseFloat(/(\d+(\.\d+)?)px/.exec(line.font)?.[1] ?? '16')
+        ctx.font = line.font
+        minY = Math.min(minY, line.y)
+        maxY = Math.max(maxY, line.y + size * 1.1)
+        maxHalf = Math.max(maxHalf, ctx.measureText(line.text).width / 2)
+      }
+      ctx.save()
+      ctx.setTransform(s.dpr * view.scale, 0, 0, s.dpr * view.scale, s.dpr * view.ox, s.dpr * view.oy)
+      ctx.clip(tile.path)
+      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0)
+      ctx.translate(sx, sy + (minY + maxY) / 2)
+      ctx.scale(maxHalf * 1.4 + r * 0.1, (maxY - minY) / 2 + r * 0.22)
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1)
+      g.addColorStop(0, `rgba(4,3,8,${0.5 * alpha})`)
+      g.addColorStop(0.6, `rgba(4,3,8,${0.3 * alpha})`)
+      g.addColorStop(1, 'rgba(4,3,8,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(-1, -1, 2, 2)
+      ctx.restore()
+    }
 
     for (const line of lines) {
       ctx.font = line.font

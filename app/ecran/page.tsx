@@ -53,6 +53,8 @@ interface World {
   /** Annonce fusionnée avec le morceau sorti : le texte est écrit sur le verre (sinon, l'encart habituel). */
   cardRows: LabelRow[] | null
   cardMerged: boolean
+  /** Agrandissement retenu pour le morceau en cours (1 = il ne sort pas). */
+  liftS: number
   news: Map<string, News>
   lit: { id: string; start: number } | null
   litPrev: { id: string; end: number } | null
@@ -92,14 +94,15 @@ const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 
 /**
- * Agrandissement d'un petit morceau quand il « sort » du vitrail : il occupe environ 22 % de la hauteur de l'écran,
+ * Agrandissement d'un petit morceau quand il « sort » du vitrail : son cercle utile occupe environ 30 % de la hauteur de l'écran,
  * sans jamais dépasser l'écran. 1 = déjà assez grand, il reste en place.
  */
-function liftFor(w: World, tile: Tile): number {
+function liftFor(w: World, tile: Tile, merged: boolean): number {
   const base = w.R / UNIVERSE_RADIUS
   const need = (CONFIG.tourTargetFraction * w.H) / Math.max(1e-6, tile.inRadius * base)
   const [x0, y0, x1, y1] = tile.bbox
-  const fit = Math.min((0.9 * w.W) / Math.max(1e-6, (x1 - x0) * base), (0.6 * w.H) / Math.max(1e-6, (y1 - y0) * base))
+  // Texte sur le morceau : il peut occuper presque toute la hauteur ; avec l'encart en bas, on lui laisse moins de place
+  const fit = Math.min((0.9 * w.W) / Math.max(1e-6, (x1 - x0) * base), ((merged ? 0.88 : 0.6) * w.H) / Math.max(1e-6, (y1 - y0) * base))
   const s = Math.min(CONFIG.tourMaxLift, need, fit)
   return s < 1.15 ? 1 : s
 }
@@ -152,8 +155,9 @@ function stepDirector(w: World, now: number): number {
   const id = dir.id as string
   const tile = w.tiles.get(id)
   if (!tile) return 0
-  const lifts = liftFor(w, tile) > 1
   const el = now - dir.t0
+  // Avant la sortie, on ne sait pas encore si le texte tiendra sur le morceau : on teste avec l'agrandissement le plus généreux
+  const lifts = dir.phase === 'mark' ? liftFor(w, tile, true) > 1 : w.liftS > 1
   switch (dir.phase) {
     case 'mark':
       if (el >= CONFIG.tourMarkMs) {
@@ -258,6 +262,7 @@ export default function EcranPage() {
       amounts: new Map(),
       cardRows: null,
       cardMerged: false,
+      liftS: 1,
       news: new Map(),
       lit: null,
       litPrev: null,
@@ -464,9 +469,10 @@ export default function EcranPage() {
           const card = cardFor(world, id)
           const tile = world.tiles.get(id)
           // Fusion : si le texte entier tient sur le morceau agrandi, il y est écrit ; sinon l'encart habituel reste affiché
-          const S = tile ? liftFor(world, tile) : 1
+          const S = tile ? liftFor(world, tile, true) : 1
           world.cardRows = card.rows
           world.cardMerged = !!tile && S > 1 && layoutRows(ctx, card.rows, !!card.photoUrl, tile.inRadius * base * S, R / 475, true) !== null
+          world.liftS = tile ? (world.cardMerged ? S : liftFor(world, tile, false)) : 1
           setBanner(world.cardMerged ? null : card)
         }
         else if (world.dir.phase === 'drop') setBanner(b => (b ? { ...b, leaving: true } : b))
@@ -515,11 +521,12 @@ export default function EcranPage() {
 
       // Le morceau « sort » du vitrail : il s'agrandit au-dessus, avec une ombre, pendant que le reste s'assombrit
       if (e > 0.001 && focusTile?.path) {
-        const S = liftFor(world, focusTile)
+        const S = world.liftS
         const [lx, ly] = focusTile.labelCenter
         const sx0 = cx + lx * base
         const sy0 = cy + ly * base
-        // Position d'arrivée : à sa place, ramenée dans l'écran (au-dessus de l'annonce, qui occupe le bas)
+        // Position d'arrivée : le morceau vient au centre de l'écran (sa partie la plus spacieuse, là où est le texte), sans sortir de l'écran ;
+        // avec l'encart de repli, on garde le bas libre pour lui
         const end = base * S
         const [bx0, by0, bx1, by1] = focusTile.bbox
         const left = (bx0 - lx) * end
@@ -527,9 +534,9 @@ export default function EcranPage() {
         const top = (by0 - ly) * end
         const bottom = (by1 - ly) * end
         const m = Math.min(W, H) * 0.04
-        const yMax = H * 0.66
-        const ex = right - left <= W - 2 * m ? Math.min(W - m - right, Math.max(m - left, sx0)) : W / 2 - (left + right) / 2
-        const ey = bottom - top <= yMax - m ? Math.min(yMax - bottom, Math.max(m - top, sy0)) : (m + yMax) / 2 - (top + bottom) / 2
+        const yMax = world.cardMerged ? H - m : H * 0.66
+        const ex = right - left <= W - 2 * m ? Math.min(W - m - right, Math.max(m - left, cx)) : W / 2 - (left + right) / 2
+        const ey = bottom - top <= yMax - m ? Math.min(yMax - bottom, Math.max(m - top, world.cardMerged ? cy : cy - H * 0.08)) : (m + yMax) / 2 - (top + bottom) / 2
         const sc = base * Math.pow(S, e)
         const px = lerp(sx0, ex, e)
         const py = lerp(sy0, ey, e)

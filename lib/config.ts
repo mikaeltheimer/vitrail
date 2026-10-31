@@ -42,7 +42,7 @@ export const CONFIG = {
   tourLiftMs: 1500, // durée de la sortie (et du retour)
   tourHoldMs: 5500, // pause avec nom, message ou photo
   tourHoldBareMs: 3500, // pause pour un morceau anonyme
-  tourTargetFraction: 0.22, // un petit morceau sorti occupe (rayon inscrit) cette fraction de la hauteur de l'écran
+  tourTargetFraction: 0.3, // un petit morceau sorti occupe (rayon inscrit) cette fraction de la hauteur de l'écran
   tourMaxLift: 40, // agrandissement maximal
 } as const
 
