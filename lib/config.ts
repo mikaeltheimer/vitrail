@@ -37,6 +37,9 @@ export const CONFIG = {
 
   /** Fréquence d'interrogation du serveur par l'écran d'affichage. */
   pollMs: 3000,
+  // Projecteur : à intervalle régulier, un donateur (au hasard) est mis en vedette sur l'écran, même si son morceau est trop petit pour être lu.
+  spotlightEveryMs: 12_000,
+  spotlightShowMs: 6_000,
 } as const
 
 /** Verres disponibles (reprend les Glow Colors de Pay to Exist). */

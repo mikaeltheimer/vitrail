@@ -28,6 +28,8 @@ interface Banner {
   message: string | null
   amount: string
   leaving: boolean
+  /** Durée d'affichage ; 7 s par défaut. */
+  durationMs?: number
 }
 
 interface World {
@@ -127,6 +129,9 @@ export default function EcranPage() {
   const bannerQueue = useRef<Banner[]>([])
   const showing = useRef(false)
   const pump = useRef<() => void>(() => {})
+  const piecesRef = useRef<Snapshot['pieces']>([])
+  const deck = useRef<string[]>([])
+  const lastSpot = useRef<string | null>(null)
 
   const totalShown = useCountUp(snap?.totalCents ?? 0)
   const eventShown = useCountUp(snap?.event?.totalCents ?? 0)
@@ -139,12 +144,13 @@ export default function EcranPage() {
       if (!next) return
       showing.current = true
       setBanner(next)
-      setTimeout(() => setBanner(b => (b ? { ...b, leaving: true } : b)), BANNER_MS - 600)
+      const ms = next.durationMs ?? BANNER_MS
+      setTimeout(() => setBanner(b => (b ? { ...b, leaving: true } : b)), ms - 600)
       setTimeout(() => {
         setBanner(null)
         showing.current = false
         pump.current()
-      }, BANNER_MS)
+      }, ms)
     }
   }, [])
 
@@ -193,6 +199,7 @@ export default function EcranPage() {
         for (const d of s.recent) seen.current.add(d.id)
         prevAmounts.current = new Map(s.pieces.map(p => [p.id, p.amountCents]))
         setSnap(s)
+        piecesRef.current = s.pieces
 
         if (s.version !== version.current) {
           const tiles = await tilePieces(s.pieces)
@@ -275,6 +282,45 @@ export default function EcranPage() {
       window.removeEventListener('online', onOnline)
     }
   }, [apply, layout])
+
+  // ── Projecteur : un donateur au hasard, à intervalle régulier, sans répétition avant que tous soient passés ──
+  useEffect(() => {
+    if (CONFIG.spotlightEveryMs <= 0) return
+    const timer = setInterval(() => {
+      // Les vrais dons passent toujours en premier : on ne mélange pas les deux
+      if (document.hidden || showing.current || bannerQueue.current.length > 0 || first.current) return
+      const eligible = piecesRef.current.filter(p => p.name !== null)
+      if (eligible.length === 0) return
+      const byId = new Map(eligible.map(p => [p.id, p]))
+      deck.current = deck.current.filter(id => byId.has(id))
+      if (deck.current.length === 0) {
+        const ids = eligible.map(p => p.id)
+        for (let i = ids.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[ids[i], ids[j]] = [ids[j], ids[i]]
+        }
+        // Le dernier montré ne revient pas en premier
+        if (ids.length > 1 && ids[ids.length - 1] === lastSpot.current) [ids[0], ids[ids.length - 1]] = [ids[ids.length - 1], ids[0]]
+        deck.current = ids
+      }
+      const id = deck.current.pop()
+      const piece = id ? byId.get(id) : undefined
+      if (!piece) return
+      lastSpot.current = piece.id
+      world.highlights.set(piece.id, performance.now() - (HIGHLIGHT_MS - CONFIG.spotlightShowMs - 1000))
+      bannerQueue.current.push({
+        id: `spot-${piece.id}-${Date.now()}`,
+        photoUrl: piece.photoUrl,
+        title: `Merci à ${piece.name}`,
+        message: CONFIG.showMessagesOnScreen ? piece.message : null,
+        amount: formatMoney(piece.amountCents),
+        leaving: false,
+        durationMs: CONFIG.spotlightShowMs,
+      })
+      pump.current()
+    }, CONFIG.spotlightEveryMs)
+    return () => clearInterval(timer)
+  }, [world])
 
   // ── Une photo vient d'arriver : on redessine le verre (regroupé, sans fondu) ──
   useEffect(() => {

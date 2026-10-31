@@ -58,6 +58,10 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 - **Base de données** : exécuter `supabase/migrations/2026-10-31-photos.sql` dans le SQL Editor de Supabase (colonne `photo_url` + bucket public `photos`). Un nouveau projet qui part de `supabase/schema.sql` l'a déjà.
 - **Modération** : la console admin affiche les photos et permet « Retirer la photo » ou « Effacer le nom » (efface aussi la photo). À prévoir avant l'événement : quelqu'un qui surveille la console.
 
+## Projecteur (défilement automatique)
+
+Sur `/ecran`, toutes les 12 s, un donateur qui a accepté d'afficher son nom est mis en vedette au hasard : son morceau s'illumine et une carte montre sa photo, son nom, son message et son total. Chacun passe une fois avant que le cycle recommence. Les vrais dons ont toujours priorité (le projecteur attend que l'annonce soit finie). Réglages : `spotlightEveryMs` (0 = désactivé) et `spotlightShowMs` dans `lib/config.ts`.
+
 ## Le jour J
 
 - Ordinateur de l'écran **sur câble Ethernet** si possible ; sinon Wi-Fi + partage de connexion en plan B.
