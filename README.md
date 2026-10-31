@@ -62,7 +62,7 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 
 Sur `/ecran`, un morceau est **toujours** en brillance, et le vitrail ne bouge jamais (pas de zoom). Le cycle : le prochain morceau pulse en place (1 s) → s'il est petit, il **sort du vitrail** et s'agrandit au-dessus (ombre portée, reste du vitrail assombri) pendant que l'annonce apparaît → pause → il retourne à sa place → suivant. Les grands morceaux ne sortent pas : ils pulsent et l'annonce s'affiche.
 
-L'annonce montre la photo, « Merci à … » (ou « … vient de donner » pour un don tout neuf), le montant, et le message. L'ordre est aléatoire sans répétition avant que tous soient passés ; un nouveau don passe en premier. Durées et taille de sortie : `lib/config.ts` (`tour…`).
+L'annonce est **écrite sur le morceau agrandi** : « Merci à / nom / montant / au total / message » (ou « nom / vient de donner / montant » pour un don tout neuf), sur la photo si le donateur en a une. Si tout le texte ne tient pas sur la forme du morceau (par exemple une lamelle très étroite), l'encart habituel (photo, nom, montant, message) s'affiche à la place. L'ordre est aléatoire sans répétition avant que tous soient passés ; un nouveau don passe en premier. Durées et taille de sortie : `lib/config.ts` (`tour…`).
 
 Les noms et messages sur le verre sont toujours placés **à l'intérieur** du morceau, avec une marge : la police est réduite jusqu'à ce que chaque ligne tienne dans le cercle utile du morceau, et rien ne s'affiche si ça ne rentre pas.
 

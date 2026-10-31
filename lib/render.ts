@@ -24,11 +24,19 @@ export async function tilePieces(pieces: Piece[]): Promise<Map<string, Tile>> {
 
 // ── Ce qu'on dessine sur un morceau ──────────────────────────────────────────
 
+/** Une ligne d'un texte placé sur le verre : petite (« Merci à »), nom, montant ou message. */
+export interface LabelRow {
+  text: string
+  kind: 'small' | 'name' | 'amount' | 'message'
+}
+
 export interface PaintPiece {
   color: string
   name: string | null
   message: string | null
   photoUrl: string | null
+  /** Texte imposé (annonce fusionnée avec le morceau sorti du vitrail) : remplace nom/message et ignore les seuils de taille. */
+  rows?: LabelRow[]
 }
 export type PieceMap = Map<string, PaintPiece>
 
@@ -75,6 +83,8 @@ export interface Scene {
   uiScale?: number
   /** Morceau mis en valeur (aperçu) : les autres s'assombrissent, le sien reçoit la vraie photo et un liseré doré. */
   focusId?: string | null
+  /** Opacité des textes (0 à 1) : pour les faire apparaître une fois le morceau en place. */
+  labelAlpha?: number
 }
 
 /** Dessine le vitrail : verre, photos, étiquettes. Ne touche pas au fond ni à l'ambiance. */
@@ -103,6 +113,18 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
         dim: s.focusId && !focused ? 0.55 : 1,
         hovered: false,
       })
+      // Texte sur une photo : voile sombre en bas du morceau pour que le nom et le montant restent lisibles
+      if (piece?.rows && avatar && tile.path && (s.labelAlpha ?? 1) > 0) {
+        const [bx0, by0, bx1, by1] = tile.bbox
+        ctx.save()
+        ctx.clip(tile.path)
+        const g = ctx.createLinearGradient(0, tile.labelCenter[1] - tile.inRadius * 0.2, 0, tile.labelCenter[1] + tile.inRadius)
+        g.addColorStop(0, 'rgba(0,0,0,0)')
+        g.addColorStop(1, `rgba(0,0,0,${0.7 * (s.labelAlpha ?? 1)})`)
+        ctx.fillStyle = g
+        ctx.fillRect(bx0, by0, bx1 - bx0, by1 - by0)
+        ctx.restore()
+      }
     }
     const focus = s.focusId ? s.tiles.get(s.focusId) : null
     if (focus?.path) {
@@ -162,46 +184,60 @@ interface LabelLine {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-/**
- * Dispose le nom (et le message) à l'intérieur du cercle utile du morceau, avec une marge : chaque ligne doit tenir dans la corde du cercle
- * à sa hauteur. On essaie des polices de plus en plus petites jusqu'à ce que tout rentre ; si rien ne rentre, rien ne s'affiche.
- */
-function layoutLabel(ctx: CanvasRenderingContext2D, name: string, message: string | null, hasPhoto: boolean, r: number, u: number): LabelLine[] | null {
-  const rs = r * 0.84 // rayon sûr : le texte ne s'approche jamais du plomb
-  const nameBase = clamp(r * 0.2, 12 * u, 44 * u)
-  const msgBase = clamp(r * 0.16, 10 * u, 34 * u)
+const LABEL_STYLE: Record<LabelRow['kind'], { weight: string; italic: boolean; color: string; line: number }> = {
+  small: { weight: '400', italic: false, color: 'rgba(255,255,255,0.85)', line: 1.25 },
+  name: { weight: '600', italic: false, color: '#fff', line: 1.08 },
+  amount: { weight: '700', italic: false, color: '#fff', line: 1.15 },
+  message: { weight: '400', italic: true, color: 'rgba(255,255,255,0.92)', line: 1.22 },
+}
+const LABEL_MAX_LINES: Record<LabelRow['kind'], number> = { small: 1, name: 2, amount: 1, message: 4 }
 
-  const attempt = (withMsg: boolean): LabelLine[] | null => {
+/**
+ * Dispose des lignes de texte à l'intérieur du cercle utile du morceau, avec une marge : chaque ligne doit tenir dans la corde du cercle
+ * à sa hauteur. On essaie des polices de plus en plus petites jusqu'à ce que tout rentre ; si rien ne rentre, rien ne s'affiche.
+ * Les messages sont retirés en dernier recours (sauf en mode strict : tout ou rien).
+ */
+export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasPhoto: boolean, r: number, u: number, strict = false): LabelLine[] | null {
+  const rs = r * 0.84 // rayon sûr : le texte ne s'approche jamais du plomb
+  const base: Record<LabelRow['kind'], number> = {
+    small: clamp(r * 0.085, 10 * u, 20 * u),
+    name: clamp(r * 0.2, 12 * u, 44 * u),
+    amount: clamp(r * 0.26, 14 * u, 56 * u),
+    message: clamp(r * 0.16, 10 * u, 34 * u),
+  }
+  const min: Record<LabelRow['kind'], number> = { small: 8 * u, name: 10 * u, amount: 11 * u, message: 9 * u }
+
+  const attempt = (list: LabelRow[]): LabelLine[] | null => {
     for (const k of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52, 0.45]) {
-      const ns = nameBase * k
-      const ms = msgBase * k
-      if (ns < 10 * u || (withMsg && ms < 9 * u)) break
-      for (const wf of withMsg ? [1.75, 1.5, 1.25, 1.05] : [1.75, 1.4]) {
-        const rows: { text: string; font: string; color: string; shadow: boolean; h: number }[] = []
-        ctx.font = `600 ${ns}px ${FONT}`
-        for (const t of wrapLines(ctx, name, rs * wf, 2)) rows.push({ text: t, font: ctx.font, color: '#fff', shadow: true, h: ns * 1.08 })
-        if (withMsg && message) {
-          ctx.font = `italic 400 ${ms}px ${FONT}`
-          const font = ctx.font
-          rows.push({ text: '', font, color: '', shadow: false, h: ms * 0.35 })
-          for (const t of wrapLines(ctx, `« ${message} »`, rs * wf * 0.92, 4)) rows.push({ text: t, font, color: 'rgba(255,255,255,0.9)', shadow: true, h: ms * 1.22 })
+      if (list.some(row => base[row.kind] * k < min[row.kind])) break
+      for (const wf of [1.75, 1.5, 1.25, 1.05]) {
+        const built: { text: string; font: string; color: string; h: number; gap: number }[] = []
+        for (const row of list) {
+          const st = LABEL_STYLE[row.kind]
+          const size = base[row.kind] * k
+          const font = `${st.italic ? 'italic ' : ''}${st.weight} ${size}px ${FONT}`
+          ctx.font = font
+          const text = row.kind === 'message' ? `« ${row.text} »` : row.text
+          const width = rs * wf * (row.kind === 'message' ? 0.92 : 1)
+          wrapLines(ctx, text, width, LABEL_MAX_LINES[row.kind]).forEach((t, i) =>
+            built.push({ text: t, font, color: st.color, h: size * st.line, gap: i === 0 && row.kind === 'message' ? size * 0.35 : 0 }),
+          )
         }
-        const H = rows.reduce((a, row) => a + row.h, 0)
+        const H = built.reduce((a, b) => a + b.h + b.gap, 0)
         let y = hasPhoto ? rs * 0.78 - H : -H / 2
         const lines: LabelLine[] = []
         let ok = true
-        for (const row of rows) {
-          if (row.text) {
-            ctx.font = row.font
-            const half = ctx.measureText(row.text).width / 2
-            const far = Math.max(Math.abs(y), Math.abs(y + row.h))
-            if (far >= rs || half > Math.sqrt(rs * rs - far * far)) {
-              ok = false
-              break
-            }
-            lines.push({ text: row.text, font: row.font, color: row.color, shadow: row.shadow, y })
+        for (const b of built) {
+          y += b.gap
+          ctx.font = b.font
+          const half = ctx.measureText(b.text).width / 2
+          const far = Math.max(Math.abs(y), Math.abs(y + b.h))
+          if (far >= rs || half > Math.sqrt(rs * rs - far * far)) {
+            ok = false
+            break
           }
-          y += row.h
+          lines.push({ text: b.text, font: b.font, color: b.color, shadow: true, y })
+          y += b.h
         }
         if (ok) return lines
       }
@@ -209,7 +245,8 @@ function layoutLabel(ctx: CanvasRenderingContext2D, name: string, message: strin
     return null
   }
 
-  return (message ? attempt(true) : null) ?? attempt(false)
+  const withoutMessage = rows.filter(row => row.kind !== 'message')
+  return attempt(rows) ?? (strict || withoutMessage.length === rows.length ? null : attempt(withoutMessage))
 }
 
 /** Nom (et message si la pièce est assez grande) au bas de la pièce quand elle a une photo, au centre sinon. Toujours à l'intérieur du morceau. */
@@ -219,34 +256,41 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
 
+  const alpha = s.labelAlpha ?? 1
+  if (alpha <= 0) return
+  ctx.globalAlpha = alpha
+
   for (const [id, tile] of s.tiles) {
     const piece = s.pieces.get(id)
-    if (!piece?.name) continue
+    if (!piece?.rows && !piece?.name) continue
     const r = tile.inRadius * view.scale // rayon utile : plus grand cercle inscrit
-    if (r < LABEL_NAME_MIN * u) continue
+    if (!piece.rows && r < LABEL_NAME_MIN * u) continue
     const sx = tile.labelCenter[0] * view.scale + view.ox
     const sy = tile.labelCenter[1] * view.scale + view.oy
     if (sx < -r || sx > s.width + r || sy < -r || sy > s.height + r) continue
 
-    const message = r >= LABEL_MESSAGE_MIN * u && piece.message ? piece.message : null
     const hasPhoto = !!(piece.photoUrl && s.images.peek(piece.photoUrl))
-    const lines = layoutLabel(ctx, piece.name, message, hasPhoto, r, u)
+    let rows = piece.rows
+    if (!rows) {
+      rows = [{ text: piece.name as string, kind: 'name' }]
+      if (r >= LABEL_MESSAGE_MIN * u && piece.message) rows.push({ text: piece.message, kind: 'message' })
+    }
+    const lines = layoutRows(ctx, rows, hasPhoto, r, u)
     if (!lines) continue
 
     for (const line of lines) {
       ctx.font = line.font
       ctx.fillStyle = line.color
-      if (line.shadow) {
-        ctx.shadowColor = 'rgba(0,0,0,0.85)'
-        ctx.shadowBlur = 8
-        ctx.shadowOffsetY = 1
-      }
+      ctx.shadowColor = 'rgba(0,0,0,0.85)'
+      ctx.shadowBlur = 8
+      ctx.shadowOffsetY = 1
       ctx.fillText(line.text, sx, sy + line.y)
       ctx.shadowColor = 'transparent'
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
     }
   }
+  ctx.globalAlpha = 1
 }
 
 export { UNIVERSE_RADIUS }

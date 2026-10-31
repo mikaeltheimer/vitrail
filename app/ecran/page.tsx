@@ -7,7 +7,7 @@ import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { hitTile, type Tile } from '@/lib/tiling'
 import { ImageCache } from '@/lib/images'
-import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
+import { drawScene, layoutRows, pieceMap, tilePieces, UNIVERSE_RADIUS, type LabelRow, type PieceMap } from '@/lib/render'
 import type { Snapshot } from '@/lib/types'
 
 // Écran d'affichage plein écran : le vitrail, le total, le QR code, et une animation à chaque nouveau don.
@@ -26,11 +26,14 @@ interface Banner {
   message: string | null
   amount: string
   caption?: string
+  /** Les mêmes mots, découpés pour être écrits sur le morceau agrandi. */
+  rows: LabelRow[]
   leaving: boolean
 }
 
 /** Ce qu'on sait d'un don tout neuf (pour l'annonce « vient de donner »). */
 interface News {
+  rows: LabelRow[]
   title: string
   message: string | null
   amount: string
@@ -47,6 +50,9 @@ interface World {
   /** Visite de l'écran : un morceau est toujours en brillance. */
   dir: { phase: 'mark' | 'lift' | 'hold' | 'drop'; t0: number; id: string | null }
   amounts: Map<string, number>
+  /** Annonce fusionnée avec le morceau sorti : le texte est écrit sur le verre (sinon, l'encart habituel). */
+  cardRows: LabelRow[] | null
+  cardMerged: boolean
   news: Map<string, News>
   lit: { id: string; start: number } | null
   litPrev: { id: string; end: number } | null
@@ -183,7 +189,19 @@ function stepDirector(w: World, now: number): number {
   }
 }
 
-/** Texte de l'annonce d'un morceau : « vient de donner » pour un don tout neuf, « Merci à … » sinon. */
+/** Les lignes de l'annonce : « Merci à / Nom / montant / au total / message », ou « Nom / vient de donner / montant / message ». */
+function rowsFor(lead: string | null, name: string, verb: string | null, amount: string, caption: string | null, message: string | null): LabelRow[] {
+  const rows: LabelRow[] = []
+  if (lead) rows.push({ text: lead, kind: 'small' })
+  rows.push({ text: name, kind: 'name' })
+  if (verb) rows.push({ text: verb, kind: 'small' })
+  rows.push({ text: amount, kind: 'amount' })
+  if (caption) rows.push({ text: caption, kind: 'small' })
+  if (message) rows.push({ text: message, kind: 'message' })
+  return rows
+}
+
+/** Annonce d'un morceau : « vient de donner » pour un don tout neuf, « Merci à … » sinon. */
 function cardFor(w: World, id: string): Banner {
   const news = w.news.get(id)
   if (news) {
@@ -191,13 +209,16 @@ function cardFor(w: World, id: string): Banner {
     return { id: `${id}-${Date.now()}`, ...news, leaving: false }
   }
   const piece = w.pieces.get(id)
+  const amount = formatMoney(w.amounts.get(id) ?? 0)
+  const message = CONFIG.showMessagesOnScreen ? piece?.message ?? null : null
   return {
     id: `${id}-${Date.now()}`,
     photoUrl: piece?.photoUrl ?? null,
     title: piece?.name ? `Merci à ${piece.name}` : 'Merci à un donateur anonyme',
-    message: CONFIG.showMessagesOnScreen ? piece?.message ?? null : null,
-    amount: formatMoney(w.amounts.get(id) ?? 0),
+    message,
+    amount,
     caption: 'au total',
+    rows: rowsFor('Merci à', piece?.name ?? 'un donateur anonyme', null, amount, 'au total', message),
     leaving: false,
   }
 }
@@ -235,6 +256,8 @@ export default function EcranPage() {
       fadeStart: 0,
       dir: { phase: 'mark', t0: 0, id: null },
       amounts: new Map(),
+      cardRows: null,
+      cardMerged: false,
       news: new Map(),
       lit: null,
       litPrev: null,
@@ -303,11 +326,14 @@ export default function EcranPage() {
           }
           for (const d of [...s.recent].reverse()) {
             if (seen.current.has(d.id)) continue
+            const message = CONFIG.showMessagesOnScreen ? d.message : null
+            const amount = formatMoney(d.amountCents)
             world.news.set(d.donorId, {
               photoUrl: d.photoUrl,
               title: d.name ? `${d.name} vient de donner` : 'Un don anonyme',
-              message: CONFIG.showMessagesOnScreen ? d.message : null,
-              amount: formatMoney(d.amountCents),
+              message,
+              amount,
+              rows: d.name ? rowsFor(null, d.name, 'vient de donner', amount, null, message) : rowsFor(null, 'Un don anonyme', null, amount, null, message),
             })
           }
         }
@@ -434,7 +460,15 @@ export default function EcranPage() {
       if (phaseKey !== lastPhaseKey) {
         lastPhaseKey = phaseKey
         const id = world.dir.id
-        if (id && world.dir.phase === 'lift') setBanner(cardFor(world, id))
+        if (id && world.dir.phase === 'lift') {
+          const card = cardFor(world, id)
+          const tile = world.tiles.get(id)
+          // Fusion : si le texte entier tient sur le morceau agrandi, il y est écrit ; sinon l'encart habituel reste affiché
+          const S = tile ? liftFor(world, tile) : 1
+          world.cardRows = card.rows
+          world.cardMerged = !!tile && S > 1 && layoutRows(ctx, card.rows, !!card.photoUrl, tile.inRadius * base * S, R / 475, true) !== null
+          setBanner(world.cardMerged ? null : card)
+        }
         else if (world.dir.phase === 'drop') setBanner(b => (b ? { ...b, leaving: true } : b))
         else if (world.dir.phase === 'mark') setBanner(null)
       }
@@ -520,10 +554,10 @@ export default function EcranPage() {
         ctx.fill(focusTile.path)
         ctx.restore()
 
-        // Le morceau lui-même : verre et photo en grand ; le nom et le message sont dans l'annonce
+        // Le morceau lui-même : verre, photo et — une fois en place — l'annonce écrite dessus
         const piece = world.pieces.get(focusTile.id)
-        const lifted: PieceMap = new Map([[focusTile.id, { color: piece?.color ?? '#f472b6', name: null, message: null, photoUrl: piece?.photoUrl ?? null }]])
-        drawScene(ctx, { tiles: new Map([[focusTile.id, focusTile]]), pieces: lifted, images: world.images, view: { scale: sc, ox, oy }, dpr, width: W, height: H, uiScale: R / 475 })
+        const lifted: PieceMap = new Map([[focusTile.id, { color: piece?.color ?? '#f472b6', name: null, message: null, photoUrl: piece?.photoUrl ?? null, rows: world.cardMerged ? world.cardRows ?? undefined : undefined }]])
+        drawScene(ctx, { tiles: new Map([[focusTile.id, focusTile]]), pieces: lifted, images: world.images, view: { scale: sc, ox, oy }, dpr, width: W, height: H, uiScale: R / 475, labelAlpha: Math.min(1, Math.max(0, (e - 0.92) / 0.08)) })
         ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy)
         ctx.lineJoin = 'round'
         ctx.lineWidth = 4 / sc
