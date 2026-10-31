@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from 'next'
-import '@fontsource/fraunces/latin-400-italic.css'
-import '@fontsource/fraunces/latin-600.css'
-import '@fontsource/fraunces/latin-700.css'
-import '@fontsource/dm-sans/latin-500.css'
-import '@fontsource/dm-sans/latin-700.css'
+import '@fontsource/space-grotesk/latin-400.css'
+import '@fontsource/space-grotesk/latin-500.css'
+import '@fontsource/space-grotesk/latin-600.css'
+import '@fontsource/space-grotesk/latin-700.css'
 import './globals.css'
 import { CONFIG } from '@/lib/config'
 

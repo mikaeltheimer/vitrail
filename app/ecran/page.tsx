@@ -747,7 +747,7 @@ export default function EcranPage() {
           <div className="tv-display" style={{ fontSize: '1.3em', fontWeight: 600 }}>{banner.title}</div>
           <div className="tv-display" style={{ fontSize: '2.6em', fontWeight: 700, color: '#ffe7a0', lineHeight: 1.1 }}>{banner.amount}</div>
           {banner.caption && <div className="muted" style={{ fontSize: '0.95em' }}>{banner.caption}</div>}
-          {banner.message && <div className="tv-display" style={{ fontSize: '1.15em', marginTop: '0.3em', fontStyle: 'italic', opacity: 0.85 }}>« {banner.message} »</div>}
+          {banner.message && <div className="tv-display" style={{ fontSize: '1.15em', marginTop: '0.3em', opacity: 0.85 }}>« {banner.message} »</div>}
         </div>
       )}
 

@@ -68,7 +68,7 @@ Les noms et messages sur le verre sont toujours placés **à l'intérieur** du m
 
 ## Typographie
 
-Deux familles, auto-hébergées (paquets `@fontsource`, aucune requête externe : l'écran n'en dépend pas du Wi-Fi) : **Fraunces** (empattements, doux et sobre) pour les noms, les montants, les messages (en italique) et les titres, et **DM Sans** pour les petites mentions en capitales espacées (« MERCI À », « AU TOTAL ») et l'interface. Couleurs chaudes : crème pour les noms, or pâle pour les montants, avec un fin contour sombre pour la lisibilité sur n'importe quel verre. Les définitions sont dans `lib/fonts.ts` (familles) et `lib/render.ts` (`LABEL_STYLE` : tailles, graisses, couleurs, espacement).
+Une seule famille, **Space Grotesk**, auto-hébergée (paquet `@fontsource/space-grotesk`, aucune requête externe : l'écran n'en dépend pas du Wi-Fi), en plusieurs graisses : demi-gras pour les noms, gras pour les montants et les titres, romain pour les messages, et capitales espacées pour les petites mentions (« MERCI À », « AU TOTAL »). Couleurs chaudes : crème pour les noms, or pâle pour les montants, avec un fin contour sombre pour la lisibilité sur n'importe quel verre. Les définitions sont dans `lib/fonts.ts` (familles) et `lib/render.ts` (`LABEL_STYLE` : tailles, graisses, couleurs, espacement).
 
 ## Le jour J
 

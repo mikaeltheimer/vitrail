@@ -1,10 +1,10 @@
 // Polices de l'affichage : auto-hébergées (installées avec le site, aucune requête externe — important sur un Wi-Fi d'événement).
 // Le canvas n'utilise une police que si elle est chargée : on la charge avant de dessiner, puis on redessine.
 
-export const FONT_DISPLAY = '"Fraunces", Georgia, "Times New Roman", serif'
-export const FONT_SANS = '"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+export const FONT_DISPLAY = '"Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+export const FONT_SANS = FONT_DISPLAY
 
-const FACES = ['600 20px Fraunces', '700 20px Fraunces', 'italic 400 20px Fraunces', '500 20px "DM Sans"', '700 20px "DM Sans"']
+const FACES = ['400', '500', '600', '700'].map(w => `${w} 20px "Space Grotesk"`)
 
 let pending: Promise<void> | null = null
 

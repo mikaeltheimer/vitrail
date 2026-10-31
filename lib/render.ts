@@ -183,13 +183,13 @@ interface LabelLine {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-// Typographie : le nom et le montant en empattements (Fraunces, chaleureux et sobre), les petites mentions en capitales espacées (DM Sans),
-// le message en italique. Couleurs chaudes (crème, or pâle) ; un contour sombre garde tout lisible sur n'importe quel verre.
+// Typographie : une seule famille (Space Grotesk) en plusieurs graisses ; les petites mentions en capitales espacées.
+// Le message est en romain (Space Grotesk n'a pas d'italique). Couleurs chaudes (crème, or pâle) ; un contour sombre garde tout lisible sur n'importe quel verre.
 const LABEL_STYLE: Record<LabelRow['kind'], { family: string; weight: string; italic: boolean; color: string; line: number; upper: boolean; spacing: number }> = {
   small: { family: FONT_SANS, weight: '500', italic: false, color: 'rgba(255,238,205,0.88)', line: 1.3, upper: true, spacing: 0.2 },
   name: { family: FONT_DISPLAY, weight: '600', italic: false, color: '#fff8ea', line: 1.08, upper: false, spacing: 0 },
   amount: { family: FONT_DISPLAY, weight: '700', italic: false, color: '#ffe7a0', line: 1.1, upper: false, spacing: 0 },
-  message: { family: FONT_DISPLAY, weight: '400', italic: true, color: 'rgba(255,248,235,0.94)', line: 1.22, upper: false, spacing: 0 },
+  message: { family: FONT_DISPLAY, weight: '400', italic: false, color: 'rgba(255,248,235,0.94)', line: 1.22, upper: false, spacing: 0 },
 }
 type SpacingCtx = CanvasRenderingContext2D & { letterSpacing?: string }
 const setSpacing = (ctx: CanvasRenderingContext2D, value: string) => {
