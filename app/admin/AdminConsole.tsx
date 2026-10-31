@@ -1,0 +1,394 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { CONFIG, GLASS_COLORS } from '@/lib/config'
+import { formatMoney } from '@/lib/format'
+
+interface Donor {
+  id: string
+  email: string
+  display_name: string
+  show_name: boolean
+  message: string | null
+  color: string
+  hidden: boolean
+  totalCents: number
+  lastDonationAt: string | null
+}
+interface EventRow {
+  id: string
+  name: string
+  starts_on: string | null
+  goal_cents: number
+  is_current: boolean
+  totalCents: number
+  donationsCount: number
+}
+interface DonationRow {
+  id: string
+  donor_id: string
+  amount_cents: number
+  source: string
+  created_at: string
+  donors: { display_name: string; email: string; hidden: boolean } | { display_name: string; email: string; hidden: boolean }[] | null
+}
+interface Data {
+  mode: 'stripe' | 'demo' | 'off'
+  donors: Donor[]
+  events: EventRow[]
+  donations: DonationRow[]
+}
+
+type Tab = 'direct' | 'donateurs' | 'comptant' | 'evenements' | 'outils'
+const TABS: [Tab, string][] = [
+  ['direct', 'En direct'],
+  ['donateurs', 'Donateurs'],
+  ['comptant', 'Don comptant'],
+  ['evenements', 'Événements'],
+  ['outils', 'Outils'],
+]
+const SOURCE_LABEL: Record<string, string> = { stripe: 'Carte', cash: 'Comptant', seed: 'Amorçage', demo: 'Démo' }
+
+const toCents = (s: string) => Math.round((parseFloat(s.replace(',', '.')) || 0) * 100)
+const time = (iso: string) => new Date(iso).toLocaleString('fr-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? v[0] ?? null : v)
+
+export default function AdminConsole() {
+  const router = useRouter()
+  const [tab, setTab] = useState<Tab>('direct')
+  const [data, setData] = useState<Data | null>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [mergeFrom, setMergeFrom] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  const load = useCallback(
+    () =>
+      fetch('/api/admin', { cache: 'no-store' })
+        .then(res => {
+          if (res.status === 403) router.refresh()
+          else if (res.ok) return res.json().then(setData)
+        })
+        .catch(() => {}),
+    [router],
+  )
+
+  useEffect(() => {
+    void load()
+    const id = setInterval(load, 5000)
+    return () => clearInterval(id)
+  }, [load])
+
+  async function act(payload: Record<string, unknown>, okText = 'Fait.') {
+    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const body = await res.json().catch(() => ({}))
+    setMsg(res.ok ? { ok: true, text: okText } : { ok: false, text: body.error || 'Erreur.' })
+    if (res.ok) await load()
+    return res.ok
+  }
+
+  async function logout() {
+    await fetch('/api/admin/login', { method: 'DELETE' })
+    router.refresh()
+  }
+
+  const current = data?.events.find(e => e.is_current) ?? null
+  const donorsFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return (data?.donors ?? [])
+      .filter(d => !q || d.email.toLowerCase().includes(q) || d.display_name.toLowerCase().includes(q))
+      .sort((a, b) => b.totalCents - a.totalCents)
+  }, [data, search])
+
+  return (
+    <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-5">
+      <header className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Console — {CONFIG.appName}</h1>
+          <p className="muted text-sm">
+            {current ? `Événement en cours : ${current.name}` : 'Aucun événement en cours'}
+            {data?.mode === 'demo' && <b style={{ color: 'var(--gold)' }}> · MODE DÉMO</b>}
+          </p>
+        </div>
+        <button className="muted text-sm underline" onClick={logout}>
+          Quitter
+        </button>
+      </header>
+
+      <nav className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        {TABS.map(([id, label]) => (
+          <button key={id} className="chip whitespace-nowrap px-4" aria-pressed={tab === id} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {msg && (
+        <p role="status" className="mt-3 text-sm" style={{ color: msg.ok ? '#a3e635' : '#f87171' }}>
+          {msg.text}
+        </p>
+      )}
+
+      {!data && <p className="muted mt-6">Chargement…</p>}
+
+      {/* ── En direct ── */}
+      {data && tab === 'direct' && (
+        <section className="mt-4 space-y-2">
+          <p className="muted text-xs">Masquer retire le morceau de l&apos;écran à la prochaine mise à jour (3 s). L&apos;argent reçu reste compté dans les totaux.</p>
+          {data.donations.map(n => {
+            const d = one(n.donors)
+            return (
+              <div key={n.id} className="card flex items-center justify-between gap-3 !p-3">
+                <div className="min-w-0 text-sm">
+                  <div className="truncate">
+                    <b>{formatMoney(n.amount_cents)}</b> · {d?.display_name ?? '—'} {d?.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
+                  </div>
+                  <div className="muted truncate text-xs">
+                    {time(n.created_at)} · {SOURCE_LABEL[n.source] ?? n.source} · {d?.email}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button className="chip !px-3 text-sm" onClick={() => act({ action: 'scrubDonor', donorId: n.donor_id }, 'Nom et message effacés.')}>
+                    Effacer le nom
+                  </button>
+                  <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: n.donor_id, hidden: !d?.hidden })}>
+                    {d?.hidden ? 'Réafficher' : 'Masquer'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+          {data.donations.length === 0 && <p className="muted">Aucun don pour l&apos;instant.</p>}
+        </section>
+      )}
+
+      {/* ── Donateurs ── */}
+      {data && tab === 'donateurs' && (
+        <section className="mt-4 space-y-2">
+          <input className="field" placeholder="Chercher par nom ou courriel" value={search} onChange={e => setSearch(e.target.value)} />
+          {mergeFrom && (
+            <p className="card text-sm">
+              Choisissez le morceau qui doit <b>recevoir</b> les dons de « {data.donors.find(d => d.id === mergeFrom)?.email} ».{' '}
+              <button className="underline" onClick={() => setMergeFrom(null)}>
+                Annuler
+              </button>
+            </p>
+          )}
+          {donorsFiltered.map(d => (
+            <div key={d.id} className="card flex items-center justify-between gap-3 !p-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: d.color, opacity: d.hidden ? 0.3 : 1 }} />
+                <div className="min-w-0 text-sm">
+                  <div className="truncate">
+                    <b>{d.display_name}</b> · {formatMoney(d.totalCents)} {d.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
+                  </div>
+                  <div className="muted truncate text-xs">{d.email}</div>
+                  {d.message && <div className="truncate text-xs">« {d.message} »</div>}
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                {mergeFrom && mergeFrom !== d.id ? (
+                  <button
+                    className="chip !px-3 text-sm"
+                    onClick={async () => {
+                      if (await act({ action: 'mergeDonors', fromId: mergeFrom, intoId: d.id }, 'Morceaux réunis.')) setMergeFrom(null)
+                    }}
+                  >
+                    Fusionner ici
+                  </button>
+                ) : (
+                  <>
+                    <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: d.id, hidden: !d.hidden })}>
+                      {d.hidden ? 'Réafficher' : 'Masquer'}
+                    </button>
+                    <button className="chip !px-3 text-sm" onClick={() => setMergeFrom(d.id)}>
+                      Fusionner…
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* ── Don comptant / amorçage ── */}
+      {data && tab === 'comptant' && <CashForm events={data.events} onSubmit={p => act(p, 'Don ajouté.')} />}
+
+      {/* ── Événements ── */}
+      {data && tab === 'evenements' && (
+        <section className="mt-4 space-y-3">
+          {data.events.map(e => (
+            <EventCard key={e.id} e={e} onAct={act} />
+          ))}
+          <NewEvent onSubmit={act} />
+        </section>
+      )}
+
+      {/* ── Outils ── */}
+      {data && tab === 'outils' && (
+        <section className="mt-4 space-y-3">
+          <div className="card text-sm">
+            <b>Pages</b>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>
+                <a href="/ecran" target="_blank">Écran d&apos;affichage</a> — ouvrir en plein écran sur l&apos;ordinateur de l&apos;installation
+              </li>
+              <li>
+                <a href="/" target="_blank">Page de don</a> — là où mène le QR code
+              </li>
+            </ul>
+          </div>
+          <div className="card text-sm">
+            <b>Mode de paiement : {data.mode === 'stripe' ? 'Stripe (réel)' : data.mode === 'demo' ? 'Démo (aucun paiement)' : 'Désactivé'}</b>
+            <p className="muted mt-1">Se règle avec les variables d&apos;environnement, pas ici.</p>
+          </div>
+          <div className="card text-sm">
+            <b>Retirer les dons de démonstration</b>
+            <p className="muted mt-1">À faire avant l&apos;événement : supprime tous les dons créés en mode démo, et les morceaux qui n&apos;ont plus aucun don.</p>
+            <button
+              className="btn btn-ghost mt-3"
+              onClick={() => {
+                if (confirm('Supprimer tous les dons de démonstration ? Cette action est définitive.')) void act({ action: 'purgeDemo' }, 'Dons de démonstration supprimés.')
+              }}
+            >
+              Supprimer les dons de démo
+            </button>
+          </div>
+        </section>
+      )}
+    </main>
+  )
+}
+
+function CashForm({ events, onSubmit }: { events: EventRow[]; onSubmit: (p: Record<string, unknown>) => Promise<boolean> }) {
+  const [amount, setAmount] = useState('')
+  const [email, setEmail] = useState('')
+  const [showName, setShowName] = useState(false)
+  const [name, setName] = useState('')
+  const [message, setMessage] = useState('')
+  const [color, setColor] = useState<string>(GLASS_COLORS[4].value)
+  const [source, setSource] = useState<'cash' | 'seed'>('cash')
+  const [eventId, setEventId] = useState('')
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    const ok = await onSubmit({ action: 'addCash', amountCents: toCents(amount), email, showName, name, message, color, source, eventId })
+    if (ok) {
+      setAmount('')
+      setEmail('')
+      setName('')
+      setMessage('')
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card mt-4 space-y-3">
+      <p className="muted text-sm">
+        Un don en argent comptant, ou un don d&apos;amorçage avant l&apos;ouverture. Avec le courriel d&apos;un donateur connu, le don agrandit son morceau existant.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" className="chip" aria-pressed={source === 'cash'} onClick={() => setSource('cash')}>
+          Argent comptant
+        </button>
+        <button type="button" className="chip" aria-pressed={source === 'seed'} onClick={() => setSource('seed')}>
+          Amorçage (CA, équipe)
+        </button>
+      </div>
+      <input className="field" inputMode="decimal" placeholder="Montant en $" value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))} />
+      <input className="field" type="email" placeholder="Courriel (facultatif)" value={email} onChange={e => setEmail(e.target.value)} />
+      <label className="flex items-center gap-3 text-sm">
+        <input type="checkbox" className="h-5 w-5" checked={showName} onChange={e => setShowName(e.target.checked)} />
+        Le donateur accepte que son nom soit affiché
+      </label>
+      {showName && (
+        <>
+          <input className="field" placeholder="Nom affiché" value={name} onChange={e => setName(e.target.value)} maxLength={CONFIG.nameMax} />
+          <input className="field" placeholder="Message (facultatif)" value={message} onChange={e => setMessage(e.target.value)} maxLength={CONFIG.messageMax} />
+        </>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {GLASS_COLORS.map(c => (
+          <button
+            key={c.value}
+            type="button"
+            aria-label={c.name}
+            onClick={() => setColor(c.value)}
+            className="h-9 w-9 rounded-full"
+            style={{ background: c.value, boxShadow: color === c.value ? '0 0 0 3px #050408, 0 0 0 5px #f4f1ea' : '0 0 0 2px #050408' }}
+          />
+        ))}
+      </div>
+      <select className="field" value={eventId} onChange={e => setEventId(e.target.value)}>
+        <option value="">Événement en cours</option>
+        {events.map(ev => (
+          <option key={ev.id} value={ev.id}>
+            {ev.name}
+          </option>
+        ))}
+      </select>
+      <button className="btn" disabled={toCents(amount) < CONFIG.minAmountCents}>
+        Ajouter le don
+      </button>
+    </form>
+  )
+}
+
+function EventCard({ e, onAct }: { e: EventRow; onAct: (p: Record<string, unknown>, ok?: string) => Promise<boolean> }) {
+  const [goal, setGoal] = useState(String(e.goal_cents / 100))
+  return (
+    <div className="card space-y-2 text-sm" style={e.is_current ? { borderColor: 'var(--gold)' } : undefined}>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <b>{e.name}</b> {e.is_current && <span style={{ color: 'var(--gold)' }}>· en cours</span>}
+          <div className="muted text-xs">
+            {e.starts_on ?? 'sans date'} · {formatMoney(e.totalCents)} · {e.donationsCount} don{e.donationsCount > 1 ? 's' : ''}
+          </div>
+        </div>
+        <button className="chip !px-3 text-sm" onClick={() => onAct({ action: 'setCurrent', eventId: e.is_current ? null : e.id }, e.is_current ? 'Aucun événement en cours.' : 'Événement en cours défini.')}>
+          {e.is_current ? 'Arrêter' : 'Mettre en cours'}
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <input className="field !py-2" inputMode="decimal" value={goal} onChange={ev => setGoal(ev.target.value.replace(/[^0-9.,]/g, ''))} aria-label="Objectif en dollars" />
+        <button className="chip !px-4" onClick={() => onAct({ action: 'updateEvent', eventId: e.id, goalCents: toCents(goal) }, 'Objectif mis à jour.')}>
+          Objectif
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function NewEvent({ onSubmit }: { onSubmit: (p: Record<string, unknown>, ok?: string) => Promise<boolean> }) {
+  const [name, setName] = useState('')
+  const [startsOn, setStartsOn] = useState('')
+  const [goal, setGoal] = useState('')
+  const [makeCurrent, setMakeCurrent] = useState(true)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (await onSubmit({ action: 'createEvent', name, startsOn, goalCents: toCents(goal), makeCurrent }, 'Événement créé.')) {
+      setName('')
+      setGoal('')
+      setStartsOn('')
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card space-y-3">
+      <b className="text-sm">Nouvel événement</b>
+      <input className="field" placeholder="Nom (ex. Portes ouvertes, fin de semaine 1)" value={name} onChange={e => setName(e.target.value)} maxLength={80} />
+      <div className="grid grid-cols-2 gap-2">
+        <input className="field" type="date" value={startsOn} onChange={e => setStartsOn(e.target.value)} aria-label="Date" />
+        <input className="field" inputMode="decimal" placeholder="Objectif en $" value={goal} onChange={e => setGoal(e.target.value.replace(/[^0-9.,]/g, ''))} />
+      </div>
+      <label className="flex items-center gap-3 text-sm">
+        <input type="checkbox" className="h-5 w-5" checked={makeCurrent} onChange={e => setMakeCurrent(e.target.checked)} />
+        En faire l&apos;événement en cours
+      </label>
+      <button className="btn" disabled={name.trim().length < 2}>
+        Créer
+      </button>
+    </form>
+  )
+}

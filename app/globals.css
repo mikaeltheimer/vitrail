@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07060b;
+  --panel: #100e17;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f4f1ea;
+  --muted: rgba(244, 241, 234, 0.6);
+  --gold: #f5c451;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  /* Polices du système : l'écran d'affichage ne doit dépendre d'aucun service externe. */
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+a {
+  color: var(--gold);
+}
+
+input,
+textarea,
+button,
+select {
+  font: inherit;
+}
+
+/* ── Éléments communs (pages mobiles) ── */
+.field {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  color: var(--text);
+  font-size: 1rem; /* 16 px minimum : évite le zoom automatique sur iPhone */
+}
+.field:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  font-weight: 650;
+  font-size: 1.05rem;
+  cursor: pointer;
+  background: var(--gold);
+  color: #1b1405;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.chip {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 0.75rem 0.4rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] {
+  background: var(--gold);
+  color: #1b1405;
+  border-color: var(--gold);
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1.1rem;
+}
+.muted {
+  color: var(--muted);
+}
+
+/* ── Écran d'affichage : tailles proportionnelles à l'écran (1 em ≈ 1/54 de la hauteur en 16:9) ── */
+.tv {
+  font-size: min(1.1vw, 1.95vh);
+  line-height: 1.25;
+  user-select: none;
+}
+.tv-hide-cursor {
+  cursor: none;
+}
+@keyframes tv-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.2em) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tv-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.6em);
+  }
+}
+.tv-banner-in {
+  animation: tv-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.tv-banner-out {
+  animation: tv-out 0.5s ease-in both;
+}
