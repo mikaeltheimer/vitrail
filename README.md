@@ -58,11 +58,13 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 - **Base de données** : exécuter `supabase/migrations/2026-10-31-photos.sql` dans le SQL Editor de Supabase (colonne `photo_url` + bucket public `photos`). Un nouveau projet qui part de `supabase/schema.sql` l'a déjà.
 - **Modération** : la console admin affiche les photos et permet « Retirer la photo » ou « Effacer le nom » (efface aussi la photo). À prévoir avant l'événement : quelqu'un qui surveille la console.
 
-## Visite de l'écran (brillance + zoom)
+## Visite de l'écran (brillance + sortie du vitrail)
 
-Sur `/ecran`, un morceau est **toujours** en brillance. Le cycle : vue d'ensemble du vitrail (le prochain morceau s'allume déjà) → zoom sur le morceau (les petits sont zoomés jusqu'à occuper environ 20 % de la hauteur de l'écran, les grands ne bougent pas) → pause → dézoom complet → morceau suivant. L'ordre est aléatoire sans répétition avant que tous soient passés ; un nouveau don passe en premier (après au plus quelques secondes). Les morceaux anonymes ont une pause plus courte. Les durées sont dans `lib/config.ts` (`tour…`).
+Sur `/ecran`, un morceau est **toujours** en brillance, et le vitrail ne bouge jamais (pas de zoom). Le cycle : le prochain morceau pulse en place (1 s) → s'il est petit, il **sort du vitrail** et s'agrandit au-dessus (ombre portée, reste du vitrail assombri) pendant que l'annonce apparaît → pause → il retourne à sa place → suivant. Les grands morceaux ne sortent pas : ils pulsent et l'annonce s'affiche.
 
-Les noms et messages sont toujours placés **à l'intérieur** du morceau, avec une marge : la police est réduite jusqu'à ce que chaque ligne tienne dans le cercle utile du morceau, et rien ne s'affiche si ça ne rentre pas.
+L'annonce montre la photo, « Merci à … » (ou « … vient de donner » pour un don tout neuf), le montant, et le message. L'ordre est aléatoire sans répétition avant que tous soient passés ; un nouveau don passe en premier. Durées et taille de sortie : `lib/config.ts` (`tour…`).
+
+Les noms et messages sur le verre sont toujours placés **à l'intérieur** du morceau, avec une marge : la police est réduite jusqu'à ce que chaque ligne tienne dans le cercle utile du morceau, et rien ne s'affiche si ça ne rentre pas.
 
 ## Le jour J
 

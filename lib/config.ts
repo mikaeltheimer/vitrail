@@ -37,13 +37,13 @@ export const CONFIG = {
 
   /** Fréquence d'interrogation du serveur par l'écran d'affichage. */
   pollMs: 3000,
-  // Visite de l'écran : un don est toujours en brillance. Vue d'ensemble → zoom sur le morceau → pause → dézoom → suivant.
-  tourOverviewMs: 1600, // vue d'ensemble, le prochain morceau déjà en brillance
-  tourZoomMs: 2000, // durée d'un zoom (et d'un dézoom)
-  tourHoldMs: 5000, // pause sur un morceau avec nom, message ou photo
-  tourHoldBareMs: 2500, // pause sur un morceau anonyme
-  tourTargetFraction: 0.2, // le morceau zoomé occupe (rayon inscrit) cette fraction de la hauteur de l'écran
-  tourMaxZoom: 40,
+  // Visite de l'écran : un don est toujours en brillance. Repère → le morceau sort du vitrail et s'agrandit (avec l'annonce) → pause → retour → suivant.
+  tourMarkMs: 1000, // le prochain morceau pulse en place avant de sortir
+  tourLiftMs: 1500, // durée de la sortie (et du retour)
+  tourHoldMs: 5500, // pause avec nom, message ou photo
+  tourHoldBareMs: 3500, // pause pour un morceau anonyme
+  tourTargetFraction: 0.22, // un petit morceau sorti occupe (rayon inscrit) cette fraction de la hauteur de l'écran
+  tourMaxLift: 40, // agrandissement maximal
 } as const
 
 /** Verres disponibles (reprend les Glow Colors de Pay to Exist). */

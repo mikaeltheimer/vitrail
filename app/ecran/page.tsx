@@ -17,7 +17,6 @@ import type { Snapshot } from '@/lib/types'
 
 const CACHE_KEY = 'vitrail:last-snapshot'
 const FADE_MS = 1400
-const BANNER_MS = 7000
 const RELOAD_MS = 6 * 60 * 60 * 1000
 
 interface Banner {
@@ -26,9 +25,16 @@ interface Banner {
   title: string
   message: string | null
   amount: string
+  caption?: string
   leaving: boolean
-  /** Durée d'affichage ; 7 s par défaut. */
-  durationMs?: number
+}
+
+/** Ce qu'on sait d'un don tout neuf (pour l'annonce « vient de donner »). */
+interface News {
+  title: string
+  message: string | null
+  amount: string
+  photoUrl: string | null
 }
 
 interface World {
@@ -39,7 +45,9 @@ interface World {
   prevLayer: HTMLCanvasElement | null
   fadeStart: number
   /** Visite de l'écran : un morceau est toujours en brillance. */
-  dir: { phase: 'overview' | 'in' | 'hold' | 'out'; t0: number; id: string | null }
+  dir: { phase: 'mark' | 'lift' | 'hold' | 'drop'; t0: number; id: string | null }
+  amounts: Map<string, number>
+  news: Map<string, News>
   lit: { id: string; start: number } | null
   litPrev: { id: string; end: number } | null
   priority: string[] // nouveaux dons : passent avant le tirage au hasard
@@ -75,13 +83,19 @@ function buildLayer(w: World): HTMLCanvasElement {
 }
 
 const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 
-/** Zoom nécessaire pour que le morceau occupe une belle part de l'écran ; 1 = il est déjà assez grand, pas de zoom. */
-function zoomFor(w: World, tile: Tile): number {
+/**
+ * Agrandissement d'un petit morceau quand il « sort » du vitrail : il occupe environ 22 % de la hauteur de l'écran,
+ * sans jamais dépasser l'écran. 1 = déjà assez grand, il reste en place.
+ */
+function liftFor(w: World, tile: Tile): number {
   const base = w.R / UNIVERSE_RADIUS
   const need = (CONFIG.tourTargetFraction * w.H) / Math.max(1e-6, tile.inRadius * base)
-  const z = Math.min(CONFIG.tourMaxZoom, Math.max(1, need))
-  return z < 1.15 ? 1 : z
+  const [x0, y0, x1, y1] = tile.bbox
+  const fit = Math.min((0.9 * w.W) / Math.max(1e-6, (x1 - x0) * base), (0.6 * w.H) / Math.max(1e-6, (y1 - y0) * base))
+  const s = Math.min(CONFIG.tourMaxLift, need, fit)
+  return s < 1.15 ? 1 : s
 }
 
 /** Choisit le prochain morceau en brillance : un nouveau don d'abord, sinon un tirage au hasard sans répétition. */
@@ -112,63 +126,79 @@ function pickNext(w: World, now: number) {
   w.litPrev = w.lit ? { id: w.lit.id, end: now } : null
   w.lit = { id, start: now }
   w.last = id
-  w.dir = { phase: 'overview', t0: now, id }
+  w.dir = { phase: 'mark', t0: now, id }
 }
 
-/** Fait avancer la visite ; renvoie le degré de zoom (0 = vitrail entier, 1 = zoom complet sur le morceau). */
+/**
+ * Fait avancer la visite : repère (le morceau pulse en place) → sortie du vitrail + annonce → pause → retour → suivant.
+ * Renvoie le degré de sortie (0 = en place, 1 = sorti et agrandi).
+ */
 function stepDirector(w: World, now: number): number {
-  const d = w.dir
   if (w.tiles.size === 0) {
-    d.id = null
+    w.dir.id = null
     return 0
   }
-  if (!d.id || !w.tiles.has(d.id)) {
+  if (!w.dir.id || !w.tiles.has(w.dir.id)) {
     pickNext(w, now)
     if (!w.dir.id) return 0
   }
   const dir = w.dir
-  const tile = w.tiles.get(dir.id as string)
+  const id = dir.id as string
+  const tile = w.tiles.get(id)
   if (!tile) return 0
-  const zooms = zoomFor(w, tile) > 1
+  const lifts = liftFor(w, tile) > 1
   const el = now - dir.t0
   switch (dir.phase) {
-    case 'overview':
-      if (el >= CONFIG.tourOverviewMs) {
-        dir.phase = zooms ? 'in' : 'hold'
+    case 'mark':
+      if (el >= CONFIG.tourMarkMs) {
+        dir.phase = 'lift'
         dir.t0 = now
       }
       return 0
-    case 'in': {
-      const k = Math.min(1, el / CONFIG.tourZoomMs)
+    case 'lift': {
+      const k = Math.min(1, el / CONFIG.tourLiftMs)
       if (k >= 1) {
         dir.phase = 'hold'
         dir.t0 = now
       }
-      return ease(k)
+      return lifts ? ease(k) : 0
     }
     case 'hold': {
-      const piece = w.pieces.get(dir.id as string)
-      const rich = !!(piece?.name || piece?.photoUrl)
-      const hold = rich ? CONFIG.tourHoldMs : CONFIG.tourHoldBareMs
+      const piece = w.pieces.get(id)
+      const hold = piece?.name || piece?.photoUrl ? CONFIG.tourHoldMs : CONFIG.tourHoldBareMs
       if (el >= hold || (w.priority.length > 0 && el > 1500)) {
-        if (zooms) {
-          dir.phase = 'out'
-          dir.t0 = now
-        } else {
-          pickNext(w, now)
-          return 0
-        }
+        dir.phase = 'drop'
+        dir.t0 = now
       }
-      return zooms ? 1 : 0
+      return lifts ? 1 : 0
     }
-    case 'out': {
-      const k = Math.min(1, el / CONFIG.tourZoomMs)
+    case 'drop': {
+      const k = Math.min(1, el / CONFIG.tourLiftMs)
       if (k >= 1) {
         pickNext(w, now)
         return 0
       }
-      return 1 - ease(k)
+      return lifts ? 1 - ease(k) : 0
     }
+  }
+}
+
+/** Texte de l'annonce d'un morceau : « vient de donner » pour un don tout neuf, « Merci à … » sinon. */
+function cardFor(w: World, id: string): Banner {
+  const news = w.news.get(id)
+  if (news) {
+    w.news.delete(id)
+    return { id: `${id}-${Date.now()}`, ...news, leaving: false }
+  }
+  const piece = w.pieces.get(id)
+  return {
+    id: `${id}-${Date.now()}`,
+    photoUrl: piece?.photoUrl ?? null,
+    title: piece?.name ? `Merci à ${piece.name}` : 'Merci à un donateur anonyme',
+    message: CONFIG.showMessagesOnScreen ? piece?.message ?? null : null,
+    amount: formatMoney(w.amounts.get(id) ?? 0),
+    caption: 'au total',
+    leaving: false,
   }
 }
 
@@ -203,7 +233,9 @@ export default function EcranPage() {
       layer: null,
       prevLayer: null,
       fadeStart: 0,
-      dir: { phase: 'overview', t0: 0, id: null },
+      dir: { phase: 'mark', t0: 0, id: null },
+      amounts: new Map(),
+      news: new Map(),
       lit: null,
       litPrev: null,
       priority: [],
@@ -234,31 +266,10 @@ export default function EcranPage() {
   const first = useRef(true)
   const busy = useRef(false)
   const queued = useRef<Snapshot | null>(null)
-  const bannerQueue = useRef<Banner[]>([])
-  const showing = useRef(false)
-  const pump = useRef<() => void>(() => {})
   const rootRef = useRef<HTMLElement>(null)
 
   const totalShown = useCountUp(snap?.totalCents ?? 0)
   const eventShown = useCountUp(snap?.event?.totalCents ?? 0)
-
-  // ── Annonces : une à la fois, 7 s chacune ──
-  useEffect(() => {
-    pump.current = () => {
-      if (showing.current) return
-      const next = bannerQueue.current.shift()
-      if (!next) return
-      showing.current = true
-      setBanner(next)
-      const ms = next.durationMs ?? BANNER_MS
-      setTimeout(() => setBanner(b => (b ? { ...b, leaving: true } : b)), ms - 600)
-      setTimeout(() => {
-        setBanner(null)
-        showing.current = false
-        pump.current()
-      }, ms)
-    }
-  }, [])
 
   // ── Mise en page du canvas ──
   const layout = useCallback(() => {
@@ -292,18 +303,17 @@ export default function EcranPage() {
           }
           for (const d of [...s.recent].reverse()) {
             if (seen.current.has(d.id)) continue
-            bannerQueue.current.push({
-              id: d.id,
+            world.news.set(d.donorId, {
               photoUrl: d.photoUrl,
               title: d.name ? `${d.name} vient de donner` : 'Un don anonyme',
               message: CONFIG.showMessagesOnScreen ? d.message : null,
               amount: formatMoney(d.amountCents),
-              leaving: false,
             })
           }
         }
         for (const d of s.recent) seen.current.add(d.id)
         prevAmounts.current = new Map(s.pieces.map(p => [p.id, p.amountCents]))
+        world.amounts = prevAmounts.current
         setSnap(s)
 
         if (s.version !== version.current) {
@@ -322,7 +332,6 @@ export default function EcranPage() {
         }
         for (const id of lit) if (!world.priority.includes(id)) world.priority.push(id)
         first.current = false
-        pump.current()
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify(s))
         } catch {}
@@ -406,6 +415,7 @@ export default function EcranPage() {
   useEffect(() => {
     let raf = 0
     let lastZoomStr = ''
+    let lastPhaseKey = ''
     let last = performance.now()
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
@@ -418,7 +428,16 @@ export default function EcranPage() {
       const base = R / UNIVERSE_RADIUS
       const e = stepDirector(world, now)
       const focusTile = world.dir.id ? world.tiles.get(world.dir.id) : undefined
-      let view = { scale: base, ox: cx, oy: cy }
+
+      // Annonce : apparaît quand le morceau sort du vitrail, repart quand il y retourne
+      const phaseKey = `${world.dir.id}:${world.dir.phase}`
+      if (phaseKey !== lastPhaseKey) {
+        lastPhaseKey = phaseKey
+        const id = world.dir.id
+        if (id && world.dir.phase === 'lift') setBanner(cardFor(world, id))
+        else if (world.dir.phase === 'drop') setBanner(b => (b ? { ...b, leaving: true } : b))
+        else if (world.dir.phase === 'mark') setBanner(null)
+      }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.globalAlpha = 1
@@ -426,27 +445,13 @@ export default function EcranPage() {
       ctx.fillRect(0, 0, W, H)
       world.ambience.drawBehind(ctx, cx, cy, R, W, H, 1, now, dt, false)
 
-      if (e > 0.001 && focusTile) {
-        // Caméra : zoom (exponentiel, donc régulier à l'œil) vers le centre du morceau. Le verre est redessiné à chaque image.
-        const scale = base * Math.pow(zoomFor(world, focusTile), e)
-        view = { scale, ox: cx - focusTile.labelCenter[0] * e * scale, oy: cy - focusTile.labelCenter[1] * e * scale }
-        drawScene(ctx, { tiles: world.tiles, pieces: world.pieces, images: world.images, view, dpr, width: W, height: H, uiScale: R / 475 })
-        // Bords assombris : le texte de l'écran reste lisible et le regard va au centre
-        const vg = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.3, cx, cy, Math.hypot(W, H) * 0.55)
-        vg.addColorStop(0, 'rgba(5,4,8,0)')
-        vg.addColorStop(1, `rgba(5,4,8,${0.6 * e})`)
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        ctx.fillStyle = vg
-        ctx.fillRect(0, 0, W, H)
-      } else {
-        const f = Math.min(1, (now - world.fadeStart) / FADE_MS)
-        if (world.prevLayer && f < 1) ctx.drawImage(world.prevLayer, cx - R, cy - R, R * 2, R * 2)
-        else world.prevLayer = null
-        if (world.layer) {
-          ctx.globalAlpha = world.prevLayer ? f : 1
-          ctx.drawImage(world.layer, cx - R, cy - R, R * 2, R * 2)
-          ctx.globalAlpha = 1
-        }
+      const f = Math.min(1, (now - world.fadeStart) / FADE_MS)
+      if (world.prevLayer && f < 1) ctx.drawImage(world.prevLayer, cx - R, cy - R, R * 2, R * 2)
+      else world.prevLayer = null
+      if (world.layer) {
+        ctx.globalAlpha = world.prevLayer ? f : 1
+        ctx.drawImage(world.layer, cx - R, cy - R, R * 2, R * 2)
+        ctx.globalAlpha = 1
       }
 
       // Le don en brillance (toujours un), et le précédent qui s'éteint
@@ -454,13 +459,13 @@ export default function EcranPage() {
         const tile = world.tiles.get(id)
         if (!tile?.path || strength <= 0) return
         const pulse = 0.5 + 0.5 * Math.sin(now / 260)
-        ctx.setTransform(dpr * view.scale, 0, 0, dpr * view.scale, dpr * view.ox, dpr * view.oy)
+        ctx.setTransform(dpr * base, 0, 0, dpr * base, dpr * cx, dpr * cy)
         ctx.lineJoin = 'round'
         ctx.globalCompositeOperation = 'lighter'
         ctx.fillStyle = `rgba(255,240,200,${0.3 * pulse * strength})`
         ctx.fill(tile.path)
         ctx.globalCompositeOperation = 'source-over'
-        ctx.lineWidth = (3 + 3 * pulse) / view.scale
+        ctx.lineWidth = (3 + 3 * pulse) / base
         ctx.strokeStyle = `rgba(245,196,81,${0.95 * strength})`
         ctx.stroke(tile.path)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -470,11 +475,62 @@ export default function EcranPage() {
         if (k <= 0) world.litPrev = null
         else glow(world.litPrev.id, k)
       }
-      if (world.lit) glow(world.lit.id, Math.min(1, (now - world.lit.start) / 500))
+      if (world.lit) glow(world.lit.id, Math.min(1, (now - world.lit.start) / 500) * (1 - e))
 
-      ctx.globalAlpha = 1 - e
       world.ambience.drawFront(ctx, cx, cy, R, now, false)
-      ctx.globalAlpha = 1
+
+      // Le morceau « sort » du vitrail : il s'agrandit au-dessus, avec une ombre, pendant que le reste s'assombrit
+      if (e > 0.001 && focusTile?.path) {
+        const S = liftFor(world, focusTile)
+        const [lx, ly] = focusTile.labelCenter
+        const sx0 = cx + lx * base
+        const sy0 = cy + ly * base
+        // Position d'arrivée : à sa place, ramenée dans l'écran (au-dessus de l'annonce, qui occupe le bas)
+        const end = base * S
+        const [bx0, by0, bx1, by1] = focusTile.bbox
+        const left = (bx0 - lx) * end
+        const right = (bx1 - lx) * end
+        const top = (by0 - ly) * end
+        const bottom = (by1 - ly) * end
+        const m = Math.min(W, H) * 0.04
+        const yMax = H * 0.66
+        const ex = right - left <= W - 2 * m ? Math.min(W - m - right, Math.max(m - left, sx0)) : W / 2 - (left + right) / 2
+        const ey = bottom - top <= yMax - m ? Math.min(yMax - bottom, Math.max(m - top, sy0)) : (m + yMax) / 2 - (top + bottom) / 2
+        const sc = base * Math.pow(S, e)
+        const px = lerp(sx0, ex, e)
+        const py = lerp(sy0, ey, e)
+        const ox = px - lx * sc
+        const oy = py - ly * sc
+
+        // La place laissée vide, puis le reste du vitrail assombri
+        ctx.setTransform(dpr * base, 0, 0, dpr * base, dpr * cx, dpr * cy)
+        ctx.fillStyle = `rgba(5,4,8,${0.8 * e})`
+        ctx.fill(focusTile.path)
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        ctx.fillStyle = `rgba(5,4,8,${0.55 * e})`
+        ctx.fillRect(0, 0, W, H)
+
+        // Ombre portée du morceau soulevé
+        ctx.save()
+        ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy)
+        ctx.shadowColor = 'rgba(0,0,0,0.75)'
+        ctx.shadowBlur = 46 * dpr * e
+        ctx.shadowOffsetY = 14 * dpr * e
+        ctx.fillStyle = '#000'
+        ctx.fill(focusTile.path)
+        ctx.restore()
+
+        // Le morceau lui-même : verre et photo en grand ; le nom et le message sont dans l'annonce
+        const piece = world.pieces.get(focusTile.id)
+        const lifted: PieceMap = new Map([[focusTile.id, { color: piece?.color ?? '#f472b6', name: null, message: null, photoUrl: piece?.photoUrl ?? null }]])
+        drawScene(ctx, { tiles: new Map([[focusTile.id, focusTile]]), pieces: lifted, images: world.images, view: { scale: sc, ox, oy }, dpr, width: W, height: H, uiScale: R / 475 })
+        ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * ox, dpr * oy)
+        ctx.lineJoin = 'round'
+        ctx.lineWidth = 4 / sc
+        ctx.strokeStyle = `rgba(245,196,81,${e})`
+        ctx.stroke(focusTile.path)
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
 
       // Panneaux d'information : en retrait pendant le zoom
       const zoomStr = e.toFixed(2)
@@ -637,6 +693,7 @@ export default function EcranPage() {
           )}
           <div style={{ fontSize: '1.2em' }}>{banner.title}</div>
           <div style={{ fontSize: '2.6em', fontWeight: 700, color: '#f5c451', lineHeight: 1.1 }}>{banner.amount}</div>
+          {banner.caption && <div className="muted" style={{ fontSize: '0.95em' }}>{banner.caption}</div>}
           {banner.message && <div className="muted" style={{ fontSize: '1.1em', marginTop: '0.3em' }}>« {banner.message} »</div>}
         </div>
       )}
