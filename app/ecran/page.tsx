@@ -49,7 +49,9 @@ interface World {
   prevLayer: HTMLCanvasElement | null
   fadeStart: number
   /** Visite de l'écran : un morceau est toujours en brillance. */
-  dir: { phase: 'mark' | 'lift' | 'hold' | 'drop'; t0: number; id: string | null }
+  dir: { phase: 'mark' | 'lift' | 'hold' | 'drop' | 'cta'; t0: number; id: string | null }
+  sinceCta: number
+  dimK: number
   amounts: Map<string, number>
   /** Annonce fusionnée avec le morceau sorti : le texte est écrit sur le verre (sinon, l'encart habituel). */
   cardRows: LabelRow[] | null
@@ -110,6 +112,12 @@ function liftFor(w: World, tile: Tile, merged: boolean): number {
 
 /** Choisit le prochain morceau en brillance : un nouveau don d'abord, sinon un tirage au hasard sans répétition. */
 function pickNext(w: World, now: number) {
+  // Tous les `ctaEvery` morceaux : pause « Faites partie du vitrail » (les nouveaux dons passent avant)
+  if (CONFIG.ctaEvery > 0 && w.sinceCta >= CONFIG.ctaEvery && w.dir.id && w.dir.phase !== 'cta' && w.priority.length === 0) {
+    w.sinceCta = 0
+    w.dir = { phase: 'cta', t0: now, id: w.dir.id }
+    return
+  }
   let id: string | undefined
   while (w.priority.length) {
     const c = w.priority.shift()
@@ -133,6 +141,7 @@ function pickNext(w: World, now: number) {
     id = w.deck.pop()
   }
   if (!id) return
+  w.sinceCta++
   w.litPrev = w.lit ? { id: w.lit.id, end: now } : null
   w.lit = { id, start: now }
   w.last = id
@@ -151,6 +160,10 @@ function stepDirector(w: World, now: number): number {
   if (!w.dir.id || !w.tiles.has(w.dir.id)) {
     pickNext(w, now)
     if (!w.dir.id) return 0
+  }
+  if (w.dir.phase === 'cta') {
+    if (now - w.dir.t0 >= CONFIG.ctaMs) pickNext(w, now)
+    return 0
   }
   const dir = w.dir
   const id = dir.id as string
@@ -191,6 +204,8 @@ function stepDirector(w: World, now: number): number {
       }
       return lifts ? 1 - ease(k) : 0
     }
+    default:
+      return 0
   }
 }
 
@@ -260,6 +275,8 @@ export default function EcranPage() {
       prevLayer: null,
       fadeStart: 0,
       dir: { phase: 'mark', t0: 0, id: null },
+      sinceCta: 0,
+      dimK: 0,
       amounts: new Map(),
       cardRows: null,
       cardMerged: false,
@@ -284,6 +301,7 @@ export default function EcranPage() {
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [online, setOnline] = useState(true)
   const [banner, setBanner] = useState<Banner | null>(null)
+  const [ctaOn, setCtaOn] = useState(false)
   const [qr, setQr] = useState<string | null>(null)
   const [target, setTarget] = useState('')
   const [idle, setIdle] = useState(false)
@@ -477,6 +495,7 @@ export default function EcranPage() {
       if (phaseKey !== lastPhaseKey) {
         lastPhaseKey = phaseKey
         const id = world.dir.id
+        setCtaOn(world.dir.phase === 'cta')
         if (id && world.dir.phase === 'lift') {
           const card = cardFor(world, id)
           const tile = world.tiles.get(id)
@@ -530,6 +549,13 @@ export default function EcranPage() {
       if (world.lit) glow(world.lit.id, Math.min(1, (now - world.lit.start) / 500) * (1 - e))
 
       world.ambience.drawFront(ctx, cx, cy, R, now, false)
+
+      // Pause « Faites partie du vitrail » : le vitrail s'assombrit doucement
+      world.dimK += ((world.dir.phase === 'cta' ? 1 : 0) - world.dimK) * Math.min(1, dt / 260)
+      if (world.dimK > 0.01) {
+        ctx.fillStyle = `rgba(5,4,8,${0.6 * world.dimK})`
+        ctx.fillRect(0, 0, W, H)
+      }
 
       // Le morceau « sort » du vitrail : il s'agrandit au-dessus, avec une ombre, pendant que le reste s'assombrit
       if (e > 0.001 && focusTile?.path) {
@@ -695,7 +721,7 @@ export default function EcranPage() {
 
       {/* QR code en incrustation */}
       <div
-        className="tv-panel absolute text-center"
+        className={`tv-panel absolute text-center ${ctaOn ? 'tv-qr-pulse' : ''}`}
         style={{ right: '2.5em', bottom: '2.5em', width: '15em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em' }}
       >
         {qr ? (
@@ -707,6 +733,61 @@ export default function EcranPage() {
         <div style={{ fontWeight: 700, fontSize: '1.15em', marginTop: '0.5em', lineHeight: 1.2 }}>Scannez pour donner</div>
         <div style={{ fontSize: '0.8em', opacity: 0.65, marginTop: '0.25em', wordBreak: 'break-all' }}>{target}</div>
       </div>
+
+
+      {/* Appel à donner : « Faites partie du vitrail », avec une petite démonstration de la taille des morceaux */}
+      {ctaOn && (
+        <div className="absolute" style={{ left: '50%', top: '47%', transform: 'translate(-50%,-50%)', width: '36em' }}>
+          <div
+            className="tv-cta-card text-center"
+            style={{
+              ['--cta-ms' as string]: `${CONFIG.ctaMs}ms`,
+              padding: '1.8em 2em 1.6em',
+              borderRadius: '1.4em',
+              background: 'rgba(14,12,22,0.93)',
+              border: '1px solid rgba(255,231,160,0.55)',
+              boxShadow: '0 0 4em rgba(255,231,160,0.18)',
+            }}
+          >
+            <div className="tv-kicker" style={{ fontSize: '0.95em', color: '#ffe7a0' }}>
+              Faites partie du vitrail
+            </div>
+            <div className="tv-display" style={{ fontSize: '2.2em', fontWeight: 700, lineHeight: 1.1, marginTop: '0.35em' }}>
+              Chaque don devient un morceau de verre
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '1.4em', margin: '1.4em 0 0.9em' }}>
+              {[
+                { dollars: 10, color: 'linear-gradient(135deg,#60a5fa,#2563eb)' },
+                { dollars: 25, color: 'linear-gradient(135deg,#f472b6,#c026d3)' },
+                { dollars: 100, color: 'linear-gradient(135deg,#facc15,#f97316)' },
+              ].map(d => (
+                <div key={d.dollars} style={{ textAlign: 'center' }}>
+                  <div
+                    style={{
+                      // l'aire suit le don : le côté suit sa racine (à l'exposant de taille près)
+                      width: `${1.25 * Math.pow(d.dollars / 10, CONFIG.sizeExponent / 2) * 1.6}em`,
+                      height: `${1.25 * Math.pow(d.dollars / 10, CONFIG.sizeExponent / 2) * 1.6}em`,
+                      background: d.color,
+                      border: '0.18em solid #050408',
+                      boxShadow: 'inset 0 0 1em rgba(255,255,255,0.35)',
+                      margin: '0 auto',
+                    }}
+                  />
+                  <div className="tv-display" style={{ fontSize: '1.2em', fontWeight: 700, marginTop: '0.4em' }}>
+                    {d.dollars} $
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '1.2em', lineHeight: 1.35, opacity: 0.88 }}>
+              Plus votre don est grand, plus votre morceau l&apos;est : 100 $ occupent {Math.round(Math.pow(10, CONFIG.sizeExponent))} fois plus de place que 10 $.
+            </div>
+            <div className="tv-display" style={{ fontSize: '1.45em', fontWeight: 600, marginTop: '0.9em', color: '#ffe7a0' }}>
+              Dès {formatMoney(CONFIG.minAmountCents)} · scannez le code ↘
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Vitrail vide */}
       {empty && (

@@ -44,6 +44,9 @@ export const CONFIG = {
   tourHoldBareMs: 3500, // pause pour un morceau anonyme
   tourTargetFraction: 0.3, // un petit morceau sorti occupe (rayon inscrit) cette fraction de la hauteur de l'écran
   tourMaxLift: 40, // agrandissement maximal
+  // Appel à donner : toutes les `ctaEvery` mises en vedette, une pause « Faites partie du vitrail » (0 = jamais)
+  ctaEvery: 6,
+  ctaMs: 9000,
 } as const
 
 /** Verres disponibles (reprend les Glow Colors de Pay to Exist). */
