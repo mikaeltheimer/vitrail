@@ -119,6 +119,22 @@ function DonForm() {
   const amountCents = coverFees ? baseCents + feeCents : baseCents
   const donorsCount = snap?.pieces.length ?? 0
 
+  // Place du morceau dans le vitrail : « plus grand que 62 % des morceaux », et ce que donnerait le montant suivant
+  const others = useMemo(() => (snap?.pieces ?? []).filter(p => p.id !== known?.donorId), [snap, known])
+  const alreadyCents = known?.totalCents ?? 0
+  const standing = (payCents: number) => {
+    const total = alreadyCents + payCents
+    const beaten = others.filter(p => p.amountCents < total).length
+    return { biggest: beaten === others.length, pct: Math.floor((beaten / Math.max(1, others.length)) * 100) }
+  }
+  const showStanding = others.length >= 5 && baseCents >= CONFIG.minAmountCents
+  const now = showStanding ? standing(amountCents) : null
+  // Montant suggéré suivant (seulement si on a choisi une pastille) et ce qu'il changerait
+  const nextChip = !custom.trim() && selected ? CONFIG.suggestedCents.find(c => c > selected) ?? null : null
+  const nextPay = nextChip ? (coverFees ? nextChip + feeFor(nextChip) : nextChip) : 0
+  const next = showStanding && nextChip ? standing(nextPay) : null
+  const nudge = now && next && !now.biggest && (next.biggest || next.pct - now.pct >= 5) ? next : null
+
   const tooLow = baseCents > 0 && baseCents < CONFIG.minAmountCents
   const mode = snap?.mode
   const event = snap?.event ?? null
@@ -245,6 +261,31 @@ function DonForm() {
             <span className="muted absolute right-3 top-1/2 -translate-y-1/2">$</span>
           </div>
           {tooLow && <p className="mt-1 text-sm" style={{ color: '#f87171' }}>Le don minimum est de {CONFIG.minAmountCents / 100} $.</p>}
+          {now && (
+            <p className="mt-3 text-sm" style={{ color: '#ffe7a0' }}>
+              {now.biggest
+                ? 'Ce serait le plus grand morceau du vitrail.'
+                : now.pct > 0
+                  ? `Votre morceau serait plus grand que ${now.pct} % des morceaux du vitrail.`
+                  : `Votre morceau rejoindrait les ${others.length} autres.`}
+              {nudge && nextChip && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => {
+                      setAmount(nextChip)
+                      setAmountTouched(true)
+                      setCustom('')
+                    }}
+                  >
+                    {nudge.biggest ? `À ${formatMoney(nextChip)}, ce serait le plus grand.` : `À ${formatMoney(nextChip)}, il dépasserait ${nudge.pct} % d'entre eux.`}
+                  </button>
+                </>
+              )}
+            </p>
+          )}
           {typical && <p className="muted mt-2 text-xs">La plupart des gens donnent {formatMoney(typical)}.</p>}
           {feeCents > 0 && (
             <label className="mt-3 flex cursor-pointer items-start gap-3 text-sm">
