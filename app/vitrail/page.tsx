@@ -1,16 +1,19 @@
 'use client'
 
-// Le vitrail en ligne, calqué sur la rosace de Pay to Exist : ouverture en travelling arrière, lumière autour du vitrail,
-// survol (ordinateur), fiche d'un morceau (panneau à droite / feuille en bas sur téléphone) avec son rang, navigation
-// d'un morceau à l'autre, « au hasard », dérive au repos, derniers dons, mini-carte, partage, signalement.
-// Sert après un don (/vitrail?d=…) et pour promouvoir la collecte en ligne, sans être sur place.
+// Le vitrail en ligne : calque de la rosace de Pay to Exist (mêmes emplacements, mêmes gestes), adaptée à la collecte.
+// En-tête 56 px, vitrail dessous ; à gauche (ordinateur) : recherche, « Rencontrer quelqu'un », « Mon morceau »,
+// mini-carte qu'on fait glisser ; fiche à droite ; « Ajouter mon morceau » ouvre le panneau de don sur place,
+// avec l'aperçu du morceau en direct dans le vitrail. Téléphone : bouton doré flottant, mini-carte en bas à droite,
+// « Rencontrer quelqu'un » en bas à gauche, un toucher choisit, un second ouvre la fiche.
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import BottomSheet from '@/components/vitrail/BottomSheet'
+import ClaimPanel, { type ClaimDraft } from '@/components/vitrail/ClaimPanel'
+import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
-import { PieceDetails } from '@/components/vitrail/PieceDetails'
-import { RecentDonations } from '@/components/vitrail/RecentDonations'
+import Ticker from '@/components/vitrail/Ticker'
 import type { RankedPiece } from '@/components/vitrail/types'
 import { CONFIG } from '@/lib/config'
 import { ensureFonts } from '@/lib/fonts'
@@ -19,28 +22,53 @@ import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
-import type { Snapshot } from '@/lib/types'
+import type { Piece, Snapshot } from '@/lib/types'
 
-const HEADER_H = 60
-const MOBILE_BAR_H = 84 // barre « Ajouter mon morceau » en bas sur téléphone
-const PANEL_W = 340 // fiche à droite sur ordinateur
-const FRAME = 0.92 // part de l'espace libre occupée par le vitrail en vue d'ensemble
-const MAX_ZOOM = 60 // par rapport à la vue d'ensemble
-const IDLE_AFTER_MS = 25_000
-const IDLE_EVERY_MS = 7_000
+const HEADER_HEIGHT = 56
+const MONO = "'Space Mono', monospace"
+const GOLD = '#fbbf24'
+const ROSACE_FRAME = 0.8
+const MAX_ZOOM = 60
+const IDLE_DRIFT_AFTER_MS = 30_000
+const IDLE_DRIFT_EVERY_MS = 7_000
 const INTRO_MS = 6500
+const PREVIEW_ID = '__preview__'
+const BOUNDS = UNIVERSE_RADIUS * 1.08 // monde visible dans les mini-cartes
+
+const introTitleStyle: React.CSSProperties = {
+  fontFamily: "'Space Grotesk', sans-serif",
+  fontWeight: 600,
+  fontSize: 'clamp(22px, 3.4vw, 34px)',
+  letterSpacing: '-0.02em',
+  color: '#fff',
+  textShadow: '0 2px 24px rgba(0,0,0,0.9)',
+  fontVariantNumeric: 'tabular-nums',
+}
+const goldButtonStyle: React.CSSProperties = {
+  padding: '11px 18px',
+  background: GOLD,
+  color: '#1a1406',
+  border: 0,
+  borderRadius: '999px',
+  fontFamily: "'Space Grotesk', sans-serif",
+  fontSize: '14px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  boxShadow: '0 8px 30px rgba(251,191,36,0.25)',
+}
 
 type Cam = { x: number; y: number; zoom: number }
 type IntroPhase = 'off' | 'running' | 'done'
 
 interface Engine {
+  base: Piece[]
   tiles: Map<string, Tile>
   pieces: PieceMap
   ranked: RankedPiece[]
   byId: Map<string, RankedPiece>
   version: number
   cam: Cam
-  base: number
+  baseZoom: number
   W: number
   H: number
   dpr: number
@@ -49,6 +77,9 @@ interface Engine {
   selected: string | null
   hovered: string | null
   spot: string | null
+  claim: boolean
+  previewOn: boolean
+  sheetOpen: boolean
   anim: number | null
   intro: IntroPhase
   lastInput: number
@@ -56,6 +87,7 @@ interface Engine {
   imageVersion: number
   fontsVersion: number
   recentlyMet: string[]
+  onFirstTiles?: (focus: string | null) => void
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -72,57 +104,73 @@ function Vitrail() {
   const params = useSearchParams()
   const focusParam = params.get('d')
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const minimapRef = useRef<HTMLCanvasElement>(null)
-  const minimapViewRef = useRef<HTMLDivElement>(null)
   const introCountRef = useRef<HTMLDivElement>(null)
+  const claimPanelRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const viewRects = useRef<Set<SVGRectElement>>(new Set())
   const images = useMemo(() => new ImageCache(), [])
   const ambience = useMemo(() => new Ambience(), [])
   const wRef = useRef<Engine>({
-      tiles: new Map(),
-      pieces: new Map(),
-      ranked: [],
-      byId: new Map(),
-      version: 0,
-      cam: { x: 0, y: 0, zoom: 1 },
-      base: 1,
-      W: 0,
-      H: 0,
-      dpr: 1,
-      mobile: false,
-      ready: false,
-      selected: null,
-      hovered: null,
-      spot: null,
-      anim: null,
-      intro: 'off',
-      lastInput: 0,
-      needs: true,
-      imageVersion: 0,
-      fontsVersion: 0,
-      recentlyMet: [],
+    base: [],
+    tiles: new Map(),
+    pieces: new Map(),
+    ranked: [],
+    byId: new Map(),
+    version: 0,
+    cam: { x: 0, y: 0, zoom: 1 },
+    baseZoom: 1,
+    W: 0,
+    H: 0,
+    dpr: 1,
+    mobile: false,
+    ready: false,
+    selected: null,
+    hovered: null,
+    spot: null,
+    claim: false,
+    previewOn: false,
+    sheetOpen: false,
+    anim: null,
+    intro: 'off',
+    lastInput: 0,
+    needs: true,
+    imageVersion: 0,
+    fontsVersion: 0,
+    recentlyMet: [],
   })
 
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [ranked, setRanked] = useState<RankedPiece[]>([])
+  const [tilesMap, setTilesMap] = useState<Map<string, Tile>>(new Map())
   const [selected, setSelected] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpenState] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const [mobile, setMobile] = useState(false)
   const [intro, setIntro] = useState<IntroPhase>('off')
+  const [introCta, setIntroCta] = useState(false)
+  const [claimOpen, setClaimOpen] = useState(false)
   const [myId, setMyId] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
-  const [hint, setHint] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState<{ id: string; donorId: string; text: string } | null>(null)
 
-  // Actions offertes à l'interface (définies dans le moteur ci-dessous)
-  const api = useRef<{ select: (id: string | null) => void; home: () => void; step: (dir: 1 | -1) => void; meet: () => void; panTo: (x: number, y: number) => void }>({
-    select: () => {},
-    home: () => {},
-    step: () => {},
-    meet: () => {},
-    panTo: () => {},
-  })
-  const [tilesMap, setTilesMap] = useState<Map<string, Tile>>(new Map())
+  const setSheetOpen = useCallback((v: boolean) => {
+    wRef.current.sheetOpen = v
+    setSheetOpenState(v)
+  }, [])
+
+  // Actions du moteur offertes à l'interface
+  const api = useRef<{
+    select: (id: string | null, openSheet?: boolean) => void
+    home: () => void
+    step: (dir: 1 | -1) => void
+    meet: () => void
+    zoomBy: (f: number) => void
+    panTo: (x: number, y: number) => void
+    preview: (draft: ClaimDraft, geometryChanged: boolean) => void
+    openClaim: () => void
+    closeClaim: () => void
+  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {} })
 
   // ═════════════════════════════════ Moteur : caméra, rendu, gestes ═════════════════════════════════
   useEffect(() => {
@@ -132,7 +180,6 @@ function Vitrail() {
     if (!canvas || !ctx) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    // Deux couches, comme Pay to Exist : le verre (redessiné seulement quand la vue change) et la lumière (animée)
     const layer = document.createElement('canvas')
     const lctx = layer.getContext('2d')
     let margin = 0
@@ -144,62 +191,59 @@ function Vitrail() {
     let lastFrame = 0
     let raf = 0
     let introRaf = 0
+    let previewSeq = 0
+    let framing: 'place' | 'detail' = 'place'
 
-    // ── Géométrie de l'écran ──
-    const freeArea = (withPanel: boolean) => {
-      const top = HEADER_H
-      const bottom = w.mobile ? (withPanel ? w.H * 0.5 : MOBILE_BAR_H) : 0
-      const right = !w.mobile && withPanel ? PANEL_W : 0
-      return { left: 0, top, right: w.W - right, bottom: w.H - bottom }
-    }
-    const homeCam = (): Cam => {
-      const a = freeArea(false)
-      const zoom = (Math.min(a.right - a.left, a.bottom - a.top) * FRAME) / 2 / UNIVERSE_RADIUS
-      return { x: -((a.left + a.right) / 2 - w.W / 2) / zoom, y: -((a.top + a.bottom) / 2 - w.H / 2) / zoom, zoom }
-    }
+    const homeCam = (): Cam => ({ x: 0, y: 0, zoom: (Math.min(w.W, w.H) * ROSACE_FRAME) / 2 / UNIVERSE_RADIUS })
     const toWorld = (sx: number, sy: number) => ({ x: (sx - w.W / 2) / w.cam.zoom + w.cam.x, y: (sy - w.H / 2) / w.cam.zoom + w.cam.y })
-
-    const resize = () => {
-      const wasHome = !w.selected && Math.abs(w.cam.zoom - w.base) < 1e-9
-      w.W = window.innerWidth
-      w.H = window.innerHeight
-      w.mobile = w.W < 760 || navigator.maxTouchPoints > 0 && w.W < 1024
-      setMobile(w.mobile)
-      w.dpr = Math.min(window.devicePixelRatio || 1, navigator.maxTouchPoints > 0 ? 2 : 3)
-      canvas.width = Math.round(w.W * w.dpr)
-      canvas.height = Math.round(w.H * w.dpr)
-      margin = Math.round(Math.max(w.W, w.H) * (navigator.maxTouchPoints > 0 ? 0.3 : 0.12))
-      layer.width = Math.round((w.W + margin * 2) * w.dpr)
-      layer.height = Math.round((w.H + margin * 2) * w.dpr)
-      layerKey = ''
-      w.base = homeCam().zoom
-      if (wasHome || !w.ready) w.cam = homeCam()
+    const local = (e: { clientX: number; clientY: number }) => {
+      const r = canvas.getBoundingClientRect()
+      return { x: e.clientX - r.left, y: e.clientY - r.top }
+    }
+    const clampCam = (c: Cam): Cam => {
+      const lim = UNIVERSE_RADIUS * 1.1
+      return { x: clamp(c.x, -lim, lim), y: clamp(c.y, -lim, lim), zoom: clamp(c.zoom, w.baseZoom * 0.5, w.baseZoom * MAX_ZOOM) }
+    }
+    const setCam = (c: Cam) => {
+      w.cam = c
       w.needs = true
     }
 
-    const clampCam = () => {
-      w.cam.zoom = clamp(w.cam.zoom, w.base * 0.7, w.base * MAX_ZOOM)
-      const lim = UNIVERSE_RADIUS * 1.05
-      w.cam.x = clamp(w.cam.x, -lim, lim)
-      w.cam.y = clamp(w.cam.y, -lim, lim)
+    const resize = () => {
+      const atHome = !w.selected && !w.claim && Math.abs(w.cam.zoom - w.baseZoom) < 1e-9
+      w.W = window.innerWidth
+      w.H = window.innerHeight - HEADER_HEIGHT
+      w.mobile = window.innerWidth < 768
+      setMobile(w.mobile)
+      const touch = navigator.maxTouchPoints > 0
+      w.dpr = Math.min(window.devicePixelRatio || 1, touch ? 2 : 3)
+      canvas.width = Math.round(w.W * w.dpr)
+      canvas.height = Math.round(w.H * w.dpr)
+      canvas.style.width = `${w.W}px`
+      canvas.style.height = `${w.H}px`
+      margin = Math.round(Math.max(w.W, w.H) * (touch ? 0.3 : 0.12))
+      layer.width = Math.round((w.W + margin * 2) * w.dpr)
+      layer.height = Math.round((w.H + margin * 2) * w.dpr)
+      layerKey = ''
+      w.baseZoom = homeCam().zoom
+      if (atHome || !w.ready) w.cam = homeCam()
+      w.needs = true
     }
 
     const stopAnim = () => {
       if (w.anim) cancelAnimationFrame(w.anim)
       w.anim = null
     }
-
-    /** Vol de caméra ; `dip` : léger recul à mi-chemin, on voit d'où l'on part et où l'on va. */
+    /** Vol de caméra en échelle log ; `dip` : léger recul à mi-chemin. */
     const flyTo = (target: Cam, ms: number, dip = 0, onEnd?: () => void) => {
       stopAnim()
       const start = { ...w.cam }
       const t0 = performance.now()
       const step = (now: number) => {
         const k = reduced ? 1 : Math.min(1, (now - t0) / ms)
-        const e = 0.5 - Math.cos(Math.PI * k) / 2
+        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
         const zoom = Math.exp(Math.log(start.zoom) + (Math.log(target.zoom) - Math.log(start.zoom)) * e - dip * Math.sin(Math.PI * k))
-        w.cam = { x: start.x + (target.x - start.x) * e, y: start.y + (target.y - start.y) * e, zoom }
-        w.needs = true
+        setCam({ x: start.x + (target.x - start.x) * e, y: start.y + (target.y - start.y) * e, zoom })
         if (k < 1) w.anim = requestAnimationFrame(step)
         else {
           w.anim = null
@@ -209,46 +253,44 @@ function Vitrail() {
       w.anim = requestAnimationFrame(step)
     }
 
-    /** Cadrage d'un morceau : assez près pour lire son nom, centré dans l'espace laissé libre par la fiche. */
-    const camOn = (tile: Tile, withPanel = true): Cam => {
-      const a = freeArea(withPanel)
-      const [x0, y0, x1, y1] = tile.bbox
-      const zoom = clamp((Math.min(a.right - a.left, a.bottom - a.top) * 0.5) / Math.max(x1 - x0, y1 - y0, 1e-6), w.base, w.base * MAX_ZOOM)
-      const cx = (a.left + a.right) / 2
-      const cy = (a.top + a.bottom) / 2
-      return { x: tile.labelCenter[0] - (cx - w.W / 2) / zoom, y: tile.labelCenter[1] - (cy - w.H / 2) / zoom, zoom }
+    // ── Sélection, comme zoomToBubble de Pay to Exist : la pièce occupe la moitié de l'écran ──
+    const zoomTo = (id: string, openSheet: boolean) => {
+      const tile = w.tiles.get(id)
+      if (!tile) return
+      const zoom = clamp((Math.min(w.W, w.H) * 0.5) / (tile.equivRadius * 2), w.baseZoom, w.baseZoom * MAX_ZOOM)
+      // Panneau à droite (ordinateur) : la pièce se décale vers la gauche ; feuille (téléphone) : vers le haut
+      const offX = !w.mobile ? 160 : 0
+      const offY = w.mobile && openSheet ? w.H * 0.22 : 0
+      const [x, y] = tile.labelCenter
+      flyTo({ x: x + offX / zoom, y: y + offY / zoom, zoom }, 900, Math.abs(Math.log(zoom / w.cam.zoom)) > 1.5 ? 0.25 : 0)
     }
-
-    const select = (id: string | null) => {
+    const select = (id: string | null, openSheet = !w.mobile) => {
       endIntro(true)
       w.selected = id
       w.spot = null
       setSelected(id)
-      w.needs = true
+      setSheetOpen(!!id && openSheet)
       layerKey = ''
-      if (!id) return
-      const tile = w.tiles.get(id)
-      if (tile) flyTo(camOn(tile), 900, w.cam.zoom > w.base * 3 ? 0.35 : 0)
+      w.needs = true
+      if (id) zoomTo(id, openSheet)
     }
-
     const home = () => {
       w.selected = null
       setSelected(null)
+      setSheetOpen(false)
       layerKey = ''
-      flyTo(homeCam(), 900)
+      flyTo(homeCam(), 800)
     }
-
-    // Morceau suivant / précédent dans l'ordre des montants (1 = le plus grand)
+    // Navigation par rang (1 = le plus grand), comme Prev / Next de Pay to Exist
     const step = (dir: 1 | -1) => {
       const n = w.ranked.length
       if (!n) return
       const cur = w.selected ? w.byId.get(w.selected)?.rank ?? 0 : 0
-      const next = cur === 0 ? (dir > 0 ? 1 : n) : ((cur - 1 + dir + n) % n) + 1
+      const next = dir > 0 ? (cur <= 0 || cur >= n ? 1 : cur + 1) : cur <= 1 ? n : cur - 1
       const p = w.ranked[next - 1]
-      if (p) select(p.id)
+      if (p) select(p.id, w.mobile ? w.sheetOpen : true)
     }
-
-    // « Au hasard » : de préférence quelqu'un avec une photo ou un message, jamais les derniers vus
+    // « Rencontrer quelqu'un » : de préférence avec une photo ou un message, jamais les derniers vus
     const pickSomeone = (): RankedPiece | null => {
       const real = w.ranked.filter(p => p.id !== w.selected)
       if (!real.length) return null
@@ -262,18 +304,100 @@ function Vitrail() {
     }
     const meet = () => {
       const p = pickSomeone()
-      if (p) select(p.id)
+      if (p) select(p.id, w.mobile ? w.sheetOpen : true)
+    }
+    const zoomBy = (f: number) => {
+      stopAnim()
+      setCam(clampCam({ ...w.cam, zoom: w.cam.zoom * f }))
+    }
+    const panTo = (x: number, y: number) => {
+      stopAnim()
+      endIntro(true)
+      w.lastInput = Date.now()
+      setCam(clampCam({ ...w.cam, x, y }))
     }
 
-    const panTo = (x: number, y: number) => {
-      endIntro(true)
-      stopAnim()
-      w.cam = { x, y, zoom: Math.max(w.cam.zoom, w.base * 3) }
-      clampCam()
-      w.lastInput = Date.now()
+    // ── Pavage : les morceaux, et le morceau d'aperçu pendant un don ──
+    const applyTiles = (tiles: Map<string, Tile>, pieces: Piece[]) => {
+      w.tiles = tiles
+      w.pieces = pieceMap(pieces)
+      w.version++
+      layerKey = ''
       w.needs = true
+      const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#f472b6', t.id)
+      ambience.rebuild(tiles.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
+        const t = hitTile(tiles.values(), x, y)
+        return t ? colorOf(t) : null
+      })
+      setTilesMap(tiles)
     }
-    api.current = { select, home, step, meet, panTo }
+
+    // Cadrage de l'aperçu (frameUniverseFor de Pay to Exist) : la place dans le vitrail, ou un gros plan
+    const frameFor = (closeUp: boolean) => {
+      const tile = w.tiles.get(PREVIEW_ID)
+      if (!tile) return
+      framing = closeUp ? 'detail' : 'place'
+      const panel = claimPanelRef.current
+      const free = w.mobile ? { left: 0, right: 0, top: 0, bottom: (panel?.offsetHeight ?? w.H * 0.5) + 12 } : { left: 260, right: (panel?.offsetWidth ?? 400) + 24, top: 0, bottom: 0 }
+      const freeW = Math.max(120, w.W - free.left - free.right)
+      const freeH = Math.max(120, w.H - free.top - free.bottom)
+      const sx = (free.left - free.right) / 2
+      const sy = (free.top - free.bottom) / 2
+      const fitZoom = (Math.min(freeW, freeH) * 0.9) / (2 * UNIVERSE_RADIUS)
+      const targetZoom = Math.max(fitZoom, 12 / Math.max(tile.equivRadius, 1e-6))
+      const t = Math.min(1, targetZoom / fitZoom - 1)
+      let target: Cam = { x: tile.labelCenter[0] * t - sx / targetZoom, y: tile.labelCenter[1] * t - sy / targetZoom, zoom: targetZoom }
+      if (closeUp) {
+        const [x0, y0, x1, y1] = tile.bbox
+        const fit = Math.min((freeW * 0.72) / Math.max(x1 - x0, 1e-6), (freeH * 0.72) / Math.max(y1 - y0, 1e-6))
+        const z = Math.max(targetZoom, Math.min(w.baseZoom * MAX_ZOOM, fit))
+        target = { x: (x0 + x1) / 2 - sx / z, y: (y0 + y1) / 2 - sy / z, zoom: z }
+      }
+      flyTo(target, 800)
+    }
+    const preview = async (draft: ClaimDraft, geometryChanged: boolean) => {
+      const piece: Piece = { id: PREVIEW_ID, name: draft.name ?? 'Vous', message: draft.message, photoUrl: draft.photoSrc, color: draft.color, amountCents: draft.amountCents }
+      if (!geometryChanged && w.previewOn) {
+        // Couleur, nom, photo : pas besoin de recalculer le pavage
+        w.pieces.set(PREVIEW_ID, { color: piece.color, name: piece.name, message: piece.message, photoUrl: piece.photoUrl })
+        w.version++
+        w.needs = true
+        if (draft.focus !== framing) frameFor(draft.focus === 'detail')
+        return
+      }
+      const seq = ++previewSeq
+      const items = [...w.base, piece]
+      const tiles = await tilePieces(items)
+      if (seq !== previewSeq || !w.claim) return
+      applyTiles(tiles, items)
+      w.previewOn = true
+      w.selected = PREVIEW_ID
+      setSelected(PREVIEW_ID)
+      frameFor(draft.focus === 'detail')
+    }
+    const openClaim = () => {
+      endIntro(true)
+      w.selected = null
+      setSelected(null)
+      setSheetOpen(false)
+      w.claim = true
+      w.spot = null
+      setClaimOpen(true)
+    }
+    const closeClaim = async () => {
+      w.claim = false
+      setClaimOpen(false)
+      previewSeq++
+      w.previewOn = false
+      w.selected = null
+      setSelected(null)
+      framing = 'place'
+      const tiles = await tilePieces(w.base)
+      applyTiles(tiles, w.base)
+      flyTo(homeCam(), 800)
+    }
+
+    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim() }
 
     // ── Ouverture : travelling arrière d'un morceau moyen jusqu'au vitrail entier ──
     const endIntro = (hide: boolean) => {
@@ -281,6 +405,7 @@ function Vitrail() {
         cancelAnimationFrame(introRaf)
         w.intro = 'done'
         setIntro('done')
+        setTimeout(() => setIntroCta(true), reduced ? 0 : 900)
       }
       if (hide && w.intro === 'done') {
         w.intro = 'off'
@@ -289,23 +414,22 @@ function Vitrail() {
     }
     const startIntro = () => {
       const tiles = [...w.tiles.values()].sort((a, b) => a.area - b.area)
-      if (tiles.length < 4) return false
+      if (tiles.length < 2) return false
       const target = homeCam()
       const start = tiles[Math.floor(tiles.length * (0.3 + Math.random() * 0.2))]
-      const z0 = Math.min(target.zoom * MAX_ZOOM, (Math.min(w.W, w.H - HEADER_H) * 0.42) / Math.sqrt(start.area))
+      const z0 = Math.min(target.zoom * MAX_ZOOM, (Math.min(w.W, w.H) * 0.42) / Math.sqrt(start.area))
       const z1 = target.zoom
       const [sx, sy] = start.labelCenter
       const t0 = performance.now()
       w.intro = 'running'
       setIntro('running')
+      setIntroCta(false)
       const frame = (now: number) => {
         const k = Math.min(1, (now - t0) / INTRO_MS)
         const e = 0.5 - Math.cos(Math.PI * k) / 2
         const z = Math.exp(Math.log(z0) + (Math.log(z1) - Math.log(z0)) * e)
-        // Le centre suit le recul (en échelle log) : le morceau de départ reste à l'écran
         const f = (Math.log(z0) - Math.log(z)) / (Math.log(z0) - Math.log(z1) || 1)
-        w.cam = { x: sx + (target.x - sx) * f, y: sy + (target.y - sy) * f, zoom: z }
-        w.needs = true
+        setCam({ x: sx + (target.x - sx) * f, y: sy + (target.y - sy) * f, zoom: z })
         if (introCountRef.current) {
           const hw = w.W / 2 / z
           const hh = w.H / 2 / z
@@ -323,9 +447,7 @@ function Vitrail() {
       introRaf = requestAnimationFrame(frame)
       return true
     }
-
-    // Premier pavage reçu : caméra en place, puis ouverture (une fois par onglet, jamais sur un lien vers un morceau)
-    const onFirstTiles = (focus: string | null) => {
+    w.onFirstTiles = focus => {
       w.ready = true
       w.cam = homeCam()
       const sp = new URLSearchParams(window.location.search)
@@ -333,20 +455,18 @@ function Vitrail() {
       try {
         seen = sessionStorage.getItem('vitrail:intro') === '1'
       } catch {}
-      if (focus && w.tiles.has(focus)) {
-        setTimeout(() => select(focus), 300)
-      } else if (!reduced && (!seen || sp.has('intro')) && startIntro()) {
+      if (focus && w.tiles.has(focus)) setTimeout(() => select(focus, true), 300)
+      else if (sp.has('don')) setTimeout(openClaim, 200)
+      else if (!reduced && (!seen || sp.has('intro')) && startIntro()) {
         try {
           sessionStorage.setItem('vitrail:intro', '1')
         } catch {}
       }
       w.needs = true
     }
-    ;(w as Engine & { onFirstTiles?: typeof onFirstTiles }).onFirstTiles = onFirstTiles
 
     // ── Rendu ──
-    const ambientLevel = () => clamp(1 - (w.cam.zoom / w.base - 1) / 3, 0, 1)
-
+    const ambientLevel = () => clamp(1 - (w.cam.zoom / w.baseZoom - 1) / 3, 0, 1)
     const drawLayer = () => {
       if (!lctx) return
       const cam = w.cam
@@ -364,10 +484,7 @@ function Vitrail() {
       })
       layerCam = { ...cam }
     }
-
     const hexA = (hex: string, a: number) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`
-
-    // Liseré du morceau choisi (qui pulse), de celui mis en lumière par la dérive, et de celui survolé
     const drawHighlights = (now: number) => {
       const z = w.cam.zoom
       ctx.setTransform(w.dpr * z, 0, 0, w.dpr * z, w.dpr * (w.W / 2 - w.cam.x * z), w.dpr * (w.H / 2 - w.cam.y * z))
@@ -378,20 +495,19 @@ function Vitrail() {
         const color = w.pieces.get(id)?.color ?? '#ffffff'
         if (!tile?.path) return
         ctx.shadowColor = color
-        ctx.shadowBlur = strong ? 18 + pulse * 18 : 26
+        ctx.shadowBlur = strong ? 12 * (1.5 + pulse * 1.5) : 26
         ctx.strokeStyle = hexA(color, strong ? 0.35 + pulse * 0.3 : 0.55)
         ctx.lineWidth = 8 / z
         ctx.stroke(tile.path)
         ctx.shadowBlur = 0
         ctx.shadowColor = 'transparent'
-        ctx.strokeStyle = strong ? '#f5c451' : color
+        ctx.strokeStyle = color
         ctx.lineWidth = 3 / z
         ctx.stroke(tile.path)
-        // Morceau trop petit pour être repéré : un anneau qui pulse autour
         if (strong && tile.equivRadius * z < 14) {
           ctx.beginPath()
           ctx.arc(tile.labelCenter[0], tile.labelCenter[1], (16 + pulse * 8) / z, 0, Math.PI * 2)
-          ctx.strokeStyle = hexA('#f5c451', 0.9 - pulse * 0.5)
+          ctx.strokeStyle = hexA(color, 0.9 - pulse * 0.5)
           ctx.lineWidth = 2 / z
           ctx.stroke()
         }
@@ -399,11 +515,8 @@ function Vitrail() {
       if (w.hovered && w.hovered !== w.selected) {
         const tile = w.tiles.get(w.hovered)
         if (tile?.path) {
-          ctx.fillStyle = 'rgba(255,255,255,0.12)'
+          ctx.fillStyle = 'rgba(255,255,255,0.13)'
           ctx.fill(tile.path)
-          ctx.strokeStyle = 'rgba(255,255,255,0.7)'
-          ctx.lineWidth = 2 / z
-          ctx.stroke(tile.path)
         }
       }
       if (w.spot && !w.selected) glow(w.spot, false)
@@ -412,7 +525,7 @@ function Vitrail() {
     }
 
     let bg: CanvasGradient | null = null
-    let lastMini = ''
+    let lastView = ''
     const render = (now: number) => {
       const dt = Math.min(64, now - (lastFrame || now))
       lastFrame = now
@@ -425,7 +538,6 @@ function Vitrail() {
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, w.W, w.H)
       if (!w.ready || w.tiles.size === 0) return
-
       const cam = w.cam
       const cx = w.W / 2 - cam.x * cam.zoom
       const cy = w.H / 2 - cam.y * cam.zoom
@@ -433,8 +545,6 @@ function Vitrail() {
       const level = ambientLevel()
       ambience.drawBehind(ctx, cx, cy, r, w.W, w.H, level, now, dt, reduced)
 
-      // Le verre n'est redessiné que si le contenu change ou une fois la caméra posée ; pendant un geste,
-      // on déplace et met à l'échelle l'image déjà dessinée (c'est ce qui rend le téléphone fluide)
       const key = [w.W, w.H, w.selected ?? '', w.version, w.imageVersion, w.fontsVersion].join('|')
       if (cam.x !== prevCam.x || cam.y !== prevCam.y || cam.zoom !== prevCam.zoom) {
         lastMoveAt = now
@@ -459,27 +569,31 @@ function Vitrail() {
       ctx.drawImage(layer, pl.dx, pl.dy, lw * pl.k, lh * pl.k)
       if (!settled) w.needs = true
       drawHighlights(now)
-      ctx.globalAlpha = level
-      if (level > 0.01) ambience.drawFront(ctx, cx, cy, r, now, reduced)
-      ctx.globalAlpha = 1
+      if (level > 0.01) {
+        ctx.globalAlpha = level
+        ambience.drawFront(ctx, cx, cy, r, now, reduced)
+        ctx.globalAlpha = 1
+      }
 
-      // Mini-carte : le cadre suit la caméra
-      const mv = minimapViewRef.current
-      if (mv) {
-        const s = 150 / (UNIVERSE_RADIUS * 2.2)
-        const vw = (w.W / cam.zoom) * s
-        const vh = (w.H / cam.zoom) * s
-        const k = `${Math.round(cam.x)}|${Math.round(cam.y)}|${cam.zoom.toFixed(5)}`
-        if (k !== lastMini) {
-          lastMini = k
-          mv.style.width = `${Math.min(150, vw)}px`
-          mv.style.height = `${Math.min(150, vh)}px`
-          mv.style.transform = `translate(${75 + cam.x * s - Math.min(150, vw) / 2}px, ${75 + cam.y * s - Math.min(150, vh) / 2}px)`
-          mv.style.opacity = cam.zoom > w.base * 1.15 ? '1' : '0'
+      // Cadre de la vue dans les mini-cartes (sans rendu React)
+      const vk = `${cam.x.toFixed(1)}|${cam.y.toFixed(1)}|${cam.zoom.toFixed(6)}|${w.W}|${w.H}`
+      if (vk !== lastView) {
+        lastView = vk
+        for (const rect of viewRects.current) {
+          if (!rect.isConnected) {
+            viewRects.current.delete(rect)
+            continue
+          }
+          const mw = Number(rect.dataset.w)
+          const mh = Number(rect.dataset.h)
+          const s = Math.min(mw, mh) / (BOUNDS * 2)
+          rect.setAttribute('x', String(mw / 2 + (cam.x - w.W / 2 / cam.zoom) * s))
+          rect.setAttribute('y', String(mh / 2 + (cam.y - w.H / 2 / cam.zoom) * s))
+          rect.setAttribute('width', String(Math.max(8, (w.W / cam.zoom) * s)))
+          rect.setAttribute('height', String(Math.max(8, (w.H / cam.zoom) * s)))
         }
       }
     }
-
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop)
       const animated = !reduced && (ambientLevel() > 0.02 || !!w.selected || !!w.spot)
@@ -489,95 +603,90 @@ function Vitrail() {
       }
     }
 
-    // ── Gestes : glisser, pincer, molette, toucher, survol ──
+    // ── Gestes ──
     const pts = new Map<number, { x: number; y: number }>()
     let moved = 0
     let lastTap = 0
-    const touched = () => {
-      w.lastInput = Date.now()
-      if (w.spot) {
-        w.spot = null
-        w.needs = true
-      }
-      setHint(false)
-    }
     const zoomAt = (sx: number, sy: number, factor: number) => {
       const p = toWorld(sx, sy)
-      w.cam.zoom = clamp(w.cam.zoom * factor, w.base * 0.7, w.base * MAX_ZOOM)
-      w.cam.x = p.x - (sx - w.W / 2) / w.cam.zoom
-      w.cam.y = p.y - (sy - w.H / 2) / w.cam.zoom
-      clampCam()
-      w.needs = true
+      const zoom = clamp(w.cam.zoom * factor, w.baseZoom * 0.5, w.baseZoom * MAX_ZOOM)
+      setCam(clampCam({ x: p.x - (sx - w.W / 2) / zoom, y: p.y - (sy - w.H / 2) / zoom, zoom }))
     }
     const hit = (sx: number, sy: number) => {
       const p = toWorld(sx, sy)
       return hitTile(w.tiles.values(), p.x, p.y)
     }
     const down = (e: PointerEvent) => {
-      touched()
       endIntro(true)
       stopAnim()
       canvas.setPointerCapture(e.pointerId)
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      pts.set(e.pointerId, local(e))
       if (pts.size === 1) moved = 0
+      if (!w.mobile) canvas.style.cursor = 'grabbing'
     }
     const move = (e: PointerEvent) => {
-      const p = pts.get(e.pointerId)
-      if (!p) {
-        // Survol à la souris
-        if (e.pointerType === 'mouse' && w.ready) {
-          const t = hit(e.clientX, e.clientY)
-          const id = t?.id ?? null
-          if (id !== w.hovered) {
-            w.hovered = id
-            setHovered(id)
-            canvas.style.cursor = id ? 'pointer' : 'grab'
+      const prev = pts.get(e.pointerId)
+      const p = local(e)
+      if (!prev) {
+        if (e.pointerType === 'mouse' && w.ready && !w.claim) {
+          const id = hit(p.x, p.y)?.id ?? null
+          const real = id === PREVIEW_ID ? null : id
+          if (real !== w.hovered) {
+            w.hovered = real
+            setHovered(real)
+            canvas.style.cursor = real ? 'pointer' : 'grab'
             w.needs = true
           }
         }
         return
       }
-      touched()
       if (pts.size === 1) {
-        const dx = e.clientX - p.x
-        const dy = e.clientY - p.y
+        const dx = p.x - prev.x
+        const dy = p.y - prev.y
         moved += Math.abs(dx) + Math.abs(dy)
-        w.cam.x -= dx / w.cam.zoom
-        w.cam.y -= dy / w.cam.zoom
-        clampCam()
+        setCam(clampCam({ ...w.cam, x: w.cam.x - dx / w.cam.zoom, y: w.cam.y - dy / w.cam.zoom }))
       } else if (pts.size === 2) {
         const [a, b] = [...pts.values()]
-        const other = a === p ? b : a
-        const before = Math.hypot(p.x - other.x, p.y - other.y)
-        const after = Math.hypot(e.clientX - other.x, e.clientY - other.y)
+        const other = a === prev ? b : a
+        const before = Math.hypot(prev.x - other.x, prev.y - other.y)
+        const after = Math.hypot(p.x - other.x, p.y - other.y)
         moved += 20
-        if (before > 0) zoomAt((e.clientX + other.x) / 2, (e.clientY + other.y) / 2, after / before)
-        w.cam.x -= (e.clientX - p.x) / 2 / w.cam.zoom
-        w.cam.y -= (e.clientY - p.y) / 2 / w.cam.zoom
-        clampCam()
+        if (before > 0) zoomAt((p.x + other.x) / 2, (p.y + other.y) / 2, after / before)
+        setCam(clampCam({ ...w.cam, x: w.cam.x - (p.x - prev.x) / 2 / w.cam.zoom, y: w.cam.y - (p.y - prev.y) / 2 / w.cam.zoom }))
       }
-      p.x = e.clientX
-      p.y = e.clientY
-      w.needs = true
+      prev.x = p.x
+      prev.y = p.y
     }
     const up = (e: PointerEvent) => {
       const single = pts.size === 1
       pts.delete(e.pointerId)
+      if (!w.mobile) canvas.style.cursor = w.hovered ? 'pointer' : 'grab'
       if (!single || moved > 8) return
+      const p = local(e)
       const now = performance.now()
       if (now - lastTap < 280) {
-        zoomAt(e.clientX, e.clientY, 2.2) // double toucher : on s'approche
+        zoomAt(p.x, p.y, 2) // double toucher : on s'approche
         lastTap = 0
         return
       }
       lastTap = now
-      const t = hit(e.clientX, e.clientY)
-      if (t) select(t.id)
-      else if (w.selected) {
-        w.selected = null
-        setSelected(null)
-        layerKey = ''
+      if (w.claim) return // pendant un don, le vitrail montre l'aperçu ; on ne choisit pas d'autre morceau
+      const t = hit(p.x, p.y)
+      if (!t) {
+        if (w.selected) {
+          w.selected = null
+          setSelected(null)
+          setSheetOpen(false)
+          layerKey = ''
+          w.needs = true
+        }
+        return
       }
+      // Téléphone : un premier toucher choisit et s'approche, un second ouvre la fiche
+      if (w.mobile) {
+        if (w.selected === t.id) setSheetOpen(true)
+        else select(t.id, false)
+      } else select(t.id, true)
     }
     const leave = () => {
       if (w.hovered) {
@@ -588,34 +697,31 @@ function Vitrail() {
     }
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
-      touched()
       endIntro(true)
       stopAnim()
-      zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015))
+      const p = local(e)
+      zoomAt(p.x, p.y, Math.exp(-e.deltaY * 0.0015))
     }
     const key = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
-      touched()
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || w.claim) return
       if (e.key === 'ArrowRight') step(1)
       else if (e.key === 'ArrowLeft') step(-1)
       else if (e.key === 'Escape') home()
     }
 
-    // ── Dérive au repos : sans interaction, la caméra glisse doucement d'un morceau à l'autre ──
+    // ── Dérive au repos : sans interaction, la caméra glisse d'un morceau à l'autre ──
     let drifting = false
     let lastHop = 0
     const idle = setInterval(() => {
-      const calm = !document.hidden && w.intro === 'off' && !w.selected && w.ranked.length > 2 && pts.size === 0
+      const calm = !document.hidden && !w.claim && w.intro === 'off' && !w.selected && w.ranked.length > 2 && pts.size === 0
       if (!calm) {
         drifting = false
         return
       }
       const now = Date.now()
-      if (now - w.lastInput < IDLE_AFTER_MS) {
-        drifting = false
-        return
-      }
-      if (drifting && now - lastHop < IDLE_EVERY_MS) return
+      if (now - w.lastInput < IDLE_DRIFT_AFTER_MS) return
+      if (drifting && now - lastHop < IDLE_DRIFT_EVERY_MS) return
       drifting = true
       lastHop = now
       const p = pickSomeone()
@@ -623,14 +729,24 @@ function Vitrail() {
       if (!p || !tile) return
       w.spot = null
       const [x0, y0, x1, y1] = tile.bbox
-      const zoom = clamp((Math.min(w.W, w.H - HEADER_H) * 0.38) / Math.max(x1 - x0, y1 - y0, 1e-6), w.base, w.base * MAX_ZOOM)
-      flyTo({ x: tile.labelCenter[0], y: tile.labelCenter[1] - (HEADER_H / 2) / zoom, zoom }, 2600, 0.55, () => {
+      const zoom = Math.min(w.baseZoom * MAX_ZOOM, (Math.min(w.W, w.H) * 0.38) / Math.max(x1 - x0, y1 - y0, 1e-6))
+      flyTo({ x: tile.labelCenter[0], y: tile.labelCenter[1], zoom }, 2600, 0.55, () => {
         if (drifting) {
           w.spot = p.id
           w.needs = true
         }
       })
     }, 1000)
+    const stopDrift = () => {
+      w.lastInput = Date.now()
+      if (drifting) {
+        drifting = false
+        stopAnim()
+        w.spot = null
+        w.needs = true
+      }
+    }
+    const inputEvents = ['pointerdown', 'wheel', 'keydown', 'touchstart'] as const
 
     resize()
     w.lastInput = Date.now()
@@ -642,6 +758,7 @@ function Vitrail() {
     canvas.addEventListener('pointerleave', leave)
     canvas.addEventListener('wheel', wheel, { passive: false })
     window.addEventListener('keydown', key)
+    inputEvents.forEach(ev => window.addEventListener(ev, stopDrift, { capture: true, passive: true }))
     raf = requestAnimationFrame(loop)
     const unsub = images.subscribe(() => {
       w.imageVersion++
@@ -666,8 +783,9 @@ function Vitrail() {
       canvas.removeEventListener('pointerleave', leave)
       canvas.removeEventListener('wheel', wheel)
       window.removeEventListener('keydown', key)
+      inputEvents.forEach(ev => window.removeEventListener(ev, stopDrift, { capture: true }))
     }
-  }, [images, ambience])
+  }, [images, ambience, setSheetOpen])
 
   // ═════════════════════════════════ Données : instantané toutes les 10 s ═════════════════════════════════
   useEffect(() => {
@@ -681,7 +799,6 @@ function Vitrail() {
         const s = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
         if (stop || !s.pieces) return
         setSnap(s)
-        // Nouveau don pendant la visite : une petite annonce, avec un lien vers le morceau
         const fresh = s.recent.filter(d => !seen.has(d.id))
         s.recent.forEach(d => seen.add(d.id))
         if (!first && fresh.length) {
@@ -690,14 +807,18 @@ function Vitrail() {
         }
         if (s.version === version) return
         version = s.version
-        const tiles = await tilePieces(s.pieces)
-        if (stop) return
         const sorted = [...s.pieces].sort((a, b) => b.amountCents - a.amountCents || (a.id < b.id ? -1 : 1))
         const rankedList: RankedPiece[] = sorted.map((p, i) => ({ ...p, rank: i + 1 }))
-        w.tiles = tiles
-        w.pieces = pieceMap(s.pieces)
+        w.base = s.pieces
         w.ranked = rankedList
         w.byId = new Map(rankedList.map(p => [p.id, p]))
+        setRanked(rankedList)
+        // Pendant un don, l'aperçu garde la main : le nouveau pavage attend la fermeture du panneau
+        if (w.claim) return
+        const tiles = await tilePieces(s.pieces)
+        if (stop || w.claim) return
+        w.tiles = tiles
+        w.pieces = pieceMap(s.pieces)
         w.version++
         w.needs = true
         const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#f472b6', t.id)
@@ -705,11 +826,10 @@ function Vitrail() {
           const t = hitTile(tiles.values(), x, y)
           return t ? colorOf(t) : null
         })
-        setRanked(rankedList)
         setTilesMap(tiles)
         if (first) {
           first = false
-          ;(w as Engine & { onFirstTiles?: (f: string | null) => void }).onFirstTiles?.(focusParam)
+          w.onFirstTiles?.(focusParam)
         }
       } catch {}
     }
@@ -721,7 +841,6 @@ function Vitrail() {
     }
   }, [ambience, focusParam])
 
-  // Mon morceau (retenu après un don sur ce navigateur)
   useEffect(() => {
     try {
       const me = localStorage.getItem('vitrail:me')
@@ -729,286 +848,569 @@ function Vitrail() {
     } catch {}
   }, [])
 
-  // Annonce de nouveau don : 7 s
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 7000)
     return () => clearTimeout(t)
   }, [toast])
 
-  // Mini-carte (ordinateur) : le vitrail en petit, redessiné à chaque nouveau pavage
-  useEffect(() => {
-    const w = wRef.current
-    const c = minimapRef.current
-    const ctx = c?.getContext('2d')
-    if (!c || !ctx || mobile) return
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    c.width = c.height = 150 * dpr
-    const s = (150 * dpr) / (UNIVERSE_RADIUS * 2.2)
-    ctx.setTransform(s, 0, 0, s, 75 * dpr, 75 * dpr)
-    ctx.clearRect(-UNIVERSE_RADIUS * 1.1, -UNIVERSE_RADIUS * 1.1, UNIVERSE_RADIUS * 2.2, UNIVERSE_RADIUS * 2.2)
-    for (const t of tilesMap.values()) {
-      if (!t.path) continue
-      ctx.fillStyle = glassColors(w.pieces.get(t.id)?.color ?? '#f472b6', t.id).mid
-      ctx.fill(t.path)
-      ctx.lineWidth = 6
-      ctx.strokeStyle = '#050408'
-      ctx.stroke(t.path)
-    }
-  }, [tilesMap, mobile])
+  const onDraftChange = useCallback((draft: ClaimDraft, geometryChanged: boolean) => {
+    api.current.preview(draft, geometryChanged)
+  }, [])
 
-  const piece = selected ? ranked.find(p => p.id === selected) ?? null : null
+  const piece = selected && selected !== PREVIEW_ID ? ranked.find(p => p.id === selected) ?? null : null
   const hoveredPiece = hovered && hovered !== selected ? ranked.find(p => p.id === hovered) ?? null : null
-  const matches = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase('fr-CA')
-    if (q.length < 2) return []
-    return ranked.filter(p => p.name && p.name.toLocaleLowerCase('fr-CA').includes(q)).slice(0, 6)
-  }, [query, ranked])
-  const mine = myId && ranked.some(p => p.id === myId) ? myId : null
-  const tile = selected ? tilesMap.get(selected) ?? null : null
+  const mine = myId ? ranked.find(p => p.id === myId) ?? null : null
+  const tile = piece ? tilesMap.get(piece.id) ?? null : null
   const totalCents = snap?.totalCents ?? 0
+  const count = ranked.length
+  const claimLabel = 'Ajouter mon morceau'
+  const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
-  const pick = (id: string) => {
-    setQuery('')
-    setSearchOpen(false)
-    api.current.select(id)
-  }
-
-  const nav = (
-    <div className="flex gap-2">
-      <button className="btn btn-ghost !w-14 shrink-0 !py-2.5 text-lg" onClick={() => api.current.step(-1)} aria-label="Morceau plus grand" title="Morceau plus grand (←)">
-        ←
-      </button>
-      <button className="btn btn-ghost !py-2.5 text-sm" onClick={() => api.current.meet()}>
-        Au hasard
-      </button>
-      <button className="btn btn-ghost !w-14 shrink-0 !py-2.5 text-lg" onClick={() => api.current.step(1)} aria-label="Morceau plus petit" title="Morceau plus petit (→)">
-        →
-      </button>
-    </div>
-  )
+  // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
+  const registerRect = useCallback((el: SVGRectElement | null) => {
+    if (el) viewRects.current.add(el)
+  }, [])
+  const polygons = [...tilesMap.values()].map(t => (
+    <polygon key={t.id} points={t.svgPoints} fill={colorById.get(t.id) ?? (t.id === PREVIEW_ID ? GOLD : '#f472b6')} opacity={selected === t.id ? 1 : 0.5} />
+  ))
 
   return (
-    <main className="fixed inset-0 overflow-hidden" style={{ background: '#07060b' }}>
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ touchAction: 'none', cursor: 'grab' }} aria-label="Le vitrail de dons" />
+    <div className="h-screen overflow-hidden" style={{ background: '#07060b' }}>
+      <Header
+        mobile={mobile}
+        count={count}
+        claimLabel={claimLabel}
+        onClaim={() => api.current.openClaim()}
+        onHome={() => api.current.home()}
+        searchOpen={searchOpen}
+        setSearchOpen={setSearchOpen}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        ranked={ranked}
+        onPick={id => api.current.select(id, true)}
+      />
 
-      {/* ── En-tête ── */}
-      <header
-        className="absolute inset-x-0 top-0 z-[200] flex items-center gap-3 px-4"
-        style={{ height: HEADER_H, background: 'rgba(7,6,11,0.82)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid var(--line)' }}
-      >
-        <button className="min-w-0 text-left" onClick={() => api.current.home()} aria-label="Voir tout le vitrail">
-          <div className="muted truncate text-[0.62rem] font-medium uppercase tracking-[0.2em]">{CONFIG.orgName}</div>
-          <div className="truncate text-lg font-bold leading-tight">{CONFIG.appName}</div>
-        </button>
-        {snap && (
-          <div className="muted hidden shrink-0 text-sm md:block">
-            <b style={{ color: '#ffe7a0' }}>{formatMoney(totalCents)}</b> · {snap.pieces.length} morceau{snap.pieces.length > 1 ? 'x' : ''}
-          </div>
-        )}
-        <div className="flex-1" />
-        {/* Recherche */}
-        <div className={`relative ${mobile && !searchOpen ? '' : 'w-44 lg:w-56'}`}>
-          {mobile && !searchOpen ? (
-            <button className="chip !px-3 text-sm" onClick={() => setSearchOpen(true)} aria-label="Trouver un nom">
-              ⌕
-            </button>
-          ) : (
-            <input
-              autoFocus={mobile}
-              className="field !py-2 text-sm"
-              placeholder="Trouver un nom"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
-              aria-label="Trouver un nom"
+      <div className="fixed left-0 right-0" style={{ top: HEADER_HEIGHT, bottom: 0 }}>
+        <canvas ref={canvasRef} className="block h-full w-full" style={{ touchAction: 'none', cursor: mobile ? 'default' : 'grab' }} aria-label="Le vitrail de dons" />
+      </div>
+
+      {/* ── Téléphone ── */}
+      {mobile && (
+        <>
+          {count > 0 && !claimOpen && <MobileMinimap registerRect={registerRect} polygons={polygons} onZoomIn={() => api.current.zoomBy(1.5)} onZoomOut={() => api.current.zoomBy(1 / 1.5)} />}
+          {piece && sheetOpen && (
+            <BottomSheet
+              piece={piece}
+              tile={tile}
+              own={piece.id === mine?.id}
+              sheetRef={sheetRef}
+              onClose={() => setSheetOpen(false)}
+              onPrev={() => api.current.step(-1)}
+              onNext={() => api.current.step(1)}
+              onRandom={() => api.current.meet()}
             />
           )}
-          {matches.length > 0 && (
-            <ul className="card absolute right-0 mt-1 w-56 !p-1 text-sm" style={{ background: '#121019' }}>
-              {matches.map(m => (
-                <li key={m.id}>
-                  <button className="flex w-full justify-between gap-2 rounded-lg px-2 py-2 text-left hover:bg-white/10" onMouseDown={e => e.preventDefault()} onClick={() => pick(m.id)}>
-                    <span className="truncate">{m.name}</span>
-                    <span className="muted shrink-0">{formatMoney(m.amountCents)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {piece && !sheetOpen && (
+            <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: piece.color, padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontFamily: MONO, zIndex: 90, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+              Touchez encore pour afficher
+            </div>
+          )}
+          {!claimOpen && intro === 'off' && count > 0 && (
+            <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, position: 'fixed', top: `${HEADER_HEIGHT + 16}px`, right: '16px', zIndex: 120 }}>
+              {claimLabel}
+            </button>
+          )}
+          {!claimOpen && intro === 'off' && count > 1 && !sheetOpen && !piece && (
+            <button
+              onClick={() => api.current.meet()}
+              style={{ position: 'fixed', left: '16px', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 120, padding: '11px 16px', borderRadius: '999px', border: '1px solid rgba(251,191,36,0.5)', background: 'rgba(12,10,18,0.85)', backdropFilter: 'blur(6px)', color: GOLD, fontFamily: MONO, fontSize: '13px', fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+            >
+              ✦ Rencontrer quelqu&apos;un
+            </button>
+          )}
+        </>
+      )}
+
+      {/* ── Ordinateur ── */}
+      {!mobile && count > 0 && (
+        <>
+          <DesktopSearch ranked={ranked} bottom={mine ? 348 : 302} onPick={id => api.current.select(id, true)} />
+          <SideButton bottom={mine ? 302 : 256} gold onClick={() => api.current.meet()} title="S'envoler vers quelqu'un du vitrail">
+            ✦ Rencontrer quelqu&apos;un
+          </SideButton>
+          {mine && (
+            <SideButton bottom={256} color={mine.color} onClick={() => api.current.select(mine.id, true)}>
+              <span>◎</span>
+              <span>Trouver mon morceau</span>
+            </SideButton>
+          )}
+          <NavigationPanel
+            registerRect={registerRect}
+            polygons={polygons}
+            onPanTo={(x, y) => api.current.panTo(x, y)}
+            getCam={() => wRef.current.cam}
+            onReset={() => api.current.home()}
+            onZoomIn={() => api.current.zoomBy(1.5)}
+            onZoomOut={() => api.current.zoomBy(1 / 1.5)}
+            onPrev={() => api.current.step(-1)}
+            onNext={() => api.current.step(1)}
+          />
+          {piece && <DetailPanel piece={piece} tile={tile} count={count} totalCents={totalCents} own={piece.id === mine?.id} onClose={() => api.current.home()} />}
+        </>
+      )}
+
+      {/* ── Ouverture : compteur pendant le travelling, puis la question et l'appel à l'action ── */}
+      {intro !== 'off' && count > 0 && (
+        <div style={{ position: 'fixed', left: '50%', bottom: mobile ? '110px' : '56px', transform: 'translateX(-50%)', width: 'min(560px, calc(100% - 32px))', display: 'grid', justifyItems: 'center', gap: '14px', textAlign: 'center', zIndex: 150, pointerEvents: 'none' }}>
+          {intro === 'running' ? (
+            <div key="intro-count" ref={introCountRef} style={introTitleStyle} />
+          ) : (
+            <>
+              <div key="intro-final" style={{ fontFamily: MONO, fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)', textShadow: '0 0 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.95), 0 1px 18px rgba(0,0,0,0.9)', fontVariantNumeric: 'tabular-nums' }}>
+                {count.toLocaleString('fr-CA')} morceaux de verre.
+              </div>
+              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>Quelle place prendrez-vous dans le vitrail?</div>
+              <button
+                onClick={() => api.current.openClaim()}
+                style={{ ...goldButtonStyle, padding: '13px 22px', fontSize: '15px', pointerEvents: introCta ? 'auto' : 'none', opacity: introCta ? 1 : 0, transition: 'opacity 0.8s ease' }}
+              >
+                {claimLabel}
+              </button>
+            </>
           )}
         </div>
-        {mine && (
-          <button className="chip !px-3 text-sm" onClick={() => pick(mine)}>
-            Mon morceau
-          </button>
-        )}
-        {!mobile && (
-          <>
-            <button className="chip !px-3 text-sm" onClick={() => api.current.meet()}>
-              Au hasard
-            </button>
-            <Link href="/?src=vitrail" className="btn !w-auto !py-2 px-4 text-sm">
-              Ajouter mon morceau
-            </Link>
-          </>
-        )}
-      </header>
-
-      {/* ── Ouverture ── */}
-      {intro === 'running' && (
-        <div className="pointer-events-none absolute inset-x-0 z-[150] text-center" style={{ bottom: mobile ? MOBILE_BAR_H + 24 : 48 }}>
-          <div ref={introCountRef} className="text-3xl font-bold" style={{ color: '#ffe7a0', textShadow: '0 2px 20px #000' }} />
-          <div className="muted mt-1 text-sm">Chaque don devient un morceau de verre</div>
-        </div>
-      )}
-      {intro === 'done' && (
-        <div className="absolute inset-x-0 z-[150] flex justify-center px-4" style={{ bottom: mobile ? MOBILE_BAR_H + 16 : 40 }}>
-          <div className="card max-w-md text-center" style={{ background: 'rgba(14,12,22,0.92)', borderColor: 'rgba(255,231,160,0.4)' }}>
-            <div className="text-[0.7rem] font-medium uppercase tracking-[0.2em]" style={{ color: '#ffe7a0' }}>
-              Faites partie du vitrail
-            </div>
-            <div className="mt-1 text-xl font-bold">Chaque don devient un morceau de verre</div>
-            <p className="muted mt-1 text-sm">Plus le don est grand, plus le morceau l&apos;est. Touchez un morceau pour voir qui l&apos;a offert.</p>
-            <div className="mt-3 flex gap-2">
-              <Link href="/?src=vitrail" className="btn !py-3 text-sm">
-                Ajouter mon morceau
-              </Link>
-              <button className="btn btn-ghost !py-3 text-sm" onClick={() => setIntro('off')}>
-                Explorer
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
-      {intro === 'off' && hint && !piece && ranked.length > 0 && (
-        <p className="muted pointer-events-none absolute inset-x-0 z-[100] text-center text-sm" style={{ bottom: mobile ? MOBILE_BAR_H + 70 : 24 }}>
-          {mobile ? 'Glissez, pincez, touchez un morceau' : 'Glissez, zoomez à la molette, cliquez un morceau · ← → pour naviguer'}
-        </p>
+      {!mobile && !claimOpen && <HoverCard piece={hoveredPiece} />}
+
+      {/* ── Derniers dons (à la place du $EXIST) ── */}
+      <Ticker recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
+
+      {/* ── Don sur place ── */}
+      {claimOpen && (
+        <ClaimPanel amounts={ranked.map(p => p.amountCents)} typicalCents={snap?.typicalCents ?? null} isMobile={mobile} panelRef={claimPanelRef} onDraftChange={onDraftChange} onClose={() => api.current.closeClaim()} />
       )}
-
-      {/* ── Derniers dons ── */}
-      {snap && intro !== 'running' && !(mobile && piece) && (
-        <div className="absolute z-[120]" style={mobile ? { left: 12, right: 12, bottom: MOBILE_BAR_H + 8 } : { left: 16, bottom: 16 }}>
-          <RecentDonations recent={snap.recent} isMobile={mobile} onVisit={id => api.current.select(id)} />
-        </div>
-      )}
-
-      {/* ── Mini-carte (ordinateur) ── */}
-      {!mobile && ranked.length > 0 && (
-        <div
-          className="absolute z-[120] overflow-hidden rounded-full"
-          style={{ right: piece ? PANEL_W + 16 : 16, bottom: 16, width: 150, height: 150, background: 'rgba(12,10,18,0.7)', border: '1px solid var(--line)', cursor: 'pointer' }}
-          onPointerDown={e => {
-            const r = e.currentTarget.getBoundingClientRect()
-            const s = 150 / (UNIVERSE_RADIUS * 2.2)
-            api.current.panTo((e.clientX - r.left - 75) / s, (e.clientY - r.top - 75) / s)
-          }}
-          aria-label="Mini-carte du vitrail"
-        >
-          <canvas ref={minimapRef} style={{ width: 150, height: 150, opacity: 0.85 }} />
-          <div ref={minimapViewRef} className="pointer-events-none absolute left-0 top-0" style={{ border: '1.5px solid #ffe7a0', borderRadius: 3, opacity: 0 }} />
-        </div>
-      )}
-
-      {/* ── Fiche du morceau : panneau à droite (ordinateur) ── */}
-      {piece && !mobile && (
-        <aside
-          className="absolute right-0 z-[300] flex flex-col"
-          style={{ top: HEADER_H, width: PANEL_W, bottom: 0, background: 'rgba(15,13,22,0.95)', backdropFilter: 'blur(24px)', borderLeft: `1px solid ${piece.color}33`, boxShadow: `0 0 40px ${piece.color}22` }}
-        >
-          <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--line)' }}>
-            <span className="muted text-[0.7rem] uppercase tracking-[0.15em]">Morceau de verre</span>
-            <button className="muted text-xl leading-none" aria-label="Fermer" onClick={() => api.current.home()}>
-              ×
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-5">
-            <PieceDetails piece={piece} tile={tile} count={ranked.length} totalCents={totalCents} own={piece.id === mine} compact={false} />
-          </div>
-          <div className="border-t p-4" style={{ borderColor: 'var(--line)' }}>
-            {nav}
-          </div>
-        </aside>
-      )}
-
-      {/* ── Fiche du morceau : feuille en bas (téléphone) ── */}
-      {piece && mobile && <MobileSheet onClose={() => api.current.home()} nav={nav}>
-        <PieceDetails piece={piece} tile={tile} count={ranked.length} totalCents={totalCents} own={piece.id === mine} compact />
-      </MobileSheet>}
-
-      {/* ── Barre du bas (téléphone) ── */}
-      {mobile && !piece && (
-        <div className="absolute inset-x-0 bottom-0 z-[200] flex gap-2 px-3 pt-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))', background: 'linear-gradient(rgba(7,6,11,0), #07060b 40%)' }}>
-          <Link href="/?src=vitrail" className="btn flex-1">
-            Ajouter mon morceau
-          </Link>
-          <button className="btn btn-ghost !w-auto px-4 text-sm" onClick={() => api.current.meet()}>
-            Au hasard
-          </button>
-        </div>
-      )}
-
-      {/* ── Survol (ordinateur) ── */}
-      {!mobile && <HoverCard piece={hoveredPiece} />}
 
       {/* ── Nouveau don pendant la visite ── */}
-      {toast && (
-        <div className="absolute left-1/2 z-[400] -translate-x-1/2 px-3" style={{ top: HEADER_H + 12, width: 'min(92vw, 420px)' }}>
-          <div className="tv-banner-in card flex items-center gap-3 !py-3" style={{ background: 'rgba(14,12,22,0.95)', borderColor: 'rgba(255,231,160,0.5)' }}>
-            <span className="min-w-0 flex-1 text-sm">{toast.text}</span>
+      {toast && !claimOpen && (
+        <div style={{ position: 'fixed', left: '50%', top: HEADER_HEIGHT + 72, transform: 'translateX(-50%)', zIndex: 400, width: 'min(92vw, 420px)' }}>
+          <div className="tv-banner-in" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(14,12,22,0.95)', border: '1px solid rgba(251,191,36,0.45)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+            <span style={{ flex: 1, fontSize: 13 }}>{toast.text}</span>
             <button
-              className="chip shrink-0 !px-3 text-sm"
               onClick={() => {
-                api.current.select(toast.donorId)
+                api.current.select(toast.donorId, true)
                 setToast(null)
               }}
+              style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(251,191,36,0.5)', background: 'transparent', color: GOLD, fontFamily: MONO, fontSize: 12, cursor: 'pointer' }}
             >
               Voir
             </button>
           </div>
         </div>
       )}
-    </main>
+
+      {snap && count === 0 && (
+        <div style={{ position: 'fixed', inset: `${HEADER_HEIGHT}px 0 0 0`, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24, zIndex: 100 }}>
+          <div>
+            <div style={introTitleStyle}>Le vitrail attend sa première pièce.</div>
+            <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, marginTop: 20 }}>
+              {claimLabel}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
-/** Feuille du bas sur téléphone : glisser vers le bas pour fermer. */
-function MobileSheet({ children, nav, onClose }: { children: React.ReactNode; nav: React.ReactNode; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const drag = useRef<{ y: number; dy: number } | null>(null)
+// ═════════════════════════════════ En-tête (mise en page de Pay to Exist) ═════════════════════════════════
+function Logo({ size }: { size: number }) {
   return (
-    <div
-      ref={ref}
-      className="absolute inset-x-0 bottom-0 z-[300] flex flex-col rounded-t-3xl"
-      style={{ maxHeight: '52vh', background: 'rgba(15,13,22,0.97)', backdropFilter: 'blur(24px)', borderTop: '1px solid var(--line)', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)', paddingBottom: 'env(safe-area-inset-bottom)', transition: 'transform 0.2s' }}
-    >
-      <div
-        className="flex shrink-0 justify-center py-3"
-        style={{ touchAction: 'none' }}
-        onPointerDown={e => {
-          e.currentTarget.setPointerCapture(e.pointerId)
-          drag.current = { y: e.clientY, dy: 0 }
-          if (ref.current) ref.current.style.transition = 'none'
-        }}
-        onPointerMove={e => {
-          if (!drag.current || !ref.current) return
-          drag.current.dy = Math.max(0, e.clientY - drag.current.y)
-          ref.current.style.transform = `translateY(${drag.current.dy}px)`
-        }}
-        onPointerUp={() => {
-          const d = drag.current
-          drag.current = null
-          if (!ref.current) return
-          ref.current.style.transition = 'transform 0.2s'
-          if (d && d.dy > 80) onClose()
-          else ref.current.style.transform = 'none'
-        }}
-      >
-        <span className="h-1.5 w-10 rounded-full" style={{ background: 'rgba(255,255,255,0.25)' }} />
+    <span
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        flexShrink: 0,
+        background: 'conic-gradient(#f472b6, #d946ef, #7c3aed, #60a5fa, #22d3ee, #16a34a, #a3e635, #facc15, #fb923c, #f87171, #f472b6)',
+        boxShadow: '0 0 0 2px #050408, 0 0 16px rgba(244,114,182,.35)',
+      }}
+    />
+  )
+}
+
+function Header({
+  mobile,
+  count,
+  claimLabel,
+  onClaim,
+  onHome,
+  searchOpen,
+  setSearchOpen,
+  menuOpen,
+  setMenuOpen,
+  ranked,
+  onPick,
+}: {
+  mobile: boolean
+  count: number
+  claimLabel: string
+  onClaim: () => void
+  onHome: () => void
+  searchOpen: boolean
+  setSearchOpen: (v: boolean) => void
+  menuOpen: boolean
+  setMenuOpen: (v: boolean) => void
+  ranked: RankedPiece[]
+  onPick: (id: string) => void
+}) {
+  const [query, setQuery] = useState('')
+  const q = query.trim().toLocaleLowerCase('fr-CA')
+  const results = q ? ranked.filter(p => p.name?.toLocaleLowerCase('fr-CA').includes(q)).slice(0, 8) : []
+  const brand = (
+    <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '18px', fontWeight: 700, letterSpacing: '-0.03em', color: '#fff', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0 }}>
+      <Logo size={32} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.appName}</span>
+    </button>
+  )
+  const base: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, height: `${HEADER_HEIGHT}px`, background: 'rgba(6,6,10,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1000 }
+
+  if (mobile) {
+    return (
+      <>
+        <header style={{ ...base, padding: '0 16px', gap: 8 }}>
+          {brand}
+          <div style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap' }}>
+            <span style={{ fontWeight: 700 }}>{count}</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '4px' }}>morceaux</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {count > 0 && (
+              <button onClick={() => setSearchOpen(true)} aria-label="Rechercher" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+            )}
+            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                {menuOpen ? (
+                  <>
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="4" y1="7" x2="20" y2="7" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <line x1="4" y1="17" x2="20" y2="17" />
+                  </>
+                )}
+              </svg>
+            </button>
+          </div>
+        </header>
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
+            <nav style={{ position: 'fixed', top: HEADER_HEIGHT, right: 0, left: 0, zIndex: 999, background: 'rgba(6,6,10,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 16px 16px', display: 'grid', gap: 4 }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{CONFIG.orgName}</span>
+              <Link href="/?src=vitrail" style={menuLink}>
+                Page de don
+              </Link>
+              <Link href="/confidentialite" style={menuLink}>
+                Confidentialité
+              </Link>
+            </nav>
+          </>
+        )}
+        {searchOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(6,6,10,0.97)', padding: 16 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Chercher quelqu'un" style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: '#0d0b13', color: '#fff', fontSize: 16, fontFamily: MONO }} />
+              <button
+                onClick={() => {
+                  setSearchOpen(false)
+                  setQuery('')
+                }}
+                style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.7)', fontSize: 14 }}
+              >
+                Annuler
+              </button>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              {results.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setSearchOpen(false)
+                    setQuery('')
+                    onPick(p.id)
+                  }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', background: 'none', border: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#fff', textAlign: 'left', fontSize: 15 }}
+                >
+                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{formatMoney(p.amountCents)}</span>
+                </button>
+              ))}
+              {q && results.length === 0 && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, padding: '12px 4px' }}>Personne de ce nom pour l&apos;instant.</p>}
+            </div>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  return (
+    <header style={{ ...base, padding: '0 24px' }}>
+      <div style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex' }}>{brand}</div>
+      <div style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '16px', letterSpacing: '0.02em' }}>
+        <span style={{ fontWeight: 700, fontSize: '20px' }}>{count}</span>
+        <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>morceaux de verre</span>
       </div>
-      <div className="flex-1 overflow-y-auto px-5 pb-3">{children}</div>
-      <div className="shrink-0 px-4 pb-3">{nav}</div>
+      <nav style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginRight: 16 }}>{CONFIG.orgName}</span>
+        <Link href="/confidentialite" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+          Confidentialité
+        </Link>
+        <button
+          type="button"
+          onClick={onClaim}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 18px', marginLeft: '12px', background: GOLD, color: '#1a1406', border: 0, borderRadius: '999px', fontFamily: "'Space Grotesk', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(251,191,36,0.22)' }}
+        >
+          {claimLabel}
+        </button>
+      </nav>
+    </header>
+  )
+}
+const menuLink: React.CSSProperties = { padding: '12px 0', color: '#fff', textDecoration: 'none', fontSize: 15, borderBottom: '1px solid rgba(255,255,255,0.06)' }
+
+// ═════════════════════════════════ Colonne de gauche (ordinateur) ═════════════════════════════════
+function SideButton({ bottom, gold, color, onClick, title, children }: { bottom: number; gold?: boolean; color?: string; onClick: () => void; title?: string; children: React.ReactNode }) {
+  const c = gold ? GOLD : color ?? '#fff'
+  const bg = gold ? 'rgba(30, 24, 8, 0.92)' : 'rgba(6,6,10,0.9)'
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', padding: '10px 16px', background: bg, border: `1px solid ${gold ? 'rgba(251,191,36,0.55)' : c}`, borderRadius: '8px', color: c, fontSize: gold ? '12.5px' : '12px', fontWeight: gold ? 700 : 400, fontFamily: MONO, cursor: 'pointer', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', transition: 'background 0.2s' }}
+      onMouseOver={e => (e.currentTarget.style.background = gold ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.12)')}
+      onMouseOut={e => (e.currentTarget.style.background = bg)}
+    >
+      {children}
+    </button>
+  )
+}
+
+function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bottom: number; onPick: (id: string) => void }) {
+  const [q, setQ] = useState('')
+  const [focused, setFocused] = useState(false)
+  const ref = useRef<HTMLInputElement>(null)
+  const needle = q.trim().toLocaleLowerCase('fr-CA')
+  const results = needle ? ranked.filter(p => p.name?.toLocaleLowerCase('fr-CA').includes(needle)).slice(0, 5) : []
+  const pick = (id: string) => {
+    onPick(id)
+    setQ('')
+    setFocused(false)
+    ref.current?.blur()
+  }
+  return (
+    <div style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', background: 'rgba(6,6,10,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', zIndex: 100, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          ref={ref}
+          type="text"
+          placeholder="Chercher quelqu'un"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              setQ('')
+              ref.current?.blur()
+            }
+            if (e.key === 'Enter' && results.length > 0) pick(results[0].id)
+          }}
+          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '12px', fontFamily: MONO }}
+        />
+      </div>
+      {focused && results.length > 0 && (
+        <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: '4px', background: 'rgba(15,15,25,0.98)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 -4px 20px rgba(0,0,0,0.5)' }}>
+          {results.map(p => (
+            <button
+              key={p.id}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => pick(p.id)}
+              style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '12px', fontFamily: MONO, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{formatMoney(p.amountCents)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const navBtn: React.CSSProperties = {
+  padding: '8px',
+  background: 'rgba(255,255,255,0.08)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: '6px',
+  color: 'rgba(255,255,255,0.7)',
+  fontSize: '11px',
+  fontFamily: MONO,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px',
+  transition: 'all 0.2s',
+}
+const hoverBtn = (e: React.MouseEvent<HTMLButtonElement>, on: boolean) => {
+  e.currentTarget.style.background = on ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)'
+  e.currentTarget.style.color = on ? '#fff' : 'rgba(255,255,255,0.7)'
+}
+const ZoomOutIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    <line x1="8" y1="11" x2="14" y2="11" />
+  </svg>
+)
+const ZoomInIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    <line x1="11" y1="8" x2="11" y2="14" />
+    <line x1="8" y1="11" x2="14" y2="11" />
+  </svg>
+)
+
+/** Mini-carte de navigation (ordinateur) : on clique pour y aller, on fait glisser le cadre de la vue. */
+function NavigationPanel({
+  registerRect,
+  polygons,
+  onPanTo,
+  getCam,
+  onReset,
+  onZoomIn,
+  onZoomOut,
+  onPrev,
+  onNext,
+}: {
+  registerRect: (el: SVGRectElement | null) => void
+  polygons: React.ReactNode
+  onPanTo: (x: number, y: number) => void
+  getCam: () => Cam
+  onReset: () => void
+  onZoomIn: () => void
+  onZoomOut: () => void
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const mapW = 200
+  const mapH = 120
+  const scale = Math.min(mapW, mapH) / (BOUNDS * 2)
+  const toWorld = (mx: number, my: number) => ({ x: (mx - mapW / 2) / scale, y: (my - mapH / 2) / scale })
+
+  const onMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const cam = getCam()
+    const start = { mx: e.clientX, my: e.clientY, camX: cam.x, camY: cam.y }
+    // Clic hors du cadre : on y va tout de suite, puis on peut faire glisser
+    const vw = (window.innerWidth / cam.zoom) * scale
+    const vh = ((window.innerHeight - HEADER_HEIGHT) / cam.zoom) * scale
+    const vx = mapW / 2 + cam.x * scale - vw / 2
+    const vy = mapH / 2 + cam.y * scale - vh / 2
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    if (!(mx >= vx && mx <= vx + vw && my >= vy && my <= vy + vh)) {
+      const p = toWorld(mx, my)
+      onPanTo(p.x, p.y)
+      start.camX = p.x
+      start.camY = p.y
+    }
+    const move = (ev: MouseEvent) => onPanTo(start.camX + (ev.clientX - start.mx) / scale, start.camY + (ev.clientY - start.my) / scale)
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+
+  return (
+    <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: 'rgba(6,6,10,0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', overflow: 'hidden', zIndex: 100, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
+      <div style={{ padding: '10px' }}>
+        <svg width={mapW} height={mapH} style={{ cursor: 'grab', display: 'block', borderRadius: '8px', background: 'rgba(0,0,0,0.3)' }} onMouseDown={onMouseDown}>
+          <g transform={`translate(${mapW / 2} ${mapH / 2}) scale(${scale})`}>{polygons}</g>
+          <rect ref={registerRect} data-w={mapW} data-h={mapH} fill="rgba(255,255,255,0.15)" stroke="#fff" strokeWidth={1.5} rx={2} />
+        </svg>
+      </div>
+      <div style={{ padding: '0 10px 6px 10px', display: 'flex', gap: '6px' }}>
+        <button onClick={onReset} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)}>
+          <span>⌂</span>
+          <span>Tout voir</span>
+        </button>
+        <button onClick={onZoomOut} style={{ ...navBtn, width: '36px', padding: '8px 0' }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Dézoomer">
+          <ZoomOutIcon />
+        </button>
+        <button onClick={onZoomIn} style={{ ...navBtn, width: '36px', padding: '8px 0' }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Zoomer">
+          <ZoomInIcon />
+        </button>
+      </div>
+      <div style={{ padding: '0 10px 10px 10px', display: 'flex', gap: '6px' }}>
+        <button onClick={onPrev} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Morceau plus grand (←)">
+          <span>← Préc.</span>
+        </button>
+        <button onClick={onNext} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Morceau plus petit (→)">
+          <span>Suiv. →</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Mini-carte du téléphone : visuelle, avec les boutons de zoom au-dessus (en bas à droite). */
+function MobileMinimap({ registerRect, polygons, onZoomIn, onZoomOut }: { registerRect: (el: SVGRectElement | null) => void; polygons: React.ReactNode; onZoomIn: () => void; onZoomOut: () => void }) {
+  const mapW = 80
+  const mapH = 60
+  const scale = Math.min(mapW, mapH) / (BOUNDS * 2)
+  const btn: React.CSSProperties = { width: '36px', height: '36px', background: 'rgba(6,6,10,0.9)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+  return (
+    <div style={{ position: 'fixed', bottom: 'calc(16px + env(safe-area-inset-bottom))', right: '16px', zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', width: `${mapW}px` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button onClick={onZoomOut} style={btn} aria-label="Dézoomer">
+          <ZoomOutIcon />
+        </button>
+        <button onClick={onZoomIn} style={btn} aria-label="Zoomer">
+          <ZoomInIcon />
+        </button>
+      </div>
+      <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <svg width={mapW} height={mapH} style={{ background: 'rgba(6,6,10,0.9)', display: 'block' }}>
+          <g transform={`translate(${mapW / 2} ${mapH / 2}) scale(${scale})`}>{polygons}</g>
+          <rect ref={registerRect} data-w={mapW} data-h={mapH} fill="rgba(255,255,255,0.15)" stroke="#fff" strokeWidth={1} rx={1} />
+        </svg>
+      </div>
     </div>
   )
 }
