@@ -521,7 +521,7 @@ export default function Ecran() {
 
       {/* Le morceau en lumière : photo, nom, message — jamais de montant */}
       {card && !cta && (
-        <div key={card.key} style={{ position: 'absolute', left: '2.4em', top: '54%', transform: 'translateY(-50%)', width: '26em' }}>
+        <div key={card.key} style={{ position: 'absolute', left: '2.4em', bottom: '2.4em', width: '26em' }}>
           <div className={cardOut ? 'tv-banner-out' : 'tv-banner-in'} style={{ padding: '1.6em', borderRadius: '1.2em', background: 'rgba(12,10,18,0.96)', border: `1px solid ${card.color}66`, boxShadow: `0 0 4em ${card.color}33, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(255,255,255,0.55)' }}>
               {card.fresh ? '✦ Vient de donner' : 'Merci à'}

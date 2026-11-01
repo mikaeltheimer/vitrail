@@ -46,7 +46,10 @@ export interface RecordInput {
   /** Utilisé seulement si le courriel est nouveau : on ne modifie jamais le profil d'un donateur existant ici. */
   profile: DonorProfileInput
   color: string
+  /** Le don, sans les frais couverts. */
   amountCents: number
+  /** Frais de transaction ajoutés par le donateur (payés en plus, hors du total affiché). */
+  feeCents?: number
   source: DonationSource
   providerRef: string | null
   /** undefined = événement en cours ; null = aucun. */
@@ -98,11 +101,15 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   }
 
   const eventId = i.eventId !== undefined ? i.eventId : (await getCurrentEventRow())?.id ?? null
-  const { data: donation, error: insertError } = await db
-    .from('donations')
-    .insert({ donor_id: donor.id, event_id: eventId, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null })
-    .select('id')
-    .single()
+  const row: Record<string, unknown> = { donor_id: donor.id, event_id: eventId, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null }
+  if (i.feeCents) row.fee_cents = i.feeCents
+  let { data: donation, error: insertError } = await db.from('donations').insert(row).select('id').single()
+  // Migration des frais pas encore passée : on enregistre le don quand même, sans les frais (jamais perdre un don)
+  if (insertError && 'fee_cents' in row && /fee_cents/.test(insertError.message ?? '')) {
+    console.error('Colonne fee_cents absente : lancez supabase/migrations/2026-11-03-frais.sql')
+    delete row.fee_cents
+    ;({ data: donation, error: insertError } = await db.from('donations').insert(row).select('id').single())
+  }
 
   if (insertError) {
     if (insertError.code === '23505' && i.providerRef) {
@@ -111,7 +118,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
     }
     throw insertError
   }
-  return { donationId: donation.id, donorId: donor.id, duplicate: false }
+  return { donationId: donation!.id, donorId: donor.id, duplicate: false }
 }
 
 export async function updateDonorProfile(donorId: string, profile: DonorProfileInput, color?: string, previousPhotoUrl?: string | null): Promise<void> {

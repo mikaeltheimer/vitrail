@@ -115,7 +115,7 @@ function DonForm() {
     return selected ?? 0
   }, [selected, custom])
   const feeCents = baseCents >= CONFIG.minAmountCents ? feeFor(baseCents) : 0
-  // Ce que le donateur paie (et la taille de son morceau)
+  // Ce que le donateur paie ; la taille du morceau, elle, ne compte que le don (les frais couverts n'y entrent pas)
   const amountCents = coverFees ? baseCents + feeCents : baseCents
   const donorsCount = snap?.pieces.length ?? 0
 
@@ -128,11 +128,10 @@ function DonForm() {
     return { biggest: beaten === others.length, pct: Math.floor((beaten / Math.max(1, others.length)) * 100) }
   }
   const showStanding = others.length >= 5 && baseCents >= CONFIG.minAmountCents
-  const now = showStanding ? standing(amountCents) : null
+  const now = showStanding ? standing(baseCents) : null
   // Montant suggéré suivant (seulement si on a choisi une pastille) et ce qu'il changerait
   const nextChip = !custom.trim() && selected ? CONFIG.suggestedCents.find(c => c > selected) ?? null : null
-  const nextPay = nextChip ? (coverFees ? nextChip + feeFor(nextChip) : nextChip) : 0
-  const next = showStanding && nextChip ? standing(nextPay) : null
+  const next = showStanding && nextChip ? standing(nextChip) : null
   const nudge = now && next && !now.biggest && (next.biggest || next.pct - now.pct >= 5) ? next : null
 
   const tooLow = baseCents > 0 && baseCents < CONFIG.minAmountCents
@@ -344,7 +343,7 @@ function DonForm() {
                 message,
                 photoSrc: photo.src,
                 color: color ?? (token && known ? known.color : autoColor),
-                amountCents,
+                amountCents: baseCents,
               }}
             />
           </section>

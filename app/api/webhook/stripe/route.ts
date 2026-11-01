@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
     const color = validateColor(m.color)
+    // Frais couverts par le donateur : payés, mais hors du don (morceau et total gardent des chiffres ronds)
+    const fee = parseInt(m.feeCents ?? '', 10)
+    const feeCents = Number.isFinite(fee) && fee > 0 && fee < session.amount_total ? fee : 0
 
     try {
       const result = await recordDonation({
@@ -45,7 +48,8 @@ export async function POST(request: NextRequest) {
           photoUrl: m.showName === '1' && pathFromPublicUrl(m.photo) ? m.photo : null,
         },
         color: color.ok ? color.value : defaultColorFor(email),
-        amountCents: session.amount_total,
+        amountCents: session.amount_total - feeCents,
+        feeCents,
         source: 'stripe',
         providerRef: session.id,
         eventId: m.eventId ? m.eventId : null,

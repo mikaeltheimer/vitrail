@@ -130,3 +130,6 @@ create table if not exists reports (
 create index if not exists reports_open_idx on reports (resolved, created_at desc);
 alter table reports enable row level security;
 revoke all on reports from anon, authenticated;
+
+-- Frais de transaction couverts par le donateur, hors du don (voir migrations/2026-11-03-frais.sql)
+alter table donations add column if not exists fee_cents integer not null default 0 check (fee_cents >= 0);

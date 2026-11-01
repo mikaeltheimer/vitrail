@@ -104,6 +104,10 @@ export default function VitrailPage() {
 function Vitrail() {
   const params = useSearchParams()
   const focusParam = params.get('d')
+  // Retour de Stripe (?merci=réf.) : comme Pay to Exist, on revient sur le vitrail, directement sur son morceau
+  const arrivalRef = useRef(params.get('merci'))
+  const reloadRef = useRef<() => Promise<void>>(async () => {})
+  const [welcome, setWelcome] = useState<Welcome | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const introCountRef = useRef<HTMLDivElement>(null)
   const claimPanelRef = useRef<HTMLDivElement>(null)
@@ -457,7 +461,9 @@ function Vitrail() {
       try {
         seen = sessionStorage.getItem('vitrail:intro') === '1'
       } catch {}
-      if (focus && w.tiles.has(focus)) setTimeout(() => select(focus, true), 300)
+      if (arrivalRef.current) {
+        // le panneau de bienvenue s'occupe du cadrage
+      } else if (focus && w.tiles.has(focus)) setTimeout(() => select(focus, true), 300)
       else if (sp.has('don')) setTimeout(openClaim, 200)
       else if (!reduced && (!seen || sp.has('intro')) && startIntro()) {
         try {
@@ -835,6 +841,7 @@ function Vitrail() {
         }
       } catch {}
     }
+    reloadRef.current = load
     void load()
     const id = setInterval(load, 10_000)
     return () => {
@@ -860,6 +867,54 @@ function Vitrail() {
       const me = localStorage.getItem('vitrail:me')
       if (me) Promise.resolve().then(() => setMyId(me))
     } catch {}
+  }, [])
+
+  // ── Retour de paiement : on attend la confirmation (webhook Stripe), puis on vole jusqu'au nouveau morceau ──
+  useEffect(() => {
+    const ref = arrivalRef.current
+    if (!ref) return
+    let stop = false
+    window.history.replaceState({}, '', '/vitrail')
+    try {
+      sessionStorage.removeItem('vitrail:claim') // payé : le brouillon ne sert plus
+    } catch {}
+    Promise.resolve().then(() => setWelcome({ state: 'wait' }))
+    let tries = 0
+    const showPiece = async (donorId: string) => {
+      // Le pavage doit contenir le morceau : on recharge l'instantané jusqu'à le voir apparaître (~20 s au plus)
+      for (let i = 0; i < 20 && !stop; i++) {
+        const w = wRef.current
+        if (w.ready && w.tiles.has(donorId)) {
+          api.current.select(donorId, true)
+          return
+        }
+        if (i % 3 === 0) await reloadRef.current()
+        await new Promise(r => setTimeout(r, 1000))
+      }
+    }
+    const poll = async () => {
+      if (stop) return
+      try {
+        const res = await fetch('/api/merci', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref }) })
+        const data = await res.json()
+        if (res.ok && data.pending === false && data.donorId) {
+          try {
+            localStorage.setItem('vitrail:me', data.donorId)
+          } catch {}
+          setMyId(data.donorId)
+          setWelcome({ state: 'ok', donorId: data.donorId, name: data.name ?? null, token: data.token, photoPending: !!data.photoPending })
+          void showPiece(data.donorId)
+          return
+        }
+      } catch {}
+      // Stripe confirme le paiement quelques secondes après le retour : on patiente jusqu'à ~40 s
+      if (++tries < 27) setTimeout(poll, 1500)
+      else setWelcome({ state: 'lost' })
+    }
+    void poll()
+    return () => {
+      stop = true
+    }
   }, [])
 
   useEffect(() => {
@@ -1032,8 +1087,11 @@ function Vitrail() {
         <ClaimPanel amounts={ranked.map(p => p.amountCents)} typicalCents={snap?.typicalCents ?? null} isMobile={mobile} panelRef={claimPanelRef} onDraftChange={onDraftChange} onClose={() => api.current.closeClaim()} />
       )}
 
+      {/* ── Retour de paiement ── */}
+      {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} onClose={() => setWelcome(null)} />}
+
       {/* ── Nouveau don pendant la visite ── */}
-      {toast && !claimOpen && (
+      {toast && !claimOpen && !welcome && (
         <div style={{ position: 'fixed', left: '50%', top: HEADER_HEIGHT + 72, transform: 'translateX(-50%)', zIndex: 400, width: 'min(92vw, 420px)' }}>
           <div className="tv-banner-in" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(14,12,22,0.95)', border: '1px solid rgba(251,191,36,0.45)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
             <span style={{ flex: 1, fontSize: 13 }}>{toast.text}</span>
@@ -1065,6 +1123,50 @@ function Vitrail() {
 }
 
 // ═════════════════════════════════ En-tête (mise en page de Pay to Exist) ═════════════════════════════════
+type Welcome =
+  | { state: 'wait' }
+  | { state: 'lost' }
+  | { state: 'ok'; donorId: string; name: string | null; token: string; photoPending: boolean }
+
+/** Bienvenue après le paiement, en haut du vitrail (le morceau, lui, s'ouvre dans sa fiche habituelle). */
+function WelcomeCard({ welcome, isMobile, onClose }: { welcome: Welcome; isMobile: boolean; onClose: () => void }) {
+  return (
+    <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 460px)' }}>
+      <div
+        className="tv-banner-in"
+        style={{ position: 'relative', padding: '16px 18px', borderRadius: 14, background: 'rgba(14,12,22,0.96)', border: '1px solid rgba(251,191,36,0.55)', boxShadow: '0 0 40px rgba(251,191,36,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'Space Grotesk', sans-serif" }}
+      >
+        {welcome.state !== 'wait' && (
+          <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
+            ×
+          </button>
+        )}
+        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: GOLD }}>✦ Merci{welcome.state === 'ok' && welcome.name ? `, ${welcome.name}` : ''}</div>
+        {welcome.state === 'wait' && <p style={{ margin: '6px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>Nous confirmons votre don et posons votre morceau dans le vitrail…</p>}
+        {welcome.state === 'lost' && (
+          <p style={{ margin: '6px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45 }}>
+            La confirmation du paiement tarde. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes ; inutile de redonner.
+          </p>
+        )}
+        {welcome.state === 'ok' && (
+          <>
+            <p style={{ margin: '6px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>Votre morceau fait maintenant partie du vitrail de l&apos;école.</p>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45 }}>
+              Il passera bientôt sur le grand écran.{welcome.photoPending ? ' Votre photo s’ajoutera dès que l’équipe l’aura vue.' : ''}
+            </p>
+            <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 13 }}>
+              <a href={`/m/${welcome.token}`} style={{ color: GOLD, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                Modifier mon nom, message ou photo
+              </a>
+            </div>
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Gardez ce lien : il est aussi dans le courriel de confirmation.</p>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function Header({
   mobile,
   count,

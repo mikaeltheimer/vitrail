@@ -5,7 +5,7 @@ import { startCheckout } from '@/lib/payments'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { cleanChannel, defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
-import { withFees } from '@/lib/fees'
+import { feeFor } from '@/lib/fees'
 
 export const runtime = 'nodejs'
 
@@ -56,8 +56,10 @@ export async function POST(request: NextRequest) {
     const event = await getCurrentEventRow()
     const { url } = await startCheckout({
       email,
-      // Frais couverts : recalculés ici, jamais repris du navigateur
-      amountCents: body.coverFees === true ? withFees(amount.value) : amount.value,
+      // Le don seul fait la taille du morceau ; les frais couverts sont recalculés ici, jamais repris du navigateur
+      amountCents: amount.value,
+      feeCents: body.coverFees === true ? feeFor(amount.value) : 0,
+      returnTo: body.returnTo === 'vitrail' ? 'vitrail' : 'don',
       profile: { ...profile, name: profile.showName ? profile.name : ANON_LABEL },
       color,
       eventId: event?.id ?? null,

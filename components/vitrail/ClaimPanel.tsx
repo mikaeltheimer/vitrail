@@ -18,7 +18,7 @@ export interface ClaimDraft {
   color: string
   photoSrc: string | null
   message: string | null
-  /** Ce que le donateur paie (frais compris s'il les couvre) : c'est la taille du morceau. */
+  /** Le don, sans les frais couverts : c'est la taille du morceau (et ce qui compte dans le total). */
   amountCents: number
   /** Cadrage : 'place' (la place dans le vitrail, quand le montant change) ou 'detail' (gros plan quand le contenu change). */
   focus: 'place' | 'detail'
@@ -33,6 +33,33 @@ interface Props {
   /** geometryChanged = la taille change (il faut recalculer le pavage) ; sinon simple mise à jour visuelle */
   onDraftChange: (draft: ClaimDraft, geometryChanged: boolean) => void
   onClose: () => void
+}
+
+/** Brouillon gardé le temps du passage chez Stripe : si le donateur revient sans payer, il retrouve tout. */
+const DRAFT_KEY = 'vitrail:claim'
+interface SavedDraft {
+  amount: number
+  coverFees: boolean
+  name: string
+  color: string
+  message: string
+  photo: { src: string | null; path: string | null }
+}
+function readSaved(): SavedDraft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY)
+    return raw ? (JSON.parse(raw) as SavedDraft) : null
+  } catch {
+    return null
+  }
+}
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result))
+    r.onerror = () => reject(r.error)
+    r.readAsDataURL(blob)
+  })
 }
 
 const MIN = CONFIG.minAmountCents / 100
@@ -53,24 +80,32 @@ function formatShare(x: number): string {
 }
 
 export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, onDraftChange, onClose }: Props) {
-  const start = typicalCents ? typicalCents / 100 : 25
+  const [saved] = useState(readSaved)
+  const start = saved?.amount ?? (typicalCents ? typicalCents / 100 : 25)
   const [amount, setAmountState] = useState(start)
   const [amountText, setAmountText] = useState(String(start))
-  const [coverFees, setCoverFees] = useState(false)
-  const [name, setName] = useState('')
-  const [color, setColor] = useState<string>(GLASS_COLORS[0].value)
-  const [message, setMessage] = useState('')
-  const [showDetails, setShowDetails] = useState(false)
-  const [photo, setPhoto] = useState<{ src: string | null; path: string | null }>({ src: null, path: null })
+  const [coverFees, setCoverFees] = useState(saved?.coverFees ?? false)
+  const [name, setName] = useState(saved?.name ?? '')
+  const [color, setColor] = useState<string>(saved?.color ?? GLASS_COLORS[0].value)
+  const [message, setMessage] = useState(saved?.message ?? '')
+  const [showDetails, setShowDetails] = useState(!!saved?.message)
+  const [photo, setPhoto] = useState<{ src: string | null; path: string | null }>(saved?.photo ?? { src: null, path: null })
+  const photoBlob = useRef<Blob | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Couleur tirée au hasard à l'ouverture (le serveur ne peut pas faire le même tirage)
+  // Couleur tirée au hasard à l'ouverture (le serveur ne peut pas faire le même tirage), sauf brouillon retrouvé
   useEffect(() => {
+    if (saved) {
+      try {
+        sessionStorage.removeItem(DRAFT_KEY)
+      } catch {}
+      return
+    }
     Promise.resolve().then(() => setColor(GLASS_COLORS[Math.floor(Math.random() * GLASS_COLORS.length)].value))
-  }, [])
+  }, [saved])
 
   const baseCents = Math.round(amount * 100)
   const feeCents = feeFor(baseCents)
@@ -89,17 +124,17 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
       focusRef.current = 'detail'
       lastContent.current = contentKey
     }
-    if (lastAmount.current !== null && payCents !== lastAmount.current) focusRef.current = 'place'
-    lastAmount.current = payCents
+    if (lastAmount.current !== null && baseCents !== lastAmount.current) focusRef.current = 'place'
+    lastAmount.current = baseCents
     const draft: ClaimDraft = {
       name: showName ? name.trim() : null,
       color,
       photoSrc: showName ? photo.src : null,
       message: showName ? message.trim() || null : null,
-      amountCents: payCents,
+      amountCents: baseCents,
       focus: focusRef.current,
     }
-    const geometryKey = String(payCents)
+    const geometryKey = String(baseCents)
     const geometryChanged = geometryKey !== lastGeometry.current
     // La taille change : on attend que le curseur se pose avant de recalculer le pavage
     const timer = setTimeout(
@@ -110,13 +145,13 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
       geometryChanged ? 280 : 0,
     )
     return () => clearTimeout(timer)
-  }, [name, showName, color, photo.src, message, payCents, onDraftChange])
+  }, [name, showName, color, photo.src, message, baseCents, onDraftChange])
 
   // ---------- Chiffres ----------
   const total = amounts.reduce((s, a) => s + a, 0)
-  const share = total + payCents > 0 ? payCents / (total + payCents) : 0
-  const bigger = amounts.filter(a => a < payCents).length
-  const rank = amounts.filter(a => a > payCents).length + 1
+  const share = total + baseCents > 0 ? baseCents / (total + baseCents) : 0
+  const bigger = amounts.filter(a => a < baseCents).length
+  const rank = amounts.filter(a => a > baseCents).length + 1
 
   const setAmount = (a: number) => {
     const clamped = Math.max(MIN, Math.min(MAX, Math.round(a)))
@@ -133,6 +168,7 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
     setPhotoBusy(true)
     try {
       const blob = await squareJpeg(file)
+      photoBlob.current = blob
       const src = URL.createObjectURL(blob)
       setPhoto({ src, path: null })
       const path = await uploadPhoto(blob)
@@ -162,6 +198,7 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
         body: JSON.stringify({
           amountCents: baseCents,
           coverFees,
+          returnTo: 'vitrail',
           channel,
           showName,
           name: showName ? name.trim() : '',
@@ -172,6 +209,12 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur inattendue. Réessayez.')
+      // Brouillon gardé pour un éventuel retour sans paiement (la photo en data URL : l'adresse blob: ne survit pas)
+      try {
+        const src = photo.src?.startsWith('blob:') && photoBlob.current ? await blobToDataUrl(photoBlob.current) : photo.src
+        const draft: SavedDraft = { amount, coverFees, name, color, message, photo: { src, path: photo.path } }
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+      } catch {}
       window.location.href = data.url
     } catch (err) {
       setError((err as Error).message)
@@ -319,7 +362,14 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
           {photoBusy ? 'Envoi…' : photo.src ? 'Changer la photo' : 'Ajouter une photo'}
         </button>
         {photo.src && !photoBusy && (
-          <button type="button" onClick={() => setPhoto({ src: null, path: null })} style={linkButtonStyle}>
+          <button
+            type="button"
+            onClick={() => {
+              photoBlob.current = null
+              setPhoto({ src: null, path: null })
+            }}
+            style={linkButtonStyle}
+          >
             Retirer
           </button>
         )}
@@ -342,7 +392,7 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
         </button>
       </div>
       <p style={{ ...hintStyle, textAlign: 'center' }}>
-        Ce que vous voyez est un aperçu. Rien n&apos;est prélevé avant la confirmation. Votre courriel vous sera demandé au paiement. Pas de reçu fiscal pour le moment.{' '}
+        Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour ici, sur votre morceau. Pas de reçu fiscal pour le moment.{' '}
         <Link href="/confidentialite" target="_blank" style={{ color: 'rgba(255,255,255,0.6)' }}>
           Confidentialité
         </Link>
