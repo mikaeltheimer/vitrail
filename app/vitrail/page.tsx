@@ -805,7 +805,7 @@ function Vitrail() {
         s.recent.forEach(d => seen.add(d.id))
         if (!first && fresh.length) {
           const d = fresh[0]
-          setToast({ id: d.id, donorId: d.donorId, text: `${d.name ?? 'Quelqu’un'} vient de donner ${formatMoney(d.amountCents)}` })
+          setToast({ id: d.id, donorId: d.donorId, text: `${d.name ?? 'Quelqu’un'} vient d’ajouter son morceau au vitrail` })
         }
         if (s.version === version) return
         version = s.version
@@ -842,6 +842,18 @@ function Vitrail() {
       clearInterval(id)
     }
   }, [ambience, focusParam])
+
+  // Provenance (?src= du code QR de l'écran, d'une affiche, d'un partage) : retenue pour le don, visite comptée une fois
+  useEffect(() => {
+    const src = new URLSearchParams(window.location.search).get('src')
+    let counted = false
+    try {
+      if (src) sessionStorage.setItem('vitrail:src', src)
+      counted = sessionStorage.getItem('vitrail:visit') === '1'
+      sessionStorage.setItem('vitrail:visit', '1')
+    } catch {}
+    if (!counted) void fetch('/api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: src ?? 'vitrail' }) }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     try {
@@ -1192,7 +1204,7 @@ function Header({
                 >
                   <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{formatMoney(p.amountCents)}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{p.rank === 1 ? '1er' : `${p.rank}e`}</span>
                 </button>
               ))}
               {q && results.length === 0 && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, padding: '12px 4px' }}>Personne de ce nom pour l&apos;instant.</p>}
@@ -1308,7 +1320,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
               </span>
-              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{formatMoney(p.amountCents)}</span>
+              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{p.rank === 1 ? '1er' : `${p.rank}e`}</span>
             </button>
           ))}
         </div>

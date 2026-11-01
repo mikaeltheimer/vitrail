@@ -87,6 +87,12 @@ Les noms et messages sur le verre sont toujours placés **à l'intérieur** du m
 
 Toutes les 6 mises en vedette (`ctaEvery` dans `lib/config.ts`, 0 = jamais), l'écran fait une pause de 9 s : le vitrail s'assombrit, le code QR pulse, et une carte dit « Faites partie du vitrail — Chaque don devient un morceau de verre », avec trois carrés de 10 $, 25 $ et 100 $ dessinés à l'échelle (leur taille suit `sizeExponent`) et le rappel « Dès 5 $ ». Un nouveau don passe toujours avant la pause. Le texte est dans `app/ecran/page.tsx`.
 
+## Écran de projection v2
+
+`/ecran-v2` : la rosace du vitrail en ligne, en visite automatique pour un écran d'événement. La caméra s'envole d'un morceau à l'autre (au hasard, chacun passe avant qu'un autre revienne), le met en lumière (le reste s'assombrit, son contour pulse dans sa couleur) et une carte montre son contenu : photo (ou sa pièce de verre), nom, message. **Aucun montant individuel** : la taille du verre en dit assez. Un nouveau don passe en premier (« ✦ Vient de donner »). Toutes les 6 visites, retour au vitrail entier avec « Faites partie du vitrail » et le code QR mis en évidence. En permanence : logo de l'école, total et objectif, nombre de donateurs, code QR vers le don dans le vitrail (`/vitrail?don&src=ecran`). Mêmes protections que `/ecran` : dernier état gardé, reprise après coupure, écran toujours allumé, rechargement toutes les 6 h, plein écran au clic ou avec F.
+
+Le vitrail en ligne (`/vitrail`) n'affiche plus non plus les montants des donateurs (fiches, survol, recherche, derniers dons) : seul le total collectif reste.
+
 ## Typographie
 
 Une seule famille, **Space Grotesk**, auto-hébergée (paquet `@fontsource/space-grotesk`, aucune requête externe : l'écran n'en dépend pas du Wi-Fi), en plusieurs graisses : demi-gras pour les noms, gras pour les montants et les titres, romain pour les messages, et capitales espacées pour les petites mentions (« MERCI À », « AU TOTAL »). Couleurs chaudes : crème pour les noms, or pâle pour les montants, avec un fin contour sombre pour la lisibilité sur n'importe quel verre. Les définitions sont dans `lib/fonts.ts` (familles) et `lib/render.ts` (`LABEL_STYLE` : tailles, graisses, couleurs, espacement).

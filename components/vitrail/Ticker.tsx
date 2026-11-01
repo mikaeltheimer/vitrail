@@ -63,7 +63,7 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
         <span style={{ color: GOLD, fontWeight: 700 }}>{formatMoney(totalCents)}</span>
         {!isMobile && (
           <span style={{ color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            · {last.name ?? 'Anonyme'} +{formatMoney(last.amountCents)}
+            · {last.name ?? 'Anonyme'} vient d&apos;ajouter son morceau
           </span>
         )}
         <span style={{ color: 'rgba(255,255,255,0.4)' }}>▾</span>
@@ -89,12 +89,11 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
               onVisit(d.donorId)
               if (isMobile) setStored(false)
             }}
-            style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'baseline', padding: '7px 8px', borderRadius: 6, background: 'transparent', border: 0, color: '#fff', textAlign: 'left', cursor: 'pointer', fontSize: 13 }}
+            style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'baseline', padding: '7px 8px', borderRadius: 6, background: 'transparent', border: 0, color: '#fff', textAlign: 'left', cursor: 'pointer', fontSize: 13 }}
             onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
             onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
           >
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name ?? 'Anonyme'}</span>
-            <span style={{ fontFamily: MONO, color: GOLD, fontWeight: 700 }}>+{formatMoney(d.amountCents)}</span>
             <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.4)', width: 52, textAlign: 'right' }}>{ago(d.at)}</span>
           </button>
         ))}

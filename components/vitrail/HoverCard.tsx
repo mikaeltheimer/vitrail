@@ -4,7 +4,6 @@
 // La position suit la souris directement dans le DOM : aucun rendu React à chaque mouvement.
 
 import { useEffect, useRef, useState } from 'react'
-import { formatMoney } from '@/lib/format'
 import { ordinal, type RankedPiece } from './types'
 
 export function HoverCard({ piece }: { piece: RankedPiece | null }) {
@@ -56,7 +55,7 @@ export function HoverCard({ piece }: { piece: RankedPiece | null }) {
       <div className="grid min-w-0 content-start gap-0.5">
         <div className="truncate text-sm font-bold">{shown.name ?? 'Donateur anonyme'}</div>
         <div className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          {formatMoney(shown.amountCents)} · {ordinal(shown.rank)}
+          {ordinal(shown.rank)} morceau du vitrail
         </div>
         {shown.message && (
           <div className="text-xs italic" style={{ color: 'rgba(255,255,255,0.82)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>

@@ -3,7 +3,6 @@
 // Fiche d'un morceau sur ordinateur : panneau à droite, sous l'en-tête (mise en page de Pay to Exist).
 
 import { useState } from 'react'
-import { formatMoney } from '@/lib/format'
 import type { Tile } from '@/lib/tiling'
 import { PiecePortrait } from './PiecePortrait'
 import { ReportDialog } from './ReportDialog'
@@ -13,7 +12,7 @@ import { ordinal, type RankedPiece } from './types'
 const MONO = "'Space Mono', monospace"
 const divider = { height: '1px', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)', margin: '24px 0' }
 
-export default function DetailPanel({ piece, tile, count, totalCents, own, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents: number; own: boolean; onClose: () => void }) {
+export default function DetailPanel({ piece, tile, count, own, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents?: number; own: boolean; onClose: () => void }) {
   const [share, setShare] = useState(false)
   const [report, setReport] = useState(false)
   const c = piece.color
@@ -68,12 +67,7 @@ export default function DetailPanel({ piece, tile, count, totalCents, own, onClo
 
         <div style={divider} />
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>A donné à l&apos;école</p>
-          <p style={{ fontFamily: MONO, fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{formatMoney(piece.amountCents)}</p>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
-            {totalCents > 0 ? `${((piece.amountCents / totalCents) * 100).toLocaleString('fr-CA', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} % du vitrail` : ''}
-          </p>
-
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Un morceau du vitrail de l&apos;école</p>
           <button onClick={() => setShare(true)} style={{ ...actionStyle, marginTop: '16px' }}>
             <span>🔗</span>
             <span>{own ? 'Partager mon morceau' : 'Partager ce morceau'}</span>
