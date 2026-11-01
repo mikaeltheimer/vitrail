@@ -1,4 +1,6 @@
-// Limiteur en mémoire. Il freine les abus simples ; sur un déploiement serverless, chaque instance a sa propre
+// Limiteur en mémoire. Il freine les abus simples, pas l'usage normal : à un événement, des centaines de téléphones
+// partagent la même adresse IP (Wi-Fi du lieu, réseau cellulaire). Les seuils sont donc larges, par adresse.
+// Sur un déploiement serverless, chaque instance a sa propre
 // mémoire, donc ce n'est pas une protection stricte (le vrai garde-fou des paiements reste Stripe).
 
 const buckets = new Map<string, { count: number; reset: number }>()

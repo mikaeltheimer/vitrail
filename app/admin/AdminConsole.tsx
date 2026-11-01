@@ -12,6 +12,7 @@ interface Donor {
   show_name: boolean
   message: string | null
   photo_url: string | null
+  photo_status: 'approved' | 'pending'
   color: string
   hidden: boolean
   totalCents: number
@@ -31,6 +32,7 @@ interface DonationDonor {
   email: string
   hidden: boolean
   photo_url: string | null
+  photo_status: 'approved' | 'pending'
 }
 interface DonationRow {
   id: string
@@ -40,17 +42,26 @@ interface DonationRow {
   created_at: string
   donors: DonationDonor | DonationDonor[] | null
 }
+interface ChannelRow {
+  channel: string
+  visits: number
+  donations: number
+  totalCents: number
+}
 interface Data {
   mode: 'stripe' | 'demo' | 'off'
+  photoModeration: 'live' | 'moderation'
+  channels: ChannelRow[]
   donors: Donor[]
   events: EventRow[]
   donations: DonationRow[]
 }
 
-type Tab = 'direct' | 'donateurs' | 'comptant' | 'evenements' | 'outils'
+type Tab = 'direct' | 'donateurs' | 'provenance' | 'comptant' | 'evenements' | 'outils'
 const TABS: [Tab, string][] = [
   ['direct', 'En direct'],
   ['donateurs', 'Donateurs'],
+  ['provenance', 'Provenance'],
   ['comptant', 'Don comptant'],
   ['evenements', 'Événements'],
   ['outils', 'Outils'],
@@ -100,6 +111,7 @@ export default function AdminConsole() {
   }
 
   const current = data?.events.find(e => e.is_current) ?? null
+  const pending = useMemo(() => (data?.donors ?? []).filter(d => d.photo_url && d.photo_status === 'pending'), [data])
   const donorsFiltered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return (data?.donors ?? [])
@@ -141,6 +153,52 @@ export default function AdminConsole() {
       {/* ── En direct ── */}
       {data && tab === 'direct' && (
         <section className="mt-4 space-y-2">
+          {/* Publication des photos : en direct, ou après approbation */}
+          <div className="card !p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm">
+                <b>Photos</b>{' '}
+                <span className="muted">
+                  {data.photoModeration === 'live' ? '— publiées automatiquement' : '— chaque photo attend votre approbation'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button className="chip !px-3 text-sm" aria-pressed={data.photoModeration === 'live'} onClick={() => act({ action: 'setPhotoModeration', mode: 'live' }, 'Mode live : les photos sont publiées tout de suite.')}>
+                  Live
+                </button>
+                <button className="chip !px-3 text-sm" aria-pressed={data.photoModeration === 'moderation'} onClick={() => act({ action: 'setPhotoModeration', mode: 'moderation' }, 'Mode modération : les nouvelles photos attendent votre approbation.')}>
+                  Modération
+                </button>
+              </div>
+            </div>
+            {pending.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>
+                  {pending.length} photo{pending.length > 1 ? 's' : ''} en attente
+                </p>
+                {pending.map(d => (
+                  <div key={d.id} className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.photo_url ?? ''} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1 text-sm">
+                      <div className="truncate">
+                        <b>{d.display_name}</b> · {formatMoney(d.totalCents)}
+                      </div>
+                      {d.message && <div className="muted truncate text-xs">« {d.message} »</div>}
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2">
+                      <button className="chip !px-3 text-sm" onClick={() => act({ action: 'approvePhoto', donorId: d.id }, 'Photo publiée.')}>
+                        Approuver
+                      </button>
+                      <button className="chip !px-3 text-sm" onClick={() => act({ action: 'removePhoto', donorId: d.id }, 'Photo refusée et supprimée.')}>
+                        Refuser
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <p className="muted text-xs">Masquer retire le morceau de l&apos;écran à la prochaine mise à jour (3 s). L&apos;argent reçu reste compté dans les totaux.</p>
           {data.donations.map(n => {
             const d = one(n.donors)
@@ -252,6 +310,46 @@ export default function AdminConsole() {
       )}
 
       {/* ── Outils ── */}
+      {data && tab === 'provenance' && (
+        <section className="mt-4 space-y-2">
+          <p className="muted text-xs">
+            D&apos;où viennent les visiteurs et les dons (dons en ligne seulement). « ecran » = le code QR de l&apos;écran ; les autres = vos affiches (page
+            <a className="underline" href="/affiche" target="_blank" rel="noreferrer"> /affiche</a>) ; « direct » = lien partagé sans provenance.
+          </p>
+          <div className="card !p-0 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="muted text-left text-xs">
+                  <th className="p-3">Provenance</th>
+                  <th className="p-3 text-right">Visites</th>
+                  <th className="p-3 text-right">Dons</th>
+                  <th className="p-3 text-right">Conversion</th>
+                  <th className="p-3 text-right">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.channels.map(c => (
+                  <tr key={c.channel} className="border-t" style={{ borderColor: 'var(--line)' }}>
+                    <td className="p-3">{c.channel}</td>
+                    <td className="p-3 text-right">{c.visits}</td>
+                    <td className="p-3 text-right">{c.donations}</td>
+                    <td className="p-3 text-right">{c.visits ? `${Math.round((c.donations / c.visits) * 100)} %` : '—'}</td>
+                    <td className="p-3 text-right">{formatMoney(c.totalCents)}</td>
+                  </tr>
+                ))}
+                {data.channels.length === 0 && (
+                  <tr>
+                    <td className="muted p-3" colSpan={5}>
+                      Aucune visite pour l&apos;instant.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {data && tab === 'outils' && (
         <section className="mt-4 space-y-3">
           <div className="card text-sm">

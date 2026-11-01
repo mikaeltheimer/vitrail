@@ -15,6 +15,7 @@ interface Thanks {
   name: string | null
   color: string
   token: string
+  photoPending?: boolean
 }
 
 export default function MerciPage() {
@@ -41,7 +42,8 @@ function Merci() {
       try {
         const res = await fetch('/api/merci', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref }) })
         const data = await res.json()
-        if (!data.pending) {
+        // Seule une vraie réponse (pas une erreur, pas « en attente ») compte : sinon on réessaie
+        if (res.ok && data.pending === false && data.donorId) {
           setThanks(data as Thanks)
           const snap = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
           setPieces(snap.pieces)
@@ -89,9 +91,18 @@ function Merci() {
             {thanks.totalCents > thanks.donationCents && <> Au total, vous avez donné {formatMoney(thanks.totalCents)}.</>}
           </p>
 
+          <div className="card mt-5 text-left text-sm" style={{ borderColor: 'rgba(255,231,160,0.5)' }}>
+            <b style={{ color: '#ffe7a0' }}>Regardez le grand écran!</b>
+            <div className="muted mt-1">Votre morceau y sort du vitrail dans quelques secondes, avec votre nom et votre message.</div>
+            {thanks.photoPending && <div className="muted mt-1">Votre photo s&apos;ajoutera dès que l&apos;équipe l&apos;aura vue.</div>}
+          </div>
+
           <div className="my-6">
             <MiniGlass pieces={pieces} highlightId={thanks.donorId} size={300} />
             <p className="muted mt-3 text-sm">Votre morceau, cerclé d&apos;or, au cœur du vitrail de l&apos;école.</p>
+            <Link href={`/vitrail?d=${thanks.donorId}`} className="mt-2 inline-block text-sm underline">
+              Explorer le vitrail en grand
+            </Link>
           </div>
 
           <div className="space-y-3">
@@ -103,7 +114,10 @@ function Merci() {
             </Link>
           </div>
           <p className="muted mt-6 text-xs">
-            Un courriel de confirmation avec ces liens vous est envoyé. L&apos;{CONFIG.orgName} n&apos;émet pas encore de reçu fiscal.
+            Un courriel de confirmation avec ces liens vous est envoyé. L&apos;{CONFIG.orgName} n&apos;émet pas encore de reçu fiscal.{' '}
+            <Link href="/confidentialite" className="underline">
+              Confidentialité
+            </Link>
           </p>
         </>
       )}

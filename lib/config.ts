@@ -9,6 +9,11 @@ export const CONFIG = {
   minAmountCents: 500,
   maxAmountCents: 500_000,
   suggestedCents: [1000, 2500, 5000, 10000, 25000],
+  /** Frais de transaction couverts par le donateur, s'il le souhaite (Stripe Canada : 2,9 % + 0,30 $ par paiement par carte canadienne). */
+  feePercent: 0.029,
+  feeFixedCents: 30,
+  /** Nombre de morceaux à partir duquel on affiche « la plupart donnent X $ » (avant, l'échantillon ne veut rien dire). */
+  typicalMinDonors: 8,
 
   /**
    * Taille d'un morceau : l'aire est proportionnelle à (montant ^ sizeExponent).

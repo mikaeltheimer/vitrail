@@ -3,7 +3,7 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/payments'
 import { recordDonation, createToken } from '@/lib/donations'
 import { sendReceipt } from '@/lib/email'
-import { defaultColorFor, validateColor } from '@/lib/validate'
+import { cleanChannel, defaultColorFor, validateColor } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
 import { pathFromPublicUrl } from '@/lib/photos'
 
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         source: 'stripe',
         providerRef: session.id,
         eventId: m.eventId ? m.eventId : null,
+        channel: cleanChannel(m.channel),
       })
       if (!result.duplicate) {
         // Le courriel est un confort : un échec ne doit pas faire rejouer le webhook (le don est déjà enregistré).

@@ -3,15 +3,16 @@ import { paymentMode } from '@/lib/env'
 import { getCurrentEventRow, resolveToken } from '@/lib/donations'
 import { startCheckout } from '@/lib/payments'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
-import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
+import { cleanChannel, defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
+import { withFees } from '@/lib/fees'
 
 export const runtime = 'nodejs'
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status })
 
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'donate'), 12, 60_000)) return fail('Trop de tentatives. Réessayez dans une minute.', 429)
+  if (!rateLimit(clientKey(request, 'donate'), 120, 60_000)) return fail('Trop de tentatives. Réessayez dans une minute.', 429)
   if (paymentMode() === 'off') return fail('Les dons en ligne ne sont pas encore ouverts.', 503)
 
   let body: Record<string, unknown>
@@ -50,10 +51,12 @@ export async function POST(request: NextRequest) {
     const event = await getCurrentEventRow()
     const { url } = await startCheckout({
       email,
-      amountCents: amount.value,
+      // Frais couverts : recalculés ici, jamais repris du navigateur
+      amountCents: body.coverFees === true ? withFees(amount.value) : amount.value,
       profile: { ...profile, name: profile.showName ? profile.name : ANON_LABEL },
       color,
       eventId: event?.id ?? null,
+      channel: cleanChannel(body.channel),
     })
     return NextResponse.json({ url })
   } catch (e) {

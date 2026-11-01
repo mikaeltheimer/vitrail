@@ -38,4 +38,6 @@ export interface Snapshot {
   donationsCount: number
   pieces: Piece[]
   recent: RecentDonation[]
+  /** Montant « habituel » (médiane des morceaux, arrondie au montant suggéré le plus proche) ; null tant qu'il y a trop peu de dons. */
+  typicalCents: number | null
 }

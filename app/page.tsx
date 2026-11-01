@@ -6,7 +6,9 @@ import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import DonationPreview from '@/components/DonationPreview'
 import PhotoField, { type PhotoValue } from '@/components/PhotoField'
 import { defaultColorFor } from '@/lib/colors'
+import { feeFor } from '@/lib/fees'
 import { formatMoney } from '@/lib/format'
+import Link from 'next/link'
 import type { Snapshot } from '@/lib/types'
 
 // Parcours de don sur téléphone : montant, courriel, (facultatif) nom affiché → paiement.
@@ -32,8 +34,12 @@ function DonForm() {
   const params = useSearchParams()
   const tokenParam = params.get('t')
   const cancelled = !!params.get('annule')
+  const srcParam = params.get('src')
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [amount, setAmount] = useState<number | null>(CONFIG.suggestedCents[1])
+  const [amountTouched, setAmountTouched] = useState(false)
+  const [coverFees, setCoverFees] = useState(false)
+  const [channel, setChannel] = useState<string | null>(null)
   const [custom, setCustom] = useState('')
   const [email, setEmail] = useState('')
   const [showName, setShowName] = useState(false)
@@ -60,6 +66,24 @@ function DonForm() {
       .catch(() => setLinkExpired(true))
   }, [tokenParam])
 
+  // Provenance (?src= de l'affiche ou de l'écran) : gardée pour la session, et une visite comptée une seule fois
+  useEffect(() => {
+    let src: string | null = null
+    try {
+      if (srcParam) sessionStorage.setItem('vitrail:src', srcParam)
+      src = sessionStorage.getItem('vitrail:src')
+    } catch {
+      src = srcParam
+    }
+    let counted = false
+    try {
+      counted = sessionStorage.getItem('vitrail:visit') === '1'
+      sessionStorage.setItem('vitrail:visit', '1')
+    } catch {}
+    Promise.resolve().then(() => setChannel(src))
+    if (!counted) void fetch('/api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: src }) }).catch(() => {})
+  }, [srcParam])
+
   useEffect(() => {
     let stop = false
     const load = () =>
@@ -75,19 +99,27 @@ function DonForm() {
     }
   }, [])
 
-  const amountCents = useMemo(() => {
+  // Montant « habituel » : présélectionné tant que le donateur n'a rien choisi
+  const typical = snap?.typicalCents ?? null
+  const selected = !amountTouched && typical ? typical : amount
+
+  const baseCents = useMemo(() => {
     if (custom.trim()) {
       const n = parseFloat(custom.replace(',', '.'))
       return Number.isFinite(n) ? Math.round(n * 100) : 0
     }
-    return amount ?? 0
-  }, [amount, custom])
+    return selected ?? 0
+  }, [selected, custom])
+  const feeCents = baseCents >= CONFIG.minAmountCents ? feeFor(baseCents) : 0
+  // Ce que le donateur paie (et la taille de son morceau)
+  const amountCents = coverFees ? baseCents + feeCents : baseCents
+  const donorsCount = snap?.pieces.length ?? 0
 
-  const tooLow = amountCents > 0 && amountCents < CONFIG.minAmountCents
+  const tooLow = baseCents > 0 && baseCents < CONFIG.minAmountCents
   const mode = snap?.mode
   const event = snap?.event ?? null
   const goalPct = event && event.goalCents > 0 ? Math.min(100, Math.round((event.totalCents / event.goalCents) * 100)) : 0
-  const canSubmit = !busy && !photoBusy && mode !== 'off' && amountCents >= CONFIG.minAmountCents && (token || email.includes('@')) && (!showName || name.trim().length >= 2)
+  const canSubmit = !busy && !photoBusy && mode !== 'off' && baseCents >= CONFIG.minAmountCents && (token || email.includes('@')) && (!showName || name.trim().length >= 2)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -97,7 +129,12 @@ function DonForm() {
       const res = await fetch('/api/donate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(token ? { token, amountCents } : { email, amountCents, showName, name, message, color: color ?? undefined, photoPath: showName ? photo.path ?? undefined : undefined }),
+        body: JSON.stringify({
+          ...(token ? { token } : { email, showName, name, message, color: color ?? undefined, photoPath: showName ? photo.path ?? undefined : undefined }),
+          amountCents: baseCents,
+          coverFees,
+          channel,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur inattendue.')
@@ -134,6 +171,11 @@ function DonForm() {
         <p className="muted text-xs uppercase tracking-[0.2em]">{CONFIG.orgName}</p>
         <h1 className="mt-1 text-3xl font-bold">{CONFIG.appName}</h1>
         <p className="muted mt-2 text-[0.95rem]">Donnez, et votre morceau de verre s&apos;ajoute au vitrail de l&apos;école.</p>
+        {donorsCount > 0 && (
+          <p className="mt-3 inline-block rounded-full px-3 py-1 text-sm" style={{ background: 'rgba(255,231,160,0.1)', color: '#ffe7a0' }}>
+            {donorsCount === 1 ? '1 personne a déjà son morceau' : `${donorsCount} personnes ont déjà leur morceau`}
+          </p>
+        )}
       </header>
 
       {event && event.goalCents > 0 && (
@@ -173,9 +215,10 @@ function DonForm() {
                 key={c}
                 type="button"
                 className="chip"
-                aria-pressed={!custom.trim() && amount === c}
+                aria-pressed={!custom.trim() && selected === c}
                 onClick={() => {
                   setAmount(c)
+                  setAmountTouched(true)
                   setCustom('')
                 }}
               >
@@ -189,12 +232,25 @@ function DonForm() {
               inputMode="decimal"
               placeholder="Autre montant"
               value={custom}
-              onChange={e => setCustom(e.target.value.replace(/[^0-9.,]/g, ''))}
+              onChange={e => {
+                setCustom(e.target.value.replace(/[^0-9.,]/g, ''))
+                setAmountTouched(true)
+              }}
               aria-label="Autre montant en dollars"
             />
             <span className="muted absolute right-3 top-1/2 -translate-y-1/2">$</span>
           </div>
           {tooLow && <p className="mt-1 text-sm" style={{ color: '#f87171' }}>Le don minimum est de {CONFIG.minAmountCents / 100} $.</p>}
+          {typical && <p className="muted mt-2 text-xs">La plupart des gens donnent {formatMoney(typical)}.</p>}
+          {feeCents > 0 && (
+            <label className="mt-3 flex cursor-pointer items-start gap-3 text-sm">
+              <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={coverFees} onChange={e => setCoverFees(e.target.checked)} />
+              <span>
+                J&apos;ajoute <b>{formatMoney(feeCents)}</b> pour couvrir les frais de transaction
+                <span className="muted block">L&apos;école reçoit alors vos {formatMoney(baseCents)} au complet.</span>
+              </span>
+            </label>
+          )}
         </fieldset>
 
         {!token && (
@@ -277,7 +333,7 @@ function DonForm() {
         {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
 
         <button className="btn" disabled={!canSubmit}>
-          {busy ? 'Un instant…' : amountCents >= CONFIG.minAmountCents ? `Donner ${formatMoney(amountCents)}` : 'Donner'}
+          {busy ? 'Un instant…' : baseCents >= CONFIG.minAmountCents ? `Donner ${formatMoney(amountCents)}` : 'Donner'}
         </button>
         <p className="muted text-center text-xs">
           Paiement sécurisé (carte, Apple Pay ou Google Pay). Sans reçu fiscal pour le moment : l&apos;école n&apos;est pas encore un organisme de bienfaisance enregistré.
@@ -301,7 +357,14 @@ function DonForm() {
           </form>
         )}
         <p className="muted mt-4 text-xs">
-          Votre courriel sert seulement à vous reconnaître et à vous écrire à propos de ce don. Il n&apos;est jamais affiché.
+          Votre courriel sert seulement à vous reconnaître et à vous écrire à propos de ce don. Il n&apos;est jamais affiché.{' '}
+          <Link href="/confidentialite" className="underline">
+            Politique de confidentialité
+          </Link>
+          {' · '}
+          <Link href="/vitrail" className="underline">
+            Voir le vitrail
+          </Link>
         </p>
       </footer>
     </main>

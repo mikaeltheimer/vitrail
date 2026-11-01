@@ -11,7 +11,7 @@ const fail = (error: string, status = 400) => NextResponse.json({ error }, { sta
  * cadence par adresse. Le fichier n'apparaît sur l'écran que si le don est fait avec le consentement d'affichage.
  */
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'photo'), 8, 60_000)) return fail('Trop de photos envoyées. Réessayez dans une minute.', 429)
+  if (!rateLimit(clientKey(request, 'photo'), 80, 60_000)) return fail('Trop de photos envoyées. Réessayez dans une minute.', 429)
 
   const declared = Number(request.headers.get('content-length') || 0)
   if (declared > PHOTO_MAX_BYTES) return fail('Photo trop lourde.', 413)

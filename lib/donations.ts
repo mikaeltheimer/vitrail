@@ -1,15 +1,16 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { getDb } from './db'
 import { paymentMode } from './env'
-import { ANON_LABEL } from './config'
+import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
+import { newPhotoStatus } from './settings'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
 
 export type DonationSource = 'stripe' | 'cash' | 'seed' | 'demo'
 
 // ── Lecture paginée (PostgREST plafonne à 1000 lignes par requête) ─────────────
-async function fetchAll<T>(table: string, columns: string): Promise<T[]> {
+export async function fetchAll<T>(table: string, columns: string): Promise<T[]> {
   const db = getDb()
   const out: T[] = []
   for (let from = 0; ; from += 1000) {
@@ -50,6 +51,8 @@ export interface RecordInput {
   providerRef: string | null
   /** undefined = événement en cours ; null = aucun. */
   eventId?: string | null
+  /** Provenance (écran, affiche…), pour savoir quels emplacements font donner. */
+  channel?: string | null
 }
 
 export interface RecordResult {
@@ -75,7 +78,15 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   if (!donor) {
     const { data, error } = await db
       .from('donors')
-      .insert({ email: i.email, display_name: i.profile.name, show_name: i.profile.showName, message: i.profile.message, photo_url: i.profile.photoUrl, color: i.color })
+      .insert({
+        email: i.email,
+        display_name: i.profile.name,
+        show_name: i.profile.showName,
+        message: i.profile.message,
+        photo_url: i.profile.photoUrl,
+        photo_status: i.profile.photoUrl ? await newPhotoStatus() : 'approved',
+        color: i.color,
+      })
       .select('id,email')
       .single()
     if (error) {
@@ -89,7 +100,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   const eventId = i.eventId !== undefined ? i.eventId : (await getCurrentEventRow())?.id ?? null
   const { data: donation, error: insertError } = await db
     .from('donations')
-    .insert({ donor_id: donor.id, event_id: eventId, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef })
+    .insert({ donor_id: donor.id, event_id: eventId, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null })
     .select('id')
     .single()
 
@@ -112,6 +123,8 @@ export async function updateDonorProfile(donorId: string, profile: DonorProfileI
     updated_at: new Date().toISOString(),
   }
   if (color) patch.color = color
+  // Nouvelle photo : publiée tout de suite ou mise en attente, selon le mode de la console
+  if (profile.photoUrl && profile.photoUrl !== previousPhotoUrl) patch.photo_status = await newPhotoStatus()
   const { error } = await getDb().from('donors').update(patch).eq('id', donorId)
   if (error) throw error
   // L'ancienne photo, remplacée ou retirée, quitte le stockage (après la mise à jour, jamais avant)
@@ -144,6 +157,8 @@ export interface DonorView {
   name: string
   message: string | null
   photoUrl: string | null
+  /** La photo attend l'approbation de l'équipe (mode modération). */
+  photoPending: boolean
   color: string
   totalCents: number
 }
@@ -158,7 +173,7 @@ export async function resolveToken(token: string): Promise<DonorView | null> {
 
 export async function getDonorView(donorId: string): Promise<DonorView | null> {
   const db = getDb()
-  const { data: d } = await db.from('donors').select('id,email,display_name,show_name,message,photo_url,color').eq('id', donorId).maybeSingle()
+  const { data: d } = await db.from('donors').select('id,email,display_name,show_name,message,photo_url,photo_status,color').eq('id', donorId).maybeSingle()
   if (!d) return null
   const { data: t } = await db.from('donor_totals').select('total_cents').eq('donor_id', donorId).maybeSingle()
   return {
@@ -168,6 +183,7 @@ export async function getDonorView(donorId: string): Promise<DonorView | null> {
     name: d.display_name,
     message: d.message,
     photoUrl: d.photo_url,
+    photoPending: d.photo_status === 'pending',
     color: d.color,
     totalCents: Number(t?.total_cents ?? 0),
   }
@@ -196,6 +212,7 @@ interface DonorPublicRow {
   show_name: boolean
   message: string | null
   photo_url: string | null
+  photo_status: string
   color: string
   hidden: boolean
 }
@@ -203,13 +220,13 @@ interface DonorPublicRow {
 export async function getSnapshot(): Promise<Snapshot> {
   const db = getDb()
   const [donors, totals, currentRes, grandRes, recentRes] = await Promise.all([
-    fetchAll<DonorPublicRow>('donors', 'id,display_name,show_name,message,photo_url,color,hidden'),
+    fetchAll<DonorPublicRow>('donors', 'id,display_name,show_name,message,photo_url,photo_status,color,hidden'),
     fetchAll<{ donor_id: string; total_cents: number | string }>('donor_totals', 'donor_id,total_cents'),
     db.from('events').select('id,name,goal_cents').eq('is_current', true).maybeSingle(),
     db.from('grand_total').select('total_cents,donations_count').maybeSingle(),
     db
       .from('donations')
-      .select('id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,photo_url,hidden)')
+      .select('id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,photo_url,photo_status,hidden)')
       .order('created_at', { ascending: false })
       .limit(15),
   ])
@@ -223,7 +240,7 @@ export async function getSnapshot(): Promise<Snapshot> {
       id: d.id,
       name: d.show_name ? d.display_name : null,
       message: d.show_name ? d.message : null,
-      photoUrl: d.show_name ? d.photo_url : null,
+      photoUrl: d.show_name && d.photo_status === 'approved' ? d.photo_url : null,
       color: d.color,
       amountCents: totalByDonor.get(d.id) ?? 0,
     }))
@@ -240,7 +257,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     }
   }
 
-  type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; hidden: boolean }
+  type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; photo_status: string; hidden: boolean }
   type RecentRow = {
     id: string
     donor_id: string
@@ -256,12 +273,20 @@ export async function getSnapshot(): Promise<Snapshot> {
       donorId: r.donor_id,
       name: d.show_name ? d.display_name : null,
       message: d.show_name ? d.message : null,
-      photoUrl: d.show_name ? d.photo_url : null,
+      photoUrl: d.show_name && d.photo_status === 'approved' ? d.photo_url : null,
       amountCents: r.amount_cents,
       at: r.created_at,
     }))
 
   const totalCents = Number(grandRes.data?.total_cents ?? 0)
+
+  // « La plupart donnent X $ » : médiane des morceaux, ramenée au montant suggéré le plus proche
+  let typicalCents: number | null = null
+  if (pieces.length >= CONFIG.typicalMinDonors) {
+    const sorted = pieces.map(p => p.amountCents).sort((a, b) => a - b)
+    const median = sorted[Math.floor(sorted.length / 2)]
+    typicalCents = CONFIG.suggestedCents.reduce((best, c) => (Math.abs(c - median) < Math.abs(best - median) ? c : best), CONFIG.suggestedCents[0])
+  }
   const version = fnv(JSON.stringify([pieces, event, totalCents]))
 
   return {
@@ -273,6 +298,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     donationsCount: Number(grandRes.data?.donations_count ?? 0),
     pieces,
     recent,
+    typicalCents,
   }
 }
 

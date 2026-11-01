@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 
 /** « Retrouver mon morceau » : envoie un lien par courriel. La réponse est toujours la même, pour ne pas révéler qui a donné. */
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'magic'), 5, 10 * 60_000)) return NextResponse.json({ error: 'Trop de demandes.' }, { status: 429 })
+  if (!rateLimit(clientKey(request, 'magic'), 60, 10 * 60_000)) return NextResponse.json({ error: 'Trop de demandes.' }, { status: 429 })
   const { email } = (await request.json().catch(() => ({}))) as { email?: unknown }
   const v = validateEmail(email)
   if (v.ok) {

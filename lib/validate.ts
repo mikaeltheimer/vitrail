@@ -1,6 +1,7 @@
 import { defaultColorFor } from './colors'
 import { ANON_LABEL, CONFIG, VALID_COLORS } from './config'
 import { validatePhotoPath } from './photos'
+import { isProfane } from './profanity'
 
 export { defaultColorFor }
 
@@ -35,6 +36,7 @@ export function validateName(input: unknown): Result<string> {
   if (v.length < 2) return { ok: false, error: 'Le nom doit compter au moins 2 caractères.' }
   if (v.length > CONFIG.nameMax) return { ok: false, error: `Le nom ne peut dépasser ${CONFIG.nameMax} caractères.` }
   if (LINK_RE.test(v)) return { ok: false, error: 'Le nom ne peut pas contenir de lien.' }
+  if (isProfane(v)) return { ok: false, error: "Ce nom contient un mot qui ne peut pas être affiché sur l'écran de l'école." }
   return { ok: true, value: v }
 }
 
@@ -45,7 +47,15 @@ export function validateMessage(input: unknown): Result<string | null> {
   if (!v) return { ok: true, value: null }
   if (v.length > CONFIG.messageMax) return { ok: false, error: `Le message ne peut dépasser ${CONFIG.messageMax} caractères.` }
   if (LINK_RE.test(v)) return { ok: false, error: 'Les liens ne sont pas permis dans le message.' }
+  if (isProfane(v)) return { ok: false, error: "Ce message contient un mot qui ne peut pas être affiché sur l'écran de l'école." }
   return { ok: true, value: v }
+}
+
+/** Provenance d'une visite ou d'un don (paramètre ?src= des codes QR) : quelques lettres, chiffres et tirets, sinon rien. */
+export function cleanChannel(input: unknown): string | null {
+  if (typeof input !== 'string') return null
+  const v = input.trim().toLowerCase()
+  return /^[a-z0-9][a-z0-9-]{0,39}$/.test(v) ? v : null
 }
 
 export function validateColor(input: unknown): Result<string> {

@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { getDb } from '@/lib/db'
 import { paymentMode } from '@/lib/env'
 import { isAdmin } from '@/lib/session'
-import { recordDonation } from '@/lib/donations'
+import { fetchAll, recordDonation } from '@/lib/donations'
+import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 
@@ -17,24 +18,44 @@ export async function GET() {
   if (!(await isAdmin())) return fail('Non autorisé', 403)
   const db = getDb()
 
-  const [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes] = await Promise.all([
-    db.from('donors').select('id,email,display_name,show_name,message,photo_url,color,hidden,created_at').order('created_at', { ascending: false }).limit(1000),
+  const [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes, moderation, channelRows, visitRows] = await Promise.all([
+    db.from('donors').select('id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at').order('created_at', { ascending: false }).limit(1000),
     db.from('donor_totals').select('donor_id,total_cents,last_donation_at').limit(1000),
     db.from('events').select('id,name,starts_on,goal_cents,is_current,created_at').order('created_at', { ascending: false }),
     db.from('event_totals').select('event_id,total_cents,donations_count'),
     db
       .from('donations')
-      .select('id,donor_id,event_id,amount_cents,source,created_at,donors(display_name,email,hidden,photo_url)')
+      .select('id,donor_id,event_id,amount_cents,source,channel,created_at,donors(display_name,email,hidden,photo_url,photo_status)')
       .order('created_at', { ascending: false })
       .limit(100),
+    getPhotoModeration(),
+    fetchAll<{ channel: string | null; amount_cents: number; source: string }>('donations', 'channel,amount_cents,source'),
+    fetchAll<{ channel: string }>('visits', 'channel'),
   ])
   for (const r of [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes]) if (r.error) return fail(r.error.message, 500)
+
+  // Provenance : visites, dons et montants par emplacement (écran, affiches…)
+  const channels = new Map<string, { channel: string; visits: number; donations: number; totalCents: number }>()
+  const ch = (name: string | null) => {
+    const key = name || 'direct'
+    if (!channels.has(key)) channels.set(key, { channel: key, visits: 0, donations: 0, totalCents: 0 })
+    return channels.get(key)!
+  }
+  for (const v of visitRows) ch(v.channel).visits++
+  for (const d of channelRows) {
+    if (d.source === 'cash' || d.source === 'seed') continue
+    const c = ch(d.channel)
+    c.donations++
+    c.totalCents += d.amount_cents
+  }
 
   const totals = new Map((totalsRes.data ?? []).map(t => [t.donor_id, t]))
   const eventTotals = new Map((eventTotalsRes.data ?? []).map(t => [t.event_id, t]))
 
   return NextResponse.json({
     mode: paymentMode(),
+    photoModeration: moderation,
+    channels: [...channels.values()].sort((a, b) => b.totalCents - a.totalCents || b.visits - a.visits),
     donors: (donorsRes.data ?? []).map(d => ({
       ...d,
       totalCents: Number(totals.get(d.id)?.total_cents ?? 0),
@@ -74,10 +95,22 @@ export async function POST(request: NextRequest) {
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 
+    // Mode de publication des photos : « live » (tout de suite) ou « moderation » (après approbation)
+    case 'setPhotoModeration': {
+      await setPhotoModeration(b.mode === 'moderation' ? 'moderation' : 'live')
+      return NextResponse.json({ ok: true })
+    }
+
+    // Approuver une photo en attente : elle apparaît sur l'écran
+    case 'approvePhoto': {
+      const { error } = await db.from('donors').update({ photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+
     // Retirer seulement la photo (nom et message restent)
     case 'removePhoto': {
       const { data: before } = await db.from('donors').select('photo_url').eq('id', str(b.donorId)).maybeSingle()
-      const { error } = await db.from('donors').update({ photo_url: null, updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      const { error } = await db.from('donors').update({ photo_url: null, photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
       if (!error) await removePhotoFile(before?.photo_url)
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }

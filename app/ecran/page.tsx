@@ -162,7 +162,8 @@ function stepDirector(w: World, now: number): number {
     if (!w.dir.id) return 0
   }
   if (w.dir.phase === 'cta') {
-    if (now - w.dir.t0 >= CONFIG.ctaMs) pickNext(w, now)
+    // Un nouveau don interrompt la pause : le donateur regarde l'écran à ce moment précis
+    if (now - w.dir.t0 >= CONFIG.ctaMs || w.priority.length > 0) pickNext(w, now)
     return 0
   }
   const dir = w.dir
@@ -624,11 +625,18 @@ export default function EcranPage() {
 
   // ── QR code ──
   useEffect(() => {
-    const url = new URLSearchParams(window.location.search).get('url') || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const base = new URLSearchParams(window.location.search).get('url') || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    // Provenance « ecran » : la console distingue les dons venus de l'écran de ceux des affiches
+    let url = base
+    try {
+      const u = new URL(base)
+      if (!u.searchParams.has('src')) u.searchParams.set('src', 'ecran')
+      url = u.toString()
+    } catch {}
     QRCode.toDataURL(url, { margin: 1, width: 640, errorCorrectionLevel: 'M', color: { dark: '#0b0a10', light: '#ffffff' } })
       .then(dataUrl => {
         setQr(dataUrl)
-        setTarget(url.replace(/^https?:\/\//, '').replace(/\/$/, ''))
+        setTarget(base.replace(/^https?:\/\//, '').replace(/\/$/, ''))
       })
       .catch(() => setQr(null))
   }, [])
@@ -783,7 +791,10 @@ export default function EcranPage() {
               Plus votre don est grand, plus votre morceau l&apos;est : 100 $ occupent {Math.round(Math.pow(10, CONFIG.sizeExponent))} fois plus de place que 10 $.
             </div>
             <div className="tv-display" style={{ fontSize: '1.45em', fontWeight: 600, marginTop: '0.9em', color: '#ffe7a0' }}>
-              Dès {formatMoney(CONFIG.minAmountCents)} · scannez le code ↘
+              {snap?.typicalCents ? `La plupart donnent ${formatMoney(snap.typicalCents)}` : `Dès ${formatMoney(CONFIG.minAmountCents)}`} · scannez le code ↘
+            </div>
+            <div className="muted" style={{ fontSize: '1em', marginTop: '0.4em' }}>
+              {snap && snap.pieces.length > 1 ? `Déjà ${snap.pieces.length} morceaux dans le vitrail` : ''}
             </div>
           </div>
         </div>

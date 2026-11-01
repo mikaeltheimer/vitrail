@@ -50,6 +50,19 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 - **Modération** : *Masquer* retire le morceau de l'écran en 3 s ; l'argent reste compté dans les totaux. *Effacer le nom* garde le morceau mais le rend anonyme. Les liens sont refusés dans le nom et le message.
 - **Reçus fiscaux** : l'école n'est pas encore un organisme enregistré. La page de don et le courriel de confirmation le disent. Plus tard : ajouter adresse, numéro de reçu (sur `donors` et `donations`).
 
+## Ajouts du 1er novembre 2026
+
+**À faire une fois dans Supabase (SQL Editor) :** `supabase/migrations/2026-11-01-moderation-provenance.sql` (statut des photos, réglages, provenance des dons, visites). Sans elle, le site ne fonctionne plus.
+
+- **Vitrail en ligne** : `/vitrail`, sur téléphone ou ordinateur. On glisse, on pince (ou molette) pour zoomer, on touche un morceau pour voir nom, montant, message et photo ; recherche par nom ; bouton « Ajouter mon morceau ». Après un don, la page merci y mène directement, centrée sur le morceau du donateur (`/vitrail?d=…`). Sert aussi à promouvoir la collecte en ligne (métadonnées de partage incluses).
+- **Page merci** : « Regardez le grand écran! » — le nouveau don y passe en priorité.
+- **Modération** : filtre de mots grossiers (français, sacres québécois, anglais) sur les noms et messages (`lib/profanity.ts`). Photos : interrupteur **Live / Modération** dans la console (onglet En direct). En modération, chaque nouvelle photo attend « Approuver » ; le nom et le message passent tout de suite.
+- **Page de don** : « 80 personnes ont déjà leur morceau » ; « La plupart des gens donnent 25 $ » (médiane des morceaux, à partir de 8 donateurs) avec ce montant présélectionné ; case « J'ajoute 1,06 $ pour couvrir les frais » (2,9 % + 0,30 $, réglable dans `lib/config.ts`). Le montant enregistré est ce que le donateur a payé, frais compris.
+- **Écran** : la pause « Faites partie du vitrail » affiche la norme (« La plupart donnent 25 $ ») et le nombre de morceaux ; un nouveau don interrompt la pause.
+- **Affiches** : `/affiche` crée une affiche imprimable (format lettre) par emplacement, chacune avec son code QR (`?src=cafe`…). Le QR de l'écran porte `?src=ecran`. Onglet **Provenance** de la console : visites, dons, conversion et montant par emplacement.
+- **Confidentialité** : `/confidentialite` (Loi 25), avec des passages **[À COMPLÉTER]** surlignés à remplir par l'école.
+- **Limites de requêtes** relevées : à un événement, des centaines de téléphones partagent la même adresse IP.
+
 ## Photos et aperçu
 
 - À la page de don, le donateur peut ajouter une photo (recadrée en carré et réduite à ≤ 768 px dans son navigateur, JPEG ≤ 700 Ko). Elle n'est affichée que s'il consent à afficher son nom.

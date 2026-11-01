@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
  * de retour du donateur) prouve qu'il a donné. Il reçoit alors un lien pour modifier ou agrandir son morceau.
  */
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'merci'), 40, 60_000)) return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 })
+  if (!rateLimit(clientKey(request, 'merci'), 600, 60_000)) return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 })
   const { ref } = (await request.json().catch(() => ({}))) as { ref?: string }
   const found = ref ? await findByProviderRef(ref) : null
   // Le webhook de paiement peut arriver quelques secondes après le retour du donateur
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     totalCents: donor.totalCents,
     name: donor.showName ? donor.name : null,
     color: donor.color,
+    photoPending: donor.photoPending,
     token: await createToken(donor.id),
   })
 }

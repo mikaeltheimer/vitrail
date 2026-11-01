@@ -20,6 +20,7 @@ export interface CheckoutRequest {
   profile: DonorProfileInput
   color: string
   eventId: string | null
+  channel: string | null
 }
 
 /** Renvoie l'adresse où envoyer le donateur (paiement Stripe, ou page de remerciement en mode démo). */
@@ -37,6 +38,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       source: 'demo',
       providerRef: ref,
       eventId: req.eventId,
+      channel: req.channel,
     })
     return { url: `${siteUrl()}/merci?ref=${ref}` }
   }
@@ -65,6 +67,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       message: req.profile.message ?? '',
       photo: req.profile.photoUrl ?? '',
       color: req.color,
+      channel: req.channel ?? '',
     },
     success_url: `${siteUrl()}/merci?ref={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl()}/?annule=1`,

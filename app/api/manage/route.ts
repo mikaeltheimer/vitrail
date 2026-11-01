@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 /** Lecture et modification de son morceau, sur présentation d'un lien magique. Le courriel n'est jamais renvoyé. */
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'manage'), 30, 60_000)) return NextResponse.json({ error: 'Trop de requêtes.' }, { status: 429 })
+  if (!rateLimit(clientKey(request, 'manage'), 200, 60_000)) return NextResponse.json({ error: 'Trop de requêtes.' }, { status: 429 })
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
   const donor = typeof body.token === 'string' ? await resolveToken(body.token) : null
   if (!donor) return NextResponse.json({ error: 'Ce lien a expiré. Demandez-en un nouveau.' }, { status: 401 })
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     name: donor.showName ? donor.name : '',
     message: donor.message ?? '',
     photoUrl: donor.photoUrl,
+    photoPending: donor.photoPending,
     color: donor.color,
     totalCents: donor.totalCents,
   })

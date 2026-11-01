@@ -23,6 +23,7 @@ export default function ManagePage() {
   const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
   const [photoChanged, setPhotoChanged] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoPending, setPhotoPending] = useState(false)
   const [pieces, setPieces] = useState<Piece[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -39,6 +40,7 @@ export default function ManagePage() {
         setMessage(d.message)
         setColor(d.color)
         setPhoto({ src: d.photoUrl ?? null, path: null })
+        setPhotoPending(!!d.photoPending)
         setLoaded('ok')
       })
       .catch(() => setLoaded('expired'))
@@ -118,6 +120,7 @@ export default function ManagePage() {
               }}
               onBusyChange={setPhotoBusy}
             />
+            {photoPending && !photoChanged && <p className="muted text-xs">Votre photo apparaîtra sur l&apos;écran dès que l&apos;équipe l&apos;aura approuvée.</p>}
           </div>
         )}
 
