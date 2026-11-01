@@ -2,6 +2,12 @@
 
 export const CONFIG = {
   orgName: "École d'art de Sutton",
+  orgUrl: 'https://ecoleartsutton.ca/',
+  /** Présentation de l'organisme (panneau « À propos de la collecte »). */
+  orgAbout:
+    "L'École d'art de Sutton est un organisme à but non lucratif voué à l'éveil artistique des enfants, petits et grands, par des expériences de création. Depuis 2016, c'est aussi un centre d'art pluridisciplinaire qui fait se rencontrer artistes et enfants : explorations libres, expositions, projections, performances et résidences d'artistes en recherche-création.",
+  /** Pourquoi donner : en une phrase, montrée au moment du don. */
+  orgWhy: "Aucune subvention gouvernementale : vos dons font vivre l'école. Ils paient le bâtiment dont elle est propriétaire, les loyers, l'électricité et le matériel des ateliers.",
   appName: 'Vitrail de dons',
   currency: 'cad',
 

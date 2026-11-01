@@ -695,9 +695,8 @@ export default function EcranPage() {
 
       {/* En-tête */}
       <div className="tv-panel absolute" style={{ left: '2.5em', top: '2em', maxWidth: '24em' }}>
-        <div className="muted tv-kicker" style={{ fontSize: '1em' }}>
-          {CONFIG.orgName}
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/ecole-logo.png" alt={CONFIG.orgName} style={{ width: '13em', height: 'auto', display: 'block', marginBottom: '0.6em' }} />
         <div className="tv-display" style={{ fontSize: '3.1em', fontWeight: 600, lineHeight: 1.04, marginTop: '0.2em' }}>{CONFIG.appName}</div>
         {event && (
           <div className="muted" style={{ fontSize: '1.4em', marginTop: '0.5em' }}>

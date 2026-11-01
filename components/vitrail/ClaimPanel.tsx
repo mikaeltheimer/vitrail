@@ -214,6 +214,15 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
         </button>
       </div>
 
+      {/* Où va le don */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.06)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/ecole-mark.png" alt="" style={{ height: 30, width: 'auto', flexShrink: 0 }} />
+        <span style={{ fontSize: '13px', lineHeight: 1.45, color: 'rgba(255,255,255,0.85)' }}>
+          Votre don va à l&apos;<strong style={{ color: GOLD }}>{CONFIG.orgName}</strong>. {CONFIG.orgWhy}
+        </span>
+      </div>
+
       {/* ---------- Montant ---------- */}
       <div style={{ display: 'grid', gap: '6px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>

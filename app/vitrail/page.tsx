@@ -9,6 +9,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import AboutPanel from '@/components/vitrail/AboutPanel'
 import BottomSheet from '@/components/vitrail/BottomSheet'
 import ClaimPanel, { type ClaimDraft } from '@/components/vitrail/ClaimPanel'
 import DetailPanel from '@/components/vitrail/DetailPanel'
@@ -152,6 +153,7 @@ function Vitrail() {
   const [myId, setMyId] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [toast, setToast] = useState<{ id: string; donorId: string; text: string } | null>(null)
 
   const setSheetOpen = useCallback((v: boolean) => {
@@ -880,8 +882,19 @@ function Vitrail() {
       <Header
         mobile={mobile}
         count={count}
+        totalCents={totalCents}
+        goalCents={snap?.event?.goalCents ?? 0}
+        eventCents={snap?.event?.totalCents ?? 0}
+        onAbout={() => {
+          setAboutOpen(true)
+          setMenuOpen(false)
+          api.current.select(null)
+        }}
         claimLabel={claimLabel}
-        onClaim={() => api.current.openClaim()}
+        onClaim={() => {
+          setAboutOpen(false)
+          api.current.openClaim()
+        }}
         onHome={() => api.current.home()}
         searchOpen={searchOpen}
         setSearchOpen={setSearchOpen}
@@ -968,9 +981,9 @@ function Vitrail() {
           ) : (
             <>
               <div key="intro-final" style={{ fontFamily: MONO, fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)', textShadow: '0 0 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.95), 0 1px 18px rgba(0,0,0,0.9)', fontVariantNumeric: 'tabular-nums' }}>
-                {count.toLocaleString('fr-CA')} morceaux de verre.
+                Le vitrail de l&apos;{CONFIG.orgName} · {count.toLocaleString('fr-CA')} morceaux
               </div>
-              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>Quelle place prendrez-vous dans le vitrail?</div>
+              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>Chaque morceau est un don qui fait vivre l&apos;école.</div>
               <button
                 onClick={() => api.current.openClaim()}
                 style={{ ...goldButtonStyle, padding: '13px 22px', fontSize: '15px', pointerEvents: introCta ? 'auto' : 'none', opacity: introCta ? 1 : 0, transition: 'opacity 0.8s ease' }}
@@ -986,6 +999,21 @@ function Vitrail() {
 
       {/* ── Derniers dons (à la place du $EXIST) ── */}
       <Ticker recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
+
+      {/* ── À propos de la collecte ── */}
+      {aboutOpen && (
+        <AboutPanel
+          isMobile={mobile}
+          totalCents={snap?.event?.goalCents ? snap.event.totalCents : totalCents}
+          goalCents={snap?.event?.goalCents ?? 0}
+          donors={count}
+          onClaim={() => {
+            setAboutOpen(false)
+            api.current.openClaim()
+          }}
+          onClose={() => setAboutOpen(false)}
+        />
+      )}
 
       {/* ── Don sur place ── */}
       {claimOpen && (
@@ -1025,25 +1053,13 @@ function Vitrail() {
 }
 
 // ═════════════════════════════════ En-tête (mise en page de Pay to Exist) ═════════════════════════════════
-function Logo({ size }: { size: number }) {
-  return (
-    <span
-      aria-hidden
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        flexShrink: 0,
-        background: 'conic-gradient(#f472b6, #d946ef, #7c3aed, #60a5fa, #22d3ee, #16a34a, #a3e635, #facc15, #fb923c, #f87171, #f472b6)',
-        boxShadow: '0 0 0 2px #050408, 0 0 16px rgba(244,114,182,.35)',
-      }}
-    />
-  )
-}
-
 function Header({
   mobile,
   count,
+  totalCents,
+  goalCents,
+  eventCents,
+  onAbout,
   claimLabel,
   onClaim,
   onHome,
@@ -1056,6 +1072,10 @@ function Header({
 }: {
   mobile: boolean
   count: number
+  totalCents: number
+  goalCents: number
+  eventCents: number
+  onAbout: () => void
   claimLabel: string
   onClaim: () => void
   onHome: () => void
@@ -1069,12 +1089,20 @@ function Header({
   const [query, setQuery] = useState('')
   const q = query.trim().toLocaleLowerCase('fr-CA')
   const results = q ? ranked.filter(p => p.name?.toLocaleLowerCase('fr-CA').includes(q)).slice(0, 8) : []
+  // L'école d'abord : son oiseau, puis le nom du vitrail et de l'école
   const brand = (
-    <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '18px', fontWeight: 700, letterSpacing: '-0.03em', color: '#fff', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0 }}>
-      <Logo size={32} />
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.appName}</span>
+    <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/ecole-mark.png" alt="" style={{ height: 32, width: 'auto', flexShrink: 0 }} />
+      <span style={{ display: 'grid', minWidth: 0, lineHeight: 1.1 }}>
+        <span style={{ fontSize: mobile ? '16px' : '18px', fontWeight: 700, letterSpacing: '-0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.appName}</span>
+        <span style={{ fontFamily: MONO, fontSize: '10.5px', color: 'rgba(255,255,255,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.orgName}</span>
+      </span>
     </button>
   )
+  // Où en est la collecte : objectif de l'événement en cours s'il y en a un, sinon le total
+  const raised = goalCents > 0 ? eventCents : totalCents
+  const pct = goalCents > 0 ? Math.min(100, (eventCents / goalCents) * 100) : 0
   const base: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, height: `${HEADER_HEIGHT}px`, background: 'rgba(6,6,10,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1000 }
 
   if (mobile) {
@@ -1082,10 +1110,14 @@ function Header({
       <>
         <header style={{ ...base, padding: '0 16px', gap: 8 }}>
           {brand}
-          <div style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap' }}>
-            <span style={{ fontWeight: 700 }}>{count}</span>
-            <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '4px' }}>morceaux</span>
-          </div>
+          <button onClick={onAbout} style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', background: 'none', border: 0, color: '#fff', padding: 0, display: 'grid', justifyItems: 'center', gap: 3 }}>
+            <span style={{ fontWeight: 700, color: GOLD }}>{formatMoney(raised)}</span>
+            {goalCents > 0 && (
+              <span style={{ width: 64, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: GOLD }} />
+              </span>
+            )}
+          </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {count > 0 && (
               <button onClick={() => setSearchOpen(true)} aria-label="Rechercher" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1118,6 +1150,12 @@ function Header({
             <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
             <nav style={{ position: 'fixed', top: HEADER_HEIGHT, right: 0, left: 0, zIndex: 999, background: 'rgba(6,6,10,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 16px 16px', display: 'grid', gap: 4 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{CONFIG.orgName}</span>
+              <button onClick={onAbout} style={{ ...menuLink, background: 'none', border: 0, borderBottom: menuLink.borderBottom, textAlign: 'left' }}>
+                À propos de la collecte
+              </button>
+              <a href={CONFIG.orgUrl} target="_blank" rel="noreferrer" style={menuLink}>
+                Site de l&apos;école ↗
+              </a>
               <Link href="/?src=vitrail" style={menuLink}>
                 Page de don
               </Link>
@@ -1168,15 +1206,26 @@ function Header({
   return (
     <header style={{ ...base, padding: '0 24px' }}>
       <div style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex' }}>{brand}</div>
-      <div style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '16px', letterSpacing: '0.02em' }}>
-        <span style={{ fontWeight: 700, fontSize: '20px' }}>{count}</span>
-        <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>morceaux de verre</span>
-      </div>
+      <button onClick={onAbout} title="À propos de la collecte" style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#fff', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
+        <span>
+          <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{formatMoney(raised)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>{goalCents > 0 ? `amassés sur ${formatMoney(goalCents)}` : 'amassés pour l’école'}</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', margin: '0 8px' }}>·</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)' }}>{count} donateur{count > 1 ? 's' : ''}</span>
+        </span>
+        {goalCents > 0 && (
+          <span style={{ width: '100%', height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+            <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: GOLD }} />
+          </span>
+        )}
+      </button>
       <nav style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
-        <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginRight: 16 }}>{CONFIG.orgName}</span>
-        <Link href="/confidentialite" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
-          Confidentialité
-        </Link>
+        <button onClick={onAbout} style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', background: 'none', border: 0, cursor: 'pointer', marginRight: 16 }}>
+          À propos de la collecte
+        </button>
+        <a href={CONFIG.orgUrl} target="_blank" rel="noreferrer" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+          ecoleartsutton.ca ↗
+        </a>
         <button
           type="button"
           onClick={onClaim}

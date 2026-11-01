@@ -180,17 +180,10 @@ function DonForm() {
       )}
 
       <header className="mb-5 text-center">
-        <div
-          aria-hidden
-          className="mx-auto mb-3 h-14 w-14 rounded-full"
-          style={{
-            background: 'conic-gradient(#f472b6, #d946ef, #7c3aed, #60a5fa, #22d3ee, #16a34a, #a3e635, #facc15, #fb923c, #f87171, #f472b6)',
-            boxShadow: '0 0 0 3px #050408, 0 0 30px rgba(244,114,182,.35)',
-          }}
-        />
-        <p className="muted text-xs uppercase tracking-[0.2em]">{CONFIG.orgName}</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/ecole-logo.png" alt={CONFIG.orgName} className="mx-auto mb-4" style={{ width: 200, height: 'auto' }} />
         <h1 className="mt-1 text-3xl font-bold">{CONFIG.appName}</h1>
-        <p className="muted mt-2 text-[0.95rem]">Donnez, et votre morceau de verre s&apos;ajoute au vitrail de l&apos;école.</p>
+        <p className="muted mt-2 text-[0.95rem]">Votre don fait vivre l&apos;école, et devient un morceau de verre dans son vitrail.</p>
         {donorsCount > 0 && (
           <p className="mt-3 inline-block rounded-full px-3 py-1 text-sm" style={{ background: 'rgba(255,231,160,0.1)', color: '#ffe7a0' }}>
             {donorsCount === 1 ? '1 personne a déjà son morceau' : `${donorsCount} personnes ont déjà leur morceau`}

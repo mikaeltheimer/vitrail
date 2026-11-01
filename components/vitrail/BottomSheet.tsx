@@ -111,7 +111,7 @@ export default function BottomSheet({
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{piece.name ?? 'Donateur anonyme'}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>A donné</span>
+              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>A donné à l&apos;école</span>
               <span style={{ fontFamily: MONO, fontSize: '16px', fontWeight: 700, color: '#fff' }}>{formatMoney(piece.amountCents)}</span>
               <span style={{ padding: '2px 8px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '12px', fontFamily: MONO, fontSize: '11px', color: c }}>{ordinal(piece.rank)}</span>
             </div>

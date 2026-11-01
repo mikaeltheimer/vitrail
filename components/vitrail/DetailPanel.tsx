@@ -68,7 +68,7 @@ export default function DetailPanel({ piece, tile, count, totalCents, own, onClo
 
         <div style={divider} />
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>A donné</p>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>A donné à l&apos;école</p>
           <p style={{ fontFamily: MONO, fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{formatMoney(piece.amountCents)}</p>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
             {totalCents > 0 ? `${((piece.amountCents / totalCents) * 100).toLocaleString('fr-CA', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} % du vitrail` : ''}
