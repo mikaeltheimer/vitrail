@@ -45,6 +45,9 @@ function Merci() {
         // Seule une vraie réponse (pas une erreur, pas « en attente ») compte : sinon on réessaie
         if (res.ok && data.pending === false && data.donorId) {
           setThanks(data as Thanks)
+          try {
+            localStorage.setItem('vitrail:me', data.donorId) // « Trouver mon morceau » sur le vitrail en ligne
+          } catch {}
           const snap = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
           setPieces(snap.pieces)
           setResult('ok')

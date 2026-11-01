@@ -48,8 +48,15 @@ interface ChannelRow {
   donations: number
   totalCents: number
 }
+interface ReportRow {
+  id: number
+  donor_id: string
+  reason: string | null
+  created_at: string
+}
 interface Data {
   mode: 'stripe' | 'demo' | 'off'
+  reports: ReportRow[]
   photoModeration: 'live' | 'moderation'
   channels: ChannelRow[]
   donors: Donor[]
@@ -111,6 +118,17 @@ export default function AdminConsole() {
   }
 
   const current = data?.events.find(e => e.is_current) ?? null
+  // Signalements regroupés par morceau
+  const reported = useMemo(() => {
+    const byDonor = new Map<string, { donor: Donor | undefined; reasons: string[]; count: number }>()
+    for (const r of data?.reports ?? []) {
+      const e = byDonor.get(r.donor_id) ?? { donor: data?.donors.find(d => d.id === r.donor_id), reasons: [], count: 0 }
+      e.count++
+      if (r.reason) e.reasons.push(r.reason)
+      byDonor.set(r.donor_id, e)
+    }
+    return [...byDonor.entries()]
+  }, [data])
   const pending = useMemo(() => (data?.donors ?? []).filter(d => d.photo_url && d.photo_status === 'pending'), [data])
   const donorsFiltered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -153,6 +171,46 @@ export default function AdminConsole() {
       {/* ── En direct ── */}
       {data && tab === 'direct' && (
         <section className="mt-4 space-y-2">
+          {reported.length > 0 && (
+            <div className="card !p-3" style={{ borderColor: 'rgba(248,113,113,0.6)' }}>
+              <p className="text-sm font-semibold" style={{ color: '#f87171' }}>
+                {reported.length} morceau{reported.length > 1 ? 'x' : ''} signalé{reported.length > 1 ? 's' : ''}
+              </p>
+              {reported.map(([donorId, r]) => (
+                <div key={donorId} className="mt-3 flex items-center gap-3">
+                  {r.donor?.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.donor.photo_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <span className="h-10 w-10 shrink-0 rounded-full" style={{ background: r.donor?.color ?? '#444' }} />
+                  )}
+                  <div className="min-w-0 flex-1 text-sm">
+                    <div className="truncate">
+                      <b>{r.donor?.display_name ?? '—'}</b> · {r.count} signalement{r.count > 1 ? 's' : ''} {r.donor?.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
+                    </div>
+                    {r.donor?.message && <div className="muted truncate text-xs">« {r.donor.message} »</div>}
+                    {r.reasons.slice(0, 2).map((reason, i) => (
+                      <div key={i} className="truncate text-xs" style={{ color: '#fca5a5' }}>
+                        Motif : {reason}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-1">
+                    <button className="chip !px-3 text-xs" onClick={() => act({ action: 'hideDonor', donorId, hidden: true }).then(ok => ok && act({ action: 'resolveReports', donorId }, 'Morceau masqué.'))}>
+                      Masquer
+                    </button>
+                    <button className="chip !px-3 text-xs" onClick={() => act({ action: 'scrubDonor', donorId }).then(ok => ok && act({ action: 'resolveReports', donorId }, 'Nom, message et photo effacés.'))}>
+                      Effacer le contenu
+                    </button>
+                    <button className="chip !px-3 text-xs" onClick={() => act({ action: 'resolveReports', donorId }, 'Signalement classé sans suite.')}>
+                      Sans suite
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Publication des photos : en direct, ou après approbation */}
           <div className="card !p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">

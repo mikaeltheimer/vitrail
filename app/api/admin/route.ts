@@ -18,7 +18,7 @@ export async function GET() {
   if (!(await isAdmin())) return fail('Non autorisé', 403)
   const db = getDb()
 
-  const [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes, moderation, channelRows, visitRows] = await Promise.all([
+  const [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes, moderation, channelRows, visitRows, reportsRes] = await Promise.all([
     db.from('donors').select('id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at').order('created_at', { ascending: false }).limit(1000),
     db.from('donor_totals').select('donor_id,total_cents,last_donation_at').limit(1000),
     db.from('events').select('id,name,starts_on,goal_cents,is_current,created_at').order('created_at', { ascending: false }),
@@ -31,6 +31,7 @@ export async function GET() {
     getPhotoModeration(),
     fetchAll<{ channel: string | null; amount_cents: number; source: string }>('donations', 'channel,amount_cents,source'),
     fetchAll<{ channel: string }>('visits', 'channel'),
+    db.from('reports').select('id,donor_id,reason,created_at').eq('resolved', false).order('created_at', { ascending: false }).limit(200),
   ])
   for (const r of [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes]) if (r.error) return fail(r.error.message, 500)
 
@@ -55,6 +56,7 @@ export async function GET() {
   return NextResponse.json({
     mode: paymentMode(),
     photoModeration: moderation,
+    reports: reportsRes.error ? [] : reportsRes.data ?? [],
     channels: [...channels.values()].sort((a, b) => b.totalCents - a.totalCents || b.visits - a.visits),
     donors: (donorsRes.data ?? []).map(d => ({
       ...d,
@@ -104,6 +106,12 @@ export async function POST(request: NextRequest) {
     // Approuver une photo en attente : elle apparaît sur l'écran
     case 'approvePhoto': {
       const { error } = await db.from('donors').update({ photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+
+    // Signalement traité (ou sans suite) : il quitte la liste
+    case 'resolveReports': {
+      const { error } = await db.from('reports').update({ resolved: true }).eq('donor_id', str(b.donorId))
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 

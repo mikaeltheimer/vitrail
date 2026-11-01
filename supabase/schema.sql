@@ -118,3 +118,15 @@ create table if not exists visits (
 create index if not exists visits_channel_idx on visits (channel);
 alter table visits enable row level security;
 revoke all on visits from anon, authenticated;
+
+-- ── Ajouts du 2026-11-02 (identiques à supabase/migrations/2026-11-02-signalements.sql) ──
+create table if not exists reports (
+  id bigint generated always as identity primary key,
+  donor_id uuid not null references donors (id) on delete cascade,
+  reason text,
+  resolved boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists reports_open_idx on reports (resolved, created_at desc);
+alter table reports enable row level security;
+revoke all on reports from anon, authenticated;
