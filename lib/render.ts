@@ -1,4 +1,4 @@
-import { CONFIG } from './config'
+import { ANON_LABEL, CONFIG } from './config'
 import { FONT_DISPLAY, FONT_SANS } from './fonts'
 import { drawGlassTile, glassColors } from './glass'
 import type { ImageCache } from './images'
@@ -281,7 +281,7 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
 
   for (const [id, tile] of s.tiles) {
     const piece = s.pieces.get(id)
-    if (!piece?.rows && !piece?.name && !piece?.message) continue
+    if (!piece) continue
     const r = tile.inRadius * view.scale // rayon utile : plus grand cercle inscrit
     if (!piece.rows && r < LABEL_NAME_MIN * u) continue
     const sx = tile.labelCenter[0] * view.scale + view.ox
@@ -291,10 +291,9 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
     const hasPhoto = !!(piece.photoUrl && s.images.peek(piece.photoUrl))
     let rows = piece.rows
     if (!rows) {
-      // Don anonyme : pas d'étiquette « Anonyme » sur le verre, seulement le message s'il y en a un
-      rows = piece.name ? [{ text: piece.name, kind: 'name' }] : []
+      // Don anonyme : « Anonyme » sur le verre, à la place du nom
+      rows = [{ text: piece.name ?? ANON_LABEL, kind: 'name' }]
       if (r >= LABEL_MESSAGE_MIN * u && piece.message) rows.push({ text: piece.message, kind: 'message' })
-      if (!rows.length) continue
     }
     const lines = layoutRows(ctx, rows, hasPhoto, r, u)
     if (!lines?.length) continue

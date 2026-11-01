@@ -16,7 +16,7 @@ import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
 import Ticker from '@/components/vitrail/Ticker'
 import type { RankedPiece } from '@/components/vitrail/types'
-import { CONFIG } from '@/lib/config'
+import { ANON_LABEL, CONFIG } from '@/lib/config'
 import { ensureFonts } from '@/lib/fonts'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
@@ -362,7 +362,7 @@ function Vitrail() {
       flyTo(target, 800)
     }
     const preview = async (draft: ClaimDraft, geometryChanged: boolean) => {
-      const piece: Piece = { id: PREVIEW_ID, name: draft.name ?? 'Vous', message: draft.message, photoUrl: draft.photoSrc, color: draft.color, amountCents: draft.amountCents }
+      const piece: Piece = { id: PREVIEW_ID, name: draft.name ?? ANON_LABEL, message: draft.message, photoUrl: draft.photoSrc, color: draft.color, amountCents: draft.amountCents }
       if (!geometryChanged && w.previewOn) {
         // Couleur, nom, photo : pas besoin de recalculer le pavage
         w.pieces.set(PREVIEW_ID, { color: piece.color, name: piece.name, message: piece.message, photoUrl: piece.photoUrl })

@@ -51,7 +51,7 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px', color: '#fff' }}>{piece.name ?? 'Donateur anonyme'}</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px', color: '#fff' }}>{piece.name ?? 'Anonyme'}</h2>
           <span style={{ display: 'inline-block', padding: '4px 12px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '20px', fontFamily: MONO, fontSize: '12px', color: c }}>
             {ordinal(piece.rank)} sur {count}
             {own ? ' · votre morceau' : ''}

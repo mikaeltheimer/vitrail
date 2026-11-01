@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { PiecePortrait } from '@/components/vitrail/PiecePortrait'
-import { CONFIG } from '@/lib/config'
+import { ANON_LABEL, CONFIG } from '@/lib/config'
 import { ensureFonts } from '@/lib/fonts'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
@@ -529,7 +529,7 @@ export default function Ecran() {
             <div style={{ display: 'flex', justifyContent: 'center', margin: '1em 0 1.1em' }}>
               <CardPortrait card={card} />
             </div>
-            <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{card.name ?? 'Un donateur anonyme'}</div>
+            <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{card.name ?? ANON_LABEL}</div>
             {card.message && (
               <div style={{ marginTop: '0.8em', fontSize: '1.25em', lineHeight: 1.45, textAlign: 'center', color: card.color, textShadow: `0 0 1em ${card.color}55` }}>« {card.message} »</div>
             )}
