@@ -67,19 +67,21 @@ export interface DonorProfileInput {
   showName: boolean
   name: string
   message: string | null
-  /** Adresse publique de la photo (bucket « photos »), ou null. Jamais présente sans showName. */
+  /** Adresse publique de la photo (bucket « photos »), ou null. Possible même sans nom (don anonyme avec photo). */
   photoUrl: string | null
 }
 
-/** Nom, message et photo d'un profil. Sans consentement d'affichage : « Anonyme », ni message ni photo. */
+/** Nom, message et photo d'un profil. Le nom est facultatif (« Anonyme ») ; message et photo restent possibles sans nom. */
 export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown }): Result<DonorProfileInput> {
   const showName = raw.showName === true
-  if (!showName) return { ok: true, value: { showName: false, name: ANON_LABEL, message: null, photoUrl: null } }
-  const name = validateName(raw.name)
-  if (!name.ok) return name
+  let name: Result<string> = { ok: true, value: ANON_LABEL }
+  if (showName) {
+    name = validateName(raw.name)
+    if (!name.ok) return name
+  }
   const message = validateMessage(raw.message)
   if (!message.ok) return message
   const photo = validatePhotoPath(raw.photoPath)
   if (!photo.ok) return photo
-  return { ok: true, value: { showName: true, name: name.value, message: message.value, photoUrl: photo.value } }
+  return { ok: true, value: { showName, name: name.value, message: message.value, photoUrl: photo.value } }
 }

@@ -28,6 +28,8 @@ interface Props {
   /** Montants des morceaux actuels (part du vitrail, rang, « plus grand que »). */
   amounts: number[]
   typicalCents: number | null
+  /** Mode démo (pas de clé Stripe) : aucun paiement, aucun courriel ; on le dit clairement. */
+  demo?: boolean
   isMobile: boolean
   panelRef: RefObject<HTMLDivElement | null>
   /** geometryChanged = la taille change (il faut recalculer le pavage) ; sinon simple mise à jour visuelle */
@@ -79,7 +81,7 @@ function formatShare(x: number): string {
   return (v >= 1 ? v.toLocaleString('fr-CA', { maximumFractionDigits: 1 }) : v.toLocaleString('fr-CA', { maximumSignificantDigits: 2 })) + ' %'
 }
 
-export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, onDraftChange, onClose }: Props) {
+export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, panelRef, onDraftChange, onClose }: Props) {
   const [saved] = useState(readSaved)
   const start = saved?.amount ?? (typicalCents ? typicalCents / 100 : 25)
   const [amount, setAmountState] = useState(start)
@@ -129,8 +131,8 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
     const draft: ClaimDraft = {
       name: showName ? name.trim() : null,
       color,
-      photoSrc: showName ? photo.src : null,
-      message: showName ? message.trim() || null : null,
+      photoSrc: photo.src,
+      message: message.trim() || null,
       amountCents: baseCents,
       focus: focusRef.current,
     }
@@ -202,9 +204,9 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
           channel,
           showName,
           name: showName ? name.trim() : '',
-          message: showName ? message.trim() : '',
+          message: message.trim(),
           color,
-          photoPath: showName ? photo.path ?? undefined : undefined,
+          photoPath: photo.path ?? undefined,
         }),
       })
       const data = await res.json()
@@ -353,12 +355,12 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
         {name.trim().length === 1 && <span style={{ fontSize: '12px', color: '#f87171' }}>Au moins 2 lettres.</span>}
       </label>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: showName ? 1 : 0.5 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {photo.src && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo.src} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
         )}
-        <button type="button" disabled={!showName || photoBusy} onClick={() => fileRef.current?.click()} style={secondaryStyle}>
+        <button type="button" disabled={photoBusy} onClick={() => fileRef.current?.click()} style={secondaryStyle}>
           {photoBusy ? 'Envoi…' : photo.src ? 'Changer la photo' : 'Ajouter une photo'}
         </button>
         {photo.src && !photoBusy && (
@@ -376,15 +378,20 @@ export default function ClaimPanel({ amounts, typicalCents, isMobile, panelRef, 
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
       </div>
 
-      <button type="button" disabled={!showName} onClick={() => setShowDetails(v => !v)} style={{ ...linkButtonStyle, justifySelf: 'start', opacity: showName ? 1 : 0.5 }}>
+      <button type="button" onClick={() => setShowDetails(v => !v)} style={{ ...linkButtonStyle, justifySelf: 'start' }}>
         {showDetails ? '− Retirer le message' : '+ Ajouter un message'}
       </button>
-      {showDetails && showName && (
+      {showDetails && (
         <textarea value={message} maxLength={CONFIG.messageMax} rows={3} placeholder="Un mot pour l'école" onChange={e => setMessage(e.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
       )}
-      {!showName && <p style={{ ...hintStyle, marginTop: '-6px' }}>Avec un nom, vous pouvez aussi ajouter une photo et un message, visibles sur l&apos;écran de l&apos;école.</p>}
+      <p style={{ ...hintStyle, marginTop: '-6px' }}>Nom, photo et message sont facultatifs et indépendants : sans nom, votre morceau est « Anonyme », avec votre photo et votre mot.</p>
 
       {error && <p style={{ margin: 0, fontSize: '13px', color: '#f87171' }}>{error}</p>}
+      {demo && (
+        <p style={{ margin: 0, padding: '8px 10px', borderRadius: '8px', fontSize: '12px', lineHeight: 1.45, color: '#fde68a', background: 'rgba(250,204,21,0.08)', border: '1px dashed rgba(250,204,21,0.45)' }}>
+          Mode démo : aucune clé Stripe n&apos;est configurée. Le morceau est ajouté tout de suite, sans paiement ni courriel.
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: '8px' }}>
         <button type="button" onClick={submit} disabled={!valid} style={{ ...goldStyle, opacity: valid ? 1 : 0.45, cursor: valid ? 'pointer' : 'not-allowed' }}>

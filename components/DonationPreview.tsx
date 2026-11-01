@@ -81,8 +81,8 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
       map.set(draftId, {
         color: draft.color,
         name: draft.showName ? draft.name.trim() || 'Votre nom' : null,
-        message: draft.showName ? draft.message.trim() || null : null,
-        photoUrl: draft.showName ? draft.photoSrc : null,
+        message: draft.message.trim() || null,
+        photoUrl: draft.photoSrc,
       })
     }
     drawScene(ctx, {

@@ -149,7 +149,7 @@ function DonForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(token ? { token } : { showName, name, message, color: color ?? autoColor, photoPath: showName ? photo.path ?? undefined : undefined }),
+          ...(token ? { token } : { showName, name, message, color: color ?? autoColor, photoPath: photo.path ?? undefined }),
           amountCents: baseCents,
           coverFees,
           channel,
@@ -296,18 +296,16 @@ function DonForm() {
               <label className="flex cursor-pointer items-start gap-3 text-sm">
                 <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
                 <span>
-                  <b>Afficher mon nom et ma photo sur l&apos;écran</b>
-                  <span className="muted block">Sinon, votre don apparaît comme « Anonyme ».</span>
+                  <b>Afficher mon nom sur l&apos;écran</b>
+                  <span className="muted block">Sinon, votre don apparaît comme « Anonyme » (avec votre photo et votre mot, si vous en ajoutez).</span>
                 </span>
               </label>
 
-              {showName && (
-                <div className="mt-3 space-y-3">
-                  <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" />
+              <div className="mt-3 space-y-3">
+                {showName && <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" />}
                   <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
                   <PhotoField value={photo} onChange={setPhoto} onBusyChange={setPhotoBusy} />
-                </div>
-              )}
+              </div>
             </div>
 
             <fieldset>

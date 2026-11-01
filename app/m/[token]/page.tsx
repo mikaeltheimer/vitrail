@@ -103,26 +103,24 @@ export default function ManagePage() {
         <label className="flex cursor-pointer items-start gap-3 text-sm">
           <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
           <span>
-            <b>Afficher mon nom et ma photo sur l&apos;écran</b>
-            <span className="muted block">Sinon, votre don apparaît comme « Anonyme ».</span>
+            <b>Afficher mon nom sur l&apos;écran</b>
+            <span className="muted block">Sinon, votre don apparaît comme « Anonyme » (avec votre photo et votre mot, si vous en ajoutez).</span>
           </span>
         </label>
 
-        {showName && (
-          <div className="space-y-3">
-            <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} />
-            <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
-            <PhotoField
-              value={photo}
-              onChange={v => {
-                setPhoto(v)
-                setPhotoChanged(true)
-              }}
-              onBusyChange={setPhotoBusy}
-            />
-            {photoPending && !photoChanged && <p className="muted text-xs">Votre photo apparaîtra sur l&apos;écran dès que l&apos;équipe l&apos;aura approuvée.</p>}
-          </div>
-        )}
+        <div className="space-y-3">
+          {showName && <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} />}
+          <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
+          <PhotoField
+            value={photo}
+            onChange={v => {
+              setPhoto(v)
+              setPhotoChanged(true)
+            }}
+            onBusyChange={setPhotoBusy}
+          />
+          {photoPending && !photoChanged && <p className="muted text-xs">Votre photo apparaîtra sur l&apos;écran dès que l&apos;équipe l&apos;aura approuvée.</p>}
+        </div>
 
         <fieldset>
           <legend className="mb-2 text-sm font-semibold">Couleur de votre verre</legend>

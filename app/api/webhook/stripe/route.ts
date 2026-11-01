@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
           showName: m.showName === '1',
           name: m.name || ANON_LABEL,
           message: m.message || null,
-          photoUrl: m.showName === '1' && pathFromPublicUrl(m.photo) ? m.photo : null,
+          photoUrl: pathFromPublicUrl(m.photo) ? m.photo : null,
         },
         color: color.ok ? color.value : defaultColorFor(email),
         amountCents: session.amount_total - feeCents,

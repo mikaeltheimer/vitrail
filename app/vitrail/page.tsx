@@ -1084,7 +1084,7 @@ function Vitrail() {
 
       {/* ── Don sur place ── */}
       {claimOpen && (
-        <ClaimPanel amounts={ranked.map(p => p.amountCents)} typicalCents={snap?.typicalCents ?? null} isMobile={mobile} panelRef={claimPanelRef} onDraftChange={onDraftChange} onClose={() => api.current.closeClaim()} />
+        <ClaimPanel amounts={ranked.map(p => p.amountCents)} typicalCents={snap?.typicalCents ?? null} demo={snap?.mode === 'demo'} isMobile={mobile} panelRef={claimPanelRef} onDraftChange={onDraftChange} onClose={() => api.current.closeClaim()} />
       )}
 
       {/* ── Retour de paiement ── */}

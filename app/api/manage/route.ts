@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const profile = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath })
     if (!profile.ok) return NextResponse.json({ error: profile.error }, { status: 400 })
     // photoPath absent = on garde la photo actuelle ; vide = on la retire ; un chemin = nouvelle photo
-    if (profile.value.showName && body.photoPath === undefined) profile.value.photoUrl = donor.photoUrl
+    if (body.photoPath === undefined) profile.value.photoUrl = donor.photoUrl
     const color = validateColor(body.color)
     await updateDonorProfile(donor.id, profile.value, color.ok ? color.value : undefined, donor.photoUrl)
     return NextResponse.json({ ok: true })

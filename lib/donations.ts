@@ -246,8 +246,8 @@ export async function getSnapshot(): Promise<Snapshot> {
     .map(d => ({
       id: d.id,
       name: d.show_name ? d.display_name : null,
-      message: d.show_name ? d.message : null,
-      photoUrl: d.show_name && d.photo_status === 'approved' ? d.photo_url : null,
+      message: d.message,
+      photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
       color: d.color,
       amountCents: totalByDonor.get(d.id) ?? 0,
     }))
@@ -279,8 +279,8 @@ export async function getSnapshot(): Promise<Snapshot> {
       id: r.id,
       donorId: r.donor_id,
       name: d.show_name ? d.display_name : null,
-      message: d.show_name ? d.message : null,
-      photoUrl: d.show_name && d.photo_status === 'approved' ? d.photo_url : null,
+      message: d.message,
+      photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
       amountCents: r.amount_cents,
       at: r.created_at,
     }))

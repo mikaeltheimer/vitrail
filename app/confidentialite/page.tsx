@@ -50,8 +50,9 @@ export default function ConfidentialitePage() {
             <b>Le montant et la date de votre don</b> : pour tenir les comptes de la collecte et dimensionner votre morceau de verre.
           </li>
           <li>
-            <b>Seulement si vous cochez « Afficher mon nom et ma photo »</b> : le nom que vous choisissez, votre message et votre photo, affichés sur
-            l&apos;écran de l&apos;école et sur la page publique du vitrail. Sans votre consentement, votre morceau apparaît comme « Anonyme ».
+            <b>Seulement si vous les fournissez</b> : le nom que vous choisissez, votre message et votre photo, affichés sur l&apos;écran de
+            l&apos;école et sur la page publique du vitrail. Le nom est facultatif : sans lui, votre morceau apparaît comme « Anonyme », avec votre
+            message et votre photo si vous en avez ajouté.
           </li>
           <li>
             <b>Vos informations de paiement</b> sont saisies directement chez notre fournisseur de paiement, Stripe. Nous ne voyons jamais votre numéro de
