@@ -417,7 +417,7 @@ export default function AdminConsole() {
                 <a href="/ecran" target="_blank">Écran d&apos;affichage</a> — ouvrir en plein écran sur l&apos;ordinateur de l&apos;installation
               </li>
               <li>
-                <a href="/" target="_blank">Page de don</a> — là où mène le QR code
+                <a href="/don" target="_blank">Page de don</a> — là où mène le QR code
               </li>
             </ul>
           </div>

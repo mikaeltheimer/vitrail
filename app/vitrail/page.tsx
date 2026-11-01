@@ -1270,7 +1270,7 @@ function Header({
               <a href={CONFIG.orgUrl} target="_blank" rel="noreferrer" style={menuLink}>
                 Site de l&apos;école ↗
               </a>
-              <Link href="/?src=vitrail" style={menuLink}>
+              <Link href="/don?src=vitrail" style={menuLink}>
                 Page de don
               </Link>
               <Link href="/confidentialite" style={menuLink}>

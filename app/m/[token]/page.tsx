@@ -81,7 +81,7 @@ export default function ManagePage() {
       <main className="mx-auto max-w-md px-4 py-10 text-center">
         <h1 className="text-2xl font-bold">Ce lien a expiré</h1>
         <p className="muted mt-2">Demandez-en un nouveau avec le courriel utilisé pour votre don.</p>
-        <Link href="/" className="btn mt-6">
+        <Link href="/vitrail" className="btn mt-6">
           Retrouver mon morceau
         </Link>
       </main>
@@ -145,7 +145,7 @@ export default function ManagePage() {
         <button className="btn" disabled={saving || photoBusy || (showName && name.trim().length < 2)}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-        <Link href={`/?t=${token}`} className="btn btn-ghost">
+        <Link href={`/don?t=${token}`} className="btn btn-ghost">
           Agrandir mon morceau
         </Link>
       </form>

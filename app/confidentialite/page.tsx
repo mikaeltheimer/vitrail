@@ -16,8 +16,8 @@ const TODO = ({ children }: { children: React.ReactNode }) => (
 export default function ConfidentialitePage() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-20 pt-8 text-[0.95rem] leading-relaxed">
-      <Link href="/" className="muted text-sm underline">
-        ← Retour au don
+      <Link href="/vitrail" className="muted text-sm underline">
+        ← Retour au vitrail
       </Link>
       <h1 className="mt-4 text-2xl font-bold">Politique de confidentialité</h1>
       <p className="muted mt-1 text-sm">

@@ -34,7 +34,7 @@ function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string) {
   const base = siteUrl()
   return returnTo === 'vitrail'
     ? { success: `${base}/vitrail?merci=${ref}`, cancel: `${base}/vitrail?don&annule=1` }
-    : { success: `${base}/merci?ref=${ref}`, cancel: `${base}/?annule=1` }
+    : { success: `${base}/merci?ref=${ref}`, cancel: `${base}/don?annule=1` }
 }
 
 /** Renvoie l'adresse où envoyer le donateur (paiement Stripe, ou retour direct en mode démo). */

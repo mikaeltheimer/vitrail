@@ -33,7 +33,7 @@ export default function AffichePage() {
   }, [])
 
   const slug = slugify(place)
-  const link = origin ? `${origin}/?src=${slug}` : ''
+  const link = origin ? `${origin}/don?src=${slug}` : ''
   const shortHost = useMemo(() => origin.replace(/^https?:\/\//, ''), [origin])
 
   useEffect(() => {

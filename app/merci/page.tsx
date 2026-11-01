@@ -80,7 +80,7 @@ function Merci() {
             Nous n&apos;avons pas encore reçu la confirmation du paiement. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes, et un courriel de confirmation
             vous sera envoyé.
           </p>
-          <Link href="/" className="btn btn-ghost mt-6">
+          <Link href="/vitrail" className="btn btn-ghost mt-6">
             Retour
           </Link>
         </>
@@ -109,7 +109,7 @@ function Merci() {
           </div>
 
           <div className="space-y-3">
-            <Link href={`/?t=${thanks.token}`} className="btn">
+            <Link href={`/don?t=${thanks.token}`} className="btn">
               Agrandir mon morceau
             </Link>
             <Link href={`/m/${thanks.token}`} className="btn btn-ghost">
