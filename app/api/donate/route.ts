@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const amount = validateAmountCents(body.amountCents)
   if (!amount.ok) return fail(amount.error)
 
-  let email: string
+  let email: string | null
   let profile
   let color: string
 
@@ -37,14 +37,19 @@ export async function POST(request: NextRequest) {
     profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl }
     color = donor.color
   } else {
-    const e = validateEmail(body.email)
-    if (!e.ok) return fail(e.error)
-    email = e.value
+    // Le courriel est demandé par Stripe au paiement (un champ de moins ici) ; accepté s'il est fourni (anciens liens, tests)
+    if (typeof body.email === 'string' && body.email.trim()) {
+      const e = validateEmail(body.email)
+      if (!e.ok) return fail(e.error)
+      email = e.value
+    } else {
+      email = null
+    }
     const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath })
     if (!p.ok) return fail(p.error)
     profile = p.value
     const c = validateColor(body.color)
-    color = c.ok ? c.value : defaultColorFor(email)
+    color = c.ok ? c.value : defaultColorFor(email ?? String(Math.random()))
   }
 
   try {

@@ -15,7 +15,8 @@ export function getStripe(): Stripe {
 }
 
 export interface CheckoutRequest {
-  email: string
+  /** null : le courriel sera saisi chez Stripe. */
+  email: string | null
   amountCents: number
   profile: DonorProfileInput
   color: string
@@ -31,7 +32,8 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
   if (mode === 'demo') {
     const ref = `demo_${randomUUID()}`
     await recordDonation({
-      email: req.email,
+      // Démo sans courriel : un morceau à part (comme un vrai donateur nouveau)
+      email: req.email ?? `demo+${randomUUID()}@donateur.invalid`,
       profile: req.profile,
       color: req.color,
       amountCents: req.amountCents,
@@ -47,7 +49,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
     mode: 'payment',
     submit_type: 'donate',
     locale: 'fr-CA',
-    customer_email: req.email,
+    ...(req.email ? { customer_email: req.email } : {}),
     line_items: [
       {
         quantity: 1,
@@ -60,7 +62,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
     ],
     payment_intent_data: { description: `Don — ${CONFIG.orgName}` },
     metadata: {
-      email: req.email,
+      email: req.email ?? '',
       eventId: req.eventId ?? '',
       showName: req.profile.showName ? '1' : '0',
       name: req.profile.name,

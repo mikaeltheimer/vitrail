@@ -61,6 +61,7 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 - **Écran** : la pause « Faites partie du vitrail » affiche la norme (« La plupart donnent 25 $ ») et le nombre de morceaux ; un nouveau don interrompt la pause.
 - **Affiches** : `/affiche` crée une affiche imprimable (format lettre) par emplacement, chacune avec son code QR (`?src=cafe`…). Le QR de l'écran porte `?src=ecran`. Onglet **Provenance** de la console : visites, dons, conversion et montant par emplacement.
 - **Confidentialité** : `/confidentialite` (Loi 25), avec des passages **[À COMPLÉTER]** surlignés à remplir par l'école.
+- **Moins de friction** : plus de champ courriel sur la page de don (Stripe le demande au paiement, et il sert toujours à reconnaître un donateur qui revient) ; bouton « Donner » collé en bas de l'écran du téléphone. Sans choix du donateur, la couleur du verre est tirée au hasard.
 - **Limites de requêtes** relevées : à un événement, des centaines de téléphones partagent la même adresse IP.
 
 ## Photos et aperçu

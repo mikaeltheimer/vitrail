@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import DonationPreview from '@/components/DonationPreview'
 import PhotoField, { type PhotoValue } from '@/components/PhotoField'
-import { defaultColorFor } from '@/lib/colors'
 import { feeFor } from '@/lib/fees'
 import { formatMoney } from '@/lib/format'
 import Link from 'next/link'
@@ -41,7 +40,8 @@ function DonForm() {
   const [coverFees, setCoverFees] = useState(false)
   const [channel, setChannel] = useState<string | null>(null)
   const [custom, setCustom] = useState('')
-  const [email, setEmail] = useState('')
+  // Couleur de départ tirée au hasard (le donateur peut en choisir une) : le courriel n'est plus demandé ici, Stripe s'en charge
+  const [autoColor, setAutoColor] = useState<string>(GLASS_COLORS[0].value)
   const [showName, setShowName] = useState(false)
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
@@ -65,6 +65,10 @@ function DonForm() {
       .then(d => setKnown({ donorId: d.donorId, name: d.name, showName: d.showName, color: d.color, totalCents: d.totalCents }))
       .catch(() => setLinkExpired(true))
   }, [tokenParam])
+
+  useEffect(() => {
+    Promise.resolve().then(() => setAutoColor(GLASS_COLORS[Math.floor(Math.random() * GLASS_COLORS.length)].value))
+  }, [])
 
   // Provenance (?src= de l'affiche ou de l'écran) : gardée pour la session, et une visite comptée une seule fois
   useEffect(() => {
@@ -119,7 +123,7 @@ function DonForm() {
   const mode = snap?.mode
   const event = snap?.event ?? null
   const goalPct = event && event.goalCents > 0 ? Math.min(100, Math.round((event.totalCents / event.goalCents) * 100)) : 0
-  const canSubmit = !busy && !photoBusy && mode !== 'off' && baseCents >= CONFIG.minAmountCents && (token || email.includes('@')) && (!showName || name.trim().length >= 2)
+  const canSubmit = !busy && !photoBusy && mode !== 'off' && baseCents >= CONFIG.minAmountCents && (!showName || name.trim().length >= 2)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -130,7 +134,7 @@ function DonForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(token ? { token } : { email, showName, name, message, color: color ?? undefined, photoPath: showName ? photo.path ?? undefined : undefined }),
+          ...(token ? { token } : { showName, name, message, color: color ?? autoColor, photoPath: showName ? photo.path ?? undefined : undefined }),
           amountCents: baseCents,
           coverFees,
           channel,
@@ -256,24 +260,6 @@ function DonForm() {
         {!token && (
           <>
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-semibold">
-                Courriel
-              </label>
-              <input
-                id="email"
-                className="field"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                placeholder="vous@exemple.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-              <p className="muted mt-1 text-xs">Pour votre confirmation, et pour retrouver votre morceau la prochaine fois. Aucun compte à créer.</p>
-            </div>
-
-            <div>
               <label className="flex cursor-pointer items-start gap-3 text-sm">
                 <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
                 <span>
@@ -323,21 +309,33 @@ function DonForm() {
                 name,
                 message,
                 photoSrc: photo.src,
-                color: color ?? (token && known ? known.color : defaultColorFor(email.trim().toLowerCase())),
+                color: color ?? (token && known ? known.color : autoColor),
                 amountCents,
               }}
             />
           </section>
         )}
 
-        {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
-
-        <button className="btn" disabled={!canSubmit}>
-          {busy ? 'Un instant…' : baseCents >= CONFIG.minAmountCents ? `Donner ${formatMoney(amountCents)}` : 'Donner'}
-        </button>
         <p className="muted text-center text-xs">
-          Paiement sécurisé (carte, Apple Pay ou Google Pay). Sans reçu fiscal pour le moment : l&apos;école n&apos;est pas encore un organisme de bienfaisance enregistré.
+          Paiement sécurisé (carte, Apple Pay ou Google Pay). Votre courriel vous sera demandé au paiement, pour votre confirmation et pour retrouver votre
+          morceau la prochaine fois. Sans reçu fiscal pour le moment : l&apos;école n&apos;est pas encore un organisme de bienfaisance enregistré.
         </p>
+
+        {/* Bouton toujours à portée de pouce, en bas de l'écran */}
+        <div
+          className="sticky bottom-0 z-10 -mx-4 px-4 pt-4"
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))', background: 'linear-gradient(rgba(7,6,11,0), #07060b 35%)' }}
+        >
+          {error && (
+            <p role="alert" className="mb-2 text-sm" style={{ color: '#f87171' }}>
+              {error}
+            </p>
+          )}
+          {!error && showName && name.trim().length < 2 && !token && <p className="muted mb-2 text-center text-xs">Indiquez le nom à afficher (2 lettres minimum).</p>}
+          <button className="btn" disabled={!canSubmit} style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
+            {busy ? 'Un instant…' : baseCents >= CONFIG.minAmountCents ? `Donner ${formatMoney(amountCents)}` : 'Donner'}
+          </button>
+        </div>
       </form>
 
       <footer className="mt-10 border-t pt-5 text-center text-sm" style={{ borderColor: 'var(--line)' }}>
