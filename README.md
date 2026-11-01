@@ -15,11 +15,12 @@ npm run dev
 1. **Supabase** : créer un projet neuf, ouvrir *SQL Editor*, lancer le contenu de `supabase/schema.sql`. Copier l'URL du projet et la clé de service dans `.env.local` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
 2. **Console** : définir `ADMIN_CODE` et `SESSION_SECRET` (32 caractères ou plus), puis ouvrir `/admin`, créer un événement et le mettre « en cours ».
 3. **Écran** : ouvrir `/ecran` (touche F ou clic pour le plein écran).
-4. **Don** : ouvrir `/` sur un téléphone, ou dans un autre onglet.
+4. **Don** : ouvrir `/vitrail` (ou `/don`, le formulaire mobile) sur un téléphone, ou dans un autre onglet.
 
 | Page | Rôle |
 |---|---|
-| `/` | Parcours de don mobile (QR code de l'écran) |
+| `/` | Redirige vers `/vitrail` |
+| `/don` | Parcours de don mobile (affiches à code QR) |
 | `/merci` | Remerciement : le morceau du donateur, cerclé d'or |
 | `/m/[lien]` | Lien magique : modifier nom, message, couleur, ou agrandir son morceau |
 | `/ecran` | Affichage plein écran : vitrail, total, objectif, QR code, annonce de chaque don |
