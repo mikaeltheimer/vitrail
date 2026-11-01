@@ -521,8 +521,8 @@ export default function Ecran() {
 
       {/* Le morceau en lumière : photo, nom, message — jamais de montant */}
       {card && !cta && (
-        <div key={card.key} className={cardOut ? 'tv-banner-out' : 'tv-banner-in'} style={{ position: 'absolute', left: '2.4em', top: '56%', transform: 'translateY(-50%)', width: '26em', maxHeight: '70vh' }}>
-          <div style={{ padding: '1.6em', borderRadius: '1.2em', background: 'rgba(12,10,18,0.96)', border: `1px solid ${card.color}66`, boxShadow: `0 0 4em ${card.color}33, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}>
+        <div key={card.key} style={{ position: 'absolute', left: '2.4em', top: '54%', transform: 'translateY(-50%)', width: '26em' }}>
+          <div className={cardOut ? 'tv-banner-out' : 'tv-banner-in'} style={{ padding: '1.6em', borderRadius: '1.2em', background: 'rgba(12,10,18,0.96)', border: `1px solid ${card.color}66`, boxShadow: `0 0 4em ${card.color}33, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(255,255,255,0.55)' }}>
               {card.fresh ? '✦ Vient de donner' : 'Merci à'}
             </div>
@@ -539,12 +539,12 @@ export default function Ecran() {
 
       {/* Pause : appel à donner, au centre, le vitrail entier derrière */}
       {cta && (
-        <div className="tv-banner-in absolute" style={{ left: '50%', bottom: '3em', transform: 'translateX(-50%)', width: '40em', textAlign: 'center' }}>
-          <div style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(251,191,36,0.5)', boxShadow: '0 0 4em rgba(251,191,36,0.15)' }}>
+        <div className="absolute" style={{ left: '50%', bottom: '3em', transform: 'translateX(-50%)', width: '40em', textAlign: 'center' }}>
+          <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(251,191,36,0.5)', boxShadow: '0 0 4em rgba(251,191,36,0.15)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>Faites partie du vitrail</div>
             <div style={{ fontSize: '2.3em', fontWeight: 700, lineHeight: 1.1, marginTop: '0.35em' }}>Chaque don devient un morceau de verre</div>
             <div style={{ fontSize: '1.2em', lineHeight: 1.4, marginTop: '0.6em', color: 'rgba(255,255,255,0.8)' }}>
-              Plus le don est grand, plus le morceau l&apos;est. {CONFIG.orgWhy.split(':')[0]}.
+              Plus le don est grand, plus le morceau l&apos;est. {CONFIG.orgWhy.split(':')[0].trim()}.
             </div>
             <div style={{ fontSize: '1.3em', fontWeight: 600, marginTop: '0.7em', color: GOLD }}>Scannez le code →</div>
           </div>
