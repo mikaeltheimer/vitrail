@@ -7,6 +7,7 @@
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
 
+import { browserOrigin } from '@/lib/env'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { PiecePortrait } from '@/components/vitrail/PiecePortrait'
@@ -441,7 +442,7 @@ export default function Ecran() {
 
   // ── Code QR : le don sur place, dans le vitrail, provenance « ecran » ──
   useEffect(() => {
-    const base = (new URLSearchParams(window.location.search).get('url') || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, '')
+    const base = (new URLSearchParams(window.location.search).get('url') || browserOrigin()).replace(/\/$/, '')
     const url = `${base}/vitrail?don&src=ecran`
     QRCode.toDataURL(url, { margin: 1, width: 640, errorCorrectionLevel: 'M', color: { dark: '#0b0a10', light: '#ffffff' } })
       .then(d => {

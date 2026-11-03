@@ -1,7 +1,25 @@
 // Variables d'environnement, lues à l'usage (jamais à l'import) pour que le build passe sans configuration.
 
+const isLocal = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)
+
+/**
+ * Adresse publique du site. Garde-fou : une adresse « localhost » restée dans la configuration d'un site en ligne
+ * (copiée de .env.example) est ignorée au profit du domaine de production que fournit Vercel.
+ */
 export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+  const configured = (process.env.NEXT_PUBLIC_SITE_URL || '').trim()
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  if (configured && !(isLocal(configured) && vercel)) return configured.replace(/\/$/, '')
+  if (vercel) return `https://${vercel}`
+  return 'http://localhost:3000'
+}
+
+/** Côté navigateur : l'adresse configurée, sauf si elle pointe vers localhost alors que la page est en ligne. */
+export function browserOrigin(): string {
+  const configured = (process.env.NEXT_PUBLIC_SITE_URL || '').trim()
+  const here = window.location.origin
+  if (!configured || (isLocal(configured) && !isLocal(here))) return here
+  return configured.replace(/\/$/, '')
 }
 
 export type PaymentMode = 'stripe' | 'demo' | 'off'

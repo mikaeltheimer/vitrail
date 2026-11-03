@@ -3,12 +3,13 @@
 // Partager un morceau : lien direct vers lui dans le vitrail en ligne (/vitrail?d=…), par le menu de partage du
 // téléphone, en copiant le lien, ou vers Facebook et le courriel.
 
+import { browserOrigin } from '@/lib/env'
 import { useState } from 'react'
 import { CONFIG } from '@/lib/config'
 
 export function ShareDialog({ id, name, own, onClose }: { id: string; name: string | null; own: boolean; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
-  const origin = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, '') : ''
+  const origin = typeof window !== 'undefined' ? browserOrigin() : ''
   const link = `${origin}/vitrail?d=${id}&src=partage`
   const text = own
     ? `J'ai mon morceau de verre dans le vitrail de l'${CONFIG.orgName}. Ajoutez le vôtre!`
