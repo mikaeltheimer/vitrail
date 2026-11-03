@@ -50,9 +50,14 @@ export default function ConfidentialitePage() {
             <b>Le montant et la date de votre don</b> : pour tenir les comptes de la collecte et dimensionner votre morceau de verre.
           </li>
           <li>
-            <b>Seulement si vous les fournissez</b> : le nom que vous choisissez, votre message et votre photo, affichés sur l&apos;écran de
+            <b>Seulement si vous les fournissez</b> : le nom que vous choisissez, votre témoignage et votre photo, affichés sur l&apos;écran de
             l&apos;école et sur la page publique du vitrail. Le nom est facultatif : sans lui, votre morceau apparaît comme « Anonyme », avec votre
-            message et votre photo si vous en avez ajouté.
+            témoignage et votre photo si vous en avez ajouté.
+          </li>
+          <li>
+            <b>Votre consentement à être cité</b>, si vous cochez la case prévue : l&apos;{CONFIG.orgName} peut alors reprendre votre témoignage
+            dans ses communications (site, réseaux sociaux, rapport annuel). Sans cette case, il reste uniquement sur le vitrail. Vous pouvez retirer
+            ce consentement en tout temps avec votre lien de modification.
           </li>
           <li>
             <b>Vos informations de paiement</b> sont saisies directement chez notre fournisseur de paiement, Stripe. Nous ne voyons jamais votre numéro de
@@ -103,7 +108,7 @@ export default function ConfidentialitePage() {
       <Section title="Vos droits">
         <p>Vous pouvez en tout temps :</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>modifier ou retirer votre nom, votre message ou votre photo, avec le lien reçu après votre don (ou en demandant un nouveau lien sur la page de don) ;</li>
+          <li>modifier ou retirer votre nom, votre témoignage ou votre photo, avec le lien reçu après votre don (ou en demandant un nouveau lien sur la page de don) ;</li>
           <li>demander l&apos;accès aux renseignements que nous détenons sur vous, leur rectification ou leur suppression ;</li>
           <li>retirer votre consentement à l&apos;affichage de votre nom et de votre photo.</li>
         </ul>

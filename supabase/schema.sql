@@ -133,3 +133,10 @@ revoke all on reports from anon, authenticated;
 
 -- Frais de transaction couverts par le donateur, hors du don (voir migrations/2026-11-03-frais.sql)
 alter table donations add column if not exists fee_cents integer not null default 0 check (fee_cents >= 0);
+
+-- Témoignages : modération du message et consentement à la citation (voir migrations/2026-11-04-temoignages.sql)
+alter table donors add column if not exists message_status text not null default 'approved';
+do $$ begin
+  alter table donors add constraint donors_message_status_check check (message_status in ('approved', 'pending'));
+exception when duplicate_object then null; end $$;
+alter table donors add column if not exists quote_consent boolean not null default false;

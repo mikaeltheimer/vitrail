@@ -42,12 +42,12 @@ export function validateName(input: unknown): Result<string> {
 
 export function validateMessage(input: unknown): Result<string | null> {
   if (input == null || input === '') return { ok: true, value: null }
-  if (typeof input !== 'string') return { ok: false, error: 'Message invalide.' }
+  if (typeof input !== 'string') return { ok: false, error: 'Témoignage invalide.' }
   const v = clean(input)
   if (!v) return { ok: true, value: null }
-  if (v.length > CONFIG.messageMax) return { ok: false, error: `Le message ne peut dépasser ${CONFIG.messageMax} caractères.` }
-  if (LINK_RE.test(v)) return { ok: false, error: 'Les liens ne sont pas permis dans le message.' }
-  if (isProfane(v)) return { ok: false, error: "Ce message contient un mot qui ne peut pas être affiché sur l'écran de l'école." }
+  if (v.length > CONFIG.messageMax) return { ok: false, error: `Le témoignage ne peut dépasser ${CONFIG.messageMax} caractères.` }
+  if (LINK_RE.test(v)) return { ok: false, error: 'Les liens ne sont pas permis dans le témoignage.' }
+  if (isProfane(v)) return { ok: false, error: "Ce texte contient un mot qui ne peut pas être affiché sur l'écran de l'école." }
   return { ok: true, value: v }
 }
 
@@ -69,10 +69,12 @@ export interface DonorProfileInput {
   message: string | null
   /** Adresse publique de la photo (bucket « photos »), ou null. Possible même sans nom (don anonyme avec photo). */
   photoUrl: string | null
+  /** Le donateur permet à l'organisme de citer son témoignage ailleurs (Loi 25 : consentement explicite, jamais par défaut). */
+  quoteConsent: boolean
 }
 
 /** Nom, message et photo d'un profil. Le nom est facultatif (« Anonyme ») ; message et photo restent possibles sans nom. */
-export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown }): Result<DonorProfileInput> {
+export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown; quoteConsent?: unknown }): Result<DonorProfileInput> {
   const showName = raw.showName === true
   let name: Result<string> = { ok: true, value: ANON_LABEL }
   if (showName) {
@@ -83,5 +85,5 @@ export function validateProfile(raw: { showName?: unknown; name?: unknown; messa
   if (!message.ok) return message
   const photo = validatePhotoPath(raw.photoPath)
   if (!photo.ok) return photo
-  return { ok: true, value: { showName, name: name.value, message: message.value, photoUrl: photo.value } }
+  return { ok: true, value: { showName, name: name.value, message: message.value, photoUrl: photo.value, quoteConsent: raw.quoteConsent === true && !!message.value } }
 }

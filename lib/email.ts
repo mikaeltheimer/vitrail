@@ -31,7 +31,8 @@ export async function sendReceipt(to: string, amountCents: number, token: string
     [
       `Merci! Votre don de ${formatMoney(amountCents)} est enregistré et votre morceau s'ajoute au vitrail de l'${CONFIG.orgName}.`,
       '',
-      'Agrandir mon morceau ou modifier mon nom et mon message :',
+      `${CONFIG.testimonial.title} ${CONFIG.testimonial.lead}`,
+      'Ajoutez votre témoignage, ou modifiez votre morceau (nom, photo) :',
       manageLink(token),
       '',
       "Ce courriel confirme votre don. L'école n'est pas encore un organisme de bienfaisance enregistré : aucun reçu fiscal n'est émis pour le moment.",

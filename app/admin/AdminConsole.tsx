@@ -13,6 +13,8 @@ interface Donor {
   message: string | null
   photo_url: string | null
   photo_status: 'approved' | 'pending'
+  message_status?: 'approved' | 'pending'
+  quote_consent?: boolean
   color: string
   hidden: boolean
   totalCents: number
@@ -130,6 +132,7 @@ export default function AdminConsole() {
     return [...byDonor.entries()]
   }, [data])
   const pending = useMemo(() => (data?.donors ?? []).filter(d => d.photo_url && d.photo_status === 'pending'), [data])
+  const pendingMessages = useMemo(() => (data?.donors ?? []).filter(d => d.message && d.message_status === 'pending'), [data])
   const donorsFiltered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return (data?.donors ?? [])
@@ -215,16 +218,16 @@ export default function AdminConsole() {
           <div className="card !p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm">
-                <b>Photos</b>{' '}
+                <b>Photos et témoignages</b>{' '}
                 <span className="muted">
-                  {data.photoModeration === 'live' ? '— publiées automatiquement' : '— chaque photo attend votre approbation'}
+                  {data.photoModeration === 'live' ? '— publiés automatiquement (filtre de mots grossiers)' : '— chacun attend votre approbation'}
                 </span>
               </div>
               <div className="flex gap-2">
-                <button className="chip !px-3 text-sm" aria-pressed={data.photoModeration === 'live'} onClick={() => act({ action: 'setPhotoModeration', mode: 'live' }, 'Mode live : les photos sont publiées tout de suite.')}>
+                <button className="chip !px-3 text-sm" aria-pressed={data.photoModeration === 'live'} onClick={() => act({ action: 'setPhotoModeration', mode: 'live' }, 'Mode live : photos et témoignages sont publiés tout de suite.')}>
                   Live
                 </button>
-                <button className="chip !px-3 text-sm" aria-pressed={data.photoModeration === 'moderation'} onClick={() => act({ action: 'setPhotoModeration', mode: 'moderation' }, 'Mode modération : les nouvelles photos attendent votre approbation.')}>
+                <button className="chip !px-3 text-sm" aria-pressed={data.photoModeration === 'moderation'} onClick={() => act({ action: 'setPhotoModeration', mode: 'moderation' }, 'Mode modération : les nouvelles photos et les nouveaux témoignages attendent votre approbation.')}>
                   Modération
                 </button>
               </div>
@@ -249,6 +252,32 @@ export default function AdminConsole() {
                         Approuver
                       </button>
                       <button className="chip !px-3 text-sm" onClick={() => act({ action: 'removePhoto', donorId: d.id }, 'Photo refusée et supprimée.')}>
+                        Refuser
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pendingMessages.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>
+                  {pendingMessages.length} témoignage{pendingMessages.length > 1 ? 's' : ''} en attente
+                </p>
+                {pendingMessages.map(d => (
+                  <div key={d.id} className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1 text-sm">
+                      <div className="truncate">
+                        <b>{d.show_name ? d.display_name : 'Anonyme'}</b> · {formatMoney(d.totalCents)}
+                        {d.quote_consent && <span className="muted text-xs"> · accepte d&apos;être cité</span>}
+                      </div>
+                      <div className="mt-1 text-sm leading-relaxed">« {d.message} »</div>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2">
+                      <button className="chip !px-3 text-sm" onClick={() => act({ action: 'approveMessage', donorId: d.id }, 'Témoignage publié.')}>
+                        Approuver
+                      </button>
+                      <button className="chip !px-3 text-sm" onClick={() => act({ action: 'removeMessage', donorId: d.id }, 'Témoignage refusé et effacé.')}>
                         Refuser
                       </button>
                     </div>
@@ -486,7 +515,7 @@ function CashForm({ events, onSubmit }: { events: EventRow[]; onSubmit: (p: Reco
       {showName && (
         <>
           <input className="field" placeholder="Nom affiché" value={name} onChange={e => setName(e.target.value)} maxLength={CONFIG.nameMax} />
-          <input className="field" placeholder="Message (facultatif)" value={message} onChange={e => setMessage(e.target.value)} maxLength={CONFIG.messageMax} />
+          <input className="field" placeholder="Témoignage (facultatif)" value={message} onChange={e => setMessage(e.target.value)} maxLength={CONFIG.messageMax} />
         </>
       )}
       <div className="flex flex-wrap gap-2">

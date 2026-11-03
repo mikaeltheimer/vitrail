@@ -4,6 +4,7 @@ import { paymentMode } from './env'
 import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
 import { newPhotoStatus } from './settings'
+import { hasTestimonialColumns } from './schema'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
 
@@ -79,17 +80,23 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
 
   let donor = await findDonorByEmail(i.email)
   if (!donor) {
+    const insert: Record<string, unknown> = {
+      email: i.email,
+      display_name: i.profile.name,
+      show_name: i.profile.showName,
+      message: i.profile.message,
+      photo_url: i.profile.photoUrl,
+      photo_status: i.profile.photoUrl ? await newPhotoStatus() : 'approved',
+      color: i.color,
+    }
+    // Témoignage : publié tout de suite ou mis en attente, comme les photos
+    if (await hasTestimonialColumns()) {
+      insert.message_status = i.profile.message ? await newPhotoStatus() : 'approved'
+      insert.quote_consent = i.profile.quoteConsent
+    }
     const { data, error } = await db
       .from('donors')
-      .insert({
-        email: i.email,
-        display_name: i.profile.name,
-        show_name: i.profile.showName,
-        message: i.profile.message,
-        photo_url: i.profile.photoUrl,
-        photo_status: i.profile.photoUrl ? await newPhotoStatus() : 'approved',
-        color: i.color,
-      })
+      .insert(insert)
       .select('id,email')
       .single()
     if (error) {
@@ -121,7 +128,13 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   return { donationId: donation!.id, donorId: donor.id, duplicate: false }
 }
 
-export async function updateDonorProfile(donorId: string, profile: DonorProfileInput, color?: string, previousPhotoUrl?: string | null): Promise<void> {
+export async function updateDonorProfile(
+  donorId: string,
+  profile: DonorProfileInput,
+  color?: string,
+  previousPhotoUrl?: string | null,
+  previousMessage?: string | null,
+): Promise<void> {
   const patch: Record<string, unknown> = {
     display_name: profile.name,
     show_name: profile.showName,
@@ -132,6 +145,10 @@ export async function updateDonorProfile(donorId: string, profile: DonorProfileI
   if (color) patch.color = color
   // Nouvelle photo : publiée tout de suite ou mise en attente, selon le mode de la console
   if (profile.photoUrl && profile.photoUrl !== previousPhotoUrl) patch.photo_status = await newPhotoStatus()
+  if (await hasTestimonialColumns()) {
+    if (profile.message !== previousMessage) patch.message_status = profile.message ? await newPhotoStatus() : 'approved'
+    patch.quote_consent = profile.quoteConsent
+  }
   const { error } = await getDb().from('donors').update(patch).eq('id', donorId)
   if (error) throw error
   // L'ancienne photo, remplacée ou retirée, quitte le stockage (après la mise à jour, jamais avant)
@@ -166,6 +183,9 @@ export interface DonorView {
   photoUrl: string | null
   /** La photo attend l'approbation de l'équipe (mode modération). */
   photoPending: boolean
+  /** Le témoignage attend l'approbation de l'équipe. */
+  messagePending: boolean
+  quoteConsent: boolean
   color: string
   totalCents: number
 }
@@ -180,7 +200,9 @@ export async function resolveToken(token: string): Promise<DonorView | null> {
 
 export async function getDonorView(donorId: string): Promise<DonorView | null> {
   const db = getDb()
-  const { data: d } = await db.from('donors').select('id,email,display_name,show_name,message,photo_url,photo_status,color').eq('id', donorId).maybeSingle()
+  const extra = (await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''
+  const { data } = await db.from('donors').select(`id,email,display_name,show_name,message,photo_url,photo_status,color${extra}`).eq('id', donorId).maybeSingle()
+  const d = data as unknown as (DonorPublicRow & { email: string; quote_consent?: boolean }) | null
   if (!d) return null
   const { data: t } = await db.from('donor_totals').select('total_cents').eq('donor_id', donorId).maybeSingle()
   return {
@@ -191,9 +213,27 @@ export async function getDonorView(donorId: string): Promise<DonorView | null> {
     message: d.message,
     photoUrl: d.photo_url,
     photoPending: d.photo_status === 'pending',
+    messagePending: d.message_status === 'pending',
+    quoteConsent: !!d.quote_consent,
     color: d.color,
     totalCents: Number(t?.total_cents ?? 0),
   }
+}
+
+/** Ajoute ou remplace le témoignage d'un morceau, sans toucher au reste (bandeau de remerciement, lien reçu par courriel). */
+export async function updateTestimonial(donor: DonorView, message: string | null, quoteConsent: boolean): Promise<{ pending: boolean }> {
+  const patch: Record<string, unknown> = { message, updated_at: new Date().toISOString() }
+  let pending = false
+  if (await hasTestimonialColumns()) {
+    if (message !== donor.message) {
+      patch.message_status = message ? await newPhotoStatus() : 'approved'
+      pending = patch.message_status === 'pending'
+    } else pending = donor.messagePending
+    patch.quote_consent = quoteConsent && !!message
+  }
+  const { error } = await getDb().from('donors').update(patch).eq('id', donor.id)
+  if (error) throw error
+  return { pending }
 }
 
 /** Retrouve le morceau d'un paiement à partir de la référence du fournisseur (session Stripe, démo…). */
@@ -220,20 +260,23 @@ interface DonorPublicRow {
   message: string | null
   photo_url: string | null
   photo_status: string
+  /** Absent tant que la migration des témoignages n'est pas passée. */
+  message_status?: string
   color: string
   hidden: boolean
 }
 
 export async function getSnapshot(): Promise<Snapshot> {
   const db = getDb()
+  const ms = (await hasTestimonialColumns()) ? ',message_status' : ''
   const [donors, totals, currentRes, grandRes, recentRes] = await Promise.all([
-    fetchAll<DonorPublicRow>('donors', 'id,display_name,show_name,message,photo_url,photo_status,color,hidden'),
+    fetchAll<DonorPublicRow>('donors', `id,display_name,show_name,message,photo_url,photo_status,color,hidden${ms}`),
     fetchAll<{ donor_id: string; total_cents: number | string }>('donor_totals', 'donor_id,total_cents'),
     db.from('events').select('id,name,goal_cents').eq('is_current', true).maybeSingle(),
     db.from('grand_total').select('total_cents,donations_count').maybeSingle(),
     db
       .from('donations')
-      .select('id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,photo_url,photo_status,hidden)')
+      .select(`id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,photo_url,photo_status,hidden${ms})`)
       .order('created_at', { ascending: false })
       .limit(15),
   ])
@@ -246,7 +289,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     .map(d => ({
       id: d.id,
       name: d.show_name ? d.display_name : null,
-      message: d.message,
+      message: d.message_status === 'pending' ? null : d.message,
       photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
       color: d.color,
       amountCents: totalByDonor.get(d.id) ?? 0,
@@ -264,7 +307,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     }
   }
 
-  type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; photo_status: string; hidden: boolean }
+  type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; photo_status: string; message_status?: string; hidden: boolean }
   type RecentRow = {
     id: string
     donor_id: string
@@ -279,7 +322,7 @@ export async function getSnapshot(): Promise<Snapshot> {
       id: r.id,
       donorId: r.donor_id,
       name: d.show_name ? d.display_name : null,
-      message: d.message,
+      message: d.message_status === 'pending' ? null : d.message,
       photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
       amountCents: r.amount_cents,
       at: r.created_at,

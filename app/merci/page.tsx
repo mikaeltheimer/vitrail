@@ -16,6 +16,7 @@ interface Thanks {
   color: string
   token: string
   photoPending?: boolean
+  hasMessage?: boolean
 }
 
 export default function MerciPage() {
@@ -108,12 +109,22 @@ function Merci() {
             </Link>
           </div>
 
+          {!thanks.hasMessage && (
+          <div className="card mb-4 text-left text-sm" style={{ borderColor: 'rgba(255,231,160,0.5)' }}>
+            <b style={{ color: '#ffe7a0' }}>{CONFIG.testimonial.title}</b>
+            <div className="muted mt-1">{CONFIG.testimonial.lead}</div>
+            <Link href={`/m/${thanks.token}`} className="btn mt-3">
+              Partager mon souvenir
+            </Link>
+            <div className="muted mt-2 text-xs">Pas maintenant ? Gardez ce lien : il est aussi dans le courriel de confirmation.</div>
+          </div>
+          )}
           <div className="space-y-3">
-            <Link href={`/don?t=${thanks.token}`} className="btn">
+            <Link href={`/don?t=${thanks.token}`} className="btn btn-ghost">
               Agrandir mon morceau
             </Link>
             <Link href={`/m/${thanks.token}`} className="btn btn-ghost">
-              Modifier mon nom ou mon message
+              Modifier mon morceau
             </Link>
           </div>
           <p className="muted mt-6 text-xs">

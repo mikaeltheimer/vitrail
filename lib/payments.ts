@@ -85,7 +85,8 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       eventId: req.eventId ?? '',
       showName: req.profile.showName ? '1' : '0',
       name: req.profile.name,
-      message: req.profile.message ?? '',
+      message: req.profile.message ?? '', // ≤ 500 caractères (limite Stripe par valeur)
+      quote: req.profile.quoteConsent ? '1' : '0',
       photo: req.profile.photoUrl ?? '',
       color: req.color,
       channel: req.channel ?? '',

@@ -119,7 +119,7 @@ export default function BottomSheet({
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 20px 20px' }}>
         {piece.message && (
-          <div style={{ fontStyle: 'italic', color: c, fontSize: '15px', lineHeight: 1.6, marginBottom: '16px', padding: '12px', background: `${c}11`, borderRadius: '8px', borderLeft: `3px solid ${c}` }}>« {piece.message} »</div>
+          <div style={{ fontStyle: piece.message.length > 140 ? 'normal' : 'italic', color: piece.message.length > 140 ? 'rgba(255,248,235,0.92)' : c, fontSize: '15px', lineHeight: 1.6, marginBottom: '16px', padding: '12px', background: `${c}11`, borderRadius: '8px', borderLeft: `3px solid ${c}` }}>« {piece.message} »</div>
         )}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
           <button onClick={onPrev} style={btn}>

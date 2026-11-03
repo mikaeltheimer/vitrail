@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     name: donor.showName ? donor.name : null,
     color: donor.color,
     photoPending: donor.photoPending,
+    hasMessage: !!donor.message,
     token: await createToken(donor.id),
   })
 }

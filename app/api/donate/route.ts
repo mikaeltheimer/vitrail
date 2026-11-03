@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const donor = await resolveToken(body.token)
     if (!donor) return fail('Ce lien a expiré. Demandez-en un nouveau.', 400)
     email = donor.email
-    profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl }
+    profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl, quoteConsent: donor.quoteConsent }
     color = donor.color
   } else {
     // Le courriel est demandé par Stripe au paiement (un champ de moins ici) ; accepté s'il est fourni (anciens liens, tests)
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     } else {
       email = null
     }
-    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath })
+    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent })
     if (!p.ok) return fail(p.error)
     profile = p.value
     const c = validateColor(body.color)

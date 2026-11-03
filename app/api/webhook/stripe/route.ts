@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
           showName: m.showName === '1',
           name: m.name || ANON_LABEL,
           message: m.message || null,
+          quoteConsent: m.quote === '1' && !!m.message,
           photoUrl: pathFromPublicUrl(m.photo) ? m.photo : null,
         },
         color: color.ok ? color.value : defaultColorFor(email),

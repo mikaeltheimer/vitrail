@@ -1,5 +1,6 @@
 'use client'
 
+import TestimonialField from '@/components/vitrail/TestimonialField'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
@@ -45,6 +46,8 @@ function DonForm() {
   const [showName, setShowName] = useState(false)
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
+  const [quoteConsent, setQuoteConsent] = useState(false)
+  const [showTestimonial, setShowTestimonial] = useState(false)
   // Sans choix du donateur, le serveur attribue une couleur à partir du courriel
   const [color, setColor] = useState<string | null>(null)
   const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
@@ -149,7 +152,7 @@ function DonForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(token ? { token } : { showName, name, message, color: color ?? autoColor, photoPath: photo.path ?? undefined }),
+          ...(token ? { token } : { showName, name, message, quoteConsent: quoteConsent && !!message.trim(), color: color ?? autoColor, photoPath: photo.path ?? undefined }),
           amountCents: baseCents,
           coverFees,
           channel,
@@ -303,7 +306,13 @@ function DonForm() {
 
               <div className="mt-3 space-y-3">
                 {showName && <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" />}
-                  <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
+                {showTestimonial ? (
+                  <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={4} />
+                ) : (
+                  <button type="button" className="text-sm underline" style={{ color: 'var(--gold, #fbbf24)' }} onClick={() => setShowTestimonial(true)}>
+                    + {CONFIG.testimonial.invite} <span className="muted">(ou plus tard, avec le lien reçu après le don)</span>
+                  </button>
+                )}
                   <PhotoField value={photo} onChange={setPhoto} onBusyChange={setPhotoBusy} />
               </div>
             </div>

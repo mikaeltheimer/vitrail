@@ -10,6 +10,7 @@ import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { feeFor } from '@/lib/fees'
 import { formatMoney } from '@/lib/format'
 import { squareJpeg, uploadPhoto } from '@/lib/photoClient'
+import TestimonialField from './TestimonialField'
 
 const GOLD = '#fbbf24'
 
@@ -45,6 +46,7 @@ interface SavedDraft {
   name: string
   color: string
   message: string
+  quoteConsent?: boolean
   photo: { src: string | null; path: string | null }
 }
 function readSaved(): SavedDraft | null {
@@ -91,6 +93,7 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
   const [color, setColor] = useState<string>(saved?.color ?? GLASS_COLORS[0].value)
   const [message, setMessage] = useState(saved?.message ?? '')
   const [showDetails, setShowDetails] = useState(!!saved?.message)
+  const [quoteConsent, setQuoteConsent] = useState(saved?.quoteConsent ?? false)
   const [photo, setPhoto] = useState<{ src: string | null; path: string | null }>(saved?.photo ?? { src: null, path: null })
   const photoBlob = useRef<Blob | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
@@ -205,6 +208,7 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
           showName,
           name: showName ? name.trim() : '',
           message: message.trim(),
+          quoteConsent: quoteConsent && !!message.trim(),
           color,
           photoPath: photo.path ?? undefined,
         }),
@@ -214,7 +218,7 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
       // Brouillon gardé pour un éventuel retour sans paiement (la photo en data URL : l'adresse blob: ne survit pas)
       try {
         const src = photo.src?.startsWith('blob:') && photoBlob.current ? await blobToDataUrl(photoBlob.current) : photo.src
-        const draft: SavedDraft = { amount, coverFees, name, color, message, photo: { src, path: photo.path } }
+        const draft: SavedDraft = { amount, coverFees, name, color, message, quoteConsent, photo: { src, path: photo.path } }
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
       } catch {}
       window.location.href = data.url
@@ -378,13 +382,33 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
       </div>
 
-      <button type="button" onClick={() => setShowDetails(v => !v)} style={{ ...linkButtonStyle, justifySelf: 'start' }}>
-        {showDetails ? '− Retirer le message' : '+ Ajouter un message'}
-      </button>
-      {showDetails && (
-        <textarea value={message} maxLength={CONFIG.messageMax} rows={3} placeholder="Un mot pour l'école" onChange={e => setMessage(e.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
+      {/* Témoignage : replié, pour ne pas freiner le don ; il est aussi proposé après le paiement */}
+      {showDetails ? (
+        <div style={{ display: 'grid', gap: '8px', padding: '12px', borderRadius: '10px', border: '1px solid rgba(251,191,36,0.25)', background: 'rgba(251,191,36,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={labelStyle}>Votre témoignage</span>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDetails(false)
+                setMessage('')
+                setQuoteConsent(false)
+              }}
+              style={{ ...linkButtonStyle, fontSize: '12px' }}
+            >
+              Retirer
+            </button>
+          </div>
+          <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} />
+        </div>
+      ) : (
+        <button type="button" onClick={() => setShowDetails(true)} style={{ ...linkButtonStyle, justifySelf: 'start', color: GOLD }}>
+          + {CONFIG.testimonial.invite}
+        </button>
       )}
-      <p style={{ ...hintStyle, marginTop: '-6px' }}>Nom, photo et message sont facultatifs et indépendants : sans nom, votre morceau est « Anonyme », avec votre photo et votre mot.</p>
+      <p style={{ ...hintStyle, marginTop: '-6px' }}>
+        Nom, photo et témoignage sont facultatifs et indépendants : sans nom, votre morceau est « Anonyme ». Vous pourrez aussi ajouter votre témoignage après le don.
+      </p>
 
       {error && <p style={{ margin: 0, fontSize: '13px', color: '#f87171' }}>{error}</p>}
       {demo && (

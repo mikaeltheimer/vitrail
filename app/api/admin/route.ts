@@ -6,6 +6,7 @@ import { isAdmin } from '@/lib/session'
 import { fetchAll, recordDonation } from '@/lib/donations'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
+import { hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 
 export const runtime = 'nodejs'
@@ -17,9 +18,10 @@ const fail = (error: string, status = 400) => NextResponse.json({ error }, { sta
 export async function GET() {
   if (!(await isAdmin())) return fail('Non autorisé', 403)
   const db = getDb()
+  const donorCols: string = `id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at${(await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''}`
 
   const [donorsRes, totalsRes, eventsRes, eventTotalsRes, donationsRes, moderation, channelRows, visitRows, reportsRes] = await Promise.all([
-    db.from('donors').select('id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at').order('created_at', { ascending: false }).limit(1000),
+    db.from('donors').select(donorCols).order('created_at', { ascending: false }).limit(1000),
     db.from('donor_totals').select('donor_id,total_cents,last_donation_at').limit(1000),
     db.from('events').select('id,name,starts_on,goal_cents,is_current,created_at').order('created_at', { ascending: false }),
     db.from('event_totals').select('event_id,total_cents,donations_count'),
@@ -58,7 +60,7 @@ export async function GET() {
     photoModeration: moderation,
     reports: reportsRes.error ? [] : reportsRes.data ?? [],
     channels: [...channels.values()].sort((a, b) => b.totalCents - a.totalCents || b.visits - a.visits),
-    donors: (donorsRes.data ?? []).map(d => ({
+    donors: ((donorsRes.data ?? []) as unknown as ({ id: string } & Record<string, unknown>)[]).map(d => ({
       ...d,
       totalCents: Number(totals.get(d.id)?.total_cents ?? 0),
       lastDonationAt: totals.get(d.id)?.last_donation_at ?? null,
@@ -106,6 +108,18 @@ export async function POST(request: NextRequest) {
     // Approuver une photo en attente : elle apparaît sur l'écran
     case 'approvePhoto': {
       const { error } = await db.from('donors').update({ photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+
+    // Témoignage en attente : publié (il apparaît sur l'écran), ou refusé (effacé ; nom et photo restent)
+    case 'approveMessage': {
+      const { error } = await db.from('donors').update({ message_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+    case 'removeMessage': {
+      const patch: Record<string, unknown> = { message: null, updated_at: new Date().toISOString() }
+      if (await hasTestimonialColumns()) Object.assign(patch, { message_status: 'approved', quote_consent: false })
+      const { error } = await db.from('donors').update(patch).eq('id', str(b.donorId))
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 

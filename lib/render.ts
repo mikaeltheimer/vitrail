@@ -268,6 +268,14 @@ export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasP
   return attempt(rows) ?? (strict || withoutMessage.length === rows.length ? null : attempt(withoutMessage))
 }
 
+/** Début du témoignage pour le verre : coupé à un mot, avec « … » (le texte entier est dans la fiche et sur l'écran). */
+export function glassExcerpt(text: string, max: number = CONFIG.glassMessageMax): string {
+  if (text.length <= max) return text
+  const cut = text.slice(0, max)
+  const space = cut.lastIndexOf(' ')
+  return (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.!?«»-]+$/, '') + '…'
+}
+
 /** Nom (et message si la pièce est assez grande) au bas de la pièce quand elle a une photo, au centre sinon. Toujours à l'intérieur du morceau. */
 function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
   const { view } = s
@@ -293,7 +301,7 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
     if (!rows) {
       // Don anonyme : « Anonyme » sur le verre, à la place du nom
       rows = [{ text: piece.name ?? ANON_LABEL, kind: 'name' }]
-      if (r >= LABEL_MESSAGE_MIN * u && piece.message) rows.push({ text: piece.message, kind: 'message' })
+      if (r >= LABEL_MESSAGE_MIN * u && piece.message) rows.push({ text: glassExcerpt(piece.message), kind: 'message' })
     }
     const lines = layoutRows(ctx, rows, hasPhoto, r, u)
     if (!lines?.length) continue

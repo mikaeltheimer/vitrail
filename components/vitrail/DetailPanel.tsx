@@ -61,7 +61,12 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
         {piece.message && (
           <>
             <div style={divider} />
-            <div style={{ fontStyle: 'italic', color: c, lineHeight: 1.7, fontSize: '18px', fontWeight: 500, textAlign: 'center', padding: '0 8px', textShadow: `0 0 20px ${c}66` }}>« {piece.message} »</div>
+            {piece.message.length > 140 ? (
+              // Témoignage : se lit comme un texte, aligné à gauche
+              <div style={{ color: 'rgba(255,248,235,0.92)', lineHeight: 1.65, fontSize: '15px', padding: '2px 4px 2px 14px', borderLeft: `3px solid ${c}` }}>{piece.message}</div>
+            ) : (
+              <div style={{ fontStyle: 'italic', color: c, lineHeight: 1.7, fontSize: '18px', fontWeight: 500, textAlign: 'center', padding: '0 8px', textShadow: `0 0 20px ${c}66` }}>« {piece.message} »</div>
+            )}
           </>
         )}
 

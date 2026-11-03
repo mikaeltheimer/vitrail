@@ -12,6 +12,7 @@ import { useSearchParams } from 'next/navigation'
 import AboutPanel from '@/components/vitrail/AboutPanel'
 import BottomSheet from '@/components/vitrail/BottomSheet'
 import ClaimPanel, { type ClaimDraft } from '@/components/vitrail/ClaimPanel'
+import TestimonialField from '@/components/vitrail/TestimonialField'
 import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
 import Ticker from '@/components/vitrail/Ticker'
@@ -902,7 +903,7 @@ function Vitrail() {
             localStorage.setItem('vitrail:me', data.donorId)
           } catch {}
           setMyId(data.donorId)
-          setWelcome({ state: 'ok', donorId: data.donorId, name: data.name ?? null, token: data.token, photoPending: !!data.photoPending })
+          setWelcome({ state: 'ok', donorId: data.donorId, name: data.name ?? null, token: data.token, photoPending: !!data.photoPending, hasMessage: !!data.hasMessage })
           void showPiece(data.donorId)
           return
         }
@@ -1088,7 +1089,7 @@ function Vitrail() {
       )}
 
       {/* ── Retour de paiement ── */}
-      {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} onClose={() => setWelcome(null)} />}
+      {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} onClose={() => setWelcome(null)} onPublished={() => void reloadRef.current()} />}
 
       {/* ── Nouveau don pendant la visite ── */}
       {toast && !claimOpen && !welcome && (
@@ -1126,15 +1127,53 @@ function Vitrail() {
 type Welcome =
   | { state: 'wait' }
   | { state: 'lost' }
-  | { state: 'ok'; donorId: string; name: string | null; token: string; photoPending: boolean }
+  | { state: 'ok'; donorId: string; name: string | null; token: string; photoPending: boolean; hasMessage: boolean }
 
-/** Bienvenue après le paiement, en haut du vitrail (le morceau, lui, s'ouvre dans sa fiche habituelle). */
-function WelcomeCard({ welcome, isMobile, onClose }: { welcome: Welcome; isMobile: boolean; onClose: () => void }) {
+/**
+ * Bienvenue après le paiement, en haut du vitrail (le morceau s'ouvre dans sa fiche habituelle). C'est le moment
+ * d'inviter au témoignage : le don est fait, on regarde son morceau. « Plus tard » donne le lien pour y revenir.
+ */
+function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Welcome; isMobile: boolean; onClose: () => void; onPublished: () => void }) {
+  const [step, setStep] = useState<'ask' | 'later' | 'done'>('ask')
+  const [text, setText] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const token = welcome.state === 'ok' ? welcome.token : ''
+  const editUrl = typeof window !== 'undefined' && token ? `${window.location.origin}/m/${token}` : ''
+
+  const publish = async () => {
+    if (!text.trim() || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'testimonial', message: text, quoteConsent: consent }) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || "Le témoignage n'a pas pu être enregistré.")
+      setPending(!!data.pending)
+      setStep('done')
+      onPublished()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const copy = () => {
+    void navigator.clipboard?.writeText(editUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+  const asking = welcome.state === 'ok' && !welcome.hasMessage && step === 'ask'
+
   return (
-    <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 460px)' }}>
+    <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 480px)' }}>
       <div
         className="tv-banner-in"
-        style={{ position: 'relative', padding: '16px 18px', borderRadius: 14, background: 'rgba(14,12,22,0.96)', border: '1px solid rgba(251,191,36,0.55)', boxShadow: '0 0 40px rgba(251,191,36,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'Space Grotesk', sans-serif" }}
+        style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(14,12,22,0.97)', border: '1px solid rgba(251,191,36,0.55)', boxShadow: '0 0 40px rgba(251,191,36,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'Space Grotesk', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - 120px)', overflowY: 'auto' }}
       >
         {welcome.state !== 'wait' && (
           <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
@@ -1142,30 +1181,64 @@ function WelcomeCard({ welcome, isMobile, onClose }: { welcome: Welcome; isMobil
           </button>
         )}
         <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: GOLD }}>✦ Merci{welcome.state === 'ok' && welcome.name ? `, ${welcome.name}` : ''}</div>
-        {welcome.state === 'wait' && <p style={{ margin: '6px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>Nous confirmons votre don et posons votre morceau dans le vitrail…</p>}
-        {welcome.state === 'lost' && (
-          <p style={{ margin: '6px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45 }}>
-            La confirmation du paiement tarde. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes ; inutile de redonner.
-          </p>
-        )}
+        {welcome.state === 'wait' && <p style={welcomeText}>Nous confirmons votre don et posons votre morceau dans le vitrail…</p>}
+        {welcome.state === 'lost' && <p style={welcomeText}>La confirmation du paiement tarde. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes ; inutile de redonner.</p>}
+
         {welcome.state === 'ok' && (
           <>
-            <p style={{ margin: '6px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>Votre morceau fait maintenant partie du vitrail de l&apos;école.</p>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45 }}>
-              Il passera bientôt sur le grand écran.{welcome.photoPending ? ' Votre photo s’ajoutera dès que l’équipe l’aura vue.' : ''}
-            </p>
-            <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 13 }}>
-              <a href={`/m/${welcome.token}`} style={{ color: GOLD, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                Modifier mon nom, message ou photo
-              </a>
-            </div>
-            <p style={{ margin: '8px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Gardez ce lien : il est aussi dans le courriel de confirmation.</p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>Votre morceau fait maintenant partie du vitrail.</p>
+            {welcome.photoPending && <p style={welcomeMuted}>Votre photo s&apos;ajoutera dès que l&apos;équipe l&apos;aura vue.</p>}
+
+            {asking && (
+              <>
+                <p style={{ ...welcomeText, marginTop: 4 }}>
+                  <b style={{ color: '#fff' }}>{CONFIG.testimonial.title}</b> Racontez-le : il accompagnera votre morceau, et passera sur le grand écran.
+                </p>
+                <TestimonialField value={text} onChange={setText} consent={consent} onConsent={setConsent} rows={isMobile ? 3 : 4} />
+                {error && <p style={{ margin: 0, fontSize: 13, color: '#f87171' }}>{error}</p>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                  <button onClick={publish} disabled={!text.trim() || busy} style={{ ...goldButtonStyle, flex: 1, opacity: text.trim() && !busy ? 1 : 0.45, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed' }}>
+                    {busy ? 'Un instant…' : 'Publier mon souvenir'}
+                  </button>
+                  <button onClick={() => setStep('later')} style={laterButtonStyle}>
+                    Plus tard
+                  </button>
+                </div>
+              </>
+            )}
+
+            {step === 'done' && (
+              <p style={welcomeText}>{pending ? 'Merci pour ce souvenir ! Il apparaîtra dès que l’équipe l’aura lu.' : 'Merci pour ce souvenir ! Il accompagne maintenant votre morceau.'}</p>
+            )}
+
+            {!asking && (
+              <div style={{ display: 'grid', gap: 6, marginTop: 2 }}>
+                <p style={welcomeMuted}>
+                  {step === 'later'
+                    ? 'Gardez ce lien : il vous permet d’ajouter votre souvenir quand vous aurez un moment, et de modifier votre morceau.'
+                    : 'Ce lien vous permet de modifier votre morceau (nom, photo, témoignage).'}
+                </p>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <code style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, padding: '8px 10px', borderRadius: 8, background: '#0d0b13', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}>{editUrl}</code>
+                  <button onClick={copy} style={laterButtonStyle}>
+                    {copied ? 'Copié' : 'Copier'}
+                  </button>
+                </div>
+                <a href={`/m/${token}`} style={{ fontSize: 13, color: GOLD, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                  Ouvrir ma page de modification
+                </a>
+              </div>
+            )}
           </>
         )}
       </div>
     </div>
   )
 }
+
+const welcomeText: React.CSSProperties = { margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45 }
+const welcomeMuted: React.CSSProperties = { margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.45 }
+const laterButtonStyle: React.CSSProperties = { padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, cursor: 'pointer', flexShrink: 0 }
 
 function Header({
   mobile,

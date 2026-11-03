@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import TestimonialField from '@/components/vitrail/TestimonialField'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import MiniGlass from '@/components/MiniGlass'
@@ -9,7 +10,7 @@ import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import type { Piece, Snapshot } from '@/lib/types'
 
-// Lien magique : on modifie le nom, le message et la couleur de son morceau, ou on l'agrandit. Pas de compte.
+// Lien magique : on ajoute son témoignage, on modifie le nom, la photo et la couleur de son morceau, ou on l'agrandit. Pas de compte.
 
 export default function ManagePage() {
   const { token } = useParams<{ token: string }>()
@@ -19,6 +20,8 @@ export default function ManagePage() {
   const [showName, setShowName] = useState(false)
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
+  const [quoteConsent, setQuoteConsent] = useState(false)
+  const [messagePending, setMessagePending] = useState(false)
   const [color, setColor] = useState<string>(GLASS_COLORS[0].value)
   const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
   const [photoChanged, setPhotoChanged] = useState(false)
@@ -38,6 +41,8 @@ export default function ManagePage() {
         setShowName(d.showName)
         setName(d.name)
         setMessage(d.message)
+        setQuoteConsent(!!d.quoteConsent)
+        setMessagePending(!!d.messagePending)
         setColor(d.color)
         setPhoto({ src: d.photoUrl ?? null, path: null })
         setPhotoPending(!!d.photoPending)
@@ -59,7 +64,7 @@ export default function ManagePage() {
       const res = await fetch('/api/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'update', showName, name, message, color, ...(photoChanged ? { photoPath: photo.path ?? '' } : {}) }),
+        body: JSON.stringify({ token, action: 'update', showName, name, message, quoteConsent, color, ...(photoChanged ? { photoPath: photo.path ?? '' } : {}) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur inattendue.')
@@ -100,6 +105,14 @@ export default function ManagePage() {
       </div>
 
       <form onSubmit={save} className="space-y-5">
+        {/* Le témoignage d'abord : c'est souvent pour lui qu'on revient avec ce lien */}
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">{CONFIG.testimonial.title}</h2>
+          <p className="muted text-sm">{CONFIG.testimonial.lead}</p>
+          <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={5} />
+          {messagePending && <p className="muted text-xs">Votre témoignage apparaîtra dès que l&apos;équipe l&apos;aura lu.</p>}
+        </section>
+
         <label className="flex cursor-pointer items-start gap-3 text-sm">
           <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
           <span>
@@ -110,7 +123,6 @@ export default function ManagePage() {
 
         <div className="space-y-3">
           {showName && <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} />}
-          <input className="field" placeholder="Un mot (facultatif)" maxLength={CONFIG.messageMax} value={message} onChange={e => setMessage(e.target.value)} />
           <PhotoField
             value={photo}
             onChange={v => {

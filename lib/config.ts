@@ -42,7 +42,28 @@ export const CONFIG = {
   photoColorToPx: 230,
 
   nameMax: 30,
-  messageMax: 100,
+  /** Le témoignage (souvenir, anecdote). 500 au plus : c'est aussi la limite d'une métadonnée Stripe. */
+  messageMax: 500,
+  /** Sur le verre, seul le début du témoignage s'affiche (le texte complet est dans la fiche et sur l'écran). */
+  glassMessageMax: 80,
+  /**
+   * Invitation à témoigner, propre à l'organisme. Les amorces changent à chaque fois : une question précise
+   * est plus facile à commencer qu'une page blanche.
+   */
+  testimonial: {
+    invite: "Partager un souvenir de l'École",
+    title: "Un souvenir lié à l'École ?",
+    lead: "Une anecdote, un cours qui vous a marqué, ce que l'École a changé pour vous. Votre témoignage accompagne votre morceau, ici et sur le grand écran.",
+    prompts: [
+      "Votre premier cours à l'École ?",
+      'Une œuvre dont vous êtes fier ou fière ?',
+      "Quelqu'un que vous y avez rencontré ?",
+      "Ce que l'École a changé pour vous, ou pour votre enfant ?",
+      'Un moment drôle dans un atelier ?',
+      "Pourquoi l'École compte pour Sutton ?",
+    ],
+    consent: "L'École peut citer mon témoignage dans ses communications (site, réseaux, rapport annuel).",
+  },
   /** Afficher les messages sur le grand écran. Dans une école, on peut le couper ici ou masquer en direct depuis l'admin. */
   showMessagesOnScreen: true,
 

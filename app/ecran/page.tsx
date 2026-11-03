@@ -25,6 +25,12 @@ const RELOAD_MS = 6 * 60 * 60 * 1000
 const FLY_MS = 2800
 const HOLD_MS = 8000 // morceau avec nom, photo ou message
 const HOLD_BARE_MS = 4500 // morceau anonyme
+const READ_MS_PER_CHAR = 45 // témoignage : le temps de le lire (≈ 22 caractères par seconde, à 3 m de l'écran)
+const READ_MAX_MS = 20000
+const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise en page « témoignage »
+const CARD_EM = 26
+const CARD_WIDE_EM = 36
+const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
 const CTA_EVERY = 6 // une pause « Faites partie du vitrail » toutes les N visites
 const CTA_MS = 11000
 const MAX_ZOOM = 40
@@ -143,11 +149,13 @@ export default function Ecran() {
 
     /** Cadrage d'un morceau dans l'espace laissé libre par la carte (à gauche) et le code QR (en bas à droite). */
     // Le morceau au centre de l'écran, assez petit pour ne passer ni sous la carte (à gauche) ni sous le code QR (à droite)
-    const camOn = (tile: Tile): Cam => {
+    // Avec un long témoignage, la carte s'élargit : le morceau se place alors au centre de l'espace qui reste.
+    const camOn = (tile: Tile, wide = false): Cam => {
       const em = Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
-      const cardRight = em * (2.4 + 26) + em
+      const cardRight = em * (2.4 + (wide ? CARD_WIDE_EM : CARD_EM)) + em
       const qrLeft = W - em * (2.4 + 14) - em
-      const halfW = Math.max(W * 0.12, Math.min(W / 2 - cardRight, qrLeft - W / 2))
+      const sx = wide ? (cardRight + qrLeft) / 2 : W / 2 // où le morceau apparaît à l'écran
+      const halfW = wide ? Math.max(W * 0.1, (qrLeft - cardRight) / 2) : Math.max(W * 0.12, Math.min(W / 2 - cardRight, qrLeft - W / 2))
       const halfH = H * 0.42
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
@@ -155,7 +163,7 @@ export default function Ecran() {
       const ex = Math.max(lx - x0, x1 - lx, 1e-6)
       const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
-      return { x: lx, y: ly, zoom }
+      return { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
     }
 
     const pickNext = (): string | null => {
@@ -165,11 +173,15 @@ export default function Ecran() {
       }
       deck = deck.filter(id => tiles.has(id))
       if (!deck.length) {
-        const ids = [...tiles.keys()]
+        // Les témoignages passent deux fois plus souvent : ce sont eux qu'on s'arrête pour lire
+        const told = new Set(list.filter(p => (p.message?.length ?? 0) >= 40).map(p => p.id))
+        const ids = [...tiles.keys()].flatMap(id => (told.has(id) ? [id, id] : [id]))
         for (let i = ids.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1))
           ;[ids[i], ids[j]] = [ids[j], ids[i]]
         }
+        // Jamais deux fois de suite le même morceau
+        for (let i = 1; i < ids.length; i++) if (ids[i] === ids[i - 1]) ids.splice(i--, 1)
         if (ids.length > 1 && ids[ids.length - 1] === last) [ids[0], ids[ids.length - 1]] = [ids[ids.length - 1], ids[0]]
         deck = ids
       }
@@ -213,14 +225,17 @@ export default function Ecran() {
       last = id
       const isFresh = fresh.has(id)
       fresh.delete(id)
-      flyTo(camOn(tile), FLY_MS, 0.6, () => {
+      const p = list.find(x => x.id === id)
+      const message = CONFIG.showMessagesOnScreen ? p?.message ?? null : null
+      flyTo(camOn(tile, isLong(message)), FLY_MS, 0.6, () => {
         spot = id
         needs = true
-        const p = list.find(x => x.id === id)
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message: CONFIG.showMessagesOnScreen ? p?.message ?? null : null, photoUrl: p?.photoUrl ?? null, color: p?.color ?? '#f472b6', tile })
-        const rich = !!(p?.name || p?.photoUrl || p?.message)
-        timer = setTimeout(next, isFresh ? HOLD_MS + 2000 : rich ? HOLD_MS : HOLD_BARE_MS)
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, photoUrl: p?.photoUrl ?? null, color: p?.color ?? '#f472b6', tile })
+        const rich = !!(p?.name || p?.photoUrl || message)
+        // Le temps de lire le témoignage en entier
+        const reading = Math.min(READ_MAX_MS, (message?.length ?? 0) * READ_MS_PER_CHAR)
+        timer = setTimeout(next, (isFresh ? HOLD_MS + 2000 : rich ? HOLD_MS : HOLD_BARE_MS) + reading)
       })
     }
 
@@ -522,17 +537,32 @@ export default function Ecran() {
 
       {/* Le morceau en lumière : photo, nom, message — jamais de montant */}
       {card && !cta && (
-        <div key={card.key} style={{ position: 'absolute', left: '2.4em', bottom: '2.4em', width: '26em' }}>
+        <div key={card.key} style={{ position: 'absolute', left: '2.4em', bottom: '2.4em', width: `${isLong(card.message) ? CARD_WIDE_EM : CARD_EM}em` }}>
           <div className={cardOut ? 'tv-banner-out' : 'tv-banner-in'} style={{ padding: '1.6em', borderRadius: '1.2em', background: 'rgba(12,10,18,0.96)', border: `1px solid ${card.color}66`, boxShadow: `0 0 4em ${card.color}33, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(255,255,255,0.55)' }}>
               {card.fresh ? '✦ Vient de donner' : 'Merci à'}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '1em 0 1.1em' }}>
-              <CardPortrait card={card} />
-            </div>
-            <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{card.name ?? ANON_LABEL}</div>
-            {card.message && (
-              <div style={{ marginTop: '0.8em', fontSize: '1.25em', lineHeight: 1.45, textAlign: 'center', color: card.color, textShadow: `0 0 1em ${card.color}55` }}>« {card.message} »</div>
+            {isLong(card.message) ? (
+              // Témoignage : portrait et nom sur une ligne, le texte en grand dessous, aligné à gauche pour se lire
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.2em', margin: '1em 0 1.1em' }}>
+                  <CardPortrait card={card} compact />
+                  <div style={{ fontSize: '2em', fontWeight: 700, lineHeight: 1.1 }}>{card.name ?? ANON_LABEL}</div>
+                </div>
+                <div style={{ position: 'relative', paddingLeft: '1.1em', borderLeft: `0.2em solid ${card.color}`, fontSize: card.message!.length > 340 ? '1.12em' : '1.25em', lineHeight: 1.5, color: 'rgba(255,248,235,0.95)' }}>
+                  {card.message}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '1em 0 1.1em' }}>
+                  <CardPortrait card={card} />
+                </div>
+                <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{card.name ?? ANON_LABEL}</div>
+                {card.message && (
+                  <div style={{ marginTop: '0.8em', fontSize: '1.25em', lineHeight: 1.45, textAlign: 'center', color: card.color, textShadow: `0 0 1em ${card.color}55` }}>« {card.message} »</div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -581,13 +611,13 @@ export default function Ecran() {
 }
 
 /** Portrait de la carte : la photo si le donateur en a mis une, sinon sa pièce de verre telle qu'elle est dans le vitrail. */
-function CardPortrait({ card }: { card: Card }) {
+function CardPortrait({ card, compact }: { card: Card; compact?: boolean }) {
   const [size, setSize] = useState(220)
   useEffect(() => {
-    const s = () => setSize(Math.round(Math.min(window.innerWidth, window.innerHeight * 1.78) * (card.photoUrl ? 0.13 : 0.1)))
+    const s = () => setSize(Math.round(Math.min(window.innerWidth, window.innerHeight * 1.78) * (compact ? 0.06 : card.photoUrl ? 0.13 : 0.1)))
     s()
     window.addEventListener('resize', s)
     return () => window.removeEventListener('resize', s)
-  }, [card.photoUrl])
+  }, [card.photoUrl, compact])
   return <PiecePortrait id={card.id} color={card.color} photoUrl={card.photoUrl} tile={card.tile} size={size} />
 }
