@@ -53,7 +53,7 @@ export const CONFIG = {
   testimonial: {
     invite: "Partager un souvenir de l'École",
     title: "Un souvenir lié à l'École ?",
-    lead: "Une anecdote, un cours qui vous a marqué, ce que l'École a changé pour vous. Votre témoignage accompagne votre morceau, ici et sur le grand écran.",
+    lead: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous. Votre témoignage accompagne votre morceau, ici et sur le grand écran.",
     prompts: [
       "Votre premier cours à l'École ?",
       'Une œuvre dont vous êtes fier ou fière ?',
