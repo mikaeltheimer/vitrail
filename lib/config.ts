@@ -47,14 +47,14 @@ export const CONFIG = {
   /** Sur le verre, seul le début du témoignage s'affiche (le texte complet est dans la fiche et sur l'écran). */
   glassMessageMax: 80,
   /**
-   * Invitation à témoigner, propre à l'organisme : une seule question, simple, et un exemple dans le champ pour
-   * inspirer. L'objectif est d'avoir le plus de témoignages possible, même d'une phrase.
+   * Invitation à témoigner, propre à l'organisme : une seule question, simple, et des pistes dans le champ pour
+   * inspirer. L'objectif est d'avoir le plus de témoignages possible.
    */
   testimonial: {
     question: "Pourquoi soutenez-vous l'École d'art\u00a0?",
     cta: 'Ajoutez votre témoignage.',
-    placeholder: "Une phrase suffit. Par exemple\u00a0: « Parce que c'est ici que ma fille a pris goût au dessin. »",
-    lead: 'Il accompagne votre morceau, ici et sur le grand écran. Une phrase suffit.',
+    placeholder: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous. Votre témoignage accompagne votre morceau, ici et sur le grand écran.",
+    lead: 'Il accompagne votre morceau, ici et sur le grand écran.',
     consent: "L'École peut citer mon témoignage dans ses communications (site, réseaux, rapport annuel).",
   },
   /** Afficher les messages sur le grand écran. Dans une école, on peut le couper ici ou masquer en direct depuis l'admin. */
