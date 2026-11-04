@@ -19,6 +19,7 @@ import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
+import ScaleBadge from '@/components/ScaleBadge'
 
 const CACHE_KEY = 'vitrail:last-snapshot'
 const RELOAD_MS = 6 * 60 * 60 * 1000
@@ -569,6 +570,8 @@ export default function Ecran() {
           </div>
         </div>
       )}
+
+      <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
 
       {/* Pause : appel à donner, au centre, le vitrail entier derrière */}
       {cta && (

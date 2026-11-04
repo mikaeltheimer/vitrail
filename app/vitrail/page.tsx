@@ -25,6 +25,7 @@ import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
+import ScaleBadge from '@/components/ScaleBadge'
 
 const HEADER_HEIGHT = 56
 const MONO = "'Space Mono', monospace"
@@ -1087,6 +1088,8 @@ function Vitrail() {
       {claimOpen && (
         <ClaimPanel amounts={ranked.map(p => p.amountCents)} typicalCents={snap?.typicalCents ?? null} demo={snap?.mode === 'demo'} isMobile={mobile} panelRef={claimPanelRef} onDraftChange={onDraftChange} onClose={() => api.current.closeClaim()} />
       )}
+
+      <ScaleBadge style={{ left: '50%', bottom: 16, transform: 'translateX(-50%)' }} />
 
       {/* ── Retour de paiement ── */}
       {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} onClose={() => setWelcome(null)} onPublished={() => void reloadRef.current()} />}

@@ -8,9 +8,23 @@ import type { Piece } from './types'
 
 // ── Pavage ────────────────────────────────────────────────────────────────────
 
+/**
+ * Exposant de taille en vigueur. Pour comparer des échelles, une page peut le changer par son adresse :
+ * `?echelle=0.75` (de 0,3 à 1,2). Sinon, celui de la configuration.
+ */
+export function sizeExponentOverride(): number | null {
+  if (typeof window === 'undefined') return null
+  const v = parseFloat((new URLSearchParams(window.location.search).get('echelle') ?? '').replace(',', '.'))
+  return Number.isFinite(v) ? Math.min(1.2, Math.max(0.3, v)) : null
+}
+export function sizeExponent(): number {
+  return sizeExponentOverride() ?? CONFIG.sizeExponent
+}
+
 /** Poids de pavage : l'aire d'un morceau suit (montant ^ exposant), avec un plancher (relatif à la moyenne) pour rester visible. */
 export function pieceWeights(pieces: Piece[]): TilingItem[] {
-  const raw = pieces.map(p => Math.pow(p.amountCents, CONFIG.sizeExponent))
+  const e = sizeExponent()
+  const raw = pieces.map(p => Math.pow(p.amountCents, e))
   const mean = raw.length ? raw.reduce((a, b) => a + b, 0) / raw.length : 0
   const floor = mean * CONFIG.minRelativeToMean
   return pieces.map((p, i) => ({ id: p.id, weight: Math.max(raw[i], floor) }))
