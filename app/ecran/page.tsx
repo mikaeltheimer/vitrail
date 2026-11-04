@@ -29,7 +29,7 @@ const READ_MS_PER_CHAR = 45 // témoignage : le temps de le lire (≈ 22 caract�
 const READ_MAX_MS = 20000
 const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise en page « témoignage »
 const CARD_EM = 26
-const CARD_WIDE_EM = 36
+const CARD_WIDE_EM = 46 // portrait à gauche (même taille que pour un texte court), texte à droite
 const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
 const CTA_EVERY = 6 // une pause « Faites partie du vitrail » toutes les N visites
 const CTA_MS = 11000
@@ -543,16 +543,18 @@ export default function Ecran() {
               {card.fresh ? '✦ Vient de donner' : 'Merci à'}
             </div>
             {isLong(card.message) ? (
-              // Témoignage : portrait et nom sur une ligne, le texte en grand dessous, aligné à gauche pour se lire
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.2em', margin: '1em 0 1.1em' }}>
-                  <CardPortrait card={card} compact />
-                  <div style={{ fontSize: '2em', fontWeight: 700, lineHeight: 1.1 }}>{card.name ?? ANON_LABEL}</div>
+              // Témoignage : le portrait à gauche, au même format que pour un texte court ; le nom et le texte à droite
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.6em', marginTop: '1em' }}>
+                <div style={{ flexShrink: 0 }}>
+                  <CardPortrait card={card} />
                 </div>
-                <div style={{ position: 'relative', paddingLeft: '1.1em', borderLeft: `0.2em solid ${card.color}`, fontSize: card.message!.length > 340 ? '1.12em' : '1.25em', lineHeight: 1.5, color: 'rgba(255,248,235,0.95)' }}>
-                  {card.message}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1 }}>{card.name ?? ANON_LABEL}</div>
+                  <div style={{ marginTop: '0.7em', paddingLeft: '1em', borderLeft: `0.2em solid ${card.color}`, fontSize: card.message!.length > 340 ? '1.1em' : '1.22em', lineHeight: 1.5, color: 'rgba(255,248,235,0.95)' }}>
+                    {card.message}
+                  </div>
                 </div>
-              </>
+              </div>
             ) : (
               <>
                 <div style={{ display: 'flex', justifyContent: 'center', margin: '1em 0 1.1em' }}>
@@ -611,13 +613,13 @@ export default function Ecran() {
 }
 
 /** Portrait de la carte : la photo si le donateur en a mis une, sinon sa pièce de verre telle qu'elle est dans le vitrail. */
-function CardPortrait({ card, compact }: { card: Card; compact?: boolean }) {
+function CardPortrait({ card }: { card: Card }) {
   const [size, setSize] = useState(220)
   useEffect(() => {
-    const s = () => setSize(Math.round(Math.min(window.innerWidth, window.innerHeight * 1.78) * (compact ? 0.06 : card.photoUrl ? 0.13 : 0.1)))
+    const s = () => setSize(Math.round(Math.min(window.innerWidth, window.innerHeight * 1.78) * (card.photoUrl ? 0.13 : 0.1)))
     s()
     window.addEventListener('resize', s)
     return () => window.removeEventListener('resize', s)
-  }, [card.photoUrl, compact])
+  }, [card.photoUrl])
   return <PiecePortrait id={card.id} color={card.color} photoUrl={card.photoUrl} tile={card.tile} size={size} />
 }
