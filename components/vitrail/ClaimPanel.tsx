@@ -92,7 +92,6 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
   const [name, setName] = useState(saved?.name ?? '')
   const [color, setColor] = useState<string>(saved?.color ?? GLASS_COLORS[0].value)
   const [message, setMessage] = useState(saved?.message ?? '')
-  const [showDetails, setShowDetails] = useState(!!saved?.message)
   const [quoteConsent, setQuoteConsent] = useState(saved?.quoteConsent ?? false)
   const [photo, setPhoto] = useState<{ src: string | null; path: string | null }>(saved?.photo ?? { src: null, path: null })
   const photoBlob = useRef<Blob | null>(null)
@@ -327,6 +326,15 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
         <dd style={monoStyle}>{rank === 1 ? '1er' : `${rank.toLocaleString('fr-CA')}e`}</dd>
       </dl>
 
+      {/* ---------- Témoignage : bien en vue, tout de suite sous le montant (c'est ce qui rend le vitrail vivant) ---------- */}
+      <div style={{ display: 'grid', gap: '8px', padding: '14px', borderRadius: '10px', border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.07)', boxShadow: '0 0 24px rgba(251,191,36,0.08)' }}>
+        <div>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>{CONFIG.testimonial.question}</div>
+          <div style={{ fontSize: '14px', color: GOLD, marginTop: '2px' }}>{CONFIG.testimonial.cta}</div>
+        </div>
+        <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={3} />
+      </div>
+
       {/* ---------- Le morceau ---------- */}
       <div style={{ display: 'grid', gap: '6px' }}>
         <span style={labelStyle}>Votre verre</span>
@@ -382,33 +390,7 @@ export default function ClaimPanel({ amounts, typicalCents, demo, isMobile, pane
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
       </div>
 
-      {/* Témoignage : replié, pour ne pas freiner le don ; il est aussi proposé après le paiement */}
-      {showDetails ? (
-        <div style={{ display: 'grid', gap: '8px', padding: '12px', borderRadius: '10px', border: '1px solid rgba(251,191,36,0.25)', background: 'rgba(251,191,36,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={labelStyle}>Votre témoignage</span>
-            <button
-              type="button"
-              onClick={() => {
-                setShowDetails(false)
-                setMessage('')
-                setQuoteConsent(false)
-              }}
-              style={{ ...linkButtonStyle, fontSize: '12px' }}
-            >
-              Retirer
-            </button>
-          </div>
-          <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} />
-        </div>
-      ) : (
-        <button type="button" onClick={() => setShowDetails(true)} style={{ ...linkButtonStyle, justifySelf: 'start', color: GOLD }}>
-          + {CONFIG.testimonial.invite}
-        </button>
-      )}
-      <p style={{ ...hintStyle, marginTop: '-6px' }}>
-        Nom, photo et témoignage sont facultatifs et indépendants : sans nom, votre morceau est « Anonyme ». Vous pourrez aussi ajouter votre témoignage après le don.
-      </p>
+      <p style={{ ...hintStyle, marginTop: '-6px' }}>Nom et photo sont facultatifs : sans nom, votre morceau est « Anonyme ».</p>
 
       {error && <p style={{ margin: 0, fontSize: '13px', color: '#f87171' }}>{error}</p>}
       {demo && (

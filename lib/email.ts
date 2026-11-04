@@ -31,7 +31,7 @@ export async function sendReceipt(to: string, amountCents: number, token: string
     [
       `Merci! Votre don de ${formatMoney(amountCents)} est enregistré et votre morceau s'ajoute au vitrail de l'${CONFIG.orgName}.`,
       '',
-      `${CONFIG.testimonial.title} ${CONFIG.testimonial.lead}`,
+      `${CONFIG.testimonial.question} ${CONFIG.testimonial.cta} ${CONFIG.testimonial.lead}`,
       'Ajoutez votre témoignage, ou modifiez votre morceau (nom, photo) :',
       manageLink(token),
       '',

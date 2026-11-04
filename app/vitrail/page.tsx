@@ -1192,13 +1192,13 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
             {asking && (
               <>
                 <p style={{ ...welcomeText, marginTop: 4 }}>
-                  <b style={{ color: '#fff' }}>{CONFIG.testimonial.title}</b> Racontez-le : il accompagnera votre morceau, et passera sur le grand écran.
+                  <b style={{ color: '#fff' }}>{CONFIG.testimonial.question}</b> <span style={{ color: GOLD }}>{CONFIG.testimonial.cta}</span> {CONFIG.testimonial.lead}
                 </p>
                 <TestimonialField value={text} onChange={setText} consent={consent} onConsent={setConsent} rows={isMobile ? 3 : 4} />
                 {error && <p style={{ margin: 0, fontSize: 13, color: '#f87171' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
                   <button onClick={publish} disabled={!text.trim() || busy} style={{ ...goldButtonStyle, flex: 1, opacity: text.trim() && !busy ? 1 : 0.45, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed' }}>
-                    {busy ? 'Un instant…' : 'Publier mon souvenir'}
+                    {busy ? 'Un instant…' : 'Publier mon témoignage'}
                   </button>
                   <button onClick={() => setStep('later')} style={laterButtonStyle}>
                     Plus tard
@@ -1208,14 +1208,14 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
             )}
 
             {step === 'done' && (
-              <p style={welcomeText}>{pending ? 'Merci pour ce souvenir ! Il apparaîtra dès que l’équipe l’aura lu.' : 'Merci pour ce souvenir ! Il accompagne maintenant votre morceau.'}</p>
+              <p style={welcomeText}>{pending ? 'Merci pour ce témoignage ! Il apparaîtra dès que l’équipe l’aura lu.' : 'Merci pour ce témoignage ! Il accompagne maintenant votre morceau.'}</p>
             )}
 
             {!asking && (
               <div style={{ display: 'grid', gap: 6, marginTop: 2 }}>
                 <p style={welcomeMuted}>
                   {step === 'later'
-                    ? 'Gardez ce lien : il vous permet d’ajouter votre souvenir quand vous aurez un moment, et de modifier votre morceau.'
+                    ? 'Gardez ce lien : il vous permet d’ajouter votre témoignage quand vous aurez un moment, et de modifier votre morceau.'
                     : 'Ce lien vous permet de modifier votre morceau (nom, photo, témoignage).'}
                 </p>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

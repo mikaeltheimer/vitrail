@@ -1,12 +1,10 @@
 'use client'
 
-// Champ « témoignage » (souvenir, anecdote) : une question d'amorce qui change à chaque fois, un compteur,
-// et le consentement à la citation, qui n'apparaît qu'une fois le texte commencé. Utilisé au don et après.
+// Champ « témoignage » : la question est posée par le conteneur ; ici, le texte (un exemple en placeholder pour
+// inspirer), un compteur et le consentement à la citation, qui n'apparaît qu'une fois le texte commencé.
 
-import { useEffect, useState, type CSSProperties } from 'react'
+import { type CSSProperties } from 'react'
 import { CONFIG } from '@/lib/config'
-
-const PROMPTS = CONFIG.testimonial.prompts
 
 interface Props {
   value: string
@@ -18,32 +16,21 @@ interface Props {
 }
 
 export default function TestimonialField({ value, onChange, consent, onConsent, rows = 4, autoFocus }: Props) {
-  const [i, setI] = useState(0)
-  // Amorce tirée au hasard après le montage (le serveur ne peut pas faire le même tirage)
-  useEffect(() => {
-    Promise.resolve().then(() => setI(Math.floor(Math.random() * PROMPTS.length)))
-  }, [])
   const left = CONFIG.messageMax - value.length
 
   return (
     <div style={{ display: 'grid', gap: '6px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '10px' }}>
-        <span style={{ fontSize: '14px', fontWeight: 600, color: '#fde68a' }}>{PROMPTS[i]}</span>
-        <button type="button" onClick={() => setI(n => (n + 1) % PROMPTS.length)} style={linkStyle}>
-          ↻ Une autre idée
-        </button>
-      </div>
       <textarea
         value={value}
         maxLength={CONFIG.messageMax}
         rows={rows}
         autoFocus={autoFocus}
-        placeholder={CONFIG.testimonial.lead}
+        placeholder={CONFIG.testimonial.placeholder}
         onChange={e => onChange(e.target.value)}
         style={textareaStyle}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-        <span>Le début s&apos;affiche sur votre morceau, le texte entier sur le grand écran et dans votre fiche.</span>
+        <span>Affiché avec votre morceau, ici et sur le grand écran.</span>
         <span style={{ fontFamily: "'Space Mono', monospace", color: left < 40 ? '#fbbf24' : undefined, flexShrink: 0 }}>{left}</span>
       </div>
       {value.trim() && (
@@ -66,14 +53,4 @@ const textareaStyle: CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
   resize: 'vertical',
-}
-const linkStyle: CSSProperties = {
-  background: 'none',
-  border: 0,
-  padding: 0,
-  color: 'rgba(255,255,255,0.55)',
-  fontFamily: "'Space Grotesk', sans-serif",
-  fontSize: '12px',
-  cursor: 'pointer',
-  flexShrink: 0,
 }

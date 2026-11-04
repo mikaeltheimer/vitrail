@@ -47,7 +47,6 @@ function DonForm() {
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
   const [quoteConsent, setQuoteConsent] = useState(false)
-  const [showTestimonial, setShowTestimonial] = useState(false)
   // Sans choix du donateur, le serveur attribue une couleur à partir du courriel
   const [color, setColor] = useState<string | null>(null)
   const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
@@ -306,13 +305,13 @@ function DonForm() {
 
               <div className="mt-3 space-y-3">
                 {showName && <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} autoComplete="nickname" />}
-                {showTestimonial ? (
-                  <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={4} />
-                ) : (
-                  <button type="button" className="text-sm underline" style={{ color: 'var(--gold, #fbbf24)' }} onClick={() => setShowTestimonial(true)}>
-                    + {CONFIG.testimonial.invite} <span className="muted">(ou plus tard, avec le lien reçu après le don)</span>
-                  </button>
-                )}
+                <div className="space-y-2 rounded-xl p-3" style={{ border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.07)' }}>
+                  <div>
+                    <b>{CONFIG.testimonial.question}</b>
+                    <div className="text-sm" style={{ color: '#fbbf24' }}>{CONFIG.testimonial.cta}</div>
+                  </div>
+                  <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={3} />
+                </div>
                   <PhotoField value={photo} onChange={setPhoto} onBusyChange={setPhotoBusy} />
               </div>
             </div>

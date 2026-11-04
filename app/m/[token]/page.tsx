@@ -107,8 +107,10 @@ export default function ManagePage() {
       <form onSubmit={save} className="space-y-5">
         {/* Le témoignage d'abord : c'est souvent pour lui qu'on revient avec ce lien */}
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold">{CONFIG.testimonial.title}</h2>
-          <p className="muted text-sm">{CONFIG.testimonial.lead}</p>
+          <h2 className="text-lg font-semibold">{CONFIG.testimonial.question}</h2>
+          <p className="text-sm" style={{ color: '#fbbf24' }}>
+            {CONFIG.testimonial.cta} <span className="muted">{CONFIG.testimonial.lead}</span>
+          </p>
           <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={5} />
           {messagePending && <p className="muted text-xs">Votre témoignage apparaîtra dès que l&apos;équipe l&apos;aura lu.</p>}
         </section>

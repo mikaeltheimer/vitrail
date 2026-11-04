@@ -111,10 +111,12 @@ function Merci() {
 
           {!thanks.hasMessage && (
           <div className="card mb-4 text-left text-sm" style={{ borderColor: 'rgba(255,231,160,0.5)' }}>
-            <b style={{ color: '#ffe7a0' }}>{CONFIG.testimonial.title}</b>
-            <div className="muted mt-1">{CONFIG.testimonial.lead}</div>
+            <b style={{ color: '#ffe7a0' }}>{CONFIG.testimonial.question}</b>
+            <div className="muted mt-1">
+              {CONFIG.testimonial.cta} {CONFIG.testimonial.lead}
+            </div>
             <Link href={`/m/${thanks.token}`} className="btn mt-3">
-              Partager mon souvenir
+              Ajouter mon témoignage
             </Link>
             <div className="muted mt-2 text-xs">Pas maintenant ? Gardez ce lien : il est aussi dans le courriel de confirmation.</div>
           </div>
