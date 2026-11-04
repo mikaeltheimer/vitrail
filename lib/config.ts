@@ -53,8 +53,8 @@ export const CONFIG = {
   testimonial: {
     question: "Pourquoi soutenez-vous l'École d'art\u00a0?",
     cta: 'Ajoutez votre témoignage.',
-    placeholder: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous. Votre témoignage accompagne votre morceau, ici et sur le grand écran.",
-    lead: 'Il accompagne votre morceau, ici et sur le grand écran.',
+    placeholder: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous.",
+    lead: 'Votre témoignage accompagne votre morceau, ici et sur le grand écran.',
     consent: "L'École peut citer mon témoignage dans ses communications (site, réseaux, rapport annuel).",
   },
   /** Afficher les messages sur le grand écran. Dans une école, on peut le couper ici ou masquer en direct depuis l'admin. */
