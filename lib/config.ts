@@ -26,10 +26,11 @@ export const CONFIG = {
 
   /**
    * Taille d'un morceau : l'aire est proportionnelle à (montant ^ sizeExponent).
-   * 1 = strictement proportionnel, comme Pay to Exist (un don 50 fois plus gros prend 50 fois plus de place) ; 0,5 = racine carrée (seulement ~7 fois plus).
+   * 1 = strictement proportionnel, comme Pay to Exist (un don 50 fois plus gros prend 50 fois plus de place) ; 0,75 ≈ 19 fois ; 0,5 = racine carrée (~7 fois).
+   * 0,75 retenu en attendant les vrais dons ; comparer avec ?echelle=… sur /vitrail et /ecran.
    * À valider avec une vraie distribution de dons : beaucoup de petits, quelques gros.
    */
-  sizeExponent: 1,
+  sizeExponent: 0.75,
   /**
    * Plancher de taille, en fraction de la taille moyenne d'un morceau : un petit don ne devient jamais une poussière
    * quand le vitrail grossit. 0 = aucun plancher ; 0,1 = un morceau a au moins 10 % de la taille d'un morceau moyen (simple garde-fou, il ne joue presque jamais).
