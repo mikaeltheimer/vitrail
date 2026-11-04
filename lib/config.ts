@@ -7,7 +7,10 @@ export const CONFIG = {
   orgAbout:
     "L'École d'art de Sutton est un organisme à but non lucratif voué à l'éveil artistique des enfants, petits et grands, par des expériences de création. Depuis 2016, c'est aussi un centre d'art pluridisciplinaire qui fait se rencontrer artistes et enfants : explorations libres, expositions, projections, performances et résidences d'artistes en recherche-création.",
   /** Pourquoi donner : en une phrase, montrée au moment du don. */
-  orgWhy: "Aucune subvention gouvernementale : vos dons font vivre l'école. Ils paient le bâtiment dont elle est propriétaire, les loyers, l'électricité et le matériel des ateliers.",
+  orgWhy:
+    "L'École avance sans subvention gouvernementale : c'est sa communauté qui la fait vivre. Chaque don rend possibles ses ateliers, ses expositions et ses résidences d'artistes.",
+  /** La même idée en une phrase, pour l'appel à donner du grand écran. */
+  orgWhyShort: "C'est la communauté qui fait vivre l'École",
   appName: 'Vitrail de dons',
   currency: 'cad',
 

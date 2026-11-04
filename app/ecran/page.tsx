@@ -577,7 +577,7 @@ export default function Ecran() {
             <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>Faites partie du vitrail</div>
             <div style={{ fontSize: '2.3em', fontWeight: 700, lineHeight: 1.1, marginTop: '0.35em' }}>Chaque don devient un morceau de verre</div>
             <div style={{ fontSize: '1.2em', lineHeight: 1.4, marginTop: '0.6em', color: 'rgba(255,255,255,0.8)' }}>
-              Plus le don est grand, plus le morceau l&apos;est. {CONFIG.orgWhy.split(':')[0].trim()}.
+              Plus le don est grand, plus le morceau l&apos;est. {CONFIG.orgWhyShort}.
             </div>
             <div style={{ fontSize: '1.3em', fontWeight: 600, marginTop: '0.7em', color: GOLD }}>Scannez le code →</div>
           </div>
