@@ -29,7 +29,7 @@ export interface CheckoutRequest {
   channel: string | null
 }
 
-/** Adresses de retour : depuis le vitrail, on y revient (comme Pay to Exist) ; sinon, la page de remerciement. */
+/** Adresses de retour : depuis le vitrail, on y revient ; sinon, la page de remerciement. */
 function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string) {
   const base = siteUrl()
   return returnTo === 'vitrail'

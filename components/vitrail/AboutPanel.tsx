@@ -6,8 +6,8 @@
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 
-const MONO = "'Space Mono', monospace"
-const GOLD = '#fbbf24'
+const MONO = "'DM Sans', sans-serif"
+const GOLD = '#F0B24A'
 
 export default function AboutPanel({
   isMobile,
@@ -41,7 +41,7 @@ export default function AboutPanel({
         width: isMobile ? 'auto' : 380,
         background: 'rgba(15,15,25,0.97)',
         backdropFilter: 'blur(30px)',
-        borderLeft: isMobile ? 'none' : '1px solid rgba(251,191,36,0.2)',
+        borderLeft: isMobile ? 'none' : '1px solid rgba(240,178,74,0.2)',
         boxShadow: '0 0 40px rgba(0,0,0,0.5)',
         zIndex: 600,
         overflowY: 'auto',
@@ -54,7 +54,7 @@ export default function AboutPanel({
         <button
           onClick={onClose}
           aria-label="Fermer"
-          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#F4EFE6', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           ×
         </button>
@@ -65,14 +65,14 @@ export default function AboutPanel({
         <img src="/ecole-logo.png" alt={CONFIG.orgName} style={{ width: 240, maxWidth: '100%', height: 'auto' }} />
 
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>Le vitrail de l&apos;{CONFIG.orgName}</h2>
+          <h2 className="font-display" style={{ fontSize: 24, lineHeight: 1.2, margin: 0 }}>Le Donivers de l&apos;{CONFIG.orgName}</h2>
           <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
             Chaque morceau de verre est un don à l&apos;école. Ensemble, ils forment ce vitrail, qui grandit à chaque nouveau don.
           </p>
         </div>
 
         {/* Où en est la collecte */}
-        <div style={{ padding: 16, borderRadius: 12, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)' }}>
+        <div style={{ padding: 16, borderRadius: 12, background: 'rgba(240,178,74,0.06)', border: '1px solid rgba(240,178,74,0.25)' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, color: GOLD }}>{formatMoney(totalCents)}</span>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{goalCents > 0 ? `sur ${formatMoney(goalCents)}` : 'amassés'}</span>
@@ -89,7 +89,7 @@ export default function AboutPanel({
 
         <div>
           <h3 style={sectionTitle}>Pourquoi donner</h3>
-          <p style={{ fontSize: 15, lineHeight: 1.6, color: '#fff', fontWeight: 500 }}>{CONFIG.orgWhy}</p>
+          <p style={{ fontSize: 15, lineHeight: 1.6, color: '#F4EFE6', fontWeight: 500 }}>{CONFIG.orgWhy}</p>
         </div>
 
         <div>
@@ -117,7 +117,7 @@ export default function AboutPanel({
 
         <button
           onClick={onClaim}
-          style={{ padding: '13px 18px', background: GOLD, color: '#1a1406', border: 0, borderRadius: 999, fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 8px 30px rgba(251,191,36,0.25)' }}
+          style={{ padding: '13px 18px', background: GOLD, color: '#1A1208', border: 0, borderRadius: 999, fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 8px 30px rgba(240,178,74,0.25)' }}
         >
           Ajouter mon morceau
         </button>
@@ -127,6 +127,20 @@ export default function AboutPanel({
             Confidentialité
           </a>
         </p>
+
+        {/* La plateforme : seul endroit (avec la confidentialité) où Studio Existence apparaît */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
+          <div className="font-display" style={{ fontSize: 18 }}>{CONFIG.brand.name}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{CONFIG.brand.descriptor}</div>
+          <div className="slogan" style={{ fontSize: 14, marginTop: 6 }}>{CONFIG.brand.slogan}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 8 }}>
+            Une création de{' '}
+            <a href={CONFIG.brand.studioUrl} target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              {CONFIG.brand.studio}
+            </a>
+            .
+          </div>
+        </div>
       </div>
     </div>
   )

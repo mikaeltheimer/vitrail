@@ -1,6 +1,6 @@
 'use client'
 
-// Le vitrail en ligne : calque de la rosace de Pay to Exist (mêmes emplacements, mêmes gestes), adaptée à la collecte.
+// Le vitrail en ligne : la rosace du Donivers, adaptée à la collecte.
 // En-tête 56 px, vitrail dessous ; à gauche (ordinateur) : recherche, « Rencontrer quelqu'un », « Mon morceau »,
 // mini-carte qu'on fait glisser ; fiche à droite ; « Ajouter mon morceau » ouvre le panneau de don sur place,
 // avec l'aperçu du morceau en direct dans le vitrail. Téléphone : bouton doré flottant, mini-carte en bas à droite,
@@ -28,8 +28,8 @@ import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
 
 const HEADER_HEIGHT = 56
-const MONO = "'Space Mono', monospace"
-const GOLD = '#fbbf24'
+const MONO = "'DM Sans', sans-serif"
+const GOLD = '#F0B24A'
 const ROSACE_FRAME = 0.8
 const MAX_ZOOM = 60
 const IDLE_DRIFT_AFTER_MS = 30_000
@@ -39,25 +39,25 @@ const PREVIEW_ID = '__preview__'
 const BOUNDS = UNIVERSE_RADIUS * 1.08 // monde visible dans les mini-cartes
 
 const introTitleStyle: React.CSSProperties = {
-  fontFamily: "'Space Grotesk', sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
   fontWeight: 600,
   fontSize: 'clamp(22px, 3.4vw, 34px)',
   letterSpacing: '-0.02em',
-  color: '#fff',
+  color: '#F4EFE6',
   textShadow: '0 2px 24px rgba(0,0,0,0.9)',
   fontVariantNumeric: 'tabular-nums',
 }
 const goldButtonStyle: React.CSSProperties = {
   padding: '11px 18px',
   background: GOLD,
-  color: '#1a1406',
+  color: '#1A1208',
   border: 0,
   borderRadius: '999px',
-  fontFamily: "'Space Grotesk', sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
   fontSize: '14px',
   fontWeight: 600,
   cursor: 'pointer',
-  boxShadow: '0 8px 30px rgba(251,191,36,0.25)',
+  boxShadow: '0 8px 30px rgba(240,178,74,0.25)',
 }
 
 type Cam = { x: number; y: number; zoom: number }
@@ -106,7 +106,7 @@ export default function VitrailPage() {
 function Vitrail() {
   const params = useSearchParams()
   const focusParam = params.get('d')
-  // Retour de Stripe (?merci=réf.) : comme Pay to Exist, on revient sur le vitrail, directement sur son morceau
+  // Retour de Stripe (?merci=réf.) : on revient sur le vitrail, directement sur son morceau
   const arrivalRef = useRef(params.get('merci'))
   const reloadRef = useRef<() => Promise<void>>(async () => {})
   const [welcome, setWelcome] = useState<Welcome | null>(null)
@@ -261,7 +261,7 @@ function Vitrail() {
       w.anim = requestAnimationFrame(step)
     }
 
-    // ── Sélection, comme zoomToBubble de Pay to Exist : la pièce occupe la moitié de l'écran ──
+    // ── Sélection, la pièce occupe la moitié de l'écran ──
     const zoomTo = (id: string, openSheet: boolean) => {
       const tile = w.tiles.get(id)
       if (!tile) return
@@ -289,7 +289,7 @@ function Vitrail() {
       layerKey = ''
       flyTo(homeCam(), 800)
     }
-    // Navigation par rang (1 = le plus grand), comme Prev / Next de Pay to Exist
+    // Navigation par rang (1 = le plus grand)
     const step = (dir: 1 | -1) => {
       const n = w.ranked.length
       if (!n) return
@@ -332,7 +332,7 @@ function Vitrail() {
       w.version++
       layerKey = ''
       w.needs = true
-      const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#f472b6', t.id)
+      const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#E0657F', t.id)
       ambience.rebuild(tiles.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
         const t = hitTile(tiles.values(), x, y)
         return t ? colorOf(t) : null
@@ -340,7 +340,7 @@ function Vitrail() {
       setTilesMap(tiles)
     }
 
-    // Cadrage de l'aperçu (frameUniverseFor de Pay to Exist) : la place dans le vitrail, ou un gros plan
+    // Cadrage de l'aperçu : la place dans le vitrail, ou un gros plan
     const frameFor = (closeUp: boolean) => {
       const tile = w.tiles.get(PREVIEW_ID)
       if (!tile) return
@@ -831,7 +831,7 @@ function Vitrail() {
         w.pieces = pieceMap(s.pieces)
         w.version++
         w.needs = true
-        const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#f472b6', t.id)
+        const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#E0657F', t.id)
         ambience.rebuild(tiles.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
           const t = hitTile(tiles.values(), x, y)
           return t ? colorOf(t) : null
@@ -943,11 +943,11 @@ function Vitrail() {
     if (el) viewRects.current.add(el)
   }, [])
   const polygons = [...tilesMap.values()].map(t => (
-    <polygon key={t.id} points={t.svgPoints} fill={colorById.get(t.id) ?? (t.id === PREVIEW_ID ? GOLD : '#f472b6')} opacity={selected === t.id ? 1 : 0.5} />
+    <polygon key={t.id} points={t.svgPoints} fill={colorById.get(t.id) ?? (t.id === PREVIEW_ID ? GOLD : '#E0657F')} opacity={selected === t.id ? 1 : 0.5} />
   ))
 
   return (
-    <div className="h-screen overflow-hidden" style={{ background: '#07060b' }}>
+    <div className="h-screen overflow-hidden" style={{ background: '#0B0A12' }}>
       <Header
         mobile={mobile}
         count={count}
@@ -1006,7 +1006,7 @@ function Vitrail() {
           {!claimOpen && intro === 'off' && count > 1 && !sheetOpen && !piece && (
             <button
               onClick={() => api.current.meet()}
-              style={{ position: 'fixed', left: '16px', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 120, padding: '11px 16px', borderRadius: '999px', border: '1px solid rgba(251,191,36,0.5)', background: 'rgba(12,10,18,0.85)', backdropFilter: 'blur(6px)', color: GOLD, fontFamily: MONO, fontSize: '13px', fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+              style={{ position: 'fixed', left: '16px', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 120, padding: '11px 16px', borderRadius: '999px', border: '1px solid rgba(240,178,74,0.5)', background: 'rgba(12,10,18,0.85)', backdropFilter: 'blur(6px)', color: GOLD, fontFamily: MONO, fontSize: '13px', fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
             >
               ✦ Rencontrer quelqu&apos;un
             </button>
@@ -1066,7 +1066,7 @@ function Vitrail() {
 
       {!mobile && !claimOpen && <HoverCard piece={hoveredPiece} />}
 
-      {/* ── Derniers dons (à la place du $EXIST) ── */}
+      {/* ── Derniers dons  ── */}
       <Ticker recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
 
       {/* ── À propos de la collecte ── */}
@@ -1097,14 +1097,14 @@ function Vitrail() {
       {/* ── Nouveau don pendant la visite ── */}
       {toast && !claimOpen && !welcome && (
         <div style={{ position: 'fixed', left: '50%', top: HEADER_HEIGHT + 72, transform: 'translateX(-50%)', zIndex: 400, width: 'min(92vw, 420px)' }}>
-          <div className="tv-banner-in" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(14,12,22,0.95)', border: '1px solid rgba(251,191,36,0.45)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+          <div className="tv-banner-in" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(20,18,29,0.95)', border: '1px solid rgba(240,178,74,0.45)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
             <span style={{ flex: 1, fontSize: 13 }}>{toast.text}</span>
             <button
               onClick={() => {
                 api.current.select(toast.donorId, true)
                 setToast(null)
               }}
-              style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(251,191,36,0.5)', background: 'transparent', color: GOLD, fontFamily: MONO, fontSize: 12, cursor: 'pointer' }}
+              style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(240,178,74,0.5)', background: 'transparent', color: GOLD, fontFamily: MONO, fontSize: 12, cursor: 'pointer' }}
             >
               Voir
             </button>
@@ -1126,7 +1126,7 @@ function Vitrail() {
   )
 }
 
-// ═════════════════════════════════ En-tête (mise en page de Pay to Exist) ═════════════════════════════════
+// ═════════════════════════════════ En-tête  ═════════════════════════════════
 type Welcome =
   | { state: 'wait' }
   | { state: 'lost' }
@@ -1176,7 +1176,7 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
     <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 480px)' }}>
       <div
         className="tv-banner-in"
-        style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(14,12,22,0.97)', border: '1px solid rgba(251,191,36,0.55)', boxShadow: '0 0 40px rgba(251,191,36,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'Space Grotesk', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - 120px)', overflowY: 'auto' }}
+        style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(20,18,29,0.97)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 0 40px rgba(240,178,74,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'DM Sans', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - 120px)', overflowY: 'auto' }}
       >
         {welcome.state !== 'wait' && (
           <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
@@ -1195,7 +1195,7 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
             {asking && (
               <>
                 <p style={{ ...welcomeText, marginTop: 4 }}>
-                  <b style={{ color: '#fff' }}>{CONFIG.testimonial.question}</b> <span style={{ color: GOLD }}>{CONFIG.testimonial.cta}</span> {CONFIG.testimonial.lead}
+                  <b style={{ color: '#F4EFE6' }}>{CONFIG.testimonial.question}</b> <span style={{ color: GOLD }}>{CONFIG.testimonial.cta}</span> {CONFIG.testimonial.lead}
                 </p>
                 <TestimonialField value={text} onChange={setText} consent={consent} onConsent={setConsent} rows={isMobile ? 3 : 4} />
                 {error && <p style={{ margin: 0, fontSize: 13, color: '#f87171' }}>{error}</p>}
@@ -1222,7 +1222,7 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
                     : 'Ce lien vous permet de modifier votre morceau (nom, photo, témoignage).'}
                 </p>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <code style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, padding: '8px 10px', borderRadius: 8, background: '#0d0b13', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}>{editUrl}</code>
+                  <code style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, padding: '8px 10px', borderRadius: 8, background: '#0B0A12', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}>{editUrl}</code>
                   <button onClick={copy} style={laterButtonStyle}>
                     {copied ? 'Copié' : 'Copier'}
                   </button>
@@ -1241,7 +1241,7 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
 
 const welcomeText: React.CSSProperties = { margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45 }
 const welcomeMuted: React.CSSProperties = { margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.45 }
-const laterButtonStyle: React.CSSProperties = { padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, cursor: 'pointer', flexShrink: 0 }
+const laterButtonStyle: React.CSSProperties = { padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#F4EFE6', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 14, cursor: 'pointer', flexShrink: 0 }
 
 function Header({
   mobile,
@@ -1279,14 +1279,14 @@ function Header({
   const [query, setQuery] = useState('')
   const q = query.trim().toLocaleLowerCase('fr-CA')
   const results = q ? ranked.filter(p => p.name?.toLocaleLowerCase('fr-CA').includes(q)).slice(0, 8) : []
-  // L'école d'abord : son oiseau, puis le nom du vitrail et de l'école
+  // L'organisme d'abord : son emblème et son nom ; Donivers, discret, dessous
   const brand = (
-    <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
+    <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#F4EFE6', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/ecole-mark.png" alt="" style={{ height: 32, width: 'auto', flexShrink: 0 }} />
       <span style={{ display: 'grid', minWidth: 0, lineHeight: 1.1 }}>
-        <span style={{ fontSize: mobile ? '16px' : '18px', fontWeight: 700, letterSpacing: '-0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.appName}</span>
-        <span style={{ fontFamily: MONO, fontSize: '10.5px', color: 'rgba(255,255,255,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.orgName}</span>
+        <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.orgName}</span>
+        <span style={{ fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.brand.name}</span>
       </span>
     </button>
   )
@@ -1300,7 +1300,7 @@ function Header({
       <>
         <header style={{ ...base, padding: '0 16px', gap: 8 }}>
           {brand}
-          <button onClick={onAbout} style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', background: 'none', border: 0, color: '#fff', padding: 0, display: 'grid', justifyItems: 'center', gap: 3 }}>
+          <button onClick={onAbout} style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', background: 'none', border: 0, color: '#F4EFE6', padding: 0, display: 'grid', justifyItems: 'center', gap: 3 }}>
             <span style={{ fontWeight: 700, color: GOLD }}>{formatMoney(raised)}</span>
             {goalCents > 0 && (
               <span style={{ width: 64, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
@@ -1310,14 +1310,14 @@ function Header({
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {count > 0 && (
-              <button onClick={() => setSearchOpen(true)} aria-label="Rechercher" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setSearchOpen(true)} aria-label="Rechercher" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </button>
             )}
-            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 {menuOpen ? (
                   <>
@@ -1358,7 +1358,7 @@ function Header({
         {searchOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(6,6,10,0.97)', padding: 16 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Chercher quelqu'un" style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: '#0d0b13', color: '#fff', fontSize: 16, fontFamily: MONO }} />
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Chercher quelqu'un" style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: '#0B0A12', color: '#F4EFE6', fontSize: 16, fontFamily: MONO }} />
               <button
                 onClick={() => {
                   setSearchOpen(false)
@@ -1378,7 +1378,7 @@ function Header({
                     setQuery('')
                     onPick(p.id)
                   }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', background: 'none', border: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#fff', textAlign: 'left', fontSize: 15 }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', background: 'none', border: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#F4EFE6', textAlign: 'left', fontSize: 15 }}
                 >
                   <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
@@ -1396,7 +1396,7 @@ function Header({
   return (
     <header style={{ ...base, padding: '0 24px' }}>
       <div style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex' }}>{brand}</div>
-      <button onClick={onAbout} title="À propos de la collecte" style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#fff', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
+      <button onClick={onAbout} title="À propos de la collecte" style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#F4EFE6', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
         <span>
           <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{formatMoney(raised)}</span>
           <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>{goalCents > 0 ? `amassés sur ${formatMoney(goalCents)}` : 'amassés pour l’école'}</span>
@@ -1419,7 +1419,7 @@ function Header({
         <button
           type="button"
           onClick={onClaim}
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 18px', marginLeft: '12px', background: GOLD, color: '#1a1406', border: 0, borderRadius: '999px', fontFamily: "'Space Grotesk', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(251,191,36,0.22)' }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 18px', marginLeft: '12px', background: GOLD, color: '#1A1208', border: 0, borderRadius: '999px', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(240,178,74,0.22)' }}
         >
           {claimLabel}
         </button>
@@ -1427,7 +1427,7 @@ function Header({
     </header>
   )
 }
-const menuLink: React.CSSProperties = { padding: '12px 0', color: '#fff', textDecoration: 'none', fontSize: 15, borderBottom: '1px solid rgba(255,255,255,0.06)' }
+const menuLink: React.CSSProperties = { padding: '12px 0', color: '#F4EFE6', textDecoration: 'none', fontSize: 15, borderBottom: '1px solid rgba(255,255,255,0.06)' }
 
 // ═════════════════════════════════ Colonne de gauche (ordinateur) ═════════════════════════════════
 function SideButton({ bottom, gold, color, onClick, title, children }: { bottom: number; gold?: boolean; color?: string; onClick: () => void; title?: string; children: React.ReactNode }) {
@@ -1437,8 +1437,8 @@ function SideButton({ bottom, gold, color, onClick, title, children }: { bottom:
     <button
       onClick={onClick}
       title={title}
-      style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', padding: '10px 16px', background: bg, border: `1px solid ${gold ? 'rgba(251,191,36,0.55)' : c}`, borderRadius: '8px', color: c, fontSize: gold ? '12.5px' : '12px', fontWeight: gold ? 700 : 400, fontFamily: MONO, cursor: 'pointer', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', transition: 'background 0.2s' }}
-      onMouseOver={e => (e.currentTarget.style.background = gold ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.12)')}
+      style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', padding: '10px 16px', background: bg, border: `1px solid ${gold ? 'rgba(240,178,74,0.55)' : c}`, borderRadius: '8px', color: c, fontSize: gold ? '12.5px' : '12px', fontWeight: gold ? 700 : 400, fontFamily: MONO, cursor: 'pointer', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', transition: 'background 0.2s' }}
+      onMouseOver={e => (e.currentTarget.style.background = gold ? 'rgba(240,178,74,0.18)' : 'rgba(255,255,255,0.12)')}
       onMouseOut={e => (e.currentTarget.style.background = bg)}
     >
       {children}
@@ -1480,7 +1480,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
             }
             if (e.key === 'Enter' && results.length > 0) pick(results[0].id)
           }}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '12px', fontFamily: MONO }}
+          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#F4EFE6', fontSize: '12px', fontFamily: MONO }}
         />
       </div>
       {focused && results.length > 0 && (
@@ -1490,7 +1490,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
               key={p.id}
               onMouseDown={e => e.preventDefault()}
               onClick={() => pick(p.id)}
-              style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '12px', fontFamily: MONO, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+              style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#F4EFE6', fontSize: '12px', fontFamily: MONO, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
               onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
               onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
             >

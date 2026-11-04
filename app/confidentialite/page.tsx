@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { CONFIG } from '@/lib/config'
+import BrandFooter from '@/components/BrandFooter'
 
 // Politique de confidentialité (Loi 25, Québec). Les passages entre crochets [À COMPLÉTER] sont à remplir par l'école
 // avant la mise en ligne publique. Ce texte est un point de départ, pas un avis juridique.
 
 export const metadata: Metadata = {
-  title: `Politique de confidentialité — ${CONFIG.appName}`,
+  title: `Politique de confidentialité — ${CONFIG.brand.name}`,
 }
 
 const TODO = ({ children }: { children: React.ReactNode }) => (
-  <mark style={{ background: 'rgba(250,204,21,0.25)', color: 'inherit', padding: '0 0.2em', borderRadius: '0.2em' }}>[À COMPLÉTER : {children}]</mark>
+  <mark style={{ background: 'rgba(240,178,74,0.25)', color: 'inherit', padding: '0 0.2em', borderRadius: '0.2em' }}>[À COMPLÉTER : {children}]</mark>
 )
 
 export default function ConfidentialitePage() {
@@ -21,12 +22,12 @@ export default function ConfidentialitePage() {
       </Link>
       <h1 className="mt-4 text-2xl font-bold">Politique de confidentialité</h1>
       <p className="muted mt-1 text-sm">
-        {CONFIG.appName} — {CONFIG.orgName} · Dernière mise à jour : <TODO>date</TODO>
+        Le {CONFIG.brand.name} de l&apos;{CONFIG.orgName} · Dernière mise à jour : <TODO>date</TODO>
       </p>
 
       <Section title="Qui sommes-nous">
         <p>
-          Le {CONFIG.appName} est une collecte de dons de l&apos;{CONFIG.orgName} (<TODO>raison sociale exacte, numéro d&apos;entreprise du Québec (NEQ)</TODO>),
+          Le {CONFIG.brand.name} de l&apos;{CONFIG.orgName} est la collecte de dons de l&apos;{CONFIG.orgName} (<TODO>raison sociale exacte, numéro d&apos;entreprise du Québec (NEQ)</TODO>),
           située au <TODO>adresse postale</TODO>. Chaque don devient un morceau de verre affiché sur un vitrail numérique, sur place et en ligne.
         </p>
       </Section>
@@ -83,6 +84,9 @@ export default function ConfidentialitePage() {
           appel à des fournisseurs qui les traitent pour notre compte :
         </p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            {CONFIG.brand.studio}, qui conçoit et exploite la plateforme {CONFIG.brand.name} ;
+          </li>
           <li>Stripe (paiements) ;</li>
           <li>Supabase (hébergement de la base de données et des photos) ;</li>
           <li>
@@ -135,6 +139,7 @@ export default function ConfidentialitePage() {
       <Section title="Modifications">
         <p>Nous publierons ici toute modification de cette politique, avec sa date de mise à jour.</p>
       </Section>
+      <BrandFooter className="mt-10 text-center" />
     </main>
   )
 }

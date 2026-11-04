@@ -37,7 +37,7 @@ export function ShareDialog({ id, name, own, onClose }: { id: string; name: stri
         </div>
         <p className="muted text-sm">{text}</p>
         {canNative && (
-          <button className="btn" onClick={() => void navigator.share({ title: CONFIG.appName, text, url: link }).catch(() => {})}>
+          <button className="btn" onClick={() => void navigator.share({ title: `${CONFIG.brand.name} — ${CONFIG.orgName}`, text, url: link }).catch(() => {})}>
             Partager…
           </button>
         )}
@@ -48,7 +48,7 @@ export function ShareDialog({ id, name, own, onClose }: { id: string; name: stri
           <a className="btn btn-ghost !py-3 text-sm" target="_blank" rel="noreferrer" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`}>
             Facebook
           </a>
-          <a className="btn btn-ghost !py-3 text-sm" href={`mailto:?subject=${encodeURIComponent(CONFIG.appName)}&body=${encodeURIComponent(`${text}\n\n${link}`)}`}>
+          <a className="btn btn-ghost !py-3 text-sm" href={`mailto:?subject=${encodeURIComponent(`${CONFIG.brand.name} — ${CONFIG.orgName}`)}&body=${encodeURIComponent(`${text}\n\n${link}`)}`}>
             Courriel
           </a>
         </div>

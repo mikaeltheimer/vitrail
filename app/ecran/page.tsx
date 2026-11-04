@@ -35,8 +35,8 @@ const isLong = (message: string | null | undefined) => (message?.length ?? 0) > 
 const CTA_EVERY = 6 // une pause « Faites partie du vitrail » toutes les N visites
 const CTA_MS = 11000
 const MAX_ZOOM = 40
-const GOLD = '#fbbf24'
-const MONO = "'Space Mono', monospace"
+const GOLD = '#F0B24A'
+const MONO = "'DM Sans', sans-serif"
 
 type Cam = { x: number; y: number; zoom: number }
 interface Card {
@@ -232,7 +232,7 @@ export default function Ecran() {
         spot = id
         needs = true
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, photoUrl: p?.photoUrl ?? null, color: p?.color ?? '#f472b6', tile })
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, photoUrl: p?.photoUrl ?? null, color: p?.color ?? '#E0657F', tile })
         const rich = !!(p?.name || p?.photoUrl || message)
         // Le temps de lire le témoignage en entier
         const reading = Math.min(READ_MAX_MS, (message?.length ?? 0) * READ_MS_PER_CHAR)
@@ -273,7 +273,7 @@ export default function Ecran() {
           pieces = pieceMap(s.pieces, CONFIG.showMessagesOnScreen)
           version++
           needs = true
-          const colorOf = (tile: Tile): GlassColors => glassColors(pieces.get(tile.id)?.color ?? '#f472b6', tile.id)
+          const colorOf = (tile: Tile): GlassColors => glassColors(pieces.get(tile.id)?.color ?? '#E0657F', tile.id)
           ambience.rebuild(t.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
             const hit = hitTile(t.values(), x, y)
             return hit ? colorOf(hit) : null
@@ -511,17 +511,17 @@ export default function Ecran() {
   const count = snap?.pieces.length ?? 0
 
   return (
-    <main className={`tv fixed inset-0 overflow-hidden ${idle ? 'tv-hide-cursor' : ''}`} onClick={toggleFullscreen} style={{ background: '#07060b' }}>
+    <main className={`tv fixed inset-0 overflow-hidden ${idle ? 'tv-hide-cursor' : ''}`} onClick={toggleFullscreen} style={{ background: '#0B0A12' }}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Voile sombre derrière l'en-tête : il reste lisible même quand le verre clair passe dessous */}
-      <div className="pointer-events-none absolute left-0 top-0" style={{ width: '40em', height: '24em', background: 'radial-gradient(ellipse at top left, rgba(7,6,11,0.92) 0%, rgba(7,6,11,0.75) 40%, rgba(7,6,11,0) 72%)' }} />
+      <div className="pointer-events-none absolute left-0 top-0" style={{ width: '40em', height: '24em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.92) 0%, rgba(11,10,18,0.75) 40%, rgba(11,10,18,0) 72%)' }} />
 
       {/* École et collecte, en haut à gauche */}
       <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ecole-logo.png" alt={CONFIG.orgName} style={{ width: '12em', height: 'auto', display: 'block' }} />
-        <div style={{ fontSize: '2.3em', fontWeight: 700, letterSpacing: '-0.02em', marginTop: '0.45em', lineHeight: 1.05 }}>{CONFIG.appName}</div>
+        <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{CONFIG.vitrailTitle}</div>
         <div style={{ marginTop: '0.9em', fontFamily: MONO }}>
           <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{formatMoney(raised)}</span>
           <span style={{ fontSize: '1em', color: 'rgba(255,255,255,0.6)', marginLeft: '0.5em' }}>{event && event.goalCents > 0 ? `sur ${formatMoney(event.goalCents)}` : 'amassés'}</span>
@@ -534,6 +534,11 @@ export default function Ecran() {
         <div style={{ fontFamily: MONO, fontSize: '0.95em', color: 'rgba(255,255,255,0.55)', marginTop: '0.5em' }}>
           {count} donateur{count > 1 ? 's' : ''}
         </div>
+      </div>
+
+      {/* Donivers, discret : le message de l'organisme passe avant */}
+      <div className="absolute" style={{ left: '50%', bottom: '0.9em', transform: 'translateX(-50%)', fontSize: '0.85em', color: 'rgba(244,239,230,0.45)', whiteSpace: 'nowrap' }}>
+        {CONFIG.brand.name} · <span className="slogan">{CONFIG.brand.slogan}</span>
       </div>
 
       {/* Le morceau en lumière : photo, nom, message — jamais de montant */}
@@ -576,9 +581,9 @@ export default function Ecran() {
       {/* Pause : appel à donner, au centre, le vitrail entier derrière */}
       {cta && (
         <div className="absolute" style={{ left: '50%', bottom: '3em', transform: 'translateX(-50%)', width: '40em', textAlign: 'center' }}>
-          <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(251,191,36,0.5)', boxShadow: '0 0 4em rgba(251,191,36,0.15)' }}>
+          <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 0 4em rgba(240,178,74,0.15)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>Faites partie du vitrail</div>
-            <div style={{ fontSize: '2.3em', fontWeight: 700, lineHeight: 1.1, marginTop: '0.35em' }}>Chaque don devient un morceau de verre</div>
+            <div className="font-display" style={{ fontSize: '2.5em', lineHeight: 1.1, marginTop: '0.35em' }}>Chaque don devient un morceau de verre</div>
             <div style={{ fontSize: '1.2em', lineHeight: 1.4, marginTop: '0.6em', color: 'rgba(255,255,255,0.8)' }}>
               Plus le don est grand, plus le morceau l&apos;est. {CONFIG.orgWhyShort}.
             </div>
@@ -588,7 +593,7 @@ export default function Ecran() {
       )}
 
       {/* Code QR, en bas à droite */}
-      <div className="absolute text-center" style={{ right: '2.4em', bottom: '2.4em', width: '14em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em', boxShadow: cta ? '0 0 0 0.4em rgba(251,191,36,0.6)' : 'none', transition: 'box-shadow 0.6s' }}>
+      <div className="absolute text-center" style={{ right: '2.4em', bottom: '2.4em', width: '14em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em', boxShadow: cta ? '0 0 0 0.4em rgba(240,178,74,0.6)' : 'none', transition: 'box-shadow 0.6s' }}>
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={qr} alt="Code QR pour donner" style={{ width: '100%', display: 'block' }} />
@@ -601,7 +606,7 @@ export default function Ecran() {
 
       {/* État */}
       <div className="absolute text-right" style={{ right: '2.4em', top: '2em', fontSize: '0.95em' }}>
-        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1b1405', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>MODE DÉMO — aucun paiement réel</div>}
+        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>MODE DÉMO — aucun paiement réel</div>}
         {!online && <div className="muted" style={{ marginTop: '0.5em' }}>Connexion perdue — dernier état affiché, reprise automatique</div>}
       </div>
 

@@ -8,6 +8,7 @@ import ClaimPanel, { type ClaimDraft, type KnownDonor } from '@/components/vitra
 import DonationPreview from '@/components/DonationPreview'
 import { formatMoney } from '@/lib/format'
 import type { Snapshot } from '@/lib/types'
+import BrandFooter from '@/components/BrandFooter'
 
 // Formulaire de don sur téléphone (affiches à code QR) : le même panneau que « Ajouter mon morceau » sur le vitrail,
 // en pleine page, avec l'aperçu du morceau au-dessus. Avec un lien magique (?t=…), le donateur agrandit son morceau.
@@ -105,10 +106,10 @@ function DonForm() {
       <header className="mb-5 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ecole-logo.png" alt={CONFIG.orgName} className="mx-auto mb-4" style={{ width: 180, height: 'auto' }} />
-        <h1 className="mt-1 text-3xl font-bold">{CONFIG.appName}</h1>
+        <h1 className="mt-1 text-3xl">{CONFIG.vitrailTitle}</h1>
         <p className="muted mt-2 text-[0.95rem]">Chaque don devient un morceau de verre dans le vitrail de l&apos;École.</p>
         {donorsCount > 0 && (
-          <p className="mt-3 inline-block rounded-full px-3 py-1 text-sm" style={{ background: 'rgba(255,231,160,0.1)', color: '#ffe7a0' }}>
+          <p className="mt-3 inline-block rounded-full px-3 py-1 text-sm" style={{ background: 'rgba(255,226,168,0.1)', color: '#FFE2A8' }}>
             {donorsCount === 1 ? '1 personne a déjà son morceau' : `${donorsCount} personnes ont déjà leur morceau`}
           </p>
         )}
@@ -123,7 +124,7 @@ function DonForm() {
             </span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }}>
-            <div className="h-full rounded-full" style={{ width: `${goalPct}%`, background: 'linear-gradient(90deg,#f472b6,#facc15)' }} />
+            <div className="h-full rounded-full" style={{ width: `${goalPct}%`, background: '#F0B24A' }} />
           </div>
         </section>
       )}
@@ -193,6 +194,7 @@ function DonForm() {
           </Link>
         </p>
       </footer>
+      <BrandFooter className="mt-10 text-center" />
     </main>
   )
 }

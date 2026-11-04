@@ -1,12 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #07060b;
-  --panel: #100e17;
-  --line: rgba(255, 255, 255, 0.1);
-  --text: #f4f1ea;
-  --muted: rgba(244, 241, 234, 0.6);
-  --gold: #f5c451;
+  /* Palette Donivers (voir lib/theme.ts) : les verres sont les seules couleurs fortes de l'interface */
+  --bg: #0b0a12;
+  --panel: #14121d;
+  --line: rgba(244, 239, 230, 0.1);
+  --text: #f4efe6;
+  --muted: #b8b2c4;
+  --accent: #f0b24a;
+  --on-accent: #1a1208;
+  --glow: #ffe2a8;
+  --gold: var(--accent);
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+}
+
+/* Titres, nom, slogan : Fraunces ; tout le reste (y compris les noms des donateurs) : DM Sans */
+h1,
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.slogan {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
 }
 
 * {
@@ -19,7 +39,7 @@ body {
   background: var(--bg);
   color: var(--text);
   /* Polices du système : l'écran d'affichage ne doit dépendre d'aucun service externe. */
-  font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -65,7 +85,7 @@ select {
   font-size: 1.05rem;
   cursor: pointer;
   background: var(--gold);
-  color: #1b1405;
+  color: var(--on-accent);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -87,7 +107,7 @@ select {
 }
 .chip[aria-pressed='true'] {
   background: var(--gold);
-  color: #1b1405;
+  color: var(--on-accent);
   border-color: var(--gold);
 }
 .card {
@@ -102,7 +122,7 @@ select {
 
 /* ── Écran d'affichage : tailles proportionnelles à l'écran (1 em ≈ 1/54 de la hauteur en 16:9) ── */
 .tv-display {
-  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 .tv-kicker {
   text-transform: uppercase;
@@ -139,10 +159,10 @@ select {
 @keyframes tv-qr-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(255, 231, 160, 0.55);
+    box-shadow: 0 0 0 0 rgba(255, 226, 168, 0.55);
   }
   50% {
-    box-shadow: 0 0 0 1.1em rgba(255, 231, 160, 0);
+    box-shadow: 0 0 0 1.1em rgba(255, 226, 168, 0);
   }
 }
 .tv-qr-pulse {

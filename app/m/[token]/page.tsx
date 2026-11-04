@@ -9,6 +9,7 @@ import PhotoField, { type PhotoValue } from '@/components/PhotoField'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import type { Piece, Snapshot } from '@/lib/types'
+import BrandFooter from '@/components/BrandFooter'
 
 // Lien magique : on ajoute son témoignage, on modifie le nom, la photo et la couleur de son morceau, ou on l'agrandit. Pas de compte.
 
@@ -108,7 +109,7 @@ export default function ManagePage() {
         {/* Le témoignage d'abord : c'est souvent pour lui qu'on revient avec ce lien */}
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">{CONFIG.testimonial.question}</h2>
-          <p className="text-sm" style={{ color: '#fbbf24' }}>
+          <p className="text-sm" style={{ color: '#F0B24A' }}>
             {CONFIG.testimonial.cta} <span className="muted">{CONFIG.testimonial.lead}</span>
           </p>
           <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={5} />
@@ -147,14 +148,14 @@ export default function ManagePage() {
                 aria-pressed={color === c.value}
                 onClick={() => setColor(c.value)}
                 className="h-10 w-10 rounded-full"
-                style={{ background: c.value, boxShadow: color === c.value ? '0 0 0 3px #050408, 0 0 0 5px #f4f1ea' : '0 0 0 2px #050408' }}
+                style={{ background: c.value, boxShadow: color === c.value ? '0 0 0 3px #050408, 0 0 0 5px #F4EFE6' : '0 0 0 2px #050408' }}
               />
             ))}
           </div>
         </fieldset>
 
         {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
-        {saved && <p className="text-sm" style={{ color: '#a3e635' }}>Enregistré. Votre morceau est à jour sur l&apos;écran.</p>}
+        {saved && <p className="text-sm" style={{ color: '#3DB5A6' }}>Enregistré. Votre morceau est à jour sur l&apos;écran.</p>}
 
         <button className="btn" disabled={saving || photoBusy || (showName && name.trim().length < 2)}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -163,6 +164,7 @@ export default function ManagePage() {
           Agrandir mon morceau
         </Link>
       </form>
+      <BrandFooter className="mt-10 text-center" />
     </main>
   )
 }

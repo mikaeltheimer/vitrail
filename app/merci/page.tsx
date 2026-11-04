@@ -7,6 +7,7 @@ import MiniGlass from '@/components/MiniGlass'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import type { Piece, Snapshot } from '@/lib/types'
+import BrandFooter from '@/components/BrandFooter'
 
 interface Thanks {
   donorId: string
@@ -95,8 +96,8 @@ function Merci() {
             {thanks.totalCents > thanks.donationCents && <> Au total, vous avez donné {formatMoney(thanks.totalCents)}.</>}
           </p>
 
-          <div className="card mt-5 text-left text-sm" style={{ borderColor: 'rgba(255,231,160,0.5)' }}>
-            <b style={{ color: '#ffe7a0' }}>Regardez le grand écran!</b>
+          <div className="card mt-5 text-left text-sm" style={{ borderColor: 'rgba(255,226,168,0.5)' }}>
+            <b style={{ color: '#FFE2A8' }}>Regardez le grand écran!</b>
             <div className="muted mt-1">Votre morceau y sort du vitrail dans quelques secondes, avec votre nom et votre message.</div>
             {thanks.photoPending && <div className="muted mt-1">Votre photo s&apos;ajoutera dès que l&apos;équipe l&apos;aura vue.</div>}
           </div>
@@ -110,8 +111,8 @@ function Merci() {
           </div>
 
           {!thanks.hasMessage && (
-          <div className="card mb-4 text-left text-sm" style={{ borderColor: 'rgba(255,231,160,0.5)' }}>
-            <b style={{ color: '#ffe7a0' }}>{CONFIG.testimonial.question}</b>
+          <div className="card mb-4 text-left text-sm" style={{ borderColor: 'rgba(255,226,168,0.5)' }}>
+            <b style={{ color: '#FFE2A8' }}>{CONFIG.testimonial.question}</b>
             <div className="muted mt-1">
               {CONFIG.testimonial.cta} {CONFIG.testimonial.lead}
             </div>
@@ -137,6 +138,7 @@ function Merci() {
           </p>
         </>
       )}
+      <BrandFooter className="mt-10 text-center" />
     </main>
   )
 }

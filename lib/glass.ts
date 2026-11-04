@@ -16,7 +16,7 @@ export interface GlassColors {
 }
 
 function hexToRgb(hex: string): [number, number, number] {
-  const h = /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#f472b6'
+  const h = /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#E0657F'
   return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
 }
 
@@ -335,7 +335,7 @@ export class Ambience {
         const x = q.P[0] + q.dx * q.len * along + q.nx * p.o * w * 0.8
         const y = q.P[1] + q.dy * q.len * along + q.ny * p.o * w * 0.8
         const tw = 0.55 + 0.45 * Math.sin(now * 0.002 + p.ph)
-        ctx.fillStyle = `rgba(255,236,200,${0.5 * tw * a * Math.sin(Math.PI * p.t)})`
+        ctx.fillStyle = `rgba(255,226,168,${0.5 * tw * a * Math.sin(Math.PI * p.t)})`
         ctx.beginPath()
         ctx.arc(x, y, p.s, 0, 6.2832)
         ctx.fill()
@@ -353,9 +353,9 @@ export class Ambience {
     const cyc = reduced ? 0.35 : ((now * 0.00006) % 1.8) - 0.4
     const st = (v: number) => Math.max(0, Math.min(1, v))
     const lg = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r)
-    lg.addColorStop(st(cyc - 0.18), 'rgba(255,245,225,0)')
-    lg.addColorStop(st(cyc), 'rgba(255,245,225,0.09)')
-    lg.addColorStop(st(cyc + 0.18), 'rgba(255,245,225,0)')
+    lg.addColorStop(st(cyc - 0.18), 'rgba(255,226,168,0)')
+    lg.addColorStop(st(cyc), 'rgba(255,226,168,0.09)')
+    lg.addColorStop(st(cyc + 0.18), 'rgba(255,226,168,0)')
     ctx.globalCompositeOperation = 'lighter'
     ctx.fillStyle = lg
     ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r)

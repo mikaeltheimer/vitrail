@@ -50,7 +50,7 @@ export function HoverCard({ piece }: { piece: RankedPiece | null }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={shown.photoUrl} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
       ) : (
-        <div className="h-14 w-14 shrink-0 rounded-lg" style={{ background: `radial-gradient(circle at 45% 40%, #fff 0%, ${color} 28%, #07060b 100%)` }} />
+        <div className="h-14 w-14 shrink-0 rounded-lg" style={{ background: `radial-gradient(circle at 45% 40%, #fff 0%, ${color} 28%, #0B0A12 100%)` }} />
       )}
       <div className="grid min-w-0 content-start gap-0.5">
         <div className="truncate text-sm font-bold">{shown.name ?? 'Anonyme'}</div>

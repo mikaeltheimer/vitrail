@@ -31,11 +31,11 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
         <span>Affiché avec votre morceau, ici et sur le grand écran.</span>
-        <span style={{ fontFamily: "'Space Mono', monospace", color: left < 40 ? '#fbbf24' : undefined, flexShrink: 0 }}>{left}</span>
+        <span style={{ fontFamily: "'DM Sans', sans-serif", color: left < 40 ? '#F0B24A' : undefined, flexShrink: 0 }}>{left}</span>
       </div>
       {value.trim() && (
         <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '12px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', lineHeight: 1.45 }}>
-          <input type="checkbox" checked={consent} onChange={e => onConsent(e.target.checked)} style={{ accentColor: '#fbbf24', marginTop: '2px' }} />
+          <input type="checkbox" checked={consent} onChange={e => onConsent(e.target.checked)} style={{ accentColor: '#F0B24A', marginTop: '2px' }} />
           <span>{CONFIG.testimonial.consent}</span>
         </label>
       )}
@@ -44,9 +44,9 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
 }
 
 const textareaStyle: CSSProperties = {
-  font: "400 15px/1.5 'Space Grotesk', sans-serif",
-  color: '#fff',
-  background: '#0d0b13',
+  font: "400 15px/1.5 'DM Sans', sans-serif",
+  color: '#F4EFE6',
+  background: '#0B0A12',
   border: '1px solid rgba(255,255,255,0.12)',
   borderRadius: '8px',
   padding: '10px 12px',

@@ -66,7 +66,7 @@ export interface View {
   oy: number
 }
 
-// Mêmes réglages que Pay to Exist (tailles en px à l'écran, pour un vitrail de 1000 unités de rayon)
+// Réglages des étiquettes (tailles en px à l'écran, pour un vitrail de 1000 unités de rayon)
 const PHOTO_MIN_SIDE = 34 // en dessous, pas de photo
 const LABEL_NAME_MIN = 40 // rayon inscrit minimal pour afficher le nom
 const LABEL_MESSAGE_MIN = 55 // … et le message
@@ -123,7 +123,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
       // Morceau sorti avec du texte dessus : on garde le voile coloré du vitrail sur la photo, pour que le texte reste lisible
       if (piece?.rows && avatar) reveal = 1 - LIFT_VEIL * (s.labelAlpha ?? 1)
       drawGlassTile(ctx, tile, {
-        colors: glassColors(piece?.color ?? '#f472b6', id),
+        colors: glassColors(piece?.color ?? '#E0657F', id),
         sizePx: sidePx,
         zoom: view.scale,
         avatar,
@@ -141,7 +141,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
     if (focus?.path) {
       ctx.lineJoin = 'round'
       ctx.lineWidth = 4 / view.scale
-      ctx.strokeStyle = '#f5c451'
+      ctx.strokeStyle = '#F0B24A'
       ctx.stroke(focus.path)
     }
   }
@@ -202,7 +202,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 const LABEL_STYLE: Record<LabelRow['kind'], { family: string; weight: string; italic: boolean; color: string; line: number; upper: boolean; spacing: number }> = {
   small: { family: FONT_SANS, weight: '500', italic: false, color: 'rgba(255,238,205,0.88)', line: 1.3, upper: true, spacing: 0.2 },
   name: { family: FONT_DISPLAY, weight: '600', italic: false, color: '#fff8ea', line: 1.08, upper: false, spacing: 0 },
-  amount: { family: FONT_DISPLAY, weight: '700', italic: false, color: '#ffe7a0', line: 1.1, upper: false, spacing: 0 },
+  amount: { family: FONT_DISPLAY, weight: '700', italic: false, color: '#FFE2A8', line: 1.1, upper: false, spacing: 0 },
   message: { family: FONT_DISPLAY, weight: '400', italic: false, color: 'rgba(255,248,235,0.94)', line: 1.22, upper: false, spacing: 0 },
 }
 type SpacingCtx = CanvasRenderingContext2D & { letterSpacing?: string }

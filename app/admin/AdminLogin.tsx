@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CONFIG } from '@/lib/config'
 
 export default function AdminLogin() {
   const router = useRouter()
@@ -25,7 +26,7 @@ export default function AdminLogin() {
   return (
     <main className="mx-auto max-w-sm px-4 py-16">
       <h1 className="text-2xl font-bold">Console</h1>
-      <p className="muted mt-1 text-sm">Vitrail de dons — réservé à l&apos;équipe.</p>
+      <p className="muted mt-1 text-sm">{CONFIG.brand.name} — réservé à l&apos;équipe.</p>
       <form onSubmit={submit} className="mt-6 space-y-3">
         <input className="field" type="password" autoComplete="current-password" placeholder="Code d'accès" value={code} onChange={e => setCode(e.target.value)} autoFocus />
         {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}

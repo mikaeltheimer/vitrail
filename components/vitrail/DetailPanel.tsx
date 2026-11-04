@@ -1,6 +1,6 @@
 'use client'
 
-// Fiche d'un morceau sur ordinateur : panneau à droite, sous l'en-tête (mise en page de Pay to Exist).
+// Fiche d'un morceau sur ordinateur : panneau à droite, sous l'en-tête .
 
 import { useState } from 'react'
 import type { Tile } from '@/lib/tiling'
@@ -9,7 +9,7 @@ import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
 import { ordinal, type RankedPiece } from './types'
 
-const MONO = "'Space Mono', monospace"
+const MONO = "'DM Sans', sans-serif"
 const divider = { height: '1px', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)', margin: '24px 0' }
 
 export default function DetailPanel({ piece, tile, count, own, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents?: number; own: boolean; onClose: () => void }) {
@@ -39,7 +39,7 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
         <button
           onClick={onClose}
           aria-label="Fermer"
-          style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#F4EFE6', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           ×
         </button>
@@ -51,7 +51,7 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px', color: '#fff' }}>{piece.name ?? 'Anonyme'}</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px', color: '#F4EFE6' }}>{piece.name ?? 'Anonyme'}</h2>
           <span style={{ display: 'inline-block', padding: '4px 12px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '20px', fontFamily: MONO, fontSize: '12px', color: c }}>
             {ordinal(piece.rank)} sur {count}
             {own ? ' · votre morceau' : ''}

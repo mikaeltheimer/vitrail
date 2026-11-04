@@ -1,6 +1,6 @@
 'use client'
 
-// Fiche d'un morceau sur téléphone : feuille en bas, à glisser vers le bas pour la fermer (mise en page de Pay to Exist).
+// Fiche d'un morceau sur téléphone : feuille en bas, à glisser vers le bas pour la fermer .
 
 import { useRef, useState } from 'react'
 import type { Tile } from '@/lib/tiling'
@@ -9,7 +9,7 @@ import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
 import { ordinal, type RankedPiece } from './types'
 
-const MONO = "'Space Mono', monospace"
+const MONO = "'DM Sans', sans-serif"
 
 export default function BottomSheet({
   piece,
@@ -41,7 +41,7 @@ export default function BottomSheet({
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: '8px',
-    color: '#fff',
+    color: '#F4EFE6',
     fontSize: '13px',
     fontFamily: MONO,
     cursor: 'pointer',

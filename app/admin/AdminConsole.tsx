@@ -144,7 +144,7 @@ export default function AdminConsole() {
     <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-5">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Console — {CONFIG.appName}</h1>
+          <h1 className="text-xl font-bold">Console — {CONFIG.brand.name}</h1>
           <p className="muted text-sm">
             {current ? `Événement en cours : ${current.name}` : 'Aucun événement en cours'}
             {data?.mode === 'demo' && <b style={{ color: 'var(--gold)' }}> · MODE DÉMO</b>}
@@ -164,7 +164,7 @@ export default function AdminConsole() {
       </nav>
 
       {msg && (
-        <p role="status" className="mt-3 text-sm" style={{ color: msg.ok ? '#a3e635' : '#f87171' }}>
+        <p role="status" className="mt-3 text-sm" style={{ color: msg.ok ? '#3DB5A6' : '#f87171' }}>
           {msg.text}
         </p>
       )}
@@ -526,7 +526,7 @@ function CashForm({ events, onSubmit }: { events: EventRow[]; onSubmit: (p: Reco
             aria-label={c.name}
             onClick={() => setColor(c.value)}
             className="h-9 w-9 rounded-full"
-            style={{ background: c.value, boxShadow: color === c.value ? '0 0 0 3px #050408, 0 0 0 5px #f4f1ea' : '0 0 0 2px #050408' }}
+            style={{ background: c.value, boxShadow: color === c.value ? '0 0 0 3px #050408, 0 0 0 5px #F4EFE6' : '0 0 0 2px #050408' }}
           />
         ))}
       </div>

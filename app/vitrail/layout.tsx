@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: `Le vitrail — ${CONFIG.orgName}`,
   description: `Chaque don à l'${CONFIG.orgName} devient un morceau de verre. Explorez le vitrail et ajoutez le vôtre.`,
   openGraph: {
-    title: `${CONFIG.appName} — ${CONFIG.orgName}`,
+    title: `${CONFIG.brand.name} — ${CONFIG.orgName}`,
     description: `Chaque don devient un morceau de verre. Explorez le vitrail et ajoutez le vôtre.`,
     type: 'website',
     locale: 'fr_CA',

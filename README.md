@@ -1,8 +1,10 @@
-# Vitrail de dons — École d'art de Sutton
+# Donivers — le Donivers de l'École d'art de Sutton
+
+**Donivers** (don + univers) — *La plateforme de dons de votre communauté.* · *Chaque don, un morceau d'univers.* Un produit de Studio Existence. Chaque organisme a son donivers ; un donivers contient un ou plusieurs **vitraux** (le format visuel). Branding : voir « Marque » plus bas.
 
 Un grand écran affiche le vitrail de l'école et se met à jour à chaque nouveau don. Un QR code permet de donner depuis son téléphone et de voir aussitôt son morceau de verre s'ajouter. Un seul vitrail cumulatif : chaque don est rattaché à un événement (total et objectif par événement).
 
-Produit séparé de Pay to Exist : son propre déploiement, sa propre base de données, son propre compte de paiement. Le pavage (`lib/tiling.ts`) et le rendu du verre (`lib/glass.ts`) viennent de Pay to Exist.
+Chaque donivers a son propre déploiement, sa propre base de données et son propre compte de paiement. Le pavage est dans `lib/tiling.ts`, le rendu du verre dans `lib/glass.ts`.
 
 ## Démarrer en local
 
@@ -55,7 +57,7 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 
 **À faire une fois dans Supabase (SQL Editor) :** `supabase/migrations/2026-11-01-moderation-provenance.sql` (statut des photos, réglages, provenance des dons, visites). Sans elle, le site ne fonctionne plus.
 
-- **Vitrail en ligne** : `/vitrail`, calque de la rosace de Pay to Exist (mêmes emplacements, mêmes gestes). En-tête : logo, nombre de morceaux, bouton doré « Ajouter mon morceau ». Ordinateur : « Derniers dons » en haut à gauche ; colonne de gauche avec recherche, « Rencontrer quelqu'un », « Trouver mon morceau » et la mini-carte (cliquer pour y aller, faire glisser le cadre, tout voir, zoom, ← → par rang) ; fiche à droite ; aperçu au survol. Téléphone : bouton doré flottant, « Rencontrer quelqu'un » en bas à gauche, mini-carte et zoom en bas à droite, un toucher choisit et un second ouvre la fiche (feuille à glisser). **Don sur place** : « Ajouter mon morceau » ouvre le panneau de don (montant au curseur, part du vitrail, rang, frais couverts, couleur, nom, photo, message) et le morceau d'aperçu apparaît en direct dans le vitrail, cadré dans l'espace libre ; `/vitrail?don` l'ouvre directement (lien à partager en ligne). Paiement chez Stripe, puis **retour sur le vitrail comme dans Pay to Exist** : bandeau « Merci », vol jusqu'au nouveau morceau, lien pour le modifier ; une annulation rouvre le panneau avec tout ce qui avait été saisi (montant, nom, photo, message). Aussi : ouverture en travelling (`?intro` pour la revoir), dérive au repos, partage, signalement, annonce d'un nouveau don. Lien direct vers un morceau : `/vitrail?d=<id>`.
+- **Vitrail en ligne** : `/vitrail`, la rosace. En-tête : logo, nombre de morceaux, bouton doré « Ajouter mon morceau ». Ordinateur : « Derniers dons » en haut à gauche ; colonne de gauche avec recherche, « Rencontrer quelqu'un », « Trouver mon morceau » et la mini-carte (cliquer pour y aller, faire glisser le cadre, tout voir, zoom, ← → par rang) ; fiche à droite ; aperçu au survol. Téléphone : bouton doré flottant, « Rencontrer quelqu'un » en bas à gauche, mini-carte et zoom en bas à droite, un toucher choisit et un second ouvre la fiche (feuille à glisser). **Don sur place** : « Ajouter mon morceau » ouvre le panneau de don (montant au curseur, part du vitrail, rang, frais couverts, couleur, nom, photo, message) et le morceau d'aperçu apparaît en direct dans le vitrail, cadré dans l'espace libre ; `/vitrail?don` l'ouvre directement (lien à partager en ligne). Paiement chez Stripe, puis **retour sur le vitrail comme dans Pay to Exist** : bandeau « Merci », vol jusqu'au nouveau morceau, lien pour le modifier ; une annulation rouvre le panneau avec tout ce qui avait été saisi (montant, nom, photo, message). Aussi : ouverture en travelling (`?intro` pour la revoir), dérive au repos, partage, signalement, annonce d'un nouveau don. Lien direct vers un morceau : `/vitrail?d=<id>`.
 - **Identité de l'école** : logo (`public/ecole-logo.png`, `public/ecole-mark.png`, versions blanches sur fond transparent) dans l'en-tête du vitrail, sur la page de don et sur l'écran. En-tête du vitrail : « 4 944 $ amassés sur 10 000 $ · 80 donateurs » avec barre de progression (objectif de l'événement en cours, réglé dans la console). Panneau **« À propos de la collecte »** : l'école, pourquoi donner (aucune subvention gouvernementale ; le bâtiment, les loyers, l'électricité, le matériel), comment ça marche, lien vers ecoleartsutton.ca. Le panneau de don rappelle où va l'argent. Textes dans `lib/config.ts` (`orgAbout`, `orgWhy`, `orgUrl`). Image d'aperçu des liens partagés : `/vitrail/opengraph-image` (logo, appel, total amassé ; mise à jour toutes les 5 min).
 - **Signalements** : exécuter aussi `supabase/migrations/2026-11-02-signalements.sql`. Les morceaux signalés apparaissent en tête de l'onglet En direct de la console (Masquer, Effacer le contenu, Sans suite).
 - **Page merci** : « Regardez le grand écran! » — le nouveau don y passe en priorité.
@@ -74,7 +76,7 @@ Tout ce qui touche le fournisseur est dans `lib/payments.ts`. Pour passer à Squ
 
 - À la page de don, le donateur peut ajouter une photo (recadrée en carré et réduite à ≤ 768 px dans son navigateur, JPEG ≤ 700 Ko). Elle n'est affichée que s'il consent à afficher son nom.
 - Un **aperçu** montre le vrai vitrail avec le morceau à venir (taille, couleur, nom, message, photo), cerclé d'or. La position exacte peut bouger quand d'autres dons arrivent.
-- Sur l'écran, comme dans Pay to Exist : plus le morceau est grand, plus il montre (couleur → photo → nom → message). Seuils réglables dans `lib/config.ts` (`photoColorFromPx`, `photoColorToPx`).
+- Sur l'écran : plus le morceau est grand, plus il montre (couleur → photo → nom → message). Seuils réglables dans `lib/config.ts` (`photoColorFromPx`, `photoColorToPx`).
 - **Base de données** : exécuter `supabase/migrations/2026-10-31-photos.sql` dans le SQL Editor de Supabase (colonne `photo_url` + bucket public `photos`). Un nouveau projet qui part de `supabase/schema.sql` l'a déjà.
 - **Modération** : la console admin affiche les photos et permet « Retirer la photo » ou « Effacer le nom » (efface aussi la photo). À prévoir avant l'événement : quelqu'un qui surveille la console.
 
@@ -96,9 +98,12 @@ Toutes les 6 mises en vedette (`ctaEvery` dans `lib/config.ts`, 0 = jamais), l'�
 
 Le vitrail en ligne (`/vitrail`) n'affiche plus non plus les montants des donateurs (fiches, survol, recherche, derniers dons) : seul le total collectif reste.
 
-## Typographie
+## Marque
 
-Une seule famille, **Space Grotesk**, auto-hébergée (paquet `@fontsource/space-grotesk`, aucune requête externe : l'écran n'en dépend pas du Wi-Fi), en plusieurs graisses : demi-gras pour les noms, gras pour les montants et les titres, romain pour les messages, et capitales espacées pour les petites mentions (« MERCI À », « AU TOTAL »). Couleurs chaudes : crème pour les noms, or pâle pour les montants, avec un fin contour sombre pour la lisibilité sur n'importe quel verre. Les définitions sont dans `lib/fonts.ts` (familles) et `lib/render.ts` (`LABEL_STYLE` : tailles, graisses, couleurs, espacement).
+- **Nom** : Donivers (nom de la plateforme) ; « le Donivers de [organisme] » ; « vitrail » = le format visuel. Dans `CONFIG.brand` (nom, descripteur, slogan, « Propulsé par Donivers », Studio Existence).
+- **Palette** (`lib/theme.ts` et variables CSS de `app/globals.css`) : fond nuit `#0B0A12`, texte `#F4EFE6`, texte secondaire `#B8B2C4`, accent ambre `#F0B24A` (texte `#1A1208` dessus), lumière centrale `#FFE2A8`, cinq verres (ambre, rose `#E0657F`, turquoise `#3DB5A6`, indigo `#6A78E6`, violet `#A56BD9`). Les verres sont les seules couleurs fortes. Contrôle de contraste prêt pour la personnalisation par organisme (`onAccent`, `contrast`).
+- **Typographie** (auto-hébergée, aucune requête externe) : **Fraunces** 500 pour les titres (classe `font-display`, et les `h1`), italique 400 pour le slogan (classe `slogan`) ; **DM Sans** pour l'interface, les noms des donateurs et le texte sur le verre (`lib/fonts.ts`, `LABEL_STYLE` dans `lib/render.ts`).
+- **Mentions** : « Propulsé par Donivers · Chaque don, un morceau d'univers. » en pied de page (`components/BrandFooter.tsx`) ; Studio Existence seulement dans « À propos » et la confidentialité.
 
 ## Le jour J
 

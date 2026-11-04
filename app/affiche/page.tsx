@@ -111,16 +111,16 @@ export default function AffichePage() {
         }}
       >
         <div style={{ fontSize: '2.4cqi', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500, color: '#6b6475' }}>{CONFIG.orgName}</div>
-        <div style={{ fontSize: '3cqi', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, color: '#b7791f', marginTop: '4cqi' }}>
+        <div style={{ fontSize: '3cqi', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, color: '#B07A1F', marginTop: '4cqi' }}>
           Faites partie du vitrail
         </div>
-        <h2 style={{ fontSize: '8.4cqi', fontWeight: 700, lineHeight: 1.02, marginTop: '1.6cqi' }}>Chaque don devient un morceau de verre</h2>
+        <h2 className="font-display" style={{ fontSize: '8.8cqi', lineHeight: 1.02, marginTop: '1.6cqi' }}>Chaque don devient un morceau de verre</h2>
 
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '3.5cqi', margin: '5cqi 0 2cqi' }}>
           {[
-            { dollars: 10, color: 'linear-gradient(135deg,#60a5fa,#2563eb)' },
-            { dollars: 25, color: 'linear-gradient(135deg,#f472b6,#c026d3)' },
-            { dollars: 100, color: 'linear-gradient(135deg,#facc15,#f97316)' },
+            { dollars: 10, color: '#3DB5A6' },
+            { dollars: 25, color: '#E0657F' },
+            { dollars: 100, color: '#F0B24A' },
           ].map(d => {
             const side = 4.2 * Math.pow(d.dollars / 10, CONFIG.sizeExponent / 2)
             return (
@@ -151,6 +151,9 @@ export default function AffichePage() {
             <div style={{ fontSize: '3cqi', color: '#3d3747', marginTop: '1.5cqi' }}>En une minute : carte, Apple Pay ou Google Pay</div>
             <div style={{ fontSize: '2.4cqi', color: '#6b6475', marginTop: '1cqi', wordBreak: 'break-all' }}>{shortHost}</div>
           </div>
+        </div>
+        <div style={{ marginTop: '4cqi', fontSize: '2.2cqi', color: '#6b6475' }}>
+          {CONFIG.brand.name} · <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', color: '#B07A1F' }}>{CONFIG.brand.slogan}</span>
         </div>
       </article>
     </main>

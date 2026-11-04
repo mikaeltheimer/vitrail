@@ -1,14 +1,14 @@
 'use client'
 
-// « Derniers dons », à la place du $EXIST de Pay to Exist : même emplacement (en haut à gauche, sous l'en-tête),
+// « Derniers dons » : en haut à gauche (en haut à gauche, sous l'en-tête),
 // une pastille repliée ou un panneau ouvert ; chaque don mène à son morceau. L'état ouvert/fermé est retenu.
 
 import { useEffect, useState } from 'react'
 import { formatMoney } from '@/lib/format'
 import type { RecentDonation } from '@/lib/types'
 
-const MONO = "'Space Mono', monospace"
-const GOLD = '#fbbf24'
+const MONO = "'DM Sans', sans-serif"
+const GOLD = '#F0B24A'
 const STORE_KEY = 'vitrail:recent-open'
 
 function ago(iso: string): string {
@@ -50,10 +50,10 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
           gap: 8,
           padding: '0 14px',
           borderRadius: 999,
-          border: '1px solid rgba(251,191,36,0.35)',
+          border: '1px solid rgba(240,178,74,0.35)',
           background: 'rgba(12,10,18,0.88)',
           backdropFilter: 'blur(8px)',
-          color: '#fff',
+          color: '#F4EFE6',
           fontFamily: MONO,
           fontSize: 12,
           cursor: 'pointer',
@@ -89,7 +89,7 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
               onVisit(d.donorId)
               if (isMobile) setStored(false)
             }}
-            style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'baseline', padding: '7px 8px', borderRadius: 6, background: 'transparent', border: 0, color: '#fff', textAlign: 'left', cursor: 'pointer', fontSize: 13 }}
+            style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'baseline', padding: '7px 8px', borderRadius: 6, background: 'transparent', border: 0, color: '#F4EFE6', textAlign: 'left', cursor: 'pointer', fontSize: 13 }}
             onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
             onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
           >
@@ -107,7 +107,7 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
         <div onClick={() => setStored(false)} style={{ position: 'fixed', inset: 0, zIndex: 590, background: 'rgba(0,0,0,0.35)' }} />
         <section
           aria-label="Derniers dons"
-          style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 600, maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', background: 'rgba(16,14,23,0.98)', borderRadius: '16px 16px 0 0', border: '1px solid rgba(255,255,255,0.12)', padding: '16px 16px calc(16px + env(safe-area-inset-bottom))' }}
+          style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 600, maxHeight: 'calc(100dvh - 72px)', overflowY: 'auto', background: 'rgba(20,18,29,0.98)', borderRadius: '16px 16px 0 0', border: '1px solid rgba(255,255,255,0.12)', padding: '16px 16px calc(16px + env(safe-area-inset-bottom))' }}
         >
           {list}
         </section>

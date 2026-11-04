@@ -1,6 +1,6 @@
 "use client";
 
-// Panneau « Ajouter mon morceau », comme le panneau d'achat de Pay to Exist : tout se fait dans le vitrail.
+// Panneau « Ajouter mon morceau »: tout se fait dans le vitrail.
 // Montant (curseur + saisie), part du vitrail, rang, couleur du verre, nom, photo, message : chaque réglage
 // s'affiche en direct sur le morceau d'aperçu. Puis paiement (Stripe ; le courriel est demandé là-bas).
 
@@ -18,7 +18,7 @@ import { formatMoney } from "@/lib/format";
 import { squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
 
-const GOLD = "#fbbf24";
+const GOLD = "#F0B24A";
 
 export interface ClaimDraft {
   name: string | null;
@@ -334,7 +334,7 @@ export default function ClaimPanel({
               maxHeight: isMobile ? "50vh" : "calc(100vh - 72px - 16px)",
               alignContent: "start",
               overflowY: "auto",
-              background: "rgba(16, 14, 23, 0.95)",
+              background: "rgba(20,18,29, 0.95)",
               border: "1px solid rgba(255,255,255,0.12)",
               borderRadius: isMobile ? "16px 16px 0 0" : "14px",
               padding: isMobile
@@ -344,8 +344,8 @@ export default function ClaimPanel({
               backdropFilter: "blur(10px)",
               display: "grid",
               gap: "14px",
-              color: "#fff",
-              fontFamily: "'Space Grotesk', sans-serif",
+              color: "#F4EFE6",
+              fontFamily: "'DM Sans', sans-serif",
             }
       }
     >
@@ -357,7 +357,7 @@ export default function ClaimPanel({
           gap: "12px",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>
+        <h2 className="font-display" style={{ margin: 0, fontSize: "20px" }}>
           {agrandir
             ? `Agrandir mon morceau${known!.showName && known!.name ? `, ${known!.name}` : ""}`
             : "Ajouter mon morceau"}
@@ -392,8 +392,8 @@ export default function ClaimPanel({
           alignItems: "center",
           padding: "10px 12px",
           borderRadius: "8px",
-          border: "1px solid rgba(251,191,36,0.3)",
-          background: "rgba(251,191,36,0.06)",
+          border: "1px solid rgba(240,178,74,0.3)",
+          background: "rgba(240,178,74,0.06)",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -451,9 +451,9 @@ export default function ClaimPanel({
                 width: `${Math.max(2, amountText.length) + 0.6}ch`,
                 background: "transparent",
                 border: 0,
-                borderBottom: "1px dashed rgba(251,191,36,0.4)",
+                borderBottom: "1px dashed rgba(240,178,74,0.4)",
                 color: GOLD,
-                font: "700 26px 'Space Grotesk', sans-serif",
+                font: "700 26px 'DM Sans', sans-serif",
                 textAlign: "right",
                 padding: 0,
                 fontVariantNumeric: "tabular-nums",
@@ -536,9 +536,9 @@ export default function ClaimPanel({
               gap: "8px",
               padding: "14px",
               borderRadius: "10px",
-              border: "1px solid rgba(251,191,36,0.45)",
-              background: "rgba(251,191,36,0.07)",
-              boxShadow: "0 0 24px rgba(251,191,36,0.08)",
+              border: "1px solid rgba(240,178,74,0.45)",
+              background: "rgba(240,178,74,0.07)",
+              boxShadow: "0 0 24px rgba(240,178,74,0.08)",
             }}
           >
             <div>
@@ -546,7 +546,7 @@ export default function ClaimPanel({
                 style={{
                   fontSize: "16px",
                   fontWeight: 700,
-                  color: "#fff",
+                  color: "#F4EFE6",
                   lineHeight: 1.3,
                 }}
               >
@@ -678,9 +678,9 @@ export default function ClaimPanel({
             borderRadius: "8px",
             fontSize: "12px",
             lineHeight: 1.45,
-            color: "#fde68a",
-            background: "rgba(250,204,21,0.08)",
-            border: "1px dashed rgba(250,204,21,0.45)",
+            color: "#FFE2A8",
+            background: "rgba(240,178,74,0.08)",
+            border: "1px dashed rgba(240,178,74,0.45)",
           }}
         >
           Mode démo : aucune clé Stripe n&apos;est configurée. Le morceau est
@@ -718,7 +718,7 @@ export default function ClaimPanel({
   );
 }
 
-// ---------- Styles (ceux de Pay to Exist) ----------
+// ---------- Styles ----------
 const labelStyle: CSSProperties = {
   fontSize: "11px",
   letterSpacing: "0.08em",
@@ -728,7 +728,7 @@ const labelStyle: CSSProperties = {
 const dtStyle: CSSProperties = { color: "rgba(255,255,255,0.55)" };
 const monoStyle: CSSProperties = {
   margin: 0,
-  fontFamily: "'Space Mono', monospace",
+  fontFamily: "'DM Sans', sans-serif",
   textAlign: "right",
   fontVariantNumeric: "tabular-nums",
 };
@@ -739,9 +739,9 @@ const hintStyle: CSSProperties = {
   lineHeight: 1.5,
 };
 const inputStyle: CSSProperties = {
-  font: "500 15px 'Space Grotesk', sans-serif",
-  color: "#fff",
-  background: "#0d0b13",
+  font: "500 15px 'DM Sans', sans-serif",
+  color: "#F4EFE6",
+  background: "#0B0A12",
   border: "1px solid rgba(255,255,255,0.12)",
   borderRadius: "8px",
   padding: "10px 12px",
@@ -752,10 +752,10 @@ const goldStyle: CSSProperties = {
   flex: 1,
   padding: "12px 16px",
   background: GOLD,
-  color: "#1a1406",
+  color: "#1A1208",
   border: 0,
   borderRadius: "8px",
-  fontFamily: "'Space Grotesk', sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
   fontSize: "15px",
   fontWeight: 600,
   cursor: "pointer",
@@ -763,10 +763,10 @@ const goldStyle: CSSProperties = {
 const secondaryStyle: CSSProperties = {
   padding: "10px 14px",
   background: "rgba(255,255,255,0.08)",
-  color: "#fff",
+  color: "#F4EFE6",
   border: "1px solid rgba(255,255,255,0.15)",
   borderRadius: "8px",
-  fontFamily: "'Space Grotesk', sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
   fontSize: "14px",
   cursor: "pointer",
 };
@@ -775,7 +775,7 @@ const linkButtonStyle: CSSProperties = {
   border: 0,
   padding: 0,
   color: "rgba(255,255,255,0.7)",
-  fontFamily: "'Space Grotesk', sans-serif",
+  fontFamily: "'DM Sans', sans-serif",
   fontSize: "13px",
   cursor: "pointer",
   textDecoration: "underline",
@@ -786,12 +786,12 @@ const pageStyle: CSSProperties = {
   display: "grid",
   gap: "14px",
   alignContent: "start",
-  background: "rgba(16, 14, 23, 0.95)",
+  background: "rgba(20,18,29, 0.95)",
   border: "1px solid rgba(255,255,255,0.12)",
   borderRadius: "14px",
   padding: "18px 16px 0",
-  color: "#fff",
-  fontFamily: "'Space Grotesk', sans-serif",
+  color: "#F4EFE6",
+  fontFamily: "'DM Sans', sans-serif",
 };
 /** Formulaire mobile : le bouton reste à portée de pouce, en bas de l'écran. */
 const stickyBar: CSSProperties = {
@@ -802,7 +802,7 @@ const stickyBar: CSSProperties = {
   gap: "8px",
   margin: "0 -16px",
   padding: "14px 16px max(14px, env(safe-area-inset-bottom))",
-  background: "linear-gradient(rgba(16,14,23,0), rgba(16,14,23,0.98) 30%)",
+  background: "linear-gradient(rgba(20,18,29,0), rgba(20,18,29,0.98) 30%)",
   borderRadius: "0 0 14px 14px",
 };
 const closeStyle: CSSProperties = {

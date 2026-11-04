@@ -1,4 +1,6 @@
-// Réglages de l'édition « Vitrail de dons ». Tout ce qui se discute avec l'école est ici.
+// Réglages du Donivers de l'organisme (ici, l'École d'art de Sutton). Tout ce qui se discute avec l'organisme est ici.
+
+import { DEFAULT_GLASSES } from './theme'
 
 export const CONFIG = {
   orgName: "École d'art de Sutton",
@@ -11,7 +13,18 @@ export const CONFIG = {
     "L'École avance sans subvention gouvernementale : c'est sa communauté qui la fait vivre. Chaque don rend possibles ses ateliers, ses expositions et ses résidences d'artistes.",
   /** La même idée en une phrase, pour l'appel à donner du grand écran. */
   orgWhyShort: "C'est la communauté qui fait vivre l'École",
-  appName: 'Vitrail de dons',
+  appName: 'Donivers',
+  /** Titre du vitrail de l'organisme (écran, formulaire de don). */
+  vitrailTitle: 'Le vitrail de la communauté',
+  /** Marque de la plateforme (fixe pour tous les organismes). Le message de l'organisme passe toujours avant. */
+  brand: {
+    name: 'Donivers',
+    descriptor: 'La plateforme de dons de votre communauté',
+    slogan: "Chaque don, un morceau d'univers.",
+    poweredBy: 'Propulsé par Donivers',
+    studio: 'Studio Existence',
+    studioUrl: 'https://studioexistence.com',
+  },
   currency: 'cad',
 
   /** Montants en cents. Le minimum protège le don net contre les frais fixes du fournisseur de paiement. */
@@ -26,7 +39,7 @@ export const CONFIG = {
 
   /**
    * Taille d'un morceau : l'aire est proportionnelle à (montant ^ sizeExponent).
-   * 1 = strictement proportionnel, comme Pay to Exist (un don 50 fois plus gros prend 50 fois plus de place) ; 0,75 ≈ 19 fois ; 0,5 = racine carrée (~7 fois).
+   * 1 = strictement proportionnel (un don 50 fois plus gros prend 50 fois plus de place) ; 0,75 ≈ 19 fois ; 0,5 = racine carrée (~7 fois).
    * 0,75 retenu en attendant les vrais dons ; comparer avec ?echelle=… sur /vitrail et /ecran.
    * À valider avec une vraie distribution de dons : beaucoup de petits, quelques gros.
    */
@@ -39,7 +52,7 @@ export const CONFIG = {
 
   /**
    * Photos : une pièce montre sa photo « peinte » (grisaille teintée par la couleur du verre) tant qu'elle est petite, puis la vraie
-   * photo en couleur entre ces deux tailles (côté du carré de même aire, en px à l'écran). Pay to Exist : 220 → 380.
+   * photo en couleur entre ces deux tailles (côté du carré de même aire, en px à l'écran).
    * Ici plus tôt, car sur un écran de 1080p presque aucune pièce n'atteint 220 px.
    */
   photoColorFromPx: 110,
@@ -78,19 +91,8 @@ export const CONFIG = {
   ctaMs: 9000,
 } as const
 
-/** Verres disponibles (reprend les Glow Colors de Pay to Exist). */
-export const GLASS_COLORS = [
-  { name: 'Rose', value: '#f472b6' },
-  { name: 'Fuchsia', value: '#d946ef' },
-  { name: 'Violet', value: '#7c3aed' },
-  { name: 'Bleu', value: '#60a5fa' },
-  { name: 'Turquoise', value: '#22d3ee' },
-  { name: 'Émeraude', value: '#16a34a' },
-  { name: 'Lime', value: '#a3e635' },
-  { name: 'Jaune', value: '#facc15' },
-  { name: 'Orange', value: '#fb923c' },
-  { name: 'Rouge', value: '#f87171' },
-] as const
+/** Verres disponibles : les cinq de la palette (plus tard, ceux choisis par l'organisme). */
+export const GLASS_COLORS = DEFAULT_GLASSES
 
 export const VALID_COLORS: string[] = GLASS_COLORS.map(c => c.value)
 

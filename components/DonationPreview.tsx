@@ -99,7 +99,7 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
 
   return (
     <figure className="m-0">
-      <div className="mx-auto overflow-hidden rounded-2xl" style={{ width: size, height: size, background: '#07060b', border: '1px solid var(--line)' }}>
+      <div className="mx-auto overflow-hidden rounded-2xl" style={{ width: size, height: size, background: '#0B0A12', border: '1px solid var(--line)' }}>
         {tiles ? <canvas ref={ref} style={{ width: size, height: size, display: 'block' }} aria-label="Aperçu de votre morceau de verre" /> : null}
       </div>
       <figcaption className="muted mt-2 text-center text-xs">
