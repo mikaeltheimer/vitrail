@@ -3,12 +3,14 @@
 // Fiche d'un morceau sur téléphone : feuille en bas, à glisser vers le bas pour la fermer .
 
 import { useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import type { Tile } from '@/lib/tiling'
 import { PiecePortrait } from './PiecePortrait'
 import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
-import { ordinal, type RankedPiece } from './types'
+import type { RankedPiece } from './types'
 import { donorNameFamily } from '@/lib/fonts'
+import { useOrdinal } from '@/lib/useI18n'
 
 const MONO = "'DM Sans', sans-serif"
 
@@ -31,6 +33,10 @@ export default function BottomSheet({
   onNext: () => void
   onRandom: () => void
 }) {
+  const t = useTranslations('vitrail.fiche')
+  const tn = useTranslations('vitrail.nav')
+  const tc = useTranslations('commun')
+  const ordinal = useOrdinal()
   const [share, setShare] = useState(false)
   const [report, setReport] = useState(false)
   const drag = useRef<{ y: number; dy: number } | null>(null)
@@ -75,7 +81,7 @@ export default function BottomSheet({
     >
       <button
         onClick={onClose}
-        aria-label="Fermer"
+        aria-label={tc('fermer')}
         style={{ position: 'absolute', top: '12px', right: '16px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
       >
         ×
@@ -109,9 +115,9 @@ export default function BottomSheet({
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '0 20px 16px' }}>
           <PiecePortrait id={piece.id} color={c} photoUrl={piece.photoUrl} tile={tile} size={64} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontFamily: donorNameFamily(), fontSize: '18px', fontWeight: 600, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{piece.name ?? 'Anonyme'}</h2>
+            <h2 style={{ fontFamily: donorNameFamily(), fontSize: '18px', fontWeight: 600, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{piece.name ?? tc('anonyme')}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Morceau du vitrail</span>
+              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{t('morceauDuVitrail')}</span>
               <span style={{ padding: '2px 8px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '12px', fontFamily: MONO, fontSize: '11px', color: c }}>{ordinal(piece.rank)}</span>
             </div>
           </div>
@@ -124,22 +130,22 @@ export default function BottomSheet({
         )}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
           <button onClick={onPrev} style={btn}>
-            ← Préc.
+            {tn('prec')}
           </button>
           <button onClick={onRandom} style={btn}>
-            ✦ Au hasard
+            {tn('hasard')}
           </button>
           <button onClick={onNext} style={btn}>
-            Suiv. →
+            {tn('suiv')}
           </button>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={() => setShare(true)} style={btn}>
             <span>🔗</span>
-            <span>{own ? 'Partager mon morceau' : 'Partager'}</span>
+            <span>{own ? t('partagerMien') : t('partager')}</span>
           </button>
           {!own && (
-            <button onClick={() => setReport(true)} aria-label="Signaler" style={{ ...btn, flex: '0 0 auto', padding: '12px 16px', background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.7)', fontSize: '16px' }}>
+            <button onClick={() => setReport(true)} aria-label={t('signaler')} style={{ ...btn, flex: '0 0 auto', padding: '12px 16px', background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.7)', fontSize: '16px' }}>
               ⚑
             </button>
           )}

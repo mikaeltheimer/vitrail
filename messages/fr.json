@@ -12,7 +12,10 @@
       "indigo": "Indigo",
       "violet": "Violet"
     },
-    "confidentialiteCourt": "Confidentialité"
+    "confidentialiteCourt": "Confidentialité",
+    "fermer": "Fermer",
+    "anonyme": "Anonyme",
+    "ordinal": "{n, selectordinal, one {#er} other {#e}}"
   },
   "erreurs": {
     "courrielRequis": "Courriel requis.",
@@ -124,5 +127,122 @@
     "enregistrer": "Enregistrer",
     "agrandir": "Agrandir mon morceau",
     "erreurInattendue": "Erreur inattendue."
+  },
+  "vitrail": {
+    "canvasAria": "Le vitrail de dons",
+    "ajouter": "Ajouter mon morceau",
+    "rencontrer": "✦ Rencontrer quelqu'un",
+    "rencontrerTitre": "S'envoler vers quelqu'un du vitrail",
+    "trouver": "Trouver mon morceau",
+    "touchez": "Touchez encore pour afficher",
+    "vide": "Le vitrail attend sa première pièce.",
+    "intro": {
+      "compteur": "{count, plural, =0 {0 morceaux} one {# morceau} other {# morceaux}}",
+      "ligne": "{org} · {count, plural, =0 {0 morceaux} one {# morceau} other {# morceaux}}",
+      "phrase": "Chaque morceau est un don qui fait vivre l'organisme."
+    },
+    "toast": {
+      "ajoute": "{nom} vient d’ajouter son morceau au vitrail",
+      "quelquun": "Quelqu’un",
+      "voir": "Voir"
+    },
+    "entete": {
+      "rechercher": "Rechercher",
+      "menu": "Menu",
+      "apropos": "À propos de la collecte",
+      "siteWeb": "Site web ↗",
+      "pageDon": "Page de don",
+      "chercher": "Chercher quelqu'un",
+      "annuler": "Annuler",
+      "personne": "Personne de ce nom pour l'instant.",
+      "amassesSur": "amassés sur {montant}",
+      "amasses": "amassés",
+      "donateurs": "{count, plural, one {# donateur} other {# donateurs}}"
+    },
+    "nav": {
+      "toutVoir": "Tout voir",
+      "dezoomer": "Dézoomer",
+      "zoomer": "Zoomer",
+      "plusGrand": "Morceau plus grand (←)",
+      "plusPetit": "Morceau plus petit (→)",
+      "prec": "← Préc.",
+      "suiv": "Suiv. →",
+      "hasard": "✦ Au hasard"
+    },
+    "bienvenue": {
+      "merci": "✦ Merci",
+      "merciNom": "✦ Merci, {nom}",
+      "attente": "Nous confirmons votre don et posons votre morceau dans le vitrail…",
+      "perdu": "La confirmation du paiement tarde. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes ; inutile de redonner.",
+      "fait": "Votre morceau fait maintenant partie du vitrail.",
+      "instant": "Un instant…",
+      "publier": "Publier mon témoignage",
+      "plusTard": "Plus tard",
+      "temoignageAttente": "Merci pour ce témoignage ! Il apparaîtra dès que l’équipe l’aura lu.",
+      "temoignagePublie": "Merci pour ce témoignage ! Il accompagne maintenant votre morceau.",
+      "lienPlusTard": "Gardez ce lien : il vous permet d’ajouter votre témoignage quand vous aurez un moment, et de modifier votre morceau.",
+      "lien": "Ce lien vous permet de modifier votre morceau (nom, photo, témoignage).",
+      "copie": "Copié",
+      "copier": "Copier",
+      "ouvrir": "Ouvrir ma page de modification",
+      "erreur": "Le témoignage n'a pas pu être enregistré."
+    },
+    "ticker": {
+      "titre": "Derniers dons",
+      "replier": "Replier",
+      "amasses": "amassés",
+      "ajoute": "{nom} vient d'ajouter son morceau",
+      "ago": {
+        "maintenant": "à l’instant",
+        "minutes": "{n} min",
+        "heures": "{n} h",
+        "jours": "{n} j"
+      }
+    },
+    "fiche": {
+      "titre": "Détails du morceau",
+      "rang": "{rang} sur {total}",
+      "rangVotre": "{rang} sur {total} · votre morceau",
+      "rangSurvol": "{rang} morceau du vitrail",
+      "unMorceau": "Un morceau du vitrail",
+      "partagerMien": "Partager mon morceau",
+      "partagerCe": "Partager ce morceau",
+      "partager": "Partager",
+      "signaler": "Signaler",
+      "morceauDuVitrail": "Morceau du vitrail"
+    },
+    "partage": {
+      "texteMien": "J'ai mon morceau de verre dans le vitrail : {org}. Ajoutez le vôtre!",
+      "texteNom": "Le morceau de {nom} dans le vitrail : {org}. Chaque don devient un morceau de verre.",
+      "texteAnonyme": "Un morceau du vitrail : {org}. Chaque don devient un morceau de verre.",
+      "natif": "Partager…",
+      "copier": "Copier le lien",
+      "copie": "Lien copié",
+      "courriel": "Courriel"
+    },
+    "signalement": {
+      "titre": "Signaler ce morceau",
+      "merci": "Merci. L'équipe va le regarder rapidement.",
+      "invite": "Un nom, un message ou une photo inappropriés? Dites-nous ce qui ne va pas (facultatif).",
+      "motif": "Motif",
+      "erreur": "Le signalement n'a pas pu être envoyé. Réessayez.",
+      "envoi": "Envoi…",
+      "envoyer": "Envoyer le signalement"
+    },
+    "apropos": {
+      "titre": "À propos de la collecte",
+      "nomPlateforme": "Donivers — {org}",
+      "chaque": "Chaque morceau de verre est un don à l'organisme. Ensemble, ils forment ce vitrail, qui grandit à chaque nouveau don.",
+      "pourquoi": "Pourquoi donner",
+      "commentCaMarche": "Comment ça marche",
+      "etape1": "Choisissez un montant",
+      "etape1Texte": "Plus le don est grand, plus votre morceau de verre l’est.",
+      "etape2": "Signez-le, si vous voulez",
+      "etape2Texte": "Votre nom, un mot, une photo. Ou restez anonyme.",
+      "etape3": "Il entre dans le vitrail",
+      "etape3Texte": "Ici, et sur le grand écran pendant les événements.",
+      "recu": "Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment. Paiement sécurisé par Stripe.",
+      "creation": "Une création de <lien>{studio}</lien>."
+    }
   }
 }

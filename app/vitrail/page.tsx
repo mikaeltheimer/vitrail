@@ -9,6 +9,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import AboutPanel from '@/components/vitrail/AboutPanel'
 import BottomSheet from '@/components/vitrail/BottomSheet'
 import ClaimPanel, { type ClaimDraft } from '@/components/vitrail/ClaimPanel'
@@ -17,9 +18,11 @@ import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
 import Ticker from '@/components/vitrail/Ticker'
 import type { RankedPiece } from '@/components/vitrail/types'
-import { ANON_LABEL, CONFIG } from '@/lib/config'
+import { CONFIG } from '@/lib/config'
+import { INTL_TAG, type Locale } from '@/i18n/config'
+import { useOrg } from '@/lib/useOrg'
+import { useMoney, useOrdinal } from '@/lib/useI18n'
 import { ensureFonts } from '@/lib/fonts'
-import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
@@ -104,6 +107,11 @@ export default function VitrailPage() {
 }
 
 function Vitrail() {
+  const t = useTranslations('vitrail')
+  const ti = useTranslations('vitrail.intro')
+  const tt = useTranslations('vitrail.toast')
+  const tc = useTranslations('commun')
+  const org = useOrg()
   const params = useSearchParams()
   const focusParam = params.get('d')
   // Retour de Stripe (?merci=réf.) : on revient sur le vitrail, directement sur son morceau
@@ -112,6 +120,11 @@ function Vitrail() {
   const [welcome, setWelcome] = useState<Welcome | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const introCountRef = useRef<HTMLDivElement>(null)
+  // Textes lus par le moteur (animations, instantanés), qui ne se relance pas à chaque changement de langue
+  const fmtRef = useRef({ count: (n: number) => String(n), toast: (name: string | null) => name ?? '', anon: '' })
+  useEffect(() => {
+    fmtRef.current = { count: n => ti('compteur', { count: n }), toast: name => tt('ajoute', { nom: name ?? tt('quelquun') }), anon: tc('anonyme') }
+  }, [ti, tt, tc])
   const claimPanelRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const viewRects = useRef<Set<SVGRectElement>>(new Set())
@@ -364,7 +377,7 @@ function Vitrail() {
       flyTo(target, 800)
     }
     const preview = async (draft: ClaimDraft, geometryChanged: boolean) => {
-      const piece: Piece = { id: PREVIEW_ID, name: draft.name ?? ANON_LABEL, message: draft.message, photoUrl: draft.photoSrc, color: draft.color, amountCents: draft.amountCents }
+      const piece: Piece = { id: PREVIEW_ID, name: draft.name ?? fmtRef.current.anon, message: draft.message, photoUrl: draft.photoSrc, color: draft.color, amountCents: draft.amountCents }
       if (!geometryChanged && w.previewOn) {
         // Couleur, nom, photo : pas besoin de recalculer le pavage
         w.pieces.set(PREVIEW_ID, { color: piece.color, name: piece.name, message: piece.message, photoUrl: piece.photoUrl })
@@ -446,7 +459,7 @@ function Vitrail() {
             const bb = t.bbox
             if (bb[2] >= w.cam.x - hw && bb[0] <= w.cam.x + hw && bb[3] >= w.cam.y - hh && bb[1] <= w.cam.y + hh) n++
           }
-          introCountRef.current.textContent = n === 1 ? '1 morceau' : `${n.toLocaleString('fr-CA')} morceaux`
+          introCountRef.current.textContent = fmtRef.current.count(n)
         }
         if (k < 1) introRaf = requestAnimationFrame(frame)
         else endIntro(false)
@@ -813,7 +826,7 @@ function Vitrail() {
         s.recent.forEach(d => seen.add(d.id))
         if (!first && fresh.length) {
           const d = fresh[0]
-          setToast({ id: d.id, donorId: d.donorId, text: `${d.name ?? 'Quelqu’un'} vient d’ajouter son morceau au vitrail` })
+          setToast({ id: d.id, donorId: d.donorId, text: fmtRef.current.toast(d.name) })
         }
         if (s.version === version) return
         version = s.version
@@ -935,7 +948,7 @@ function Vitrail() {
   const tile = piece ? tilesMap.get(piece.id) ?? null : null
   const totalCents = snap?.totalCents ?? 0
   const count = ranked.length
-  const claimLabel = 'Ajouter mon morceau'
+  const claimLabel = t('ajouter')
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -974,7 +987,7 @@ function Vitrail() {
       />
 
       <div className="fixed left-0 right-0" style={{ top: HEADER_HEIGHT, bottom: 0 }}>
-        <canvas ref={canvasRef} className="block h-full w-full" style={{ touchAction: 'none', cursor: mobile ? 'default' : 'grab' }} aria-label="Le vitrail de dons" />
+        <canvas ref={canvasRef} className="block h-full w-full" style={{ touchAction: 'none', cursor: mobile ? 'default' : 'grab' }} aria-label={t('canvasAria')} />
       </div>
 
       {/* ── Téléphone ── */}
@@ -995,7 +1008,7 @@ function Vitrail() {
           )}
           {piece && !sheetOpen && (
             <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: piece.color, padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontFamily: MONO, zIndex: 90, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-              Touchez encore pour afficher
+              {t('touchez')}
             </div>
           )}
           {!claimOpen && intro === 'off' && count > 0 && (
@@ -1008,7 +1021,7 @@ function Vitrail() {
               onClick={() => api.current.meet()}
               style={{ position: 'fixed', left: '16px', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 120, padding: '11px 16px', borderRadius: '999px', border: '1px solid rgba(240,178,74,0.5)', background: 'rgba(12,10,18,0.85)', backdropFilter: 'blur(6px)', color: GOLD, fontFamily: MONO, fontSize: '13px', fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
             >
-              ✦ Rencontrer quelqu&apos;un
+              {t('rencontrer')}
             </button>
           )}
         </>
@@ -1018,13 +1031,13 @@ function Vitrail() {
       {!mobile && count > 0 && (
         <>
           <DesktopSearch ranked={ranked} bottom={mine ? 348 : 302} onPick={id => api.current.select(id, true)} />
-          <SideButton bottom={mine ? 302 : 256} gold onClick={() => api.current.meet()} title="S'envoler vers quelqu'un du vitrail">
-            ✦ Rencontrer quelqu&apos;un
+          <SideButton bottom={mine ? 302 : 256} gold onClick={() => api.current.meet()} title={t('rencontrerTitre')}>
+            {t('rencontrer')}
           </SideButton>
           {mine && (
             <SideButton bottom={256} color={mine.color} onClick={() => api.current.select(mine.id, true)}>
               <span>◎</span>
-              <span>Trouver mon morceau</span>
+              <span>{t('trouver')}</span>
             </SideButton>
           )}
           <NavigationPanel
@@ -1050,9 +1063,9 @@ function Vitrail() {
           ) : (
             <>
               <div key="intro-final" style={{ fontFamily: MONO, fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)', textShadow: '0 0 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.95), 0 1px 18px rgba(0,0,0,0.9)', fontVariantNumeric: 'tabular-nums' }}>
-                Le vitrail de l&apos;{CONFIG.orgName} · {count.toLocaleString('fr-CA')} morceaux
+                {ti('ligne', { org: org.name, count })}
               </div>
-              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>Chaque morceau est un don qui fait vivre l&apos;école.</div>
+              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>{ti('phrase')}</div>
               <button
                 onClick={() => api.current.openClaim()}
                 style={{ ...goldButtonStyle, padding: '13px 22px', fontSize: '15px', pointerEvents: introCta ? 'auto' : 'none', opacity: introCta ? 1 : 0, transition: 'opacity 0.8s ease' }}
@@ -1106,7 +1119,7 @@ function Vitrail() {
               }}
               style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(240,178,74,0.5)', background: 'transparent', color: GOLD, fontFamily: MONO, fontSize: 12, cursor: 'pointer' }}
             >
-              Voir
+              {tt('voir')}
             </button>
           </div>
         </div>
@@ -1115,7 +1128,7 @@ function Vitrail() {
       {snap && count === 0 && (
         <div style={{ position: 'fixed', inset: `${HEADER_HEIGHT}px 0 0 0`, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24, zIndex: 100 }}>
           <div>
-            <div style={introTitleStyle}>Le vitrail attend sa première pièce.</div>
+            <div style={introTitleStyle}>{t('vide')}</div>
             <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, marginTop: 20 }}>
               {claimLabel}
             </button>
@@ -1137,6 +1150,10 @@ type Welcome =
  * d'inviter au témoignage : le don est fait, on regarde son morceau. « Plus tard » donne le lien pour y revenir.
  */
 function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Welcome; isMobile: boolean; onClose: () => void; onPublished: () => void }) {
+  const t = useTranslations('vitrail.bienvenue')
+  const tm = useTranslations('merci')
+  const tc = useTranslations('commun')
+  const org = useOrg()
   const [step, setStep] = useState<'ask' | 'later' | 'done'>('ask')
   const [text, setText] = useState('')
   const [consent, setConsent] = useState(false)
@@ -1154,7 +1171,7 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
     try {
       const res = await fetch('/api/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'testimonial', message: text, quoteConsent: consent }) })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || "Le témoignage n'a pas pu être enregistré.")
+      if (!res.ok) throw new Error(typeof data.error === 'string' && data.error ? data.error : t('erreur'))
       setPending(!!data.pending)
       setStep('done')
       onPublished()
@@ -1179,56 +1196,54 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
         style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(20,18,29,0.97)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 0 40px rgba(240,178,74,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'DM Sans', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - 120px)', overflowY: 'auto' }}
       >
         {welcome.state !== 'wait' && (
-          <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
+          <button onClick={onClose} aria-label={tc('fermer')} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
             ×
           </button>
         )}
-        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: GOLD }}>✦ Merci{welcome.state === 'ok' && welcome.name ? `, ${welcome.name}` : ''}</div>
-        {welcome.state === 'wait' && <p style={welcomeText}>Nous confirmons votre don et posons votre morceau dans le vitrail…</p>}
-        {welcome.state === 'lost' && <p style={welcomeText}>La confirmation du paiement tarde. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes ; inutile de redonner.</p>}
+        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: GOLD }}>{welcome.state === 'ok' && welcome.name ? t('merciNom', { nom: welcome.name }) : t('merci')}</div>
+        {welcome.state === 'wait' && <p style={welcomeText}>{t('attente')}</p>}
+        {welcome.state === 'lost' && <p style={welcomeText}>{t('perdu')}</p>}
 
         {welcome.state === 'ok' && (
           <>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>Votre morceau fait maintenant partie du vitrail.</p>
-            {welcome.photoPending && <p style={welcomeMuted}>Votre photo s&apos;ajoutera dès que l&apos;équipe l&apos;aura vue.</p>}
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>{t('fait')}</p>
+            {welcome.photoPending && <p style={welcomeMuted}>{tm('photoAttente')}</p>}
 
             {asking && (
               <>
                 <p style={{ ...welcomeText, marginTop: 4 }}>
-                  <b style={{ color: '#F4EFE6' }}>{CONFIG.testimonial.question}</b> <span style={{ color: GOLD }}>{CONFIG.testimonial.cta}</span> {CONFIG.testimonial.lead}
+                  <b style={{ color: '#F4EFE6' }}>{org.testimonial.question}</b> <span style={{ color: GOLD }}>{org.testimonial.cta}</span> {org.testimonial.lead}
                 </p>
                 <TestimonialField value={text} onChange={setText} consent={consent} onConsent={setConsent} rows={isMobile ? 3 : 4} />
                 {error && <p style={{ margin: 0, fontSize: 13, color: '#f87171' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
                   <button onClick={publish} disabled={!text.trim() || busy} style={{ ...goldButtonStyle, flex: 1, opacity: text.trim() && !busy ? 1 : 0.45, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed' }}>
-                    {busy ? 'Un instant…' : 'Publier mon témoignage'}
+                    {busy ? t('instant') : t('publier')}
                   </button>
                   <button onClick={() => setStep('later')} style={laterButtonStyle}>
-                    Plus tard
+                    {t('plusTard')}
                   </button>
                 </div>
               </>
             )}
 
             {step === 'done' && (
-              <p style={welcomeText}>{pending ? 'Merci pour ce témoignage ! Il apparaîtra dès que l’équipe l’aura lu.' : 'Merci pour ce témoignage ! Il accompagne maintenant votre morceau.'}</p>
+              <p style={welcomeText}>{pending ? t('temoignageAttente') : t('temoignagePublie')}</p>
             )}
 
             {!asking && (
               <div style={{ display: 'grid', gap: 6, marginTop: 2 }}>
                 <p style={welcomeMuted}>
-                  {step === 'later'
-                    ? 'Gardez ce lien : il vous permet d’ajouter votre témoignage quand vous aurez un moment, et de modifier votre morceau.'
-                    : 'Ce lien vous permet de modifier votre morceau (nom, photo, témoignage).'}
+                  {step === 'later' ? t('lienPlusTard') : t('lien')}
                 </p>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <code style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, padding: '8px 10px', borderRadius: 8, background: '#0B0A12', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}>{editUrl}</code>
                   <button onClick={copy} style={laterButtonStyle}>
-                    {copied ? 'Copié' : 'Copier'}
+                    {copied ? t('copie') : t('copier')}
                   </button>
                 </div>
                 <a href={`/m/${token}`} style={{ fontSize: 13, color: GOLD, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                  Ouvrir ma page de modification
+                  {t('ouvrir')}
                 </a>
               </div>
             )}
@@ -1276,16 +1291,22 @@ function Header({
   ranked: RankedPiece[]
   onPick: (id: string) => void
 }) {
+  const t = useTranslations('vitrail.entete')
+  const tc = useTranslations('commun')
+  const org = useOrg()
+  const money = useMoney()
+  const ordinal = useOrdinal()
+  const tag = INTL_TAG[useLocale() as Locale]
   const [query, setQuery] = useState('')
-  const q = query.trim().toLocaleLowerCase('fr-CA')
-  const results = q ? ranked.filter(p => p.name?.toLocaleLowerCase('fr-CA').includes(q)).slice(0, 8) : []
+  const q = query.trim().toLocaleLowerCase(tag)
+  const results = q ? ranked.filter(p => p.name?.toLocaleLowerCase(tag).includes(q)).slice(0, 8) : []
   // L'organisme d'abord : son emblème et son nom ; Donivers, discret, dessous
   const brand = (
     <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#F4EFE6', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/ecole-mark.png" alt="" style={{ height: 32, width: 'auto', flexShrink: 0 }} />
       <span style={{ display: 'grid', minWidth: 0, lineHeight: 1.1 }}>
-        <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.orgName}</span>
+        <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</span>
         <span style={{ fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.brand.name}</span>
       </span>
     </button>
@@ -1301,7 +1322,7 @@ function Header({
         <header style={{ ...base, padding: '0 16px', gap: 8 }}>
           {brand}
           <button onClick={onAbout} style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', background: 'none', border: 0, color: '#F4EFE6', padding: 0, display: 'grid', justifyItems: 'center', gap: 3 }}>
-            <span style={{ fontWeight: 700, color: GOLD }}>{formatMoney(raised)}</span>
+            <span style={{ fontWeight: 700, color: GOLD }}>{money(raised)}</span>
             {goalCents > 0 && (
               <span style={{ width: 64, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
                 <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: GOLD }} />
@@ -1310,14 +1331,14 @@ function Header({
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {count > 0 && (
-              <button onClick={() => setSearchOpen(true)} aria-label="Rechercher" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setSearchOpen(true)} aria-label={t('rechercher')} style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </button>
             )}
-            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button onClick={() => setMenuOpen(!menuOpen)} aria-label={t('menu')} style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 {menuOpen ? (
                   <>
@@ -1339,18 +1360,18 @@ function Header({
           <>
             <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
             <nav style={{ position: 'fixed', top: HEADER_HEIGHT, right: 0, left: 0, zIndex: 999, background: 'rgba(6,6,10,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 16px 16px', display: 'grid', gap: 4 }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{CONFIG.orgName}</span>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{org.name}</span>
               <button onClick={onAbout} style={{ ...menuLink, background: 'none', border: 0, borderBottom: menuLink.borderBottom, textAlign: 'left' }}>
-                À propos de la collecte
+                {t('apropos')}
               </button>
-              <a href={CONFIG.orgUrl} target="_blank" rel="noreferrer" style={menuLink}>
-                Site de l&apos;école ↗
+              <a href={org.url} target="_blank" rel="noreferrer" style={menuLink}>
+                {t('siteWeb')}
               </a>
               <Link href="/don?src=vitrail" style={menuLink}>
-                Page de don
+                {t('pageDon')}
               </Link>
               <Link href="/confidentialite" style={menuLink}>
-                Confidentialité
+                {tc('confidentialiteCourt')}
               </Link>
             </nav>
           </>
@@ -1358,7 +1379,7 @@ function Header({
         {searchOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(6,6,10,0.97)', padding: 16 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Chercher quelqu'un" style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: '#0B0A12', color: '#F4EFE6', fontSize: 16, fontFamily: MONO }} />
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder={t('chercher')} style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: '#0B0A12', color: '#F4EFE6', fontSize: 16, fontFamily: MONO }} />
               <button
                 onClick={() => {
                   setSearchOpen(false)
@@ -1366,7 +1387,7 @@ function Header({
                 }}
                 style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.7)', fontSize: 14 }}
               >
-                Annuler
+                {t('annuler')}
               </button>
             </div>
             <div style={{ marginTop: 12 }}>
@@ -1382,10 +1403,10 @@ function Header({
                 >
                   <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{p.rank === 1 ? '1er' : `${p.rank}e`}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{ordinal(p.rank)}</span>
                 </button>
               ))}
-              {q && results.length === 0 && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, padding: '12px 4px' }}>Personne de ce nom pour l&apos;instant.</p>}
+              {q && results.length === 0 && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, padding: '12px 4px' }}>{t('personne')}</p>}
             </div>
           </div>
         )}
@@ -1396,12 +1417,12 @@ function Header({
   return (
     <header style={{ ...base, padding: '0 24px' }}>
       <div style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex' }}>{brand}</div>
-      <button onClick={onAbout} title="À propos de la collecte" style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#F4EFE6', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
+      <button onClick={onAbout} title={t('apropos')} style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#F4EFE6', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
         <span>
-          <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{formatMoney(raised)}</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>{goalCents > 0 ? `amassés sur ${formatMoney(goalCents)}` : 'amassés pour l’école'}</span>
+          <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{money(raised)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>{goalCents > 0 ? t('amassesSur', { montant: money(goalCents) }) : t('amasses')}</span>
           <span style={{ color: 'rgba(255,255,255,0.35)', margin: '0 8px' }}>·</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)' }}>{count} donateur{count > 1 ? 's' : ''}</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)' }}>{t('donateurs', { count })}</span>
         </span>
         {goalCents > 0 && (
           <span style={{ width: '100%', height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
@@ -1411,10 +1432,10 @@ function Header({
       </button>
       <nav style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
         <button onClick={onAbout} style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', background: 'none', border: 0, cursor: 'pointer', marginRight: 16 }}>
-          À propos de la collecte
+          {t('apropos')}
         </button>
-        <a href={CONFIG.orgUrl} target="_blank" rel="noreferrer" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
-          ecoleartsutton.ca ↗
+        <a href={org.url} target="_blank" rel="noreferrer" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+          {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
         </a>
         <button
           type="button"
@@ -1447,11 +1468,14 @@ function SideButton({ bottom, gold, color, onClick, title, children }: { bottom:
 }
 
 function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bottom: number; onPick: (id: string) => void }) {
+  const t = useTranslations('vitrail.entete')
+  const ordinal = useOrdinal()
+  const tag = INTL_TAG[useLocale() as Locale]
   const [q, setQ] = useState('')
   const [focused, setFocused] = useState(false)
   const ref = useRef<HTMLInputElement>(null)
-  const needle = q.trim().toLocaleLowerCase('fr-CA')
-  const results = needle ? ranked.filter(p => p.name?.toLocaleLowerCase('fr-CA').includes(needle)).slice(0, 5) : []
+  const needle = q.trim().toLocaleLowerCase(tag)
+  const results = needle ? ranked.filter(p => p.name?.toLocaleLowerCase(tag).includes(needle)).slice(0, 5) : []
   const pick = (id: string) => {
     onPick(id)
     setQ('')
@@ -1468,7 +1492,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
         <input
           ref={ref}
           type="text"
-          placeholder="Chercher quelqu'un"
+          placeholder={t('chercher')}
           value={q}
           onChange={e => setQ(e.target.value)}
           onFocus={() => setFocused(true)}
@@ -1498,7 +1522,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
               </span>
-              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{p.rank === 1 ? '1er' : `${p.rank}e`}</span>
+              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{ordinal(p.rank)}</span>
             </button>
           ))}
         </div>
@@ -1564,6 +1588,7 @@ function NavigationPanel({
   onPrev: () => void
   onNext: () => void
 }) {
+  const tn = useTranslations('vitrail.nav')
   const mapW = 200
   const mapH = 120
   const scale = Math.min(mapW, mapH) / (BOUNDS * 2)
@@ -1607,21 +1632,21 @@ function NavigationPanel({
       <div style={{ padding: '0 10px 6px 10px', display: 'flex', gap: '6px' }}>
         <button onClick={onReset} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)}>
           <span>⌂</span>
-          <span>Tout voir</span>
+          <span>{tn('toutVoir')}</span>
         </button>
-        <button onClick={onZoomOut} style={{ ...navBtn, width: '36px', padding: '8px 0' }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Dézoomer">
+        <button onClick={onZoomOut} style={{ ...navBtn, width: '36px', padding: '8px 0' }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('dezoomer')}>
           <ZoomOutIcon />
         </button>
-        <button onClick={onZoomIn} style={{ ...navBtn, width: '36px', padding: '8px 0' }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Zoomer">
+        <button onClick={onZoomIn} style={{ ...navBtn, width: '36px', padding: '8px 0' }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('zoomer')}>
           <ZoomInIcon />
         </button>
       </div>
       <div style={{ padding: '0 10px 10px 10px', display: 'flex', gap: '6px' }}>
-        <button onClick={onPrev} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Morceau plus grand (←)">
-          <span>← Préc.</span>
+        <button onClick={onPrev} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('plusGrand')}>
+          <span>{tn('prec')}</span>
         </button>
-        <button onClick={onNext} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title="Morceau plus petit (→)">
-          <span>Suiv. →</span>
+        <button onClick={onNext} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('plusPetit')}>
+          <span>{tn('suiv')}</span>
         </button>
       </div>
     </div>
@@ -1630,6 +1655,7 @@ function NavigationPanel({
 
 /** Mini-carte du téléphone : visuelle, avec les boutons de zoom au-dessus (en bas à droite). */
 function MobileMinimap({ registerRect, polygons, onZoomIn, onZoomOut }: { registerRect: (el: SVGRectElement | null) => void; polygons: React.ReactNode; onZoomIn: () => void; onZoomOut: () => void }) {
+  const tn = useTranslations('vitrail.nav')
   const mapW = 80
   const mapH = 60
   const scale = Math.min(mapW, mapH) / (BOUNDS * 2)
@@ -1637,10 +1663,10 @@ function MobileMinimap({ registerRect, polygons, onZoomIn, onZoomOut }: { regist
   return (
     <div style={{ position: 'fixed', bottom: 'calc(16px + env(safe-area-inset-bottom))', right: '16px', zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', width: `${mapW}px` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <button onClick={onZoomOut} style={btn} aria-label="Dézoomer">
+        <button onClick={onZoomOut} style={btn} aria-label={tn('dezoomer')}>
           <ZoomOutIcon />
         </button>
-        <button onClick={onZoomIn} style={btn} aria-label="Zoomer">
+        <button onClick={onZoomIn} style={btn} aria-label={tn('zoomer')}>
           <ZoomInIcon />
         </button>
       </div>

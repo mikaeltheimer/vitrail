@@ -16,6 +16,12 @@ export function useCount(): (n: number) => string {
   return n => formatCount(n, locale)
 }
 
+/** (3) → « 3e » ou « 3rd ». */
+export function useOrdinal(): (n: number) => string {
+  const t = useTranslations('commun')
+  return n => t('ordinal', { n })
+}
+
 /** Nom d'un verre de la palette dans la langue de la page : glassName(GLASS_COLORS[0]) → « Ambre » ou « Amber ». */
 export function useGlassName(): (glass: { id: 'ambre' | 'rose' | 'turquoise' | 'indigo' | 'violet' }) => string {
   const t = useTranslations('commun.verres')

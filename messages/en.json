@@ -12,7 +12,10 @@
       "indigo": "Indigo",
       "violet": "Violet"
     },
-    "confidentialiteCourt": "Privacy"
+    "confidentialiteCourt": "Privacy",
+    "fermer": "Close",
+    "anonyme": "Anonymous",
+    "ordinal": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}"
   },
   "erreurs": {
     "courrielRequis": "Email address required.",
@@ -124,5 +127,122 @@
     "enregistrer": "Save",
     "agrandir": "Make my piece bigger",
     "erreurInattendue": "Unexpected error."
+  },
+  "vitrail": {
+    "canvasAria": "The donation stained glass",
+    "ajouter": "Add my piece",
+    "rencontrer": "✦ Meet someone",
+    "rencontrerTitre": "Fly to someone in the stained glass",
+    "trouver": "Find my piece",
+    "touchez": "Tap again to open",
+    "vide": "The stained glass is waiting for its first piece.",
+    "intro": {
+      "compteur": "{count, plural, =0 {0 pieces} one {# piece} other {# pieces}}",
+      "ligne": "{org} · {count, plural, =0 {0 pieces} one {# piece} other {# pieces}}",
+      "phrase": "Every piece is a donation that keeps the organization going."
+    },
+    "toast": {
+      "ajoute": "{nom} just added their piece to the stained glass",
+      "quelquun": "Someone",
+      "voir": "View"
+    },
+    "entete": {
+      "rechercher": "Search",
+      "menu": "Menu",
+      "apropos": "About the campaign",
+      "siteWeb": "Website ↗",
+      "pageDon": "Donation page",
+      "chercher": "Find someone",
+      "annuler": "Cancel",
+      "personne": "No one by that name yet.",
+      "amassesSur": "raised of {montant}",
+      "amasses": "raised",
+      "donateurs": "{count, plural, one {# donor} other {# donors}}"
+    },
+    "nav": {
+      "toutVoir": "See all",
+      "dezoomer": "Zoom out",
+      "zoomer": "Zoom in",
+      "plusGrand": "Larger piece (←)",
+      "plusPetit": "Smaller piece (→)",
+      "prec": "← Prev",
+      "suiv": "Next →",
+      "hasard": "✦ Random"
+    },
+    "bienvenue": {
+      "merci": "✦ Thank you",
+      "merciNom": "✦ Thank you, {nom}",
+      "attente": "We're confirming your donation and placing your piece in the stained glass…",
+      "perdu": "The payment confirmation is taking a while. If you were charged, your piece will appear within a few minutes; there's no need to donate again.",
+      "fait": "Your piece is now part of the stained glass.",
+      "instant": "One moment…",
+      "publier": "Publish my testimonial",
+      "plusTard": "Later",
+      "temoignageAttente": "Thank you for your testimonial! It will appear as soon as the team has read it.",
+      "temoignagePublie": "Thank you for your testimonial! It now goes with your piece.",
+      "lienPlusTard": "Keep this link: it lets you add your testimonial whenever you have a moment, and edit your piece.",
+      "lien": "This link lets you edit your piece (name, photo, testimonial).",
+      "copie": "Copied",
+      "copier": "Copy",
+      "ouvrir": "Open my edit page",
+      "erreur": "The testimonial couldn't be saved."
+    },
+    "ticker": {
+      "titre": "Latest donations",
+      "replier": "Collapse",
+      "amasses": "raised",
+      "ajoute": "{nom} just added their piece",
+      "ago": {
+        "maintenant": "just now",
+        "minutes": "{n} min",
+        "heures": "{n} h",
+        "jours": "{n} d"
+      }
+    },
+    "fiche": {
+      "titre": "Piece details",
+      "rang": "{rang} of {total}",
+      "rangVotre": "{rang} of {total} · your piece",
+      "unMorceau": "A piece of the stained glass",
+      "partagerMien": "Share my piece",
+      "partagerCe": "Share this piece",
+      "partager": "Share",
+      "signaler": "Report",
+      "morceauDuVitrail": "Piece of the stained glass",
+      "rangSurvol": "{rang} piece in the stained glass"
+    },
+    "partage": {
+      "texteMien": "I have my piece of glass in the stained glass: {org}. Add yours!",
+      "texteNom": "{nom}'s piece in the stained glass: {org}. Every donation becomes a piece of glass.",
+      "texteAnonyme": "A piece of the stained glass: {org}. Every donation becomes a piece of glass.",
+      "natif": "Share…",
+      "copier": "Copy link",
+      "copie": "Link copied",
+      "courriel": "Email"
+    },
+    "signalement": {
+      "titre": "Report this piece",
+      "merci": "Thank you. The team will look at it shortly.",
+      "invite": "Is a name, message or photo inappropriate? Tell us what's wrong (optional).",
+      "motif": "Reason",
+      "erreur": "The report couldn't be sent. Please try again.",
+      "envoi": "Sending…",
+      "envoyer": "Send report"
+    },
+    "apropos": {
+      "titre": "About the campaign",
+      "nomPlateforme": "Donivers — {org}",
+      "chaque": "Every piece of glass is a donation to the organization. Together, they form this stained glass, which grows with every new donation.",
+      "pourquoi": "Why give",
+      "commentCaMarche": "How it works",
+      "etape1": "Choose an amount",
+      "etape1Texte": "The bigger the donation, the bigger your piece of glass.",
+      "etape2": "Sign it, if you like",
+      "etape2Texte": "Your name, a note, a photo. Or stay anonymous.",
+      "etape3": "It joins the stained glass",
+      "etape3Texte": "Here, and on the big screen during events.",
+      "recu": "This organization is not yet a registered charity, so no tax receipt is issued at this time. Secure payment by Stripe.",
+      "creation": "Created by <lien>{studio}</lien>."
+    }
   }
 }

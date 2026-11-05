@@ -4,10 +4,15 @@
 // La position suit la souris directement dans le DOM : aucun rendu React à chaque mouvement.
 
 import { useEffect, useRef, useState } from 'react'
-import { ordinal, type RankedPiece } from './types'
+import { useTranslations } from 'next-intl'
+import type { RankedPiece } from './types'
+import { useOrdinal } from '@/lib/useI18n'
 import { donorNameFamily } from '@/lib/fonts'
 
 export function HoverCard({ piece }: { piece: RankedPiece | null }) {
+  const t = useTranslations('vitrail.fiche')
+  const tc = useTranslations('commun')
+  const ordinal = useOrdinal()
   const ref = useRef<HTMLDivElement>(null)
   const pos = useRef({ x: -1000, y: -1000 })
   const [ready, setReady] = useState<RankedPiece | null>(null)
@@ -54,9 +59,9 @@ export function HoverCard({ piece }: { piece: RankedPiece | null }) {
         <div className="h-14 w-14 shrink-0 rounded-lg" style={{ background: `radial-gradient(circle at 45% 40%, #fff 0%, ${color} 28%, #0B0A12 100%)` }} />
       )}
       <div className="grid min-w-0 content-start gap-0.5">
-        <div className="truncate text-sm font-bold" style={{ fontFamily: donorNameFamily() }}>{shown.name ?? 'Anonyme'}</div>
+        <div className="truncate text-sm font-bold" style={{ fontFamily: donorNameFamily() }}>{shown.name ?? tc('anonyme')}</div>
         <div className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          {ordinal(shown.rank)} morceau du vitrail
+          {t('rangSurvol', { rang: ordinal(shown.rank) })}
         </div>
         {shown.message && (
           <div className="text-xs italic" style={{ color: 'rgba(255,255,255,0.82)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>

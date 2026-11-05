@@ -3,17 +3,22 @@
 // Fiche d'un morceau sur ordinateur : panneau à droite, sous l'en-tête .
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import type { Tile } from '@/lib/tiling'
 import { PiecePortrait } from './PiecePortrait'
 import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
-import { ordinal, type RankedPiece } from './types'
+import type { RankedPiece } from './types'
 import { donorNameFamily } from '@/lib/fonts'
+import { useOrdinal } from '@/lib/useI18n'
 
 const MONO = "'DM Sans', sans-serif"
 const divider = { height: '1px', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)', margin: '24px 0' }
 
 export default function DetailPanel({ piece, tile, count, own, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents?: number; own: boolean; onClose: () => void }) {
+  const t = useTranslations('vitrail.fiche')
+  const tc = useTranslations('commun')
+  const ordinal = useOrdinal()
   const [share, setShare] = useState(false)
   const [report, setReport] = useState(false)
   const c = piece.color
@@ -36,10 +41,10 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
       }}
     >
       <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontFamily: MONO, fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Détails du morceau</span>
+        <span style={{ fontFamily: MONO, fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('titre')}</span>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={tc('fermer')}
           style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#F4EFE6', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           ×
@@ -52,10 +57,9 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-          <h2 style={{ fontFamily: donorNameFamily(), fontSize: '22px', fontWeight: 600, marginBottom: '8px', color: '#F4EFE6' }}>{piece.name ?? 'Anonyme'}</h2>
+          <h2 style={{ fontFamily: donorNameFamily(), fontSize: '22px', fontWeight: 600, marginBottom: '8px', color: '#F4EFE6' }}>{piece.name ?? tc('anonyme')}</h2>
           <span style={{ display: 'inline-block', padding: '4px 12px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '20px', fontFamily: MONO, fontSize: '12px', color: c }}>
-            {ordinal(piece.rank)} sur {count}
-            {own ? ' · votre morceau' : ''}
+            {t(own ? 'rangVotre' : 'rang', { rang: ordinal(piece.rank), total: count })}
           </span>
         </div>
 
@@ -73,15 +77,15 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
 
         <div style={divider} />
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Un morceau du vitrail de l&apos;école</p>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>{t('unMorceau')}</p>
           <button onClick={() => setShare(true)} style={{ ...actionStyle, marginTop: '16px' }}>
             <span>🔗</span>
-            <span>{own ? 'Partager mon morceau' : 'Partager ce morceau'}</span>
+            <span>{own ? t('partagerMien') : t('partagerCe')}</span>
           </button>
           {!own && (
             <button onClick={() => setReport(true)} style={{ ...actionStyle, marginTop: '8px', background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.7)' }}>
               <span>⚑</span>
-              <span>Signaler</span>
+              <span>{t('signaler')}</span>
             </button>
           )}
         </div>
