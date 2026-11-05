@@ -321,7 +321,7 @@
     "rappelPreheader": "Tell us why you support the organization.",
     "rappelTitre": "Your piece is in the stained glass",
     "rappelCorps": "Thank you again for your donation: your piece is now part of the stained glass.",
-    "rappelPied": "This is the only reminder we will send you about this."
+    "rappelPied": "This is a one-time email: we have not added you to any mailing list, and you will not receive another reminder about this."
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",

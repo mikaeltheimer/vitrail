@@ -135,6 +135,11 @@ function footerFor(locale: Locale): string[] {
   ]
 }
 
+export interface Built {
+  subject: string
+  content: EmailContent
+}
+
 export interface ReceiptInput {
   to: string
   amountCents: number
@@ -145,14 +150,11 @@ export interface ReceiptInput {
 }
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
-export async function sendReceipt(i: ReceiptInput): Promise<boolean> {
+// Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'locale' | 'baseUrl'>): Built {
   const t = translatorFor(i.locale)
   const org = orgFor(i.locale)
-  return sendEmail({
-    kind: 'receipt',
-    to: i.to,
-    locale: i.locale,
-    donorId: i.donorId,
+  return {
     subject: t('courriel.recuObjet', { org: org.name }),
     content: {
       preheader: t('courriel.recuPreheader'),
@@ -166,7 +168,11 @@ export async function sendReceipt(i: ReceiptInput): Promise<boolean> {
       linkHelp: t('courriel.lienAlt'),
       footer: [t('courriel.recuPied'), ...footerFor(i.locale)],
     },
-  })
+  }
+}
+
+export async function sendReceipt(i: ReceiptInput): Promise<boolean> {
+  return sendEmail({ kind: 'receipt', to: i.to, locale: i.locale, donorId: i.donorId, ...buildReceipt(i) })
 }
 
 export interface MagicLinkInput {
@@ -177,13 +183,9 @@ export interface MagicLinkInput {
   baseUrl?: string
 }
 
-export async function sendMagicLink(i: MagicLinkInput): Promise<boolean> {
+export function buildMagicLink(i: Pick<MagicLinkInput, 'token' | 'locale' | 'baseUrl'>): Built {
   const t = translatorFor(i.locale)
-  return sendEmail({
-    kind: 'magic_link',
-    to: i.to,
-    locale: i.locale,
-    donorId: i.donorId,
+  return {
     subject: t('courriel.lienObjet', { org: orgFor(i.locale).name }),
     content: {
       preheader: t('courriel.lienPreheader'),
@@ -193,7 +195,11 @@ export async function sendMagicLink(i: MagicLinkInput): Promise<boolean> {
       linkHelp: t('courriel.lienAlt'),
       footer: footerFor(i.locale),
     },
-  })
+  }
+}
+
+export async function sendMagicLink(i: MagicLinkInput): Promise<boolean> {
+  return sendEmail({ kind: 'magic_link', to: i.to, locale: i.locale, donorId: i.donorId, ...buildMagicLink(i) })
 }
 
 export interface ReminderInput {
@@ -205,14 +211,10 @@ export interface ReminderInput {
 }
 
 /** Rappel unique, le lendemain d'un don : invite à ajouter un témoignage (voir lib/reminders.ts). */
-export async function sendReminder(i: ReminderInput): Promise<boolean> {
+export function buildReminder(i: Pick<ReminderInput, 'token' | 'locale' | 'baseUrl'>): Built {
   const t = translatorFor(i.locale)
   const org = orgFor(i.locale)
-  return sendEmail({
-    kind: 'reminder',
-    to: i.to,
-    locale: i.locale,
-    donorId: i.donorId,
+  return {
     subject: t('courriel.rappelObjet', { org: org.name }),
     content: {
       preheader: t('courriel.rappelPreheader'),
@@ -223,5 +225,9 @@ export async function sendReminder(i: ReminderInput): Promise<boolean> {
       linkHelp: t('courriel.lienAlt'),
       footer: [t('courriel.rappelPied'), ...footerFor(i.locale)],
     },
-  })
+  }
+}
+
+export async function sendReminder(i: ReminderInput): Promise<boolean> {
+  return sendEmail({ kind: 'reminder', to: i.to, locale: i.locale, donorId: i.donorId, ...buildReminder(i) })
 }
