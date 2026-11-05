@@ -244,5 +244,29 @@
       "recu": "Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment. Paiement sécurisé par Stripe.",
       "creation": "Une création de <lien>{studio}</lien>."
     }
+  },
+  "claim": {
+    "titre": "Ajouter mon morceau",
+    "agrandir": "Agrandir mon morceau",
+    "agrandirNom": "Agrandir mon morceau, {nom}",
+    "dejaDonne": "Vous avez déjà donné <b>{montant}</b>. Chaque nouveau don agrandit votre morceau.",
+    "destination": "Votre don soutient <b>{org}</b>.",
+    "montant": "Montant",
+    "typique": "La plupart des gens donnent {montant}.",
+    "frais": "J'ajoute {frais} pour couvrir les frais de transaction : l'organisme reçoit {montant} au complet.",
+    "part": "Votre part du vitrail",
+    "plusGrandQue": "Plus grand que",
+    "plusGrandQueValeur": "{count, plural, one {# morceau} other {# morceaux}} sur {total}",
+    "rang": "Rang",
+    "verre": "Votre verre",
+    "nomAffiche": "Nom affiché",
+    "nomPlaceholder": "Laissez vide pour rester anonyme",
+    "nomCourt": "Au moins 2 lettres.",
+    "facultatifs": "Nom et photo sont facultatifs : sans nom, votre morceau est « Anonyme ».",
+    "demo": "Mode démo : aucune clé Stripe n'est configurée. Le morceau est ajouté tout de suite, sans paiement ni courriel.",
+    "instant": "Un instant…",
+    "donner": "Donner {montant}",
+    "pied": "Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre morceau. Pas de reçu fiscal pour le moment.",
+    "erreurInattendue": "Erreur inattendue. Réessayez."
   }
 }

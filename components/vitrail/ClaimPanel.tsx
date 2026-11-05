@@ -12,10 +12,13 @@ import {
   type RefObject,
 } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { INTL_TAG, type Locale } from "@/i18n/config";
+import { useOrg } from "@/lib/useOrg";
+import { useCount, useGlassName, useMoney, useOrdinal } from "@/lib/useI18n";
 import { CONFIG, GLASS_COLORS } from "@/lib/config";
 import { feeFor } from "@/lib/fees";
-import { formatMoney } from "@/lib/format";
-import { squareJpeg, uploadPhoto } from "@/lib/photoClient";
+import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
 
 const GOLD = "#F0B24A";
@@ -107,13 +110,10 @@ function amountToSlider(a: number): number {
       1000,
   );
 }
-function formatShare(x: number): string {
-  const v = x * 100;
-  return (
-    (v >= 1
-      ? v.toLocaleString("fr-CA", { maximumFractionDigits: 1 })
-      : v.toLocaleString("fr-CA", { maximumSignificantDigits: 2 })) + " %"
-  );
+function formatShare(x: number, tag: string): string {
+  const opts: Intl.NumberFormatOptions =
+    x * 100 >= 1 ? { maximumFractionDigits: 1 } : { maximumSignificantDigits: 2 };
+  return new Intl.NumberFormat(tag, { style: "percent", ...opts }).format(x);
 }
 
 export default function ClaimPanel({
@@ -130,6 +130,16 @@ export default function ClaimPanel({
   returnTo = "vitrail",
   defaultChannel = "vitrail",
 }: Props) {
+  const t = useTranslations("claim");
+  const tp = useTranslations("photo");
+  const te = useTranslations("erreurs");
+  const tc = useTranslations("commun");
+  const org = useOrg();
+  const money = useMoney();
+  const count = useCount();
+  const ordinal = useOrdinal();
+  const glassName = useGlassName();
+  const locale = useLocale() as Locale;
   const page = variant === "page";
   const agrandir = !!(known && token);
   const [saved] = useState(readSaved);
@@ -245,7 +255,7 @@ export default function ClaimPanel({
       const path = await uploadPhoto(blob);
       setPhoto({ src, path });
     } catch (err) {
-      setError((err as Error).message);
+      setError(err instanceof PhotoError ? (err.serverMessage ?? tp(`erreurs.${err.key}`)) : tp("erreurs.envoi"));
       setPhoto({ src: null, path: null });
     } finally {
       setPhotoBusy(false);
@@ -290,7 +300,11 @@ export default function ClaimPanel({
       });
       const data = await res.json();
       if (!res.ok)
-        throw new Error(data.error || "Erreur inattendue. Réessayez.");
+        throw new Error(
+          typeof data.error === "string" && data.error
+            ? data.error
+            : t("erreurInattendue"),
+        );
       // Brouillon gardé pour un éventuel retour sans paiement (la photo en data URL : l'adresse blob: ne survit pas)
       try {
         const src =
@@ -359,11 +373,13 @@ export default function ClaimPanel({
       >
         <h2 className="font-display" style={{ margin: 0, fontSize: "20px" }}>
           {agrandir
-            ? `Agrandir mon morceau${known!.showName && known!.name ? `, ${known!.name}` : ""}`
-            : "Ajouter mon morceau"}
+            ? known!.showName && known!.name
+              ? t("agrandirNom", { nom: known!.name })
+              : t("agrandir")
+            : t("titre")}
         </h2>
         {onClose && (
-          <button onClick={onClose} aria-label="Fermer" style={closeStyle}>
+          <button onClick={onClose} aria-label={tc("fermer")} style={closeStyle}>
             ×
           </button>
         )}
@@ -378,9 +394,10 @@ export default function ClaimPanel({
             lineHeight: 1.45,
           }}
         >
-          Vous avez déjà donné{" "}
-          <b style={{ color: GOLD }}>{formatMoney(known!.totalCents)}</b>.
-          Chaque nouveau don agrandit votre morceau.
+          {t.rich("dejaDonne", {
+            montant: money(known!.totalCents),
+            b: (chunks) => <b style={{ color: GOLD }}>{chunks}</b>,
+          })}
         </p>
       )}
 
@@ -409,9 +426,11 @@ export default function ClaimPanel({
             color: "rgba(255,255,255,0.85)",
           }}
         >
-          Votre don va à l&apos;
-          <strong style={{ color: GOLD }}>{CONFIG.orgName}</strong>.{" "}
-          {CONFIG.orgWhy}
+          {t.rich("destination", {
+            org: org.name,
+            b: (chunks) => <strong style={{ color: GOLD }}>{chunks}</strong>,
+          })}{" "}
+          {org.why}
         </span>
       </div>
 
@@ -426,7 +445,7 @@ export default function ClaimPanel({
           }}
         >
           <label htmlFor="claim-amount-input" style={labelStyle}>
-            Montant
+            {t("montant")}
           </label>
           <div
             style={{
@@ -436,6 +455,9 @@ export default function ClaimPanel({
               color: GOLD,
             }}
           >
+            {locale === "en" && (
+              <span style={{ fontSize: "26px", fontWeight: 700 }}>$</span>
+            )}
             <input
               id="claim-amount-input"
               inputMode="numeric"
@@ -459,7 +481,9 @@ export default function ClaimPanel({
                 fontVariantNumeric: "tabular-nums",
               }}
             />
-            <span style={{ fontSize: "26px", fontWeight: 700 }}>$</span>
+            {locale === "fr" && (
+              <span style={{ fontSize: "26px", fontWeight: 700 }}>$</span>
+            )}
           </div>
         </div>
         <input
@@ -468,17 +492,17 @@ export default function ClaimPanel({
           max={1000}
           value={amountToSlider(amount)}
           onChange={(e) => setAmount(sliderToAmount(+e.target.value))}
-          aria-label="Montant"
+          aria-label={t("montant")}
           style={{ width: "100%", accentColor: GOLD }}
         />
         {amount < MIN && (
           <p style={{ ...hintStyle, color: "#f87171" }}>
-            Le don minimum est de {formatMoney(CONFIG.minAmountCents)}.
+            {te("montantMin", { montant: money(CONFIG.minAmountCents) })}
           </p>
         )}
         {typicalCents && (
           <p style={hintStyle}>
-            La plupart des gens donnent {formatMoney(typicalCents)}.
+            {t("typique", { montant: money(typicalCents) })}
           </p>
         )}
         <label
@@ -498,9 +522,7 @@ export default function ClaimPanel({
             style={{ accentColor: GOLD, marginTop: "2px" }}
           />
           <span>
-            J&apos;ajoute {formatMoney(feeCents)} pour couvrir les frais de
-            transaction : l&apos;école reçoit {formatMoney(baseCents)} au
-            complet.
+            {t("frais", { frais: money(feeCents), montant: money(baseCents) })}
           </span>
         </label>
       </div>
@@ -514,17 +536,14 @@ export default function ClaimPanel({
           fontSize: "13px",
         }}
       >
-        <dt style={dtStyle}>Votre part du vitrail</dt>
-        <dd style={monoStyle}>{formatShare(share)}</dd>
-        <dt style={dtStyle}>Plus grand que</dt>
+        <dt style={dtStyle}>{t("part")}</dt>
+        <dd style={monoStyle}>{formatShare(share, INTL_TAG[locale])}</dd>
+        <dt style={dtStyle}>{t("plusGrandQue")}</dt>
         <dd style={monoStyle}>
-          {bigger.toLocaleString("fr-CA")} morceau{bigger > 1 ? "x" : ""} sur{" "}
-          {amounts.length.toLocaleString("fr-CA")}
+          {t("plusGrandQueValeur", { count: bigger, total: count(amounts.length) })}
         </dd>
-        <dt style={dtStyle}>Rang</dt>
-        <dd style={monoStyle}>
-          {rank === 1 ? "1er" : `${rank.toLocaleString("fr-CA")}e`}
-        </dd>
+        <dt style={dtStyle}>{t("rang")}</dt>
+        <dd style={monoStyle}>{ordinal(rank)}</dd>
       </dl>
 
       {!agrandir && (
@@ -550,10 +569,10 @@ export default function ClaimPanel({
                   lineHeight: 1.3,
                 }}
               >
-                {CONFIG.testimonial.question}
+                {org.testimonial.question}
               </div>
               <div style={{ fontSize: "14px", color: GOLD, marginTop: "2px" }}>
-                {CONFIG.testimonial.cta}
+                {org.testimonial.cta}
               </div>
             </div>
             <TestimonialField
@@ -567,15 +586,15 @@ export default function ClaimPanel({
 
           {/* ---------- Le morceau ---------- */}
           <div style={{ display: "grid", gap: "6px" }}>
-            <span style={labelStyle}>Votre verre</span>
+            <span style={labelStyle}>{t("verre")}</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {GLASS_COLORS.map((c) => (
                 <button
                   key={c.value}
                   type="button"
                   onClick={() => setColor(c.value)}
-                  title={c.name}
-                  aria-label={c.name}
+                  title={glassName(c)}
+                  aria-label={glassName(c)}
                   aria-pressed={color === c.value}
                   style={{
                     width: "28px",
@@ -596,19 +615,19 @@ export default function ClaimPanel({
           </div>
 
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={labelStyle}>Nom affiché</span>
+            <span style={labelStyle}>{t("nomAffiche")}</span>
             <input
               type="text"
               value={name}
               maxLength={CONFIG.nameMax}
-              placeholder="Laissez vide pour rester anonyme"
+              placeholder={t("nomPlaceholder")}
               onChange={(e) => setName(e.target.value)}
               style={inputStyle}
               autoComplete="nickname"
             />
             {name.trim().length === 1 && (
               <span style={{ fontSize: "12px", color: "#f87171" }}>
-                Au moins 2 lettres.
+                {t("nomCourt")}
               </span>
             )}
           </label>
@@ -634,10 +653,10 @@ export default function ClaimPanel({
               style={secondaryStyle}
             >
               {photoBusy
-                ? "Envoi…"
+                ? tp("envoi")
                 : photo.src
-                  ? "Changer la photo"
-                  : "Ajouter une photo"}
+                  ? tp("changer")
+                  : tp("ajouter")}
             </button>
             {photo.src && !photoBusy && (
               <button
@@ -648,7 +667,7 @@ export default function ClaimPanel({
                 }}
                 style={linkButtonStyle}
               >
-                Retirer
+                {tp("retirer")}
               </button>
             )}
             <input
@@ -661,8 +680,7 @@ export default function ClaimPanel({
           </div>
 
           <p style={{ ...hintStyle, marginTop: "-6px" }}>
-            Nom et photo sont facultatifs : sans nom, votre morceau est «
-            Anonyme ».
+            {t("facultatifs")}
           </p>
         </>
       )}
@@ -683,8 +701,7 @@ export default function ClaimPanel({
             border: "1px dashed rgba(240,178,74,0.45)",
           }}
         >
-          Mode démo : aucune clé Stripe n&apos;est configurée. Le morceau est
-          ajouté tout de suite, sans paiement ni courriel.
+          {t("demo")}
         </p>
       )}
 
@@ -699,19 +716,17 @@ export default function ClaimPanel({
             cursor: valid ? "pointer" : "not-allowed",
           }}
         >
-          {busy ? "Un instant…" : `Donner ${formatMoney(payCents)}`}
+          {busy ? t("instant") : t("donner", { montant: money(payCents) })}
         </button>
       </div>
       <p style={{ ...hintStyle, textAlign: "center" }}>
-        Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte,
-        Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour
-        sur votre morceau. Pas de reçu fiscal pour le moment.{" "}
+        {t("pied")}{" "}
         <Link
           href="/confidentialite"
           target="_blank"
           style={{ color: "rgba(255,255,255,0.6)" }}
         >
-          Confidentialité
+          {tc("confidentialiteCourt")}
         </Link>
       </p>
     </div>

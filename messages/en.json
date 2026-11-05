@@ -244,5 +244,29 @@
       "recu": "This organization is not yet a registered charity, so no tax receipt is issued at this time. Secure payment by Stripe.",
       "creation": "Created by <lien>{studio}</lien>."
     }
+  },
+  "claim": {
+    "titre": "Add my piece",
+    "agrandir": "Make my piece bigger",
+    "agrandirNom": "Make my piece bigger, {nom}",
+    "dejaDonne": "You've already donated <b>{montant}</b>. Every new donation makes your piece bigger.",
+    "destination": "Your donation supports <b>{org}</b>.",
+    "montant": "Amount",
+    "typique": "Most people give {montant}.",
+    "frais": "I'm adding {frais} to cover transaction fees, so the organization receives the full {montant}.",
+    "part": "Your share of the stained glass",
+    "plusGrandQue": "Bigger than",
+    "plusGrandQueValeur": "{count, plural, one {# piece} other {# pieces}} of {total}",
+    "rang": "Rank",
+    "verre": "Your glass",
+    "nomAffiche": "Displayed name",
+    "nomPlaceholder": "Leave blank to stay anonymous",
+    "nomCourt": "At least 2 letters.",
+    "facultatifs": "Name and photo are optional: without a name, your piece is “Anonymous”.",
+    "demo": "Demo mode: no Stripe key is configured. The piece is added right away, with no payment and no email.",
+    "instant": "One moment…",
+    "donner": "Donate {montant}",
+    "pied": "What you see is a preview. Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your piece. No tax receipt at this time.",
+    "erreurInattendue": "Unexpected error. Please try again."
   }
 }
