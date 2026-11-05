@@ -5,5 +5,38 @@
       "fr": "Français",
       "en": "English"
     }
+  },
+  "erreurs": {
+    "courrielRequis": "Email address required.",
+    "courrielInvalide": "This email address doesn't look valid.",
+    "montantInvalide": "Invalid amount.",
+    "montantMin": "The minimum donation is {montant}.",
+    "montantMax": "For a donation of more than {montant}, please contact the organization.",
+    "nomRequis": "Name required.",
+    "nomCourt": "The name must be at least 2 characters long.",
+    "nomLong": "The name can't be longer than {max} characters.",
+    "nomLien": "The name can't contain a link.",
+    "nomGrossier": "This name contains a word that can't be shown on the big screen.",
+    "temoignageInvalide": "Invalid testimonial.",
+    "temoignageLong": "The testimonial can't be longer than {max} characters.",
+    "temoignageLien": "Links aren't allowed in the testimonial.",
+    "temoignageGrossier": "This text contains a word that can't be shown on the big screen.",
+    "couleurInvalide": "Invalid colour.",
+    "photoInvalide": "Invalid photo.",
+    "photoTropLourde": "Photo too large.",
+    "photoPasJpeg": "This file isn't a valid JPEG photo.",
+    "photoEchec": "The photo couldn't be saved.",
+    "tropDeTentatives": "Too many attempts. Please try again in a minute.",
+    "tropDeDemandes": "Too many requests.",
+    "tropDeRequetes": "Too many requests.",
+    "tropDePhotos": "Too many photos uploaded. Please try again in a minute.",
+    "tropDeSignalements": "Too many reports.",
+    "donsFermes": "Online donations aren't open yet.",
+    "requeteInvalide": "Invalid request.",
+    "lienExpire": "This link has expired. Please request a new one.",
+    "paiementEchec": "The payment couldn't be started. Please try again in a moment.",
+    "morceauInconnu": "Unknown piece.",
+    "signalementEchec": "The report couldn't be sent.",
+    "indisponible": "Unavailable"
   }
 }

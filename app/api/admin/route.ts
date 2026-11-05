@@ -8,6 +8,7 @@ import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
 import { hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
+import { errorMessage } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -140,19 +141,19 @@ export async function POST(request: NextRequest) {
     // Don en argent comptant, ou don d'amorçage (CA, équipe) avant l'ouverture
     case 'addCash': {
       const amount = validateAmountCents(b.amountCents)
-      if (!amount.ok) return fail(amount.error)
+      if (!amount.ok) return fail(errorMessage('fr', amount.error))
       const source = b.source === 'seed' ? 'seed' : 'cash'
 
       let email: string
       if (str(b.email).trim()) {
         const e = validateEmail(b.email)
-        if (!e.ok) return fail(e.error)
+        if (!e.ok) return fail(errorMessage('fr', e.error))
         email = e.value
       } else {
         email = `${source}+${randomUUID()}@donateur.invalid` // donateur sans courriel : un morceau à lui seul
       }
       const profile = validateProfile({ showName: b.showName === true, name: b.name, message: b.message })
-      if (!profile.ok) return fail(profile.error)
+      if (!profile.ok) return fail(errorMessage('fr', profile.error))
       const color = validateColor(b.color)
 
       const result = await recordDonation({

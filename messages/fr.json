@@ -5,5 +5,38 @@
       "fr": "Français",
       "en": "English"
     }
+  },
+  "erreurs": {
+    "courrielRequis": "Courriel requis.",
+    "courrielInvalide": "Ce courriel ne semble pas valide.",
+    "montantInvalide": "Montant invalide.",
+    "montantMin": "Le don minimum est de {montant}.",
+    "montantMax": "Pour un don de plus de {montant}, communiquez avec l'organisme.",
+    "nomRequis": "Nom requis.",
+    "nomCourt": "Le nom doit compter au moins 2 caractères.",
+    "nomLong": "Le nom ne peut dépasser {max} caractères.",
+    "nomLien": "Le nom ne peut pas contenir de lien.",
+    "nomGrossier": "Ce nom contient un mot qui ne peut pas être affiché sur le grand écran.",
+    "temoignageInvalide": "Témoignage invalide.",
+    "temoignageLong": "Le témoignage ne peut dépasser {max} caractères.",
+    "temoignageLien": "Les liens ne sont pas permis dans le témoignage.",
+    "temoignageGrossier": "Ce texte contient un mot qui ne peut pas être affiché sur le grand écran.",
+    "couleurInvalide": "Couleur invalide.",
+    "photoInvalide": "Photo invalide.",
+    "photoTropLourde": "Photo trop lourde.",
+    "photoPasJpeg": "Ce fichier n'est pas une photo JPEG valide.",
+    "photoEchec": "La photo n'a pas pu être enregistrée.",
+    "tropDeTentatives": "Trop de tentatives. Réessayez dans une minute.",
+    "tropDeDemandes": "Trop de demandes.",
+    "tropDeRequetes": "Trop de requêtes.",
+    "tropDePhotos": "Trop de photos envoyées. Réessayez dans une minute.",
+    "tropDeSignalements": "Trop de signalements.",
+    "donsFermes": "Les dons en ligne ne sont pas encore ouverts.",
+    "requeteInvalide": "Requête invalide.",
+    "lienExpire": "Ce lien a expiré. Demandez-en un nouveau.",
+    "paiementEchec": "Le paiement n'a pas pu démarrer. Réessayez dans un instant.",
+    "morceauInconnu": "Morceau inconnu.",
+    "signalementEchec": "Le signalement n'a pas pu être envoyé.",
+    "indisponible": "Indisponible"
   }
 }

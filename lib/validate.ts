@@ -2,10 +2,11 @@ import { defaultColorFor } from './colors'
 import { ANON_LABEL, CONFIG, VALID_COLORS } from './config'
 import { validatePhotoPath } from './photos'
 import { isProfane } from './profanity'
+import { err, money, type AppError } from './errors'
 
 export { defaultColorFor }
 
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string }
+export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const LINK_RE = /(https?:|www\.|\.com\b|\.ca\b|\.org\b|\.net\b)/i
@@ -16,38 +17,38 @@ export function clean(input: string): string {
 }
 
 export function validateEmail(input: unknown): Result<string> {
-  if (typeof input !== 'string') return { ok: false, error: 'Courriel requis.' }
+  if (typeof input !== 'string') return { ok: false, error: err('courrielRequis') }
   const v = input.trim().toLowerCase()
-  if (v.length > 254 || !EMAIL_RE.test(v)) return { ok: false, error: 'Ce courriel ne semble pas valide.' }
+  if (v.length > 254 || !EMAIL_RE.test(v)) return { ok: false, error: err('courrielInvalide') }
   return { ok: true, value: v }
 }
 
 export function validateAmountCents(input: unknown): Result<number> {
   const n = typeof input === 'number' ? input : Number(input)
-  if (!Number.isFinite(n) || !Number.isInteger(n)) return { ok: false, error: 'Montant invalide.' }
-  if (n < CONFIG.minAmountCents) return { ok: false, error: `Le don minimum est de ${CONFIG.minAmountCents / 100} $.` }
-  if (n > CONFIG.maxAmountCents) return { ok: false, error: `Pour un don de plus de ${CONFIG.maxAmountCents / 100} $, parlez-en à l'école.` }
+  if (!Number.isFinite(n) || !Number.isInteger(n)) return { ok: false, error: err('montantInvalide') }
+  if (n < CONFIG.minAmountCents) return { ok: false, error: err('montantMin', { montant: money(CONFIG.minAmountCents) }) }
+  if (n > CONFIG.maxAmountCents) return { ok: false, error: err('montantMax', { montant: money(CONFIG.maxAmountCents) }) }
   return { ok: true, value: n }
 }
 
 export function validateName(input: unknown): Result<string> {
-  if (typeof input !== 'string') return { ok: false, error: 'Nom requis.' }
+  if (typeof input !== 'string') return { ok: false, error: err('nomRequis') }
   const v = clean(input)
-  if (v.length < 2) return { ok: false, error: 'Le nom doit compter au moins 2 caractères.' }
-  if (v.length > CONFIG.nameMax) return { ok: false, error: `Le nom ne peut dépasser ${CONFIG.nameMax} caractères.` }
-  if (LINK_RE.test(v)) return { ok: false, error: 'Le nom ne peut pas contenir de lien.' }
-  if (isProfane(v)) return { ok: false, error: "Ce nom contient un mot qui ne peut pas être affiché sur l'écran de l'école." }
+  if (v.length < 2) return { ok: false, error: err('nomCourt') }
+  if (v.length > CONFIG.nameMax) return { ok: false, error: err('nomLong', { max: CONFIG.nameMax }) }
+  if (LINK_RE.test(v)) return { ok: false, error: err('nomLien') }
+  if (isProfane(v)) return { ok: false, error: err('nomGrossier') }
   return { ok: true, value: v }
 }
 
 export function validateMessage(input: unknown): Result<string | null> {
   if (input == null || input === '') return { ok: true, value: null }
-  if (typeof input !== 'string') return { ok: false, error: 'Témoignage invalide.' }
+  if (typeof input !== 'string') return { ok: false, error: err('temoignageInvalide') }
   const v = clean(input)
   if (!v) return { ok: true, value: null }
-  if (v.length > CONFIG.messageMax) return { ok: false, error: `Le témoignage ne peut dépasser ${CONFIG.messageMax} caractères.` }
-  if (LINK_RE.test(v)) return { ok: false, error: 'Les liens ne sont pas permis dans le témoignage.' }
-  if (isProfane(v)) return { ok: false, error: "Ce texte contient un mot qui ne peut pas être affiché sur l'écran de l'école." }
+  if (v.length > CONFIG.messageMax) return { ok: false, error: err('temoignageLong', { max: CONFIG.messageMax }) }
+  if (LINK_RE.test(v)) return { ok: false, error: err('temoignageLien') }
+  if (isProfane(v)) return { ok: false, error: err('temoignageGrossier') }
   return { ok: true, value: v }
 }
 
@@ -59,7 +60,7 @@ export function cleanChannel(input: unknown): string | null {
 }
 
 export function validateColor(input: unknown): Result<string> {
-  if (typeof input !== 'string' || !VALID_COLORS.includes(input)) return { ok: false, error: 'Couleur invalide.' }
+  if (typeof input !== 'string' || !VALID_COLORS.includes(input)) return { ok: false, error: err('couleurInvalide') }
   return { ok: true, value: input }
 }
 

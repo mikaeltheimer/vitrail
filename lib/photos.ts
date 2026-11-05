@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getDb } from './db'
 import { requireEnv } from './env'
 import type { Result } from './validate'
+import { err } from './errors'
 
 // Photos des donateurs : le navigateur recadre en carré et réduit (JPEG), le serveur vérifie et range dans le bucket
 // public « photos ». Une photo n'est affichée que si le donateur a consenti à l'affichage de son nom.
@@ -28,7 +29,7 @@ export function pathFromPublicUrl(url: string | null | undefined): string | null
 /** Valide le chemin renvoyé par /api/photo et en tire l'adresse publique. Vide = pas de photo. */
 export function validatePhotoPath(input: unknown): Result<string | null> {
   if (input == null || input === '') return { ok: true, value: null }
-  if (typeof input !== 'string' || !PATH_RE.test(input)) return { ok: false, error: 'Photo invalide.' }
+  if (typeof input !== 'string' || !PATH_RE.test(input)) return { ok: false, error: err('photoInvalide') }
   return { ok: true, value: publicPhotoUrl(input) }
 }
 

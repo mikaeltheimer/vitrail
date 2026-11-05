@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { err, errorResponse } from '@/lib/errors'
 import { paymentMode } from '@/lib/env'
 import { getCurrentEventRow, resolveToken } from '@/lib/donations'
 import { startCheckout } from '@/lib/payments'
@@ -9,21 +10,19 @@ import { feeFor } from '@/lib/fees'
 
 export const runtime = 'nodejs'
 
-const fail = (error: string, status = 400) => NextResponse.json({ error }, { status })
-
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'donate'), 120, 60_000)) return fail('Trop de tentatives. Réessayez dans une minute.', 429)
-  if (paymentMode() === 'off') return fail('Les dons en ligne ne sont pas encore ouverts.', 503)
+  if (!rateLimit(clientKey(request, 'donate'), 120, 60_000)) return errorResponse(request, err('tropDeTentatives'), 429)
+  if (paymentMode() === 'off') return errorResponse(request, err('donsFermes'), 503)
 
   let body: Record<string, unknown>
   try {
     body = await request.json()
   } catch {
-    return fail('Requête invalide.')
+    return errorResponse(request, err('requeteInvalide'))
   }
 
   const amount = validateAmountCents(body.amountCents)
-  if (!amount.ok) return fail(amount.error)
+  if (!amount.ok) return errorResponse(request, amount.error)
 
   let email: string | null
   let profile
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
   if (typeof body.token === 'string' && body.token) {
     // Donateur reconnu par lien magique : son morceau existe déjà, on ne touche ni au nom ni à la couleur.
     const donor = await resolveToken(body.token)
-    if (!donor) return fail('Ce lien a expiré. Demandez-en un nouveau.', 400)
+    if (!donor) return errorResponse(request, err('lienExpire'), 400)
     email = donor.email
     profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl, quoteConsent: donor.quoteConsent }
     color = donor.color
@@ -40,13 +39,13 @@ export async function POST(request: NextRequest) {
     // Le courriel est demandé par Stripe au paiement (un champ de moins ici) ; accepté s'il est fourni (anciens liens, tests)
     if (typeof body.email === 'string' && body.email.trim()) {
       const e = validateEmail(body.email)
-      if (!e.ok) return fail(e.error)
+      if (!e.ok) return errorResponse(request, e.error)
       email = e.value
     } else {
       email = null
     }
     const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent })
-    if (!p.ok) return fail(p.error)
+    if (!p.ok) return errorResponse(request, p.error)
     profile = p.value
     const c = validateColor(body.color)
     color = c.ok ? c.value : defaultColorFor(email ?? String(Math.random()))
@@ -68,6 +67,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url })
   } catch (e) {
     console.error('Don impossible :', e)
-    return fail("Le paiement n'a pas pu démarrer. Réessayez dans un instant.", 502)
+    return errorResponse(request, err('paiementEchec'), 502)
   }
 }
