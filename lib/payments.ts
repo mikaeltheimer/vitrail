@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import Stripe from 'stripe'
-import { CONFIG } from './config'
+import { CONFIG, orgFor } from './config'
+import { translatorFor } from './i18n'
+import type { Locale } from '@/i18n/config'
 import { paymentMode, requireEnv, siteUrl } from './env'
 import { recordDonation } from './donations'
 import type { DonorProfileInput } from './validate'
@@ -27,14 +29,17 @@ export interface CheckoutRequest {
   color: string
   eventId: string | null
   channel: string | null
+  /** Langue du donateur : page de paiement Stripe, retour, et courriels. */
+  locale: Locale
 }
 
 /** Adresses de retour : depuis le vitrail, on y revient ; sinon, la page de remerciement. */
-function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string) {
+function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string, locale: Locale) {
   const base = siteUrl()
+  // ?lang= : on revient dans la langue du don, même si le cookie a disparu entre-temps
   return returnTo === 'vitrail'
-    ? { success: `${base}/vitrail?merci=${ref}`, cancel: `${base}/vitrail?don&annule=1` }
-    : { success: `${base}/merci?ref=${ref}`, cancel: `${base}/don?annule=1` }
+    ? { success: `${base}/vitrail?merci=${ref}&lang=${locale}`, cancel: `${base}/vitrail?don&annule=1&lang=${locale}` }
+    : { success: `${base}/merci?ref=${ref}&lang=${locale}`, cancel: `${base}/don?annule=1&lang=${locale}` }
 }
 
 /** Renvoie l'adresse où envoyer le donateur (paiement Stripe, ou retour direct en mode démo). */
@@ -55,15 +60,18 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       providerRef: ref,
       eventId: req.eventId,
       channel: req.channel,
+      locale: req.locale,
     })
-    return { url: returnUrls(req.returnTo, ref).success }
+    return { url: returnUrls(req.returnTo, ref, req.locale).success }
   }
 
-  const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}')
+  const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}', req.locale)
+  const t = translatorFor(req.locale)
+  const org = orgFor(req.locale).name
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     submit_type: 'donate',
-    locale: 'fr-CA',
+    locale: req.locale === 'en' ? 'en' : 'fr-CA',
     ...(req.email ? { customer_email: req.email } : {}),
     line_items: [
       {
@@ -71,15 +79,15 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
         price_data: {
           currency: CONFIG.currency,
           unit_amount: req.amountCents,
-          product_data: { name: `Don à l'${CONFIG.orgName}` },
+          product_data: { name: t('stripe.don', { org }) },
         },
       },
       // Les frais couverts, sur leur propre ligne : le donateur voit ce qui va à l'école et ce qui va aux frais
       ...(req.feeCents > 0
-        ? [{ quantity: 1, price_data: { currency: CONFIG.currency, unit_amount: req.feeCents, product_data: { name: 'Frais de transaction (couverts par vous)' } } }]
+        ? [{ quantity: 1, price_data: { currency: CONFIG.currency, unit_amount: req.feeCents, product_data: { name: t('stripe.frais') } } }]
         : []),
     ],
-    payment_intent_data: { description: `Don — ${CONFIG.orgName}` },
+    payment_intent_data: { description: t('stripe.description', { org }) },
     metadata: {
       email: req.email ?? '',
       eventId: req.eventId ?? '',
@@ -91,6 +99,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       color: req.color,
       channel: req.channel ?? '',
       feeCents: String(req.feeCents),
+      lang: req.locale,
     },
     success_url: urls.success,
     cancel_url: urls.cancel,

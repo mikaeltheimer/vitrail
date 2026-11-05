@@ -140,3 +140,9 @@ do $$ begin
   alter table donors add constraint donors_message_status_check check (message_status in ('approved', 'pending'));
 exception when duplicate_object then null; end $$;
 alter table donors add column if not exists quote_consent boolean not null default false;
+
+-- Langue du donateur, pour ses courriels (voir migrations/2026-11-05-langue-donateur.sql)
+alter table donors add column if not exists locale text not null default 'fr';
+do $$ begin
+  alter table donors add constraint donors_locale_check check (locale in ('fr', 'en'));
+exception when duplicate_object then null; end $$;

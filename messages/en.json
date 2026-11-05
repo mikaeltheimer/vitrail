@@ -292,5 +292,10 @@
     "vitrailTitre": "The stained glass — {org}",
     "vitrailDescription": "Every donation becomes a piece of glass. Explore the stained glass and add yours.",
     "ogTotal": "{montant} raised · {count, plural, one {# donor} other {# donors}}"
+  },
+  "stripe": {
+    "don": "Donation — {org}",
+    "frais": "Transaction fees (covered by you)",
+    "description": "Donation — {org}"
   }
 }

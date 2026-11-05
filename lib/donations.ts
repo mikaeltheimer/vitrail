@@ -4,7 +4,8 @@ import { paymentMode } from './env'
 import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
 import { newPhotoStatus } from './settings'
-import { hasTestimonialColumns } from './schema'
+import { hasLocaleColumn, hasTestimonialColumns } from './schema'
+import type { Locale } from '@/i18n/config'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
 
@@ -57,6 +58,8 @@ export interface RecordInput {
   eventId?: string | null
   /** Provenance (écran, affiche…), pour savoir quels emplacements font donner. */
   channel?: string | null
+  /** Langue du donateur à ce don (pour ses courriels) ; absente = on ne la change pas (français pour un nouveau donateur). */
+  locale?: Locale
 }
 
 export interface RecordResult {
@@ -94,6 +97,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
       insert.message_status = i.profile.message ? await newPhotoStatus() : 'approved'
       insert.quote_consent = i.profile.quoteConsent
     }
+    if (i.locale && (await hasLocaleColumn())) insert.locale = i.locale
     const { data, error } = await db
       .from('donors')
       .insert(insert)
@@ -105,6 +109,12 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
     } else {
       donor = data
     }
+  }
+
+  // Donateur existant : sa langue est celle de son dernier don (jamais bloquant)
+  if (i.locale && (await hasLocaleColumn())) {
+    const { error: localeError } = await db.from('donors').update({ locale: i.locale }).eq('id', donor.id)
+    if (localeError) console.error('Langue du donateur non enregistrée :', localeError.message)
   }
 
   const eventId = i.eventId !== undefined ? i.eventId : (await getCurrentEventRow())?.id ?? null

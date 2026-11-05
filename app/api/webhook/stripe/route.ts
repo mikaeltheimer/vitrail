@@ -6,6 +6,7 @@ import { sendReceipt } from '@/lib/email'
 import { cleanChannel, defaultColorFor, validateColor } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
 import { pathFromPublicUrl } from '@/lib/photos'
+import { isLocale } from '@/i18n/config'
 
 export const runtime = 'nodejs'
 
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
         providerRef: session.id,
         eventId: m.eventId ? m.eventId : null,
         channel: cleanChannel(m.channel),
+        locale: isLocale(m.lang) ? m.lang : undefined,
       })
       if (!result.duplicate) {
         // Le courriel est un confort : un échec ne doit pas faire rejouer le webhook (le don est déjà enregistré).

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
+import { localeOf } from '@/lib/i18n'
 import { paymentMode } from '@/lib/env'
 import { getCurrentEventRow, resolveToken } from '@/lib/donations'
 import { startCheckout } from '@/lib/payments'
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
       color,
       eventId: event?.id ?? null,
       channel: cleanChannel(body.channel),
+      locale: localeOf(request),
     })
     return NextResponse.json({ url })
   } catch (e) {

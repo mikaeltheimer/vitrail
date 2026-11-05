@@ -292,5 +292,10 @@
     "vitrailTitre": "Le vitrail — {org}",
     "vitrailDescription": "Chaque don devient un morceau de verre. Explorez le vitrail et ajoutez le vôtre.",
     "ogTotal": "{montant} amassés · {count, plural, one {# donateur} other {# donateurs}}"
+  },
+  "stripe": {
+    "don": "Don — {org}",
+    "frais": "Frais de transaction (couverts par vous)",
+    "description": "Don — {org}"
   }
 }
