@@ -14,6 +14,8 @@ export const CONFIG = {
   /** La même idée en une phrase, pour l'appel à donner du grand écran. */
   orgWhyShort: "C'est la communauté qui fait vivre l'École",
   appName: 'Donivers',
+  /** Police des noms des donateurs : 'sans' (DM Sans) ou 'serif' (Fraunces, comme le nom Donivers). Essai : ?noms=fraunces. */
+  donorNameFont: 'sans' as 'sans' | 'serif',
   /** Titre du vitrail de l'organisme (écran, formulaire de don). */
   vitrailTitle: 'Le vitrail de la communauté',
   /** Marque de la plateforme (fixe pour tous les organismes). Le message de l'organisme passe toujours avant. */

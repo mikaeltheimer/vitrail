@@ -8,6 +8,7 @@ import { PiecePortrait } from './PiecePortrait'
 import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
 import { ordinal, type RankedPiece } from './types'
+import { donorNameFamily } from '@/lib/fonts'
 
 const MONO = "'DM Sans', sans-serif"
 
@@ -108,7 +109,7 @@ export default function BottomSheet({
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '0 20px 16px' }}>
           <PiecePortrait id={piece.id} color={c} photoUrl={piece.photoUrl} tile={tile} size={64} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{piece.name ?? 'Anonyme'}</h2>
+            <h2 style={{ fontFamily: donorNameFamily(), fontSize: '18px', fontWeight: 600, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{piece.name ?? 'Anonyme'}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Morceau du vitrail</span>
               <span style={{ padding: '2px 8px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '12px', fontFamily: MONO, fontSize: '11px', color: c }}>{ordinal(piece.rank)}</span>

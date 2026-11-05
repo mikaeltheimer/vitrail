@@ -10,8 +10,8 @@
 import { browserOrigin } from '@/lib/env'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { PiecePortrait } from '@/components/vitrail/PiecePortrait'
 import { ANON_LABEL, CONFIG } from '@/lib/config'
+import { donorNameFamily, donorNamesSerif } from '@/lib/fonts'
 import { ensureFonts } from '@/lib/fonts'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
@@ -29,8 +29,8 @@ const HOLD_BARE_MS = 4500 // morceau anonyme
 const READ_MS_PER_CHAR = 45 // témoignage : le temps de le lire (≈ 22 caractères par seconde, à 3 m de l'écran)
 const READ_MAX_MS = 20000
 const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise en page « témoignage »
-const CARD_EM = 26
-const CARD_WIDE_EM = 46 // portrait à gauche (même taille que pour un texte court), texte à droite
+const CARD_EM = 28 // légende du morceau en scène (nom, témoignage)
+const CARD_WIDE_EM = 34 // … pour un long témoignage
 const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
 const CTA_EVERY = 6 // une pause « Faites partie du vitrail » toutes les N visites
 const CTA_MS = 11000
@@ -45,9 +45,10 @@ interface Card {
   fresh: boolean
   name: string | null
   message: string | null
-  photoUrl: string | null
   color: string
-  tile: Tile | null
+  /** Bord gauche de la légende, en px : juste à droite du morceau, qu'un fil relie à elle. */
+  left: number
+  wide: boolean
 }
 
 export default function Ecran() {
@@ -84,6 +85,10 @@ export default function Ecran() {
     let fontsVersion = 0
     let needs = true
     let spot: string | null = null
+    /** Morceau mis en scène (vraie photo, sans étiquette) : dès le départ du vol vers lui. */
+    let stage: string | null = null
+    /** Fil de lumière entre le morceau et sa légende, en px à l'écran (à la hauteur du centre de l'écran). */
+    let link: { from: number; to: number; color: string; at: number } | null = null
     let ready = false
     // Moteur arrêté (démontage, double montage en développement) : plus aucune action, sinon deux visites
     // se disputeraient la carte et on verrait le nom d'un autre morceau pendant le vol
@@ -148,23 +153,37 @@ export default function Ecran() {
       anim = requestAnimationFrame(step)
     }
 
-    /** Cadrage d'un morceau dans l'espace laissé libre par la carte (à gauche) et le code QR (en bas à droite). */
-    // Le morceau au centre de l'écran, assez petit pour ne passer ni sous la carte (à gauche) ni sous le code QR (à droite)
-    // Avec un long témoignage, la carte s'élargit : le morceau se place alors au centre de l'espace qui reste.
-    const camOn = (tile: Tile, wide = false): Cam => {
+    /**
+     * Mise en scène d'un morceau : il se pose dans la partie gauche de l'écran, sa légende (nom, témoignage) juste à
+     * droite, reliée à lui par un fil de lumière ; le code QR garde le coin en bas à droite. Le morceau porte la photo,
+     * la légende porte les mots : rien n'est montré deux fois.
+     */
+    const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number } => {
       const em = Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
-      const cardRight = em * (2.4 + (wide ? CARD_WIDE_EM : CARD_EM)) + em
-      const qrLeft = W - em * (2.4 + 14) - em
-      const sx = wide ? (cardRight + qrLeft) / 2 : W / 2 // où le morceau apparaît à l'écran
-      const halfW = wide ? Math.max(W * 0.1, (qrLeft - cardRight) / 2) : Math.max(W * 0.12, Math.min(W / 2 - cardRight, qrLeft - W / 2))
-      const halfH = H * 0.42
+      const qrLeft = W - em * (2.4 + 14)
+      const cardRight = qrLeft - em * 1.5
+      const cardLeft = cardRight - em * (wide ? CARD_WIDE_EM : CARD_EM)
+      const regionL = em * 2.4
+      const regionR = cardLeft - em * 4.5 // la place du fil
+      const sx = (regionL + regionR) / 2
+      const halfW = Math.max(W * 0.08, (regionR - regionL) / 2)
+      const halfH = H * 0.4
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
-      // Demi-étendue de la pièce autour du point centré, dans chaque direction
       const ex = Math.max(lx - x0, x1 - lx, 1e-6)
       const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
-      return { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
+      const cam = { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
+      // Le fil part du bord droit du morceau, à la hauteur de son centre (là où il croise l'horizontale)
+      let xi = -Infinity
+      const poly = tile.poly
+      for (let i = 0; i < poly.length; i++) {
+        const [ax, ay] = poly[i]
+        const [bx, by] = poly[(i + 1) % poly.length]
+        if ((ay - ly) * (by - ly) <= 0 && ay !== by) xi = Math.max(xi, ax + ((ly - ay) / (by - ay)) * (bx - ax))
+      }
+      if (!Number.isFinite(xi)) xi = x1
+      return { cam, cardLeft, linkFrom: W / 2 + (xi - cam.x) * zoom }
     }
 
     const pickNext = (): string | null => {
@@ -190,6 +209,8 @@ export default function Ecran() {
     }
 
     const hideCard = () => {
+      link = null
+      needs = true
       setCardOut(true)
       setTimeout(() => !disposed && setCard(null), 600)
     }
@@ -203,6 +224,7 @@ export default function Ecran() {
       }
       hideCard()
       spot = null
+      stage = null
       needs = true
       // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant)
       if (hops >= CTA_EVERY && !priority.length) {
@@ -228,11 +250,17 @@ export default function Ecran() {
       fresh.delete(id)
       const p = list.find(x => x.id === id)
       const message = CONFIG.showMessagesOnScreen ? p?.message ?? null : null
-      flyTo(camOn(tile, isLong(message)), FLY_MS, 0.6, () => {
+      const wide = isLong(message)
+      const lay = stageLayout(tile, wide)
+      const color = p?.color ?? '#E0657F'
+      // Dès le départ du vol, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
+      stage = id
+      flyTo(lay.cam, FLY_MS, 0.6, () => {
         spot = id
         needs = true
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, photoUrl: p?.photoUrl ?? null, color: p?.color ?? '#E0657F', tile })
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, color, left: lay.cardLeft, wide })
+        link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now() }
         const rich = !!(p?.name || p?.photoUrl || message)
         // Le temps de lire le témoignage en entier
         const reading = Math.min(READ_MAX_MS, (message?.length ?? 0) * READ_MS_PER_CHAR)
@@ -319,7 +347,7 @@ export default function Ecran() {
       const level = ambientLevel()
       ambience.drawBehind(ctx, cx, cy, r, W, H, level, now, dt, false)
 
-      const key = [W, H, version, imageVersion, fontsVersion].join('|')
+      const key = [W, H, version, imageVersion, fontsVersion, stage].join('|')
       if (cam.x !== prevCam.x || cam.y !== prevCam.y || cam.zoom !== prevCam.zoom) {
         lastMoveAt = now
         prevCam = { ...cam }
@@ -347,6 +375,7 @@ export default function Ecran() {
           width: lw,
           height: lh,
           uiScale: Math.max(1, Math.min(W, H) / 1080),
+          stageId: stage,
         })
         layerCam = { ...cam }
         layerKey = key
@@ -378,6 +407,30 @@ export default function Ecran() {
         ctx.lineWidth = 3 / z
         ctx.stroke(tile.path)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
+      // Le fil : du bord du morceau jusqu'à sa légende, dans la couleur du verre
+      if (link && tile) {
+        const a = Math.min(1, (now - link.at) / 700)
+        const y = H / 2
+        const x0 = link.from + 6
+        const x1 = x0 + (link.to - x0) * (0.5 - Math.cos(Math.PI * a) / 2)
+        const g = ctx.createLinearGradient(x0, y, link.to, y)
+        g.addColorStop(0, hexA(link.color, 0.95))
+        g.addColorStop(1, hexA(link.color, 0.35))
+        ctx.save()
+        ctx.shadowColor = link.color
+        ctx.shadowBlur = 14
+        ctx.strokeStyle = g
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(x0, y)
+        ctx.lineTo(x1, y)
+        ctx.stroke()
+        ctx.fillStyle = link.color
+        ctx.beginPath()
+        ctx.arc(x0, y, 5, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
       }
       if (level > 0.01) {
         ctx.globalAlpha = level
@@ -510,15 +563,18 @@ export default function Ecran() {
   const pct = event && event.goalCents > 0 ? Math.min(100, (event.totalCents / event.goalCents) * 100) : 0
   const count = snap?.pieces.length ?? 0
 
+  const staged = !!card && !cta && !cardOut
+
   return (
     <main className={`tv fixed inset-0 overflow-hidden ${idle ? 'tv-hide-cursor' : ''}`} onClick={toggleFullscreen} style={{ background: '#0B0A12' }}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Voile sombre derrière l'en-tête : il reste lisible même quand le verre clair passe dessous */}
-      <div className="pointer-events-none absolute left-0 top-0" style={{ width: '40em', height: '24em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.92) 0%, rgba(11,10,18,0.75) 40%, rgba(11,10,18,0) 72%)' }} />
+      <div className="pointer-events-none absolute left-0 top-0" style={{ opacity: staged ? 0.35 : 1, transition: 'opacity 1.2s ease', width: '40em', height: '24em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.92) 0%, rgba(11,10,18,0.75) 40%, rgba(11,10,18,0) 72%)' }} />
 
       {/* École et collecte, en haut à gauche */}
-      <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em' }}>
+      {/* Pendant une mise en scène, l'en-tête s'efface : le morceau peut passer dessous */}
+      <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ecole-logo.png" alt={CONFIG.orgName} style={{ width: '12em', height: 'auto', display: 'block' }} />
         <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{CONFIG.vitrailTitle}</div>
@@ -541,36 +597,26 @@ export default function Ecran() {
         {CONFIG.brand.name} · <span className="slogan">{CONFIG.brand.slogan}</span>
       </div>
 
-      {/* Le morceau en lumière : photo, nom, message — jamais de montant */}
+      {/* La légende du morceau en scène : nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
       {card && !cta && (
-        <div key={card.key} style={{ position: 'absolute', left: '2.4em', bottom: '2.4em', width: `${isLong(card.message) ? CARD_WIDE_EM : CARD_EM}em` }}>
-          <div className={cardOut ? 'tv-banner-out' : 'tv-banner-in'} style={{ padding: '1.6em', borderRadius: '1.2em', background: 'rgba(12,10,18,0.96)', border: `1px solid ${card.color}66`, boxShadow: `0 0 4em ${card.color}33, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}>
-            <div style={{ fontFamily: MONO, fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(255,255,255,0.55)' }}>
-              {card.fresh ? '✦ Vient de donner' : 'Merci à'}
-            </div>
-            {isLong(card.message) ? (
-              // Témoignage : le portrait à gauche, au même format que pour un texte court ; le nom et le texte à droite
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.6em', marginTop: '1em' }}>
-                <div style={{ flexShrink: 0 }}>
-                  <CardPortrait card={card} />
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1 }}>{card.name ?? ANON_LABEL}</div>
-                  <div style={{ marginTop: '0.7em', paddingLeft: '1em', borderLeft: `0.2em solid ${card.color}`, fontSize: card.message!.length > 340 ? '1.1em' : '1.22em', lineHeight: 1.5, color: 'rgba(255,248,235,0.95)' }}>
-                    {card.message}
-                  </div>
-                </div>
+        <div key={card.key} style={{ position: 'absolute', left: card.left, top: '50%', transform: 'translateY(-50%)', width: `${card.wide ? CARD_WIDE_EM : CARD_EM}em`, maxHeight: '86vh' }}>
+          <div
+            className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}
+            style={{ padding: '1.7em 1.9em', borderRadius: '1.1em', background: 'rgba(11,10,18,0.94)', border: `1px solid ${card.color}55`, borderLeft: `0.3em solid ${card.color}`, boxShadow: `0 0 4em ${card.color}26, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}
+          >
+            <div style={{ fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.55)' }}>{card.fresh ? '✦ Vient de donner' : 'Merci à'}</div>
+            <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? ANON_LABEL}</div>
+            {card.message && (
+              <div
+                style={{
+                  marginTop: '0.9em',
+                  fontSize: card.message.length > 340 ? '1.12em' : card.wide ? '1.25em' : '1.45em',
+                  lineHeight: 1.5,
+                  color: 'rgba(244,239,230,0.95)',
+                }}
+              >
+                {card.wide ? card.message : `« ${card.message} »`}
               </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'center', margin: '1em 0 1.1em' }}>
-                  <CardPortrait card={card} />
-                </div>
-                <div style={{ fontSize: '2.1em', fontWeight: 700, lineHeight: 1.1, textAlign: 'center' }}>{card.name ?? ANON_LABEL}</div>
-                {card.message && (
-                  <div style={{ marginTop: '0.8em', fontSize: '1.25em', lineHeight: 1.45, textAlign: 'center', color: card.color, textShadow: `0 0 1em ${card.color}55` }}>« {card.message} »</div>
-                )}
-              </>
             )}
           </div>
         </div>
@@ -621,13 +667,3 @@ export default function Ecran() {
 }
 
 /** Portrait de la carte : la photo si le donateur en a mis une, sinon sa pièce de verre telle qu'elle est dans le vitrail. */
-function CardPortrait({ card }: { card: Card }) {
-  const [size, setSize] = useState(220)
-  useEffect(() => {
-    const s = () => setSize(Math.round(Math.min(window.innerWidth, window.innerHeight * 1.78) * (card.photoUrl ? 0.13 : 0.1)))
-    s()
-    window.addEventListener('resize', s)
-    return () => window.removeEventListener('resize', s)
-  }, [card.photoUrl])
-  return <PiecePortrait id={card.id} color={card.color} photoUrl={card.photoUrl} tile={card.tile} size={size} />
-}

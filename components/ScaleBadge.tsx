@@ -1,18 +1,23 @@
 'use client'
 
-// Pastille « Échelle 0,75 » quand une page est ouverte avec ?echelle=… (comparaison d'échelles), invisible sinon.
+// Pastille d'essai quand une page est ouverte avec ?echelle=… ou ?noms=… (comparaison), invisible sinon.
 
 import { useEffect, useState } from 'react'
 import { CONFIG } from '@/lib/config'
 import { sizeExponentOverride } from '@/lib/render'
 
 export default function ScaleBadge({ style }: { style?: React.CSSProperties }) {
-  const [e, setE] = useState<number | null>(null)
+  const [label, setLabel] = useState<string | null>(null)
   useEffect(() => {
-    Promise.resolve().then(() => setE(sizeExponentOverride()))
+    const e = sizeExponentOverride()
+    const noms = new URLSearchParams(window.location.search).get('noms')
+    const fmt = (x: number) => x.toLocaleString('fr-CA', { maximumFractionDigits: 2 })
+    const parts: string[] = []
+    if (e !== null) parts.push(`Échelle ${fmt(e)} (réglage ${fmt(CONFIG.sizeExponent)})`)
+    if (noms === 'fraunces' || noms === 'dmsans') parts.push(`Noms en ${noms === 'fraunces' ? 'Fraunces' : 'DM Sans'}`)
+    Promise.resolve().then(() => setLabel(parts.length ? parts.join(' · ') : null))
   }, [])
-  if (e === null) return null
-  const label = (x: number) => x.toLocaleString('fr-CA', { maximumFractionDigits: 2 })
+  if (!label) return null
   return (
     <div
       style={{
@@ -20,16 +25,15 @@ export default function ScaleBadge({ style }: { style?: React.CSSProperties }) {
         zIndex: 900,
         padding: '6px 12px',
         borderRadius: 999,
-        background: 'rgba(12,10,18,0.9)',
+        background: 'rgba(11,10,18,0.9)',
         border: '1px dashed rgba(240,178,74,0.6)',
         color: '#FFE2A8',
-        fontFamily: "'DM Sans', sans-serif",
         fontSize: 13,
         pointerEvents: 'none',
         ...style,
       }}
     >
-      Échelle {label(e)} · réglage actuel {label(CONFIG.sizeExponent)}
+      {label}
     </div>
   )
 }

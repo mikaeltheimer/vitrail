@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ordinal, type RankedPiece } from './types'
+import { donorNameFamily } from '@/lib/fonts'
 
 export function HoverCard({ piece }: { piece: RankedPiece | null }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -53,7 +54,7 @@ export function HoverCard({ piece }: { piece: RankedPiece | null }) {
         <div className="h-14 w-14 shrink-0 rounded-lg" style={{ background: `radial-gradient(circle at 45% 40%, #fff 0%, ${color} 28%, #0B0A12 100%)` }} />
       )}
       <div className="grid min-w-0 content-start gap-0.5">
-        <div className="truncate text-sm font-bold">{shown.name ?? 'Anonyme'}</div>
+        <div className="truncate text-sm font-bold" style={{ fontFamily: donorNameFamily() }}>{shown.name ?? 'Anonyme'}</div>
         <div className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
           {ordinal(shown.rank)} morceau du vitrail
         </div>

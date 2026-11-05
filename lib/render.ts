@@ -1,5 +1,5 @@
 import { ANON_LABEL, CONFIG } from './config'
-import { FONT_DISPLAY, FONT_SANS } from './fonts'
+import { donorNamesSerif, FONT_DISPLAY, FONT_SANS, FONT_SERIF } from './fonts'
 import { drawGlassTile, glassColors } from './glass'
 import type { ImageCache } from './images'
 import { UNIVERSE_RADIUS, seedFromIds, type Tile, type TilingItem } from './tiling'
@@ -101,6 +101,11 @@ export interface Scene {
   focusId?: string | null
   /** Opacité des textes (0 à 1) : pour les faire apparaître une fois le morceau en place. */
   labelAlpha?: number
+  /**
+   * Morceau mis en scène sur l'écran : son verre montre la vraie photo, sans étiquette (le nom et le témoignage
+   * sont dans la légende à côté, jamais en double).
+   */
+  stageId?: string | null
 }
 
 /** Dessine le vitrail : verre, photos, étiquettes. Ne touche pas au fond ni à l'ambiance. */
@@ -122,6 +127,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
       let reveal = focused ? 1 : Math.min(1, Math.max(0, (sidePx - CONFIG.photoColorFromPx) / (CONFIG.photoColorToPx - CONFIG.photoColorFromPx)))
       // Morceau sorti avec du texte dessus : on garde le voile coloré du vitrail sur la photo, pour que le texte reste lisible
       if (piece?.rows && avatar) reveal = 1 - LIFT_VEIL * (s.labelAlpha ?? 1)
+      if (s.stageId === id) reveal = 1
       drawGlassTile(ctx, tile, {
         colors: glassColors(piece?.color ?? '#E0657F', id),
         sizePx: sidePx,
@@ -197,8 +203,8 @@ interface LabelLine {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-// Typographie : une seule famille (Space Grotesk) en plusieurs graisses ; les petites mentions en capitales espacées.
-// Le message est en romain (Space Grotesk n'a pas d'italique). Couleurs chaudes (crème, or pâle) ; un contour sombre garde tout lisible sur n'importe quel verre.
+// Typographie : DM Sans en plusieurs graisses ; les petites mentions en capitales espacées. Les noms peuvent passer en Fraunces
+// (essai : ?noms=fraunces). Couleurs chaudes (crème) ; un contour sombre garde tout lisible sur n'importe quel verre.
 const LABEL_STYLE: Record<LabelRow['kind'], { family: string; weight: string; italic: boolean; color: string; line: number; upper: boolean; spacing: number }> = {
   small: { family: FONT_SANS, weight: '500', italic: false, color: 'rgba(255,238,205,0.88)', line: 1.3, upper: true, spacing: 0.2 },
   name: { family: FONT_DISPLAY, weight: '600', italic: false, color: '#fff8ea', line: 1.08, upper: false, spacing: 0 },
@@ -209,6 +215,8 @@ type SpacingCtx = CanvasRenderingContext2D & { letterSpacing?: string }
 const setSpacing = (ctx: CanvasRenderingContext2D, value: string) => {
   if ('letterSpacing' in ctx) (ctx as SpacingCtx).letterSpacing = value
 }
+const NAME_SERIF = { family: FONT_SERIF, weight: '500', italic: false, color: '#fff8ea', line: 1.08, upper: false, spacing: 0 }
+const styleOf = (kind: LabelRow['kind']) => (kind === 'name' && donorNamesSerif() ? NAME_SERIF : LABEL_STYLE[kind])
 const LABEL_MAX_LINES: Record<LabelRow['kind'], number> = { small: 1, name: 2, amount: 1, message: 4 }
 
 /**
@@ -220,9 +228,10 @@ export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasP
   const rs = r * 0.84 // rayon sûr : le texte ne s'approche jamais du plomb
   const base: Record<LabelRow['kind'], number> = {
     small: clamp(r * 0.085, 10 * u, 20 * u),
-    name: clamp(r * 0.2, 12 * u, 44 * u),
+    // Tailles presque uniformes d'un morceau à l'autre : un grand morceau ne crie pas son nom en énorme
+    name: clamp(r * 0.2, 12 * u, 19 * u),
     amount: clamp(r * 0.26, 14 * u, 56 * u),
-    message: clamp(r * 0.16, 10 * u, 34 * u),
+    message: clamp(r * 0.16, 10 * u, 14 * u),
   }
   const min: Record<LabelRow['kind'], number> = { small: 8 * u, name: 10 * u, amount: 11 * u, message: 9 * u }
 
@@ -232,7 +241,7 @@ export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasP
       for (const wf of [1.75, 1.5, 1.25, 1.05]) {
         const built: { text: string; font: string; color: string; h: number; gap: number; size: number; spacing: string }[] = []
         for (const row of list) {
-          const st = LABEL_STYLE[row.kind]
+          const st = styleOf(row.kind)
           const size = base[row.kind] * k
           const font = `${st.italic ? 'italic ' : ''}${st.weight} ${size}px ${st.family}`
           const spacing = st.spacing ? `${(st.spacing * size).toFixed(2)}px` : '0px'
@@ -303,7 +312,7 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
 
   for (const [id, tile] of s.tiles) {
     const piece = s.pieces.get(id)
-    if (!piece) continue
+    if (!piece || s.stageId === id) continue
     const r = tile.inRadius * view.scale // rayon utile : plus grand cercle inscrit
     if (!piece.rows && r < LABEL_NAME_MIN * u) continue
     const sx = tile.labelCenter[0] * view.scale + view.ox
