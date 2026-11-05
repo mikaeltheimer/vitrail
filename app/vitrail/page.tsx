@@ -10,6 +10,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
+import LanguageSwitch from '@/components/LanguageSwitch'
 import AboutPanel from '@/components/vitrail/AboutPanel'
 import BottomSheet from '@/components/vitrail/BottomSheet'
 import ClaimPanel, { type ClaimDraft } from '@/components/vitrail/ClaimPanel'
@@ -1373,6 +1374,7 @@ function Header({
               <Link href="/confidentialite" style={menuLink}>
                 {tc('confidentialiteCourt')}
               </Link>
+              <LanguageSwitch style={{ ...menuLink, display: 'block', width: '100%', textAlign: 'left', borderBottom: 0 }} />
             </nav>
           </>
         )}
@@ -1437,6 +1439,7 @@ function Header({
         <a href={org.url} target="_blank" rel="noreferrer" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
           {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
         </a>
+        <LanguageSwitch style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginLeft: 16 }} />
         <button
           type="button"
           onClick={onClaim}
