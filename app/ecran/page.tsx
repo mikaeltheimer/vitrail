@@ -695,7 +695,7 @@ export default function Ecran() {
                   color: 'rgba(244,239,230,0.95)',
                 }}
               >
-                {card.wide ? card.message : `${QUOTES[locale][0]}${card.message}${QUOTES[locale][1]}`}
+                {`${QUOTES[locale][0]}${card.message}${QUOTES[locale][1]}`}
               </div>
             )}
           </div>

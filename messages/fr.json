@@ -285,5 +285,12 @@
     "horsLigne": "Connexion perdue — dernier état affiché, reprise automatique",
     "vide": "Le vitrail attend sa première pièce",
     "videTexte": "Scannez le code pour donner et voir votre morceau de verre apparaître."
+  },
+  "meta": {
+    "titre": "Donivers — {org}",
+    "description": "Donivers — {org} : chaque don devient un morceau du vitrail. {slogan}",
+    "vitrailTitre": "Le vitrail — {org}",
+    "vitrailDescription": "Chaque don devient un morceau de verre. Explorez le vitrail et ajoutez le vôtre.",
+    "ogTotal": "{montant} amassés · {count, plural, one {# donateur} other {# donateurs}}"
   }
 }

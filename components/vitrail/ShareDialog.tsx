@@ -5,7 +5,7 @@
 
 import { browserOrigin } from '@/lib/env'
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { useOrg } from '@/lib/useOrg'
 
@@ -15,8 +15,10 @@ export function ShareDialog({ id, name, own, onClose }: { id: string; name: stri
   const tc = useTranslations('commun')
   const org = useOrg()
   const [copied, setCopied] = useState(false)
+  const locale = useLocale()
   const origin = typeof window !== 'undefined' ? browserOrigin() : ''
-  const link = `${origin}/vitrail?d=${id}&src=partage`
+  // La langue de celui qui partage : l'aperçu du lien (titre, image) est dans cette langue
+  const link = `${origin}/vitrail?d=${id}&src=partage&lang=${locale}`
   const text = own ? t('texteMien', { org: org.name }) : name ? t('texteNom', { nom: name, org: org.name }) : t('texteAnonyme', { org: org.name })
   const canNative = typeof navigator !== 'undefined' && !!navigator.share
 

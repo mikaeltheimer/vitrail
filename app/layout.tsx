@@ -11,13 +11,24 @@ import '@fontsource/fraunces/latin-400-italic.css'
 import './globals.css'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
-import { CONFIG } from '@/lib/config'
 import { INTL_TAG, type Locale } from '@/i18n/config'
+import { brandFor, orgFor } from '@/lib/config'
+import { siteUrl } from '@/lib/env'
+import { translatorFor } from '@/lib/i18n'
 
-export const metadata: Metadata = {
-  title: `${CONFIG.brand.name} — ${CONFIG.orgName}`,
-  description: `Le Donivers de l'${CONFIG.orgName} : chaque don devient un morceau du vitrail. ${CONFIG.brand.slogan}`,
-  robots: { index: false },
+// Titre et description dans la langue de la requête ; l'image de partage est celle de la même langue (/api/og).
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = (await getLocale()) as Locale
+  const t = translatorFor(locale)
+  const org = orgFor(locale).name
+  const title = t('meta.titre', { org })
+  return {
+    metadataBase: new URL(siteUrl()),
+    title,
+    description: t('meta.description', { org, slogan: brandFor(locale).slogan }),
+    robots: { index: false },
+    openGraph: { title, type: 'website', locale: INTL_TAG[locale].replace('-', '_'), images: [{ url: `/api/og?lang=${locale}`, width: 1200, height: 630, alt: title }] },
+  }
 }
 
 export const viewport: Viewport = {
