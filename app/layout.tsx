@@ -9,7 +9,10 @@ import '@fontsource/dm-sans/latin-ext-600.css'
 import '@fontsource/fraunces/latin-500.css'
 import '@fontsource/fraunces/latin-400-italic.css'
 import './globals.css'
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale } from 'next-intl/server'
 import { CONFIG } from '@/lib/config'
+import { INTL_TAG, type Locale } from '@/i18n/config'
 
 export const metadata: Metadata = {
   title: `${CONFIG.brand.name} — ${CONFIG.orgName}`,
@@ -23,10 +26,13 @@ export const viewport: Viewport = {
   themeColor: '#0B0A12',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = (await getLocale()) as Locale
   return (
-    <html lang="fr-CA">
-      <body>{children}</body>
+    <html lang={INTL_TAG[locale]}>
+      <body>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
     </html>
   )
 }
