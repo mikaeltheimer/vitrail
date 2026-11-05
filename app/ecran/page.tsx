@@ -16,7 +16,7 @@ import { ensureFonts } from '@/lib/fonts'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
-import { drawScene, photoRect, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
+import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
@@ -46,6 +46,7 @@ interface Card {
   name: string | null
   message: string | null
   color: string
+  photoUrl: string | null
   /** Bord gauche de la légende, en px : juste à droite du morceau, qu'un fil relie à elle. */
   left: number
   wide: boolean
@@ -98,7 +99,6 @@ export default function Ecran() {
     const priority: string[] = []
     const fresh = new Set<string>() // morceaux d'un don tout neuf (annonce « vient de donner »)
     let deck: string[] = []
-    let last: string | null = null
     let hops = 0
     let anim = 0
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -158,7 +158,7 @@ export default function Ecran() {
      * droite, reliée à lui par un fil de lumière ; le code QR garde le coin en bas à droite. Le morceau porte la photo,
      * la légende porte les mots : rien n'est montré deux fois.
      */
-    const stageLayout = (tile: Tile, wide: boolean, photo: boolean): { cam: Cam; cardLeft: number; linkFrom: number } => {
+    const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number } => {
       const em = Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
       const qrLeft = W - em * (2.4 + 14)
       const cardRight = qrLeft - em * 1.5
@@ -170,10 +170,8 @@ export default function Ecran() {
       const halfH = H * 0.4
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
-      let ex = Math.max(lx - x0, x1 - lx, 1e-6)
-      let ey = Math.max(ly - y0, y1 - ly, 1e-6)
-      // Avec une photo, c'est elle qu'on cadre en entier (un carré qui couvre le morceau, le surplus en transparence)
-      if (photo) ex = ey = Math.max(ex, ey)
+      const ex = Math.max(lx - x0, x1 - lx, 1e-6)
+      const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
       const cam = { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
       // Le fil part du bord droit du morceau, à la hauteur de son centre (là où il croise l'horizontale)
@@ -188,26 +186,45 @@ export default function Ecran() {
       return { cam, cardLeft, linkFrom: W / 2 + (xi - cam.x) * zoom }
     }
 
+    // Visite sans répétition : chaque morceau passe une fois par tour, et jamais un morceau vu parmi les derniers
+    // (même à la jointure de deux tours). Les témoignages ouvrent chaque tour (tirage pondéré) : ce sont eux qu'on
+    // s'arrête pour lire, mais ils ne reviennent pas plus souvent que les autres.
+    const recent: string[] = []
+    const remember = (id: string) => {
+      recent.push(id)
+      const keep = Math.max(0, Math.min(12, tiles.size - 1))
+      while (recent.length > keep) recent.shift()
+    }
+    const newDeck = (): string[] => {
+      const told = new Set(list.filter(p => (p.message?.length ?? 0) >= 40).map(p => p.id))
+      // Tirage pondéré (Efraimidis–Spirakis) : clé = aléa^(1/poids), triée ; poids 3 pour un témoignage
+      return [...tiles.keys()]
+        .map(id => ({ id, key: Math.pow(Math.random(), 1 / (told.has(id) ? 3 : 1)) }))
+        .sort((x, y) => x.key - y.key) // pop() prend la plus grande clé en premier
+        .map(x => x.id)
+    }
     const pickNext = (): string | null => {
       while (priority.length) {
         const id = priority.shift()!
-        if (tiles.has(id)) return id
+        if (tiles.has(id)) {
+          deck = deck.filter(d => d !== id) // un nouveau don passe en priorité, puis ne revient pas dans le même tour
+          remember(id)
+          return id
+        }
       }
       deck = deck.filter(id => tiles.has(id))
-      if (!deck.length) {
-        // Les témoignages passent deux fois plus souvent : ce sont eux qu'on s'arrête pour lire
-        const told = new Set(list.filter(p => (p.message?.length ?? 0) >= 40).map(p => p.id))
-        const ids = [...tiles.keys()].flatMap(id => (told.has(id) ? [id, id] : [id]))
-        for (let i = ids.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1))
-          ;[ids[i], ids[j]] = [ids[j], ids[i]]
+      if (!deck.length) deck = newDeck()
+      // Le prochain qui n'a pas été vu récemment (le début d'un nouveau tour peut retomber sur la fin du précédent)
+      for (let i = deck.length - 1; i >= 0; i--) {
+        if (!recent.includes(deck[i])) {
+          const [id] = deck.splice(i, 1)
+          remember(id)
+          return id
         }
-        // Jamais deux fois de suite le même morceau
-        for (let i = 1; i < ids.length; i++) if (ids[i] === ids[i - 1]) ids.splice(i--, 1)
-        if (ids.length > 1 && ids[ids.length - 1] === last) [ids[0], ids[ids.length - 1]] = [ids[ids.length - 1], ids[0]]
-        deck = ids
       }
-      return deck.pop() ?? null
+      const id = deck.pop() ?? null
+      if (id) remember(id)
+      return id
     }
 
     const hideCard = () => {
@@ -247,13 +264,12 @@ export default function Ecran() {
         return
       }
       hops++
-      last = id
       const isFresh = fresh.has(id)
       fresh.delete(id)
       const p = list.find(x => x.id === id)
       const message = CONFIG.showMessagesOnScreen ? p?.message ?? null : null
       const wide = isLong(message)
-      const lay = stageLayout(tile, wide, !!p?.photoUrl)
+      const lay = stageLayout(tile, wide)
       const color = p?.color ?? '#E0657F'
       // Dès le départ du vol, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
       stage = id
@@ -261,7 +277,7 @@ export default function Ecran() {
         spot = id
         needs = true
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, color, left: lay.cardLeft, wide })
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide })
         link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now() }
         const rich = !!(p?.name || p?.photoUrl || message)
         // Le temps de lire le témoignage en entier
@@ -395,22 +411,24 @@ export default function Ecran() {
         rest.addPath(tile.path)
         ctx.fillStyle = 'rgba(5,4,8,0.45)'
         ctx.fill(rest, 'evenodd')
-        // La photo entière : ce qui déborde du morceau apparaît en transparence par-dessus le vitrail assombri
-        const url = pieces.get(tile.id)?.photoUrl
-        const img = url ? images.peek(url) : null
-        if (img && img.naturalWidth > 0) {
-          const [px, py, pw, ph] = photoRect(tile, img.naturalWidth, img.naturalHeight)
-          const fade = link ? Math.min(1, (now - link.at) / 900) : 0
-          if (fade > 0) {
-            ctx.save()
-            ctx.clip(rest, 'evenodd')
-            ctx.globalAlpha = 0.36 * fade
-            ctx.drawImage(img, px, py, pw, ph)
-            ctx.restore()
-          }
-        }
         const color = pieces.get(tile.id)?.color ?? '#ffffff'
         const pulse = Math.sin(now / 420) * 0.5 + 0.5
+        // Le morceau respire : une lumière douce, dans sa couleur, qui monte et descend (il y a toujours un peu de vie à l'écran)
+        const breath = Math.sin(now / 700) * 0.5 + 0.5
+        {
+          const [gx, gy] = tile.labelCenter
+          const gr = Math.max(tile.inRadius * 1.8, tile.equivRadius)
+          const lightG = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr)
+          lightG.addColorStop(0, hexA('#FFE2A8', 0.1 + 0.22 * breath))
+          lightG.addColorStop(0.6, hexA(color, 0.05 + 0.12 * breath))
+          lightG.addColorStop(1, hexA(color, 0))
+          ctx.save()
+          ctx.clip(tile.path)
+          ctx.globalCompositeOperation = 'screen'
+          ctx.fillStyle = lightG
+          ctx.fillRect(gx - gr, gy - gr, gr * 2, gr * 2)
+          ctx.restore()
+        }
         ctx.lineJoin = 'round'
         ctx.shadowColor = color
         ctx.shadowBlur = 24 + pulse * 22
@@ -620,8 +638,17 @@ export default function Ecran() {
             className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}
             style={{ padding: '1.7em 1.9em', borderRadius: '1.1em', background: 'rgba(11,10,18,0.94)', border: `1px solid ${card.color}55`, borderLeft: `0.3em solid ${card.color}`, boxShadow: `0 0 4em ${card.color}26, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}
           >
-            <div style={{ fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.55)' }}>{card.fresh ? '✦ Vient de donner' : 'Merci à'}</div>
-            <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? ANON_LABEL}</div>
+            {/* La photo entière, en vignette à côté du nom (dans le verre, elle est rognée par la forme) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.2em' }}>
+              {card.photoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={card.photoUrl} alt="" style={{ width: card.wide ? '7em' : '8em', height: card.wide ? '7em' : '8em', objectFit: 'cover', borderRadius: '0.7em', flexShrink: 0, boxShadow: `0 0 0 0.15em ${card.color}88, 0 0.6em 1.6em rgba(0,0,0,0.5)` }} />
+              )}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.55)' }}>{card.fresh ? '✦ Vient de donner' : 'Merci à'}</div>
+                <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? ANON_LABEL}</div>
+              </div>
+            </div>
             {card.message && (
               <div
                 style={{
