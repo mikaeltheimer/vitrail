@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       if (!result.duplicate) {
         // Le courriel est un confort : un échec ne doit pas faire rejouer le webhook (le don est déjà enregistré).
         try {
-          await sendReceipt(email, session.amount_total, await createToken(result.donorId))
+          await sendReceipt(email, session.amount_total, await createToken(result.donorId), isLocale(m.lang) ? m.lang : 'fr')
         } catch (e) {
           console.error('Courriel de reçu non envoyé :', e)
         }

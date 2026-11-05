@@ -297,5 +297,13 @@
     "don": "Don — {org}",
     "frais": "Frais de transaction (couverts par vous)",
     "description": "Don — {org}"
+  },
+  "courriel": {
+    "recuObjet": "Merci pour votre don — {org}",
+    "recuConfirmation": "Merci! Votre don de {montant} est enregistré et votre morceau s'ajoute au vitrail.",
+    "recuInvite": "Ajoutez votre témoignage, ou modifiez votre morceau (nom, photo) :",
+    "recuPied": "Ce courriel confirme votre don. Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment.",
+    "lienObjet": "Votre lien — {org}",
+    "lienCorps": "Voici votre lien pour modifier votre morceau ou l'agrandir (valide 30 jours) :"
   }
 }

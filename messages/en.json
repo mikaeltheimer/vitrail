@@ -297,5 +297,13 @@
     "don": "Donation — {org}",
     "frais": "Transaction fees (covered by you)",
     "description": "Donation — {org}"
+  },
+  "courriel": {
+    "recuObjet": "Thank you for your donation — {org}",
+    "recuConfirmation": "Thank you! Your donation of {montant} has been recorded and your piece is being added to the stained glass.",
+    "recuInvite": "Add your testimonial, or edit your piece (name, photo):",
+    "recuPied": "This email confirms your donation. This organization is not yet a registered charity, so no tax receipt is issued at this time.",
+    "lienObjet": "Your link — {org}",
+    "lienCorps": "Here is your link to edit your piece or make it bigger (valid for 30 days):"
   }
 }

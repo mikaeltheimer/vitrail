@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
 import { createTokenForEmail } from '@/lib/donations'
 import { sendMagicLink } from '@/lib/email'
+import { localeOf } from '@/lib/i18n'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { validateEmail } from '@/lib/validate'
 
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   if (v.ok) {
     try {
       const token = await createTokenForEmail(v.value)
-      if (token) await sendMagicLink(v.value, token)
+      if (token) await sendMagicLink(v.value, token, localeOf(request))
     } catch (e) {
       console.error('Lien magique non envoyé :', e)
     }
