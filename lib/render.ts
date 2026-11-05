@@ -108,6 +108,62 @@ export interface Scene {
   stageId?: string | null
 }
 
+/** Initiales d'un nom : « Marie-Ève Gagnon » → « MG », « Alex » → « A ». */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return ''
+  const first = words[0][0] ?? ''
+  const last = words.length > 1 ? words[words.length - 1][0] ?? '' : ''
+  return (first + last).toLocaleUpperCase('fr-CA')
+}
+
+/**
+ * Morceau en scène (écran) : la photo entière, sertie dans le plus grand cercle inscrit de la forme (rien n'est rogné),
+ * avec un plomb autour ; sans photo, les initiales du donateur, gravées dans le verre. Coordonnées monde.
+ */
+function paintMedallion(ctx: CanvasRenderingContext2D, tile: Tile, piece: PaintPiece | undefined, photo: HTMLImageElement | null, scale: number) {
+  const [cx, cy] = tile.labelCenter
+  const R = tile.inRadius * 0.9
+  if (photo && photo.naturalWidth > 0) {
+    // Le plus grand carré qui tient dans le cercle : la photo (carrée) se voit en entier
+    const side = R * Math.SQRT2
+    const x = cx - side / 2
+    const y = cy - side / 2
+    const rad = side * 0.05
+    ctx.save()
+    ctx.beginPath()
+    ctx.roundRect(x, y, side, side, rad)
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'
+    ctx.shadowBlur = 24 / scale
+    ctx.fillStyle = '#050408'
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.clip()
+    const w = photo.naturalWidth
+    const h = photo.naturalHeight
+    const k = Math.max(side / w, side / h)
+    ctx.drawImage(photo, cx - (w * k) / 2, cy - (h * k) / 2, w * k, h * k)
+    ctx.restore()
+    ctx.beginPath()
+    ctx.roundRect(x, y, side, side, rad)
+    ctx.lineWidth = 4 / scale
+    ctx.strokeStyle = '#050408'
+    ctx.stroke()
+    return
+  }
+  const text = piece?.name ? initials(piece.name) : ''
+  if (!text) return
+  ctx.save()
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = `600 ${R * (text.length > 1 ? 0.78 : 0.95)}px ${FONT_DISPLAY}`
+  ctx.fillStyle = 'rgba(255,248,234,0.92)'
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'
+  ctx.shadowBlur = 18 / scale
+  ctx.fillText(text, cx, cy)
+  ctx.restore()
+}
+
 /** Dessine le vitrail : verre, photos, étiquettes. Ne touche pas au fond ni à l'ambiance. */
 export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
   const { view, dpr } = s
@@ -127,16 +183,18 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
       let reveal = focused ? 1 : Math.min(1, Math.max(0, (sidePx - CONFIG.photoColorFromPx) / (CONFIG.photoColorToPx - CONFIG.photoColorFromPx)))
       // Morceau sorti avec du texte dessus : on garde le voile coloré du vitrail sur la photo, pour que le texte reste lisible
       if (piece?.rows && avatar) reveal = 1 - LIFT_VEIL * (s.labelAlpha ?? 1)
-      if (s.stageId === id) reveal = 1
+      const staged = s.stageId === id
       drawGlassTile(ctx, tile, {
         colors: glassColors(piece?.color ?? '#E0657F', id),
         sizePx: sidePx,
         zoom: view.scale,
-        avatar,
+        // En scène, la photo n'est pas étalée dans la forme (elle y serait rognée) : elle est sertie en médaillon
+        avatar: staged ? null : avatar,
         reveal,
         dim: s.focusId && !focused ? 0.55 : 1,
         hovered: false,
       })
+      if (staged) paintMedallion(ctx, tile, piece, piece?.photoUrl ? s.images.get(piece.photoUrl) : null, view.scale)
       // Photo + texte : on l'assombrit un peu en plus du voile coloré (les photos très claires restent lisibles)
       if (piece?.rows && avatar && tile.path) {
         ctx.fillStyle = `rgba(4,3,8,${0.3 * (s.labelAlpha ?? 1)})`
