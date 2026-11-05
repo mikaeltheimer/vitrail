@@ -331,15 +331,16 @@
     "modPhotoApprouveeTitre": "Votre photo est publiée",
     "modPhotoApprouveePreheader": "Elle apparaît maintenant sur votre morceau.",
     "modPhotoApprouveeCorps": "Après vérification par l'équipe, votre photo apparaît maintenant sur votre morceau.",
-    "modMessageRetireTitre": "Votre témoignage n'a pas été retenu",
-    "modMessageRetirePreheader": "Votre morceau et votre don ne sont pas touchés.",
-    "modMessageRetireCorps": "Après vérification, l'équipe n'a pas retenu votre témoignage : il n'est pas affiché. Votre morceau reste dans le vitrail et votre don n'est pas touché.",
-    "modPhotoRetireeTitre": "Votre photo n'a pas été retenue",
-    "modPhotoRetireePreheader": "Votre morceau et votre don ne sont pas touchés.",
-    "modPhotoRetireeCorps": "Après vérification, l'équipe n'a pas retenu votre photo : elle a été retirée de votre morceau. Votre morceau reste dans le vitrail et votre don n'est pas touché.",
+    "modMessageRetireTitre": "Votre témoignage a été retiré",
+    "modMessageRetirePreheader": "Il enfreint nos règles d'utilisation.",
+    "modMessageRetireCorps": "Après vérification, l'équipe a retiré votre témoignage : il enfreint nos règles d'utilisation (contenu vulgaire, haineux, injurieux ou sexuel, par exemple). Votre morceau reste dans le vitrail et votre don n'est pas touché.",
+    "modPhotoRetireeTitre": "Votre photo a été retirée",
+    "modPhotoRetireePreheader": "Elle enfreint nos règles d'utilisation.",
+    "modPhotoRetireeCorps": "Après vérification, l'équipe a retiré votre photo : elle enfreint nos règles d'utilisation (contenu vulgaire, haineux, injurieux ou sexuel, par exemple). Votre morceau reste dans le vitrail et votre don n'est pas touché.",
     "modContenuRetireTitre": "Votre morceau a été modifié",
-    "modContenuRetirePreheader": "Votre morceau est maintenant anonyme.",
-    "modContenuRetireCorps": "Après vérification, l'équipe a retiré ce que vous aviez ajouté à votre morceau (nom, témoignage ou photo). Il reste dans le vitrail, de façon anonyme, et votre don n'est pas touché."
+    "modContenuRetirePreheader": "Ce que vous aviez ajouté enfreint nos règles.",
+    "modContenuRetireCorps": "Après vérification, l'équipe a retiré ce que vous aviez ajouté à votre morceau (nom, témoignage ou photo) : ce contenu enfreint nos règles d'utilisation (contenu vulgaire, haineux, injurieux ou sexuel, par exemple). Votre morceau reste dans le vitrail, de façon anonyme, et votre don n'est pas touché.",
+    "modBoutonRegles": "Lire les règles d'utilisation"
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",
@@ -429,8 +430,8 @@
       "titre": "Votre nom, votre témoignage et votre photo",
       "facultatif": "Le nom, le témoignage et la photo sont facultatifs. En les ajoutant, vous autorisez leur affichage sur le vitrail (écran de l'organisme et page publique), tant que vous ne les retirez pas.",
       "droits": "Vous déclarez avoir le droit d'utiliser ce contenu, y compris le consentement des personnes reconnaissables sur votre photo. Vous gardez tous vos droits sur votre contenu.",
-      "interdit": "Sont interdits : les propos haineux, injurieux, diffamatoires ou illégaux, les contenus sexuels, les renseignements personnels d'autrui, la publicité et tout contenu qui porte atteinte aux droits d'un tiers.",
-      "moderation": "Nous pouvons masquer ou retirer tout contenu qui contrevient à ces conditions, sans préavis. Un filtre automatique de mots est utilisé, l'équipe peut vérifier les photos avant leur affichage et tout visiteur peut signaler un morceau.",
+      "interdit": "Sont interdits : les propos vulgaires, haineux, injurieux (insultes, intimidation), menaçants, diffamatoires ou illégaux, la pornographie et les autres contenus sexuels, les renseignements personnels d'autrui, la publicité et tout contenu qui porte atteinte aux droits d'un tiers.",
+      "moderation": "Nous pouvons masquer ou retirer, sans préavis, tout contenu qui enfreint ces règles. Nous utilisons un filtre automatique de mots, l'équipe peut vérifier les photos avant leur affichage et tout visiteur peut signaler un morceau. Lorsqu'un nom, un témoignage ou une photo est retiré pour cette raison, nous vous en avertissons par courriel ; votre morceau et votre don ne sont pas touchés. Si vous pensez à une erreur, répondez à ce courriel.",
       "citation": "Votre témoignage n'est repris dans les communications de l'organisme que si vous avez coché la case de consentement."
     },
     "lien": {

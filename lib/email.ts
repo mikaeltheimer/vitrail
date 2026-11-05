@@ -251,7 +251,7 @@ const MODERATION_KEYS: Record<ModerationEvent, string> = {
   content_removed: 'modContenuRetire',
 }
 
-/** Avis de modération : publié (avec un bouton vers le vitrail) ou retiré (sans bouton, avec la voie pour répondre). */
+/** Avis de modération : publié (bouton vers le vitrail) ou retiré parce qu'il enfreint les règles (bouton vers les conditions, et la voie pour répondre). */
 export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'baseUrl'>): Built {
   const t = translatorFor(i.locale) as unknown as (key: string, values?: Record<string, unknown>) => string // clés composées : courriel.mod…
   const k = MODERATION_KEYS[i.event]
@@ -263,7 +263,9 @@ export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'b
       preheader: t(`courriel.${k}Preheader`),
       heading: t(`courriel.${k}Titre`),
       paragraphs: approved ? [t(`courriel.${k}Corps`)] : [t(`courriel.${k}Corps`), t('courriel.modRepondre')],
-      ...(approved ? { button: { label: t('courriel.modBouton'), url: `${base}/vitrail?lang=${i.locale}` }, linkHelp: t('courriel.lienAlt') } : {}),
+      button: approved
+        ? { label: t('courriel.modBouton'), url: `${base}/vitrail?lang=${i.locale}` }
+        : { label: t('courriel.modBoutonRegles'), url: `${base}/conditions?lang=${i.locale}` },
       footer: footerFor(i.locale),
     },
   }

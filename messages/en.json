@@ -331,15 +331,16 @@
     "modPhotoApprouveeTitre": "Your photo is published",
     "modPhotoApprouveePreheader": "It now appears on your piece.",
     "modPhotoApprouveeCorps": "After review by the team, your photo now appears on your piece.",
-    "modMessageRetireTitre": "Your testimonial was not accepted",
-    "modMessageRetirePreheader": "Your piece and your donation are not affected.",
-    "modMessageRetireCorps": "After review, the team did not accept your testimonial: it is not displayed. Your piece stays in the stained glass and your donation is not affected.",
-    "modPhotoRetireeTitre": "Your photo was not accepted",
-    "modPhotoRetireePreheader": "Your piece and your donation are not affected.",
-    "modPhotoRetireeCorps": "After review, the team did not accept your photo: it has been removed from your piece. Your piece stays in the stained glass and your donation is not affected.",
+    "modMessageRetireTitre": "Your testimonial was removed",
+    "modMessageRetirePreheader": "It breaks our rules of use.",
+    "modMessageRetireCorps": "After review, the team removed your testimonial: it breaks our rules of use (for example, vulgar, hateful, abusive or sexual content). Your piece stays in the stained glass and your donation is not affected.",
+    "modPhotoRetireeTitre": "Your photo was removed",
+    "modPhotoRetireePreheader": "It breaks our rules of use.",
+    "modPhotoRetireeCorps": "After review, the team removed your photo: it breaks our rules of use (for example, vulgar, hateful, abusive or sexual content). Your piece stays in the stained glass and your donation is not affected.",
     "modContenuRetireTitre": "Your piece has been changed",
-    "modContenuRetirePreheader": "Your piece is now anonymous.",
-    "modContenuRetireCorps": "After review, the team removed what you had added to your piece (name, testimonial or photo). It stays in the stained glass, anonymously, and your donation is not affected."
+    "modContenuRetirePreheader": "What you had added breaks our rules.",
+    "modContenuRetireCorps": "After review, the team removed what you had added to your piece (name, testimonial or photo): this content breaks our rules of use (for example, vulgar, hateful, abusive or sexual content). Your piece stays in the stained glass, anonymously, and your donation is not affected.",
+    "modBoutonRegles": "Read the rules of use"
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",
@@ -429,8 +430,8 @@
       "titre": "Your name, testimonial and photo",
       "facultatif": "The name, testimonial and photo are optional. By adding them, you authorize their display on the stained glass (the organization's screen and the public page) until you remove them.",
       "droits": "You declare that you have the right to use this content, including the consent of anyone recognizable in your photo. You keep all your rights in your content.",
-      "interdit": "The following are prohibited: hateful, abusive, defamatory or unlawful remarks, sexual content, other people's personal information, advertising, and any content that infringes a third party's rights.",
-      "moderation": "We may hide or remove any content that breaches these terms, without notice. An automatic word filter is used, the team may review photos before they are displayed, and any visitor can report a piece.",
+      "interdit": "The following are prohibited: vulgar, hateful, abusive (insults, intimidation), threatening, defamatory or unlawful remarks, pornography and other sexual content, other people's personal information, advertising, and any content that infringes a third party's rights.",
+      "moderation": "We may hide or remove, without notice, any content that breaks these rules. We use an automatic word filter, the team may review photos before they are displayed, and any visitor can report a piece. When a name, testimonial or photo is removed for this reason, we notify you by email; your piece and your donation are not affected. If you think this is a mistake, reply to that email.",
       "citation": "Your testimonial is reused in the organization's communications only if you ticked the consent box."
     },
     "lien": {
