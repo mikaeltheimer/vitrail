@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildMagicLink, buildReceipt, buildReminder, sendEmail, type Built, type EmailKind } from '@/lib/email'
+import { buildMagicLink, buildModeration, buildReceipt, buildReminder, sendEmail, type Built, type EmailKind, type ModerationEvent } from '@/lib/email'
 import { escapeHtml, renderEmail } from '@/lib/emailTemplate'
 import { siteUrl } from '@/lib/env'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 // Aperçu des courriels pour l'équipe (console en français) : /api/admin/courriels, connecté à /admin.
 //  - GET sans paramètre : la liste (reçu, lien personnel, rappel ; français et anglais).
-//  - GET ?type=recu|lien|rappel&lang=fr|en : le courriel tel qu'il part (ajouter &format=text pour la version texte).
+//  - GET ?type=recu|lien|rappel|modpub|modtem|modphotopub|modphoto|modtout&lang=fr|en : le courriel tel qu'il part (ajouter &format=text pour la version texte).
 //  - POST (formulaire de la liste) : envoie un courriel d'essai, sur un exemple, à l'adresse indiquée.
 // Les liens des exemples portent un jeton bidon : ils mènent à « ce lien a expiré ». Rien n'est lu ni écrit chez les donateurs.
 
@@ -20,6 +20,20 @@ const TYPES = {
   recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale): Built => buildReceipt({ amountCents: 2500, token: 'EXEMPLE', locale, baseUrl: siteUrl() }) },
   lien: { label: 'Lien personnel (« Retrouver mon morceau »)', kind: 'magic_link' as EmailKind, build: (locale: Locale): Built => buildMagicLink({ token: 'EXEMPLE', locale, baseUrl: siteUrl() }) },
   rappel: { label: 'Rappel du lendemain (témoignage)', kind: 'reminder' as EmailKind, build: (locale: Locale): Built => buildReminder({ token: 'EXEMPLE', locale, baseUrl: siteUrl() }) },
+  ...(Object.fromEntries(
+    (
+      [
+        ['modpub', 'Avis : témoignage publié', 'message_approved'],
+        ['modtem', 'Avis : témoignage retiré', 'message_removed'],
+        ['modphotopub', 'Avis : photo publiée', 'photo_approved'],
+        ['modphoto', 'Avis : photo retirée', 'photo_removed'],
+        ['modtout', 'Avis : nom, témoignage et photo effacés', 'content_removed'],
+      ] as [string, string, ModerationEvent][]
+    ).map(([key, label, event]) => [
+      key,
+      { label, kind: 'moderation' as EmailKind, build: (locale: Locale): Built => buildModeration({ event, locale, baseUrl: siteUrl() }) },
+    ]),
+  ) as Record<string, { label: string; kind: EmailKind; build: (locale: Locale) => Built }>),
 }
 type TypeKey = keyof typeof TYPES
 const isType = (v: unknown): v is TypeKey => typeof v === 'string' && v in TYPES

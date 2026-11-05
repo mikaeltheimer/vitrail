@@ -87,6 +87,8 @@ export default function AdminConsole() {
   const [data, setData] = useState<Data | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [mergeFrom, setMergeFrom] = useState<string | null>(null)
+  // Décisions de modération : le donateur reçoit un courriel, sauf si la case est décochée (pourriel, abus).
+  const [notifyDonor, setNotifyDonor] = useState(true)
   const [search, setSearch] = useState('')
 
   const load = useCallback(
@@ -107,7 +109,7 @@ export default function AdminConsole() {
   }, [load])
 
   async function act(payload: Record<string, unknown>, okText = 'Fait.') {
-    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, notify: notifyDonor }) })
     const body = await res.json().catch(() => ({}))
     setMsg(res.ok ? { ok: true, text: okText } : { ok: false, text: body.error || 'Erreur.' })
     if (res.ok) await load()
@@ -168,6 +170,11 @@ export default function AdminConsole() {
           {msg.text}
         </p>
       )}
+
+      <label className="muted mt-3 flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={notifyDonor} onChange={e => setNotifyDonor(e.target.checked)} />
+        Prévenir le donateur par courriel quand je publie ou retire son témoignage ou sa photo
+      </label>
 
       {!data && <p className="muted mt-6">Chargement…</p>}
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { getDb } from '@/lib/db'
 import { paymentMode } from '@/lib/env'
@@ -9,6 +9,8 @@ import { removePhotoFile } from '@/lib/photos'
 import { hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { errorMessage } from '@/lib/errors'
+import { notifyModeration } from '@/lib/moderation'
+import type { ModerationEvent } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -81,6 +83,14 @@ export async function POST(request: NextRequest) {
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
   const db = getDb()
   const str = (v: unknown) => (typeof v === 'string' ? v : '')
+  // Avis au donateur après une décision de modération (sauf si l'équipe décoche « Prévenir le donateur »).
+  const tell = (donorId: string, event: ModerationEvent) => {
+    if (b.notify !== false) after(() => notifyModeration(donorId, event))
+  }
+  const before = async (cols: string) => {
+    const { data } = await db.from('donors').select(cols).eq('id', str(b.donorId)).maybeSingle()
+    return (data ?? {}) as unknown as { display_name?: string; show_name?: boolean; message?: string | null; photo_url?: string | null; photo_status?: string; message_status?: string }
+  }
 
   switch (b.action) {
     // Masquer / réafficher un morceau en direct (le total, lui, garde l'argent reçu)
@@ -91,12 +101,15 @@ export async function POST(request: NextRequest) {
 
     // Garder le morceau mais effacer le nom, le message et la photo
     case 'scrubDonor': {
-      const { data: before } = await db.from('donors').select('photo_url').eq('id', str(b.donorId)).maybeSingle()
+      const prev = await before('display_name,show_name,message,photo_url')
       const { error } = await db
         .from('donors')
         .update({ display_name: 'Anonyme', show_name: false, message: null, photo_url: null, updated_at: new Date().toISOString() })
         .eq('id', str(b.donorId))
-      if (!error) await removePhotoFile(before?.photo_url)
+      if (!error) {
+        await removePhotoFile(prev.photo_url)
+        if (prev.message?.trim() || prev.photo_url || (prev.show_name && prev.display_name && prev.display_name !== 'Anonyme')) tell(str(b.donorId), 'content_removed')
+      }
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 
@@ -108,19 +121,25 @@ export async function POST(request: NextRequest) {
 
     // Approuver une photo en attente : elle apparaît sur l'écran
     case 'approvePhoto': {
+      const prev = await before('photo_url,photo_status')
       const { error } = await db.from('donors').update({ photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      if (!error && prev.photo_url && prev.photo_status === 'pending') tell(str(b.donorId), 'photo_approved')
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 
     // Témoignage en attente : publié (il apparaît sur l'écran), ou refusé (effacé ; nom et photo restent)
     case 'approveMessage': {
+      const prev = (await hasTestimonialColumns()) ? await before('message,message_status') : {}
       const { error } = await db.from('donors').update({ message_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
+      if (!error && prev.message?.trim() && prev.message_status === 'pending') tell(str(b.donorId), 'message_approved')
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
     case 'removeMessage': {
+      const prev = await before('message')
       const patch: Record<string, unknown> = { message: null, updated_at: new Date().toISOString() }
       if (await hasTestimonialColumns()) Object.assign(patch, { message_status: 'approved', quote_consent: false })
       const { error } = await db.from('donors').update(patch).eq('id', str(b.donorId))
+      if (!error && prev.message?.trim()) tell(str(b.donorId), 'message_removed')
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 
@@ -132,9 +151,12 @@ export async function POST(request: NextRequest) {
 
     // Retirer seulement la photo (nom et message restent)
     case 'removePhoto': {
-      const { data: before } = await db.from('donors').select('photo_url').eq('id', str(b.donorId)).maybeSingle()
+      const prev = await before('photo_url')
       const { error } = await db.from('donors').update({ photo_url: null, photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId))
-      if (!error) await removePhotoFile(before?.photo_url)
+      if (!error) {
+        await removePhotoFile(prev.photo_url)
+        if (prev.photo_url) tell(str(b.donorId), 'photo_removed')
+      }
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 

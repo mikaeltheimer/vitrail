@@ -231,3 +231,44 @@ export function buildReminder(i: Pick<ReminderInput, 'token' | 'locale' | 'baseU
 export async function sendReminder(i: ReminderInput): Promise<boolean> {
   return sendEmail({ kind: 'reminder', to: i.to, locale: i.locale, donorId: i.donorId, ...buildReminder(i) })
 }
+
+/** Ce que l'équipe a fait : publier ou retirer le témoignage ou la photo, ou effacer le nom, le témoignage et la photo d'un coup. */
+export type ModerationEvent = 'message_approved' | 'message_removed' | 'photo_approved' | 'photo_removed' | 'content_removed'
+
+export interface ModerationInput {
+  to: string
+  event: ModerationEvent
+  locale: Locale
+  donorId?: string | null
+  baseUrl?: string
+}
+
+const MODERATION_KEYS: Record<ModerationEvent, string> = {
+  message_approved: 'modMessageApprouve',
+  message_removed: 'modMessageRetire',
+  photo_approved: 'modPhotoApprouvee',
+  photo_removed: 'modPhotoRetiree',
+  content_removed: 'modContenuRetire',
+}
+
+/** Avis de modération : publié (avec un bouton vers le vitrail) ou retiré (sans bouton, avec la voie pour répondre). */
+export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'baseUrl'>): Built {
+  const t = translatorFor(i.locale) as unknown as (key: string, values?: Record<string, unknown>) => string // clés composées : courriel.mod…
+  const k = MODERATION_KEYS[i.event]
+  const approved = i.event === 'message_approved' || i.event === 'photo_approved'
+  const base = (i.baseUrl ?? siteUrl()).replace(/\/$/, '')
+  return {
+    subject: t('courriel.modObjet', { org: orgFor(i.locale).name }),
+    content: {
+      preheader: t(`courriel.${k}Preheader`),
+      heading: t(`courriel.${k}Titre`),
+      paragraphs: approved ? [t(`courriel.${k}Corps`)] : [t(`courriel.${k}Corps`), t('courriel.modRepondre')],
+      ...(approved ? { button: { label: t('courriel.modBouton'), url: `${base}/vitrail?lang=${i.locale}` }, linkHelp: t('courriel.lienAlt') } : {}),
+      footer: footerFor(i.locale),
+    },
+  }
+}
+
+export async function sendModeration(i: ModerationInput): Promise<boolean> {
+  return sendEmail({ kind: 'moderation', to: i.to, locale: i.locale, donorId: i.donorId, ...buildModeration(i) })
+}
