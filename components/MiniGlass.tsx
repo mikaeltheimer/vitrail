@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOrg } from '@/lib/useOrg'
+import { useSceneText } from '@/lib/useI18n'
 import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS } from '@/lib/render'
@@ -14,6 +15,7 @@ import type { Piece } from '@/lib/types'
  */
 export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces: Piece[]; highlightId?: string | null; size?: number }) {
   const org = useOrg()
+  const text = useSceneText()
   const ref = useRef<HTMLCanvasElement>(null)
   const images = useMemo(() => new ImageCache(), [])
   const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
@@ -57,8 +59,9 @@ export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces:
       width: size,
       height: size,
       focusId: highlightId ?? null,
+      text,
     })
-  }, [tiles, pieces, images, imageVersion, fontsVersion, highlightId, size])
+  }, [tiles, pieces, images, imageVersion, fontsVersion, highlightId, size, text])
 
   return <canvas ref={ref} style={{ width: size, height: size }} className="mx-auto block" aria-label={org.vitrailTitle} />
 }

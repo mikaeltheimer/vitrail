@@ -268,5 +268,22 @@
     "donner": "Donner {montant}",
     "pied": "Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre morceau. Pas de reçu fiscal pour le moment.",
     "erreurInattendue": "Erreur inattendue. Réessayez."
+  },
+  "ecran": {
+    "sur": "sur {montant}",
+    "amasses": "amassés",
+    "donateurs": "{count, plural, one {# donateur} other {# donateurs}}",
+    "vientDeDonner": "✦ Vient de donner",
+    "merciA": "Merci à",
+    "ctaSurtitre": "Faites partie du vitrail",
+    "ctaTitre": "Chaque don devient un morceau de verre",
+    "ctaTexte": "Plus le don est grand, plus le morceau l'est. {pourquoi}.",
+    "ctaScan": "Scannez le code →",
+    "qrAlt": "Code QR pour donner",
+    "qrLegende": "Ajoutez votre morceau",
+    "demo": "MODE DÉMO — aucun paiement réel",
+    "horsLigne": "Connexion perdue — dernier état affiché, reprise automatique",
+    "vide": "Le vitrail attend sa première pièce",
+    "videTexte": "Scannez le code pour donner et voir votre morceau de verre apparaître."
   }
 }

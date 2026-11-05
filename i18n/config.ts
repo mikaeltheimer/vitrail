@@ -59,3 +59,12 @@ export function resolveLocale({ param, cookie, acceptLanguage }: LocaleSignals):
   if (isLocale(cookie)) return cookie
   return fromAcceptLanguage(acceptLanguage) ?? DEFAULT_LOCALE
 }
+
+/** Guillemets de citation (témoignages) : conventions typographiques de la langue, pas des textes à traduire. */
+export const QUOTES: Record<Locale, readonly [open: string, close: string]> = { fr: ['« ', ' »'], en: ['“', '”'] }
+
+/**
+ * Pages dont la langue est fixée par l'adresse, jamais par le navigateur ni le cookie : un écran de projection
+ * doit afficher toujours la même langue. `/ecran` est en français, `/screen` en anglais (même page).
+ */
+export const FIXED_LOCALE_PATHS: Record<string, Locale> = { '/ecran': 'fr', '/screen': 'en' }

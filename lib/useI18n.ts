@@ -1,6 +1,8 @@
+import { useMemo } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { formatCount, formatMoney } from './format'
-import type { Locale } from '@/i18n/config'
+import { QUOTES, type Locale } from '@/i18n/config'
+import type { SceneText } from './render'
 
 // Aides de composants : formats et noms selon la langue de la page.
 
@@ -26,4 +28,11 @@ export function useOrdinal(): (n: number) => string {
 export function useGlassName(): (glass: { id: 'ambre' | 'rose' | 'turquoise' | 'indigo' | 'violet' }) => string {
   const t = useTranslations('commun.verres')
   return glass => t(glass.id)
+}
+
+/** Textes dessinés sur le canevas (« Anonyme », guillemets), stables tant que la langue ne change pas. */
+export function useSceneText(): SceneText {
+  const locale = useLocale() as Locale
+  const anon = useTranslations('commun')('anonyme')
+  return useMemo(() => ({ anon, quotes: QUOTES[locale] }), [anon, locale])
 }

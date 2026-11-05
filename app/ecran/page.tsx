@@ -10,10 +10,13 @@
 import { browserOrigin } from '@/lib/env'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { ANON_LABEL, CONFIG } from '@/lib/config'
+import { useLocale, useTranslations } from 'next-intl'
+import { CONFIG } from '@/lib/config'
+import { QUOTES, type Locale } from '@/i18n/config'
+import { useBrand, useOrg } from '@/lib/useOrg'
+import { useMoney, useSceneText } from '@/lib/useI18n'
 import { donorNameFamily, donorNamesSerif } from '@/lib/fonts'
 import { ensureFonts } from '@/lib/fonts'
-import { formatMoney } from '@/lib/format'
 import { Ambience, drawGlassTile, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
 import { drawScene, paintInitials, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
@@ -53,6 +56,13 @@ interface Card {
 }
 
 export default function Ecran() {
+  const t = useTranslations('ecran')
+  const tc = useTranslations('commun')
+  const org = useOrg()
+  const brand = useBrand()
+  const money = useMoney()
+  const locale = useLocale() as Locale
+  const sceneText = useSceneText()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const images = useMemo(() => new ImageCache(), [])
   const ambience = useMemo(() => new Ambience(), [])
@@ -395,6 +405,7 @@ export default function Ecran() {
           height: lh,
           uiScale: Math.max(1, Math.min(W, H) / 1080),
           stageId: stage,
+          text: sceneText,
         })
         layerCam = { ...cam }
         layerKey = key
@@ -526,7 +537,7 @@ export default function Ecran() {
       window.removeEventListener('resize', resize)
     }
      
-  }, [images, ambience])
+  }, [images, ambience, sceneText])
 
   // ═════════════════════════════════ Données : toutes les 3 s, avec reprise ═════════════════════════════════
   useEffect(() => {
@@ -636,11 +647,11 @@ export default function Ecran() {
       {/* Pendant une mise en scène, l'en-tête s'efface : le morceau peut passer dessous */}
       <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ecole-logo.png" alt={CONFIG.orgName} style={{ width: '12em', height: 'auto', display: 'block' }} />
-        <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{CONFIG.vitrailTitle}</div>
+        <img src="/ecole-logo.png" alt={org.name} style={{ width: '12em', height: 'auto', display: 'block' }} />
+        <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{org.vitrailTitle}</div>
         <div style={{ marginTop: '0.9em', fontFamily: MONO }}>
-          <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{formatMoney(raised)}</span>
-          <span style={{ fontSize: '1em', color: 'rgba(255,255,255,0.6)', marginLeft: '0.5em' }}>{event && event.goalCents > 0 ? `sur ${formatMoney(event.goalCents)}` : 'amassés'}</span>
+          <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{money(raised)}</span>
+          <span style={{ fontSize: '1em', color: 'rgba(255,255,255,0.6)', marginLeft: '0.5em' }}>{event && event.goalCents > 0 ? t('sur', { montant: money(event.goalCents) }) : t('amasses')}</span>
         </div>
         {pct > 0 && (
           <div style={{ height: '0.35em', borderRadius: '1em', background: 'rgba(255,255,255,0.12)', marginTop: '0.5em', overflow: 'hidden', width: '18em' }}>
@@ -648,13 +659,13 @@ export default function Ecran() {
           </div>
         )}
         <div style={{ fontFamily: MONO, fontSize: '0.95em', color: 'rgba(255,255,255,0.55)', marginTop: '0.5em' }}>
-          {count} donateur{count > 1 ? 's' : ''}
+          {t('donateurs', { count })}
         </div>
       </div>
 
       {/* Donivers, discret : le message de l'organisme passe avant */}
       <div className="absolute" style={{ left: '50%', bottom: '0.9em', transform: 'translateX(-50%)', fontSize: '0.85em', color: 'rgba(244,239,230,0.45)', whiteSpace: 'nowrap' }}>
-        {CONFIG.brand.name} · <span className="slogan">{CONFIG.brand.slogan}</span>
+        {CONFIG.brand.name} · <span className="slogan">{brand.slogan}</span>
       </div>
 
       {/* La légende du morceau en scène : nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
@@ -671,8 +682,8 @@ export default function Ecran() {
                 <img src={card.photoUrl} alt="" style={{ width: card.wide ? '7em' : '8em', height: card.wide ? '7em' : '8em', objectFit: 'cover', borderRadius: '0.7em', flexShrink: 0, boxShadow: `0 0 0 0.15em ${card.color}88, 0 0.6em 1.6em rgba(0,0,0,0.5)` }} />
               )}
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.55)' }}>{card.fresh ? '✦ Vient de donner' : 'Merci à'}</div>
-                <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? ANON_LABEL}</div>
+                <div style={{ fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.55)' }}>{card.fresh ? t('vientDeDonner') : t('merciA')}</div>
+                <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? tc('anonyme')}</div>
               </div>
             </div>
             {card.message && (
@@ -684,7 +695,7 @@ export default function Ecran() {
                   color: 'rgba(244,239,230,0.95)',
                 }}
               >
-                {card.wide ? card.message : `« ${card.message} »`}
+                {card.wide ? card.message : `${QUOTES[locale][0]}${card.message}${QUOTES[locale][1]}`}
               </div>
             )}
           </div>
@@ -697,12 +708,12 @@ export default function Ecran() {
       {cta && (
         <div className="absolute" style={{ left: '50%', bottom: '3em', transform: 'translateX(-50%)', width: '40em', textAlign: 'center' }}>
           <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 0 4em rgba(240,178,74,0.15)' }}>
-            <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>Faites partie du vitrail</div>
-            <div className="font-display" style={{ fontSize: '2.5em', lineHeight: 1.1, marginTop: '0.35em' }}>Chaque don devient un morceau de verre</div>
+            <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('ctaSurtitre')}</div>
+            <div className="font-display" style={{ fontSize: '2.5em', lineHeight: 1.1, marginTop: '0.35em' }}>{t('ctaTitre')}</div>
             <div style={{ fontSize: '1.2em', lineHeight: 1.4, marginTop: '0.6em', color: 'rgba(255,255,255,0.8)' }}>
-              Plus le don est grand, plus le morceau l&apos;est. {CONFIG.orgWhyShort}.
+              {t('ctaTexte', { pourquoi: org.whyShort })}
             </div>
-            <div style={{ fontSize: '1.3em', fontWeight: 600, marginTop: '0.7em', color: GOLD }}>Scannez le code →</div>
+            <div style={{ fontSize: '1.3em', fontWeight: 600, marginTop: '0.7em', color: GOLD }}>{t('ctaScan')}</div>
           </div>
         </div>
       )}
@@ -711,24 +722,24 @@ export default function Ecran() {
       <div className="absolute text-center" style={{ right: '2.4em', bottom: '2.4em', width: '14em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em', boxShadow: cta ? '0 0 0 0.4em rgba(240,178,74,0.6)' : 'none', transition: 'box-shadow 0.6s' }}>
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={qr} alt="Code QR pour donner" style={{ width: '100%', display: 'block' }} />
+          <img src={qr} alt={t('qrAlt')} style={{ width: '100%', display: 'block' }} />
         ) : (
           <div style={{ aspectRatio: '1', background: '#eee' }} />
         )}
-        <div style={{ fontWeight: 700, fontSize: '1.1em', marginTop: '0.5em', lineHeight: 1.2 }}>Ajoutez votre morceau</div>
+        <div style={{ fontWeight: 700, fontSize: '1.1em', marginTop: '0.5em', lineHeight: 1.2 }}>{t('qrLegende')}</div>
         <div style={{ fontSize: '0.8em', opacity: 0.6, marginTop: '0.2em', wordBreak: 'break-all' }}>{target}</div>
       </div>
 
       {/* État */}
       <div className="absolute text-right" style={{ right: '2.4em', top: '2em', fontSize: '0.95em' }}>
-        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>MODE DÉMO — aucun paiement réel</div>}
-        {!online && <div className="muted" style={{ marginTop: '0.5em' }}>Connexion perdue — dernier état affiché, reprise automatique</div>}
+        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>{t('demo')}</div>}
+        {!online && <div className="muted" style={{ marginTop: '0.5em' }}>{t('horsLigne')}</div>}
       </div>
 
       {snap && count === 0 && (
         <div className="absolute text-center" style={{ left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '24em' }}>
-          <div style={{ fontSize: '1.9em', fontWeight: 600 }}>Le vitrail attend sa première pièce</div>
-          <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.5em' }}>Scannez le code pour donner et voir votre morceau de verre apparaître.</div>
+          <div style={{ fontSize: '1.9em', fontWeight: 600 }}>{t('vide')}</div>
+          <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.5em' }}>{t('videTexte')}</div>
         </div>
       )}
     </main>

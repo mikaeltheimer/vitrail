@@ -26,6 +26,7 @@ npm run dev
 | `/merci` | Remerciement : le morceau du donateur, cerclé d'or |
 | `/m/[lien]` | Lien magique : modifier nom, message, couleur, ou agrandir son morceau |
 | `/ecran` | Affichage plein écran : vitrail, total, objectif, QR code, annonce de chaque don |
+| `/screen` | Même affichage, en anglais (voir `docs/i18n.md`) ; `/ecran` reste en français |
 | `/admin` | Console : masquer, don comptant, événements, outils |
 
 `/ecran?url=https://…` change l'adresse encodée dans le QR code (utile en test sur le réseau local, où `localhost` ne marche pas depuis un téléphone).

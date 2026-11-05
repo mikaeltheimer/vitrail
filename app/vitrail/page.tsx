@@ -22,7 +22,7 @@ import type { RankedPiece } from '@/components/vitrail/types'
 import { CONFIG } from '@/lib/config'
 import { INTL_TAG, type Locale } from '@/i18n/config'
 import { useOrg } from '@/lib/useOrg'
-import { useMoney, useOrdinal } from '@/lib/useI18n'
+import { useMoney, useOrdinal, useSceneText } from '@/lib/useI18n'
 import { ensureFonts } from '@/lib/fonts'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
@@ -113,6 +113,7 @@ function Vitrail() {
   const tt = useTranslations('vitrail.toast')
   const tc = useTranslations('commun')
   const org = useOrg()
+  const sceneText = useSceneText()
   const params = useSearchParams()
   const focusParam = params.get('d')
   // Retour de Stripe (?merci=réf.) : on revient sur le vitrail, directement sur son morceau
@@ -122,10 +123,7 @@ function Vitrail() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const introCountRef = useRef<HTMLDivElement>(null)
   // Textes lus par le moteur (animations, instantanés), qui ne se relance pas à chaque changement de langue
-  const fmtRef = useRef({ count: (n: number) => String(n), toast: (name: string | null) => name ?? '', anon: '' })
-  useEffect(() => {
-    fmtRef.current = { count: n => ti('compteur', { count: n }), toast: name => tt('ajoute', { nom: name ?? tt('quelquun') }), anon: tc('anonyme') }
-  }, [ti, tt, tc])
+  const fmtRef = useRef({ count: (n: number) => String(n), toast: (name: string | null) => name ?? '', anon: '', text: sceneText })
   const claimPanelRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const viewRects = useRef<Set<SVGRectElement>>(new Set())
@@ -505,6 +503,7 @@ function Vitrail() {
         width: w.W + margin * 2,
         height: w.H + margin * 2,
         focusId: w.selected,
+        text: fmtRef.current.text,
       })
       layerCam = { ...cam }
     }
@@ -942,6 +941,14 @@ function Vitrail() {
   const onDraftChange = useCallback((draft: ClaimDraft, geometryChanged: boolean) => {
     api.current.preview(draft, geometryChanged)
   }, [])
+
+  // Mis à jour après les effets du moteur, qui lisent ces textes
+  useEffect(() => {
+    fmtRef.current = { count: n => ti('compteur', { count: n }), toast: name => tt('ajoute', { nom: name ?? tt('quelquun') }), anon: tc('anonyme'), text: sceneText }
+    // Changement de langue en cours de visite : le verre est redessiné avec les nouveaux textes
+    wRef.current.version++
+    wRef.current.needs = true
+  }, [ti, tt, tc, sceneText])
 
   const piece = selected && selected !== PREVIEW_ID ? ranked.find(p => p.id === selected) ?? null : null
   const hoveredPiece = hovered && hovered !== selected ? ranked.find(p => p.id === hovered) ?? null : null

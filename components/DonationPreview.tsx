@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useSceneText } from '@/lib/useI18n'
 import { CONFIG } from '@/lib/config'
 import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
@@ -29,6 +30,7 @@ export interface PreviewDraft {
  */
 export default function DonationPreview({ pieces, draft, size = 340 }: { pieces: Piece[]; draft: PreviewDraft; size?: number }) {
   const t = useTranslations('apercu')
+  const text = useSceneText()
   const ref = useRef<HTMLCanvasElement>(null)
   const images = useMemo(() => new ImageCache(), [])
   const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
@@ -96,8 +98,9 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
       width: size,
       height: size,
       focusId: draftId,
+      text,
     })
-  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size, t])
+  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size, t, text])
 
   return (
     <figure className="m-0">

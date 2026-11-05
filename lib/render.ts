@@ -1,4 +1,5 @@
-import { ANON_LABEL, CONFIG } from './config'
+import { CONFIG } from './config'
+import { QUOTES } from '@/i18n/config'
 import { donorNamesSerif, FONT_DISPLAY, FONT_SANS, FONT_SERIF } from './fonts'
 import { drawGlassTile, glassColors } from './glass'
 import type { ImageCache } from './images'
@@ -106,7 +107,16 @@ export interface Scene {
    * sont dans la légende à côté, jamais en double).
    */
   stageId?: string | null
+  /** Textes dessinés dans le verre, dans la langue de la page (par défaut : français). */
+  text?: SceneText
 }
+
+/** « Anonyme » et guillemets de citation, dans la langue de la page. */
+export interface SceneText {
+  anon: string
+  quotes: readonly [open: string, close: string]
+}
+const DEFAULT_TEXT: SceneText = { anon: 'Anonyme', quotes: QUOTES.fr }
 
 /**
  * Rectangle où la photo d'un morceau est posée (le même que dans le verre) : un carré centré sur le cœur du morceau,
@@ -128,7 +138,7 @@ export function initials(name: string): string {
   if (!words.length) return ''
   const first = words[0][0] ?? ''
   const last = words.length > 1 ? words[words.length - 1][0] ?? '' : ''
-  return (first + last).toLocaleUpperCase('fr-CA')
+  return (first + last).toUpperCase()
 }
 
 /** Morceau en scène (écran) sans photo : les initiales du donateur, gravées dans le verre. Coordonnées monde. */
@@ -266,7 +276,7 @@ const LABEL_MAX_LINES: Record<LabelRow['kind'], number> = { small: 1, name: 2, a
  * à sa hauteur. On essaie des polices de plus en plus petites jusqu'à ce que tout rentre ; si rien ne rentre, rien ne s'affiche.
  * Les messages sont retirés en dernier recours (sauf en mode strict : tout ou rien).
  */
-export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasPhoto: boolean, r: number, u: number, strict = false): LabelLine[] | null {
+export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasPhoto: boolean, r: number, u: number, strict = false, quotes: SceneText['quotes'] = QUOTES.fr): LabelLine[] | null {
   const rs = r * 0.84 // rayon sûr : le texte ne s'approche jamais du plomb
   const base: Record<LabelRow['kind'], number> = {
     small: clamp(r * 0.085, 10 * u, 20 * u),
@@ -289,7 +299,7 @@ export function layoutRows(ctx: CanvasRenderingContext2D, rows: LabelRow[], hasP
           const spacing = st.spacing ? `${(st.spacing * size).toFixed(2)}px` : '0px'
           ctx.font = font
           setSpacing(ctx, spacing)
-          const text = row.kind === 'message' ? `« ${row.text} »` : st.upper ? row.text.toLocaleUpperCase('fr-CA') : row.text
+          const text = row.kind === 'message' ? `${quotes[0]}${row.text}${quotes[1]}` : st.upper ? row.text.toUpperCase() : row.text
           const width = rs * wf * (row.kind === 'message' ? 0.92 : 1)
           wrapLines(ctx, text, width, LABEL_MAX_LINES[row.kind]).forEach((t, i) =>
             built.push({
@@ -365,10 +375,10 @@ function paintLabels(ctx: CanvasRenderingContext2D, s: Scene) {
     let rows = piece.rows
     if (!rows) {
       // Don anonyme : « Anonyme » sur le verre, à la place du nom
-      rows = [{ text: piece.name ?? ANON_LABEL, kind: 'name' }]
+      rows = [{ text: piece.name ?? (s.text ?? DEFAULT_TEXT).anon, kind: 'name' }]
       if (r >= LABEL_MESSAGE_MIN * u && piece.message) rows.push({ text: glassExcerpt(piece.message), kind: 'message' })
     }
-    const lines = layoutRows(ctx, rows, hasPhoto, r, u)
+    const lines = layoutRows(ctx, rows, hasPhoto, r, u, false, (s.text ?? DEFAULT_TEXT).quotes)
     if (!lines?.length) continue
 
     // Texte sur une photo : un voile sombre et doux derrière le bloc de texte (limité au morceau)

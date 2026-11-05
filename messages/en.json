@@ -268,5 +268,22 @@
     "donner": "Donate {montant}",
     "pied": "What you see is a preview. Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your piece. No tax receipt at this time.",
     "erreurInattendue": "Unexpected error. Please try again."
+  },
+  "ecran": {
+    "sur": "of {montant}",
+    "amasses": "raised",
+    "donateurs": "{count, plural, one {# donor} other {# donors}}",
+    "vientDeDonner": "✦ Just donated",
+    "merciA": "Thank you",
+    "ctaSurtitre": "Be part of the stained glass",
+    "ctaTitre": "Every donation becomes a piece of glass",
+    "ctaTexte": "The bigger the donation, the bigger the piece. {pourquoi}.",
+    "ctaScan": "Scan the code →",
+    "qrAlt": "QR code to donate",
+    "qrLegende": "Add your piece",
+    "demo": "DEMO MODE — no real payments",
+    "horsLigne": "Connection lost — showing the last known state, resuming automatically",
+    "vide": "The stained glass is waiting for its first piece",
+    "videTexte": "Scan the code to donate and watch your piece of glass appear."
   }
 }
