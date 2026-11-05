@@ -316,7 +316,12 @@
     "lienIgnorer": "Didn't ask for this? Ignore this email: nobody can edit your piece without this link.",
     "lienAlt": "Button not working? Copy this link into your browser:",
     "piedExpediteur": "This email was sent to you by {brand} — {org}, because you made a donation or asked for a personal link.",
-    "piedRepondre": "Questions? Just reply to this email."
+    "piedRepondre": "Questions? Just reply to this email.",
+    "rappelObjet": "A testimonial for your piece? — {org}",
+    "rappelPreheader": "Tell us why you support the organization.",
+    "rappelTitre": "Your piece is in the stained glass",
+    "rappelCorps": "Thank you again for your donation: your piece is now part of the stained glass.",
+    "rappelPied": "This is the only reminder we will send you about this."
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",

@@ -316,7 +316,12 @@
     "lienIgnorer": "Vous n'avez rien demandé? Ignorez ce courriel : personne ne peut modifier votre morceau sans ce lien.",
     "lienAlt": "Le bouton ne fonctionne pas? Copiez ce lien dans votre navigateur :",
     "piedExpediteur": "Ce courriel vous est envoyé par {brand} — {org}, parce que vous avez fait un don ou demandé un lien personnel.",
-    "piedRepondre": "Une question? Répondez simplement à ce courriel."
+    "piedRepondre": "Une question? Répondez simplement à ce courriel.",
+    "rappelObjet": "Un témoignage pour votre morceau? — {org}",
+    "rappelPreheader": "Dites-nous pourquoi vous soutenez l'organisme.",
+    "rappelTitre": "Votre morceau est dans le vitrail",
+    "rappelCorps": "Merci encore pour votre don : votre morceau fait maintenant partie du vitrail.",
+    "rappelPied": "C'est le seul rappel que nous vous envoyons à ce sujet."
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",

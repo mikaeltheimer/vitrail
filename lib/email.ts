@@ -195,3 +195,33 @@ export async function sendMagicLink(i: MagicLinkInput): Promise<boolean> {
     },
   })
 }
+
+export interface ReminderInput {
+  to: string
+  token: string
+  locale: Locale
+  donorId: string
+  baseUrl?: string
+}
+
+/** Rappel unique, le lendemain d'un don : invite à ajouter un témoignage (voir lib/reminders.ts). */
+export async function sendReminder(i: ReminderInput): Promise<boolean> {
+  const t = translatorFor(i.locale)
+  const org = orgFor(i.locale)
+  return sendEmail({
+    kind: 'reminder',
+    to: i.to,
+    locale: i.locale,
+    donorId: i.donorId,
+    subject: t('courriel.rappelObjet', { org: org.name }),
+    content: {
+      preheader: t('courriel.rappelPreheader'),
+      heading: t('courriel.rappelTitre'),
+      paragraphs: [t('courriel.rappelCorps'), `${org.testimonial.question} ${org.testimonial.cta} ${org.testimonial.lead}`],
+      button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
+      note: t('courriel.recuLienNote'),
+      linkHelp: t('courriel.lienAlt'),
+      footer: [t('courriel.rappelPied'), ...footerFor(i.locale)],
+    },
+  })
+}
