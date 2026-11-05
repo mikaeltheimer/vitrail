@@ -402,6 +402,12 @@ export default function Ecran() {
       }
       ctx.drawImage(layer, pl.dx, pl.dy, lw * pl.k, lh * pl.k)
 
+      // Lumière et cerclage de la rosace : sous le morceau en scène (qui sort du vitrail), jamais par-dessus
+      if (level > 0.01) {
+        ctx.globalAlpha = level
+        ambience.drawFront(ctx, cx, cy, r, now, false)
+        ctx.globalAlpha = 1
+      }
       // Le morceau en lumière : le reste s'assombrit doucement, son contour pulse dans sa couleur
       const tile = spot ? tiles.get(spot) : null
       if (tile?.path) {
@@ -490,11 +496,6 @@ export default function Ecran() {
         ctx.arc(x0, y, 5, 0, Math.PI * 2)
         ctx.fill()
         ctx.restore()
-      }
-      if (level > 0.01) {
-        ctx.globalAlpha = level
-        ambience.drawFront(ctx, cx, cy, r, now, false)
-        ctx.globalAlpha = 1
       }
     }
     const loop = (now: number) => {
