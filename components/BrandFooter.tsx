@@ -1,5 +1,5 @@
 // Mention fixe de la plateforme, en pied de page : discrète, le message de l'organisme passe toujours avant.
-// Porte aussi le sélecteur de langue (visible seulement quand l'anglais est activé).
+// Porte aussi le sélecteur de langue (visible sauf si l'anglais est coupé (NEXT_PUBLIC_ENGLISH=0)).
 
 import { useBrand } from '@/lib/useOrg'
 import LanguageSwitch from './LanguageSwitch'

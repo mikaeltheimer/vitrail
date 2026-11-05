@@ -6,25 +6,13 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/config'
 export const CONFIG = {
   orgName: "École d'art de Sutton",
   orgUrl: 'https://ecoleartsutton.ca/',
-  /** Présentation de l'organisme (panneau « À propos de la collecte »). */
-  orgAbout:
-    "L'École d'art de Sutton est un organisme à but non lucratif voué à l'éveil artistique des enfants, petits et grands, par des expériences de création. Depuis 2016, c'est aussi un centre d'art pluridisciplinaire qui fait se rencontrer artistes et enfants : explorations libres, expositions, projections, performances et résidences d'artistes en recherche-création.",
-  /** Pourquoi donner : en une phrase, montrée au moment du don. */
-  orgWhy:
-    "L'École avance sans subvention gouvernementale : c'est sa communauté qui la fait vivre. Chaque don rend possibles ses ateliers, ses expositions et ses résidences d'artistes.",
-  /** La même idée en une phrase, pour l'appel à donner du grand écran. */
-  orgWhyShort: "C'est la communauté qui fait vivre l'École",
   appName: 'Donivers',
   /** Police des noms des donateurs : 'sans' (DM Sans) ou 'serif' (Fraunces, comme le nom Donivers). Essai : ?noms=fraunces. */
   donorNameFont: 'sans' as 'sans' | 'serif',
-  /** Titre du vitrail de l'organisme (écran, formulaire de don). */
-  vitrailTitle: 'Le vitrail de la communauté',
   /** Marque de la plateforme (fixe pour tous les organismes). Le message de l'organisme passe toujours avant. */
   brand: {
     name: 'Donivers',
-    descriptor: 'La plateforme de dons de votre communauté',
     slogan: "Chaque don, un morceau d'univers.",
-    poweredBy: 'Propulsé par Donivers',
     studio: 'Studio Existence',
     studioUrl: 'https://studioexistence.com',
     /** Exploitant de la plateforme (fixe pour tous les organismes) : repris par la politique de confidentialité et les conditions. */
@@ -92,17 +80,6 @@ export const CONFIG = {
   messageMax: 500,
   /** Sur le verre, seul le début du témoignage s'affiche (le texte complet est dans la fiche et sur l'écran). */
   glassMessageMax: 80,
-  /**
-   * Invitation à témoigner, propre à l'organisme : une seule question, simple, et des pistes dans le champ pour
-   * inspirer. L'objectif est d'avoir le plus de témoignages possible.
-   */
-  testimonial: {
-    question: "Pourquoi soutenez-vous l'École d'art\u00a0?",
-    cta: 'Ajoutez votre témoignage.',
-    placeholder: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous.",
-    lead: 'Votre témoignage accompagne votre morceau, ici et sur le grand écran.',
-    consent: "L'École peut citer mon témoignage dans ses communications (site, réseaux, rapport annuel).",
-  },
   /** Afficher les messages sur le grand écran. Dans une école, on peut le couper ici ou masquer en direct depuis l'admin. */
   showMessagesOnScreen: true,
 
@@ -121,7 +98,7 @@ export const CONFIG = {
 } as const
 
 // ── Textes par langue ─────────────────────────────────────────────────────
-// Le français vit dans CONFIG ci-dessus (champs à plat, encore lus par les écrans pas encore migrés) ; l'anglais est ici.
+// Le français (langue source) et l'anglais vivent ici, côte à côte ; CONFIG ne garde que le nom, l'adresse du site et le slogan (lus aussi par /affiche).
 // Les écrans lisent ces textes par orgFor(locale) / brandFor(locale), ou par useOrg() / useBrand() (lib/useOrg.ts).
 // À l'étape 3, ils passent en base, éditables par l'organisme (anglais facultatif, avec repli sur le français).
 
@@ -147,11 +124,23 @@ export const ORG: Record<Locale, OrgTexts> = {
   fr: {
     name: CONFIG.orgName,
     url: CONFIG.orgUrl,
-    about: CONFIG.orgAbout,
-    why: CONFIG.orgWhy,
-    whyShort: CONFIG.orgWhyShort,
-    vitrailTitle: CONFIG.vitrailTitle,
-    testimonial: { ...CONFIG.testimonial },
+    about:
+      "L'École d'art de Sutton est un organisme à but non lucratif voué à l'éveil artistique des enfants, petits et grands, par des expériences de création. Depuis 2016, c'est aussi un centre d'art pluridisciplinaire qui fait se rencontrer artistes et enfants : explorations libres, expositions, projections, performances et résidences d'artistes en recherche-création.",
+    why:
+      "L'École avance sans subvention gouvernementale : c'est sa communauté qui la fait vivre. Chaque don rend possibles ses ateliers, ses expositions et ses résidences d'artistes.",
+    whyShort: "C'est la communauté qui fait vivre l'École",
+    vitrailTitle: 'Le vitrail de la communauté',
+    /**
+     * Invitation à témoigner, propre à l'organisme : une seule question, simple, et des pistes dans le champ pour
+     * inspirer. L'objectif est d'avoir le plus de témoignages possible.
+     */
+    testimonial: {
+      question: "Pourquoi soutenez-vous l'École d'art\u00a0?",
+      cta: 'Ajoutez votre témoignage.',
+      placeholder: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous.",
+      lead: 'Votre témoignage accompagne votre morceau, ici et sur le grand écran.',
+      consent: "L'École peut citer mon témoignage dans ses communications (site, réseaux, rapport annuel).",
+    },
   },
   en: {
     name: 'Sutton School of Art',
@@ -172,7 +161,7 @@ export const ORG: Record<Locale, OrgTexts> = {
 }
 
 export const BRAND: Record<Locale, BrandTexts> = {
-  fr: { descriptor: CONFIG.brand.descriptor, slogan: CONFIG.brand.slogan, poweredBy: CONFIG.brand.poweredBy },
+  fr: { descriptor: 'La plateforme de dons de votre communauté', slogan: CONFIG.brand.slogan, poweredBy: 'Propulsé par Donivers' },
   en: { descriptor: "Your community's giving platform", slogan: 'Every donation, a piece of the universe.', poweredBy: 'Powered by Donivers' },
 }
 

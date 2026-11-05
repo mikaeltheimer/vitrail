@@ -20,12 +20,12 @@ export function isLocale(value: unknown): value is Locale {
 }
 
 /**
- * L'anglais s'active par NEXT_PUBLIC_ENGLISH=1 (prévisualisation, essais). Tant qu'il est coupé, tout reste en français,
- * quels que soient le paramètre, le cookie ou le navigateur : on peut fusionner les étapes intermédiaires sans rien changer en ligne.
+ * L'anglais est actif par défaut. NEXT_PUBLIC_ENGLISH=0 le coupe (interrupteur de secours) : tout reste alors en français,
+ * quels que soient le paramètre, le cookie ou le navigateur, et /screen renvoie vers /ecran.
  * Lu dans le serveur comme dans le navigateur (variable NEXT_PUBLIC_, remplacée au build).
  */
 export function englishEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_ENGLISH === '1'
+  return process.env.NEXT_PUBLIC_ENGLISH !== '0'
 }
 
 /** Première langue prise en charge dans un en-tête Accept-Language, selon les poids q. Null si aucune. */

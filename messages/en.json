@@ -276,7 +276,7 @@
     "amasses": "raised",
     "donateurs": "{count, plural, one {# donor} other {# donors}}",
     "vientDeDonner": "✦ Just donated",
-    "merciA": "Thank you",
+    "merciA": "Thanks to",
     "ctaSurtitre": "Be part of the stained glass",
     "ctaTitre": "Every donation becomes a piece of glass",
     "ctaTexte": "The bigger the donation, the bigger the piece. {pourquoi}.",
@@ -290,7 +290,7 @@
   },
   "meta": {
     "titre": "Donivers — {org}",
-    "description": "Donivers — {org}: every donation becomes a piece of the stained glass. {slogan}",
+    "description": "Donivers — {org}: explore the stained glass, one piece for every donation. {slogan}",
     "vitrailTitre": "The stained glass — {org}",
     "vitrailDescription": "Every donation becomes a piece of glass. Explore the stained glass and add yours.",
     "ogTotal": "{montant} raised · {count, plural, one {# donor} other {# donors}}"

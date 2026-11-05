@@ -116,7 +116,7 @@ export interface SceneText {
   anon: string
   quotes: readonly [open: string, close: string]
 }
-const DEFAULT_TEXT: SceneText = { anon: 'Anonyme', quotes: QUOTES.fr }
+const DEFAULT_TEXT: SceneText = { anon: 'Anonyme', quotes: QUOTES.fr } // i18n-ok : repli, les écrans passent leur langue
 
 /**
  * Rectangle où la photo d'un morceau est posée (le même que dans le verre) : un carré centré sur le cœur du morceau,

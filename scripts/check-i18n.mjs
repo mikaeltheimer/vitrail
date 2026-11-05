@@ -10,8 +10,10 @@ import { join, relative, sep } from 'node:path'
 const root = process.cwd()
 const strict = process.argv.includes('--strict')
 
-// Hors champ (voir docs/i18n.md) : console d'administration, affiches (prototype), liste de mots grossiers, outil de calibrage réservé au développement.
-const EXCLUDED = ['app/admin/', 'app/api/admin/', 'app/affiche/', 'lib/profanity.ts', 'components/ScaleBadge.tsx', 'messages/', 'scripts/', 'node_modules/', '.next/']
+// Hors champ (voir docs/i18n.md) : console d'administration, affiches (prototype), liste de mots grossiers, outil de calibrage réservé au développement,
+// lib/config.ts (textes de l'organisme : le français est la langue source, à côté de l'anglais ; ils passent en base à l'étape 3).
+// Lignes ignorées : journaux pour l'exploitant (console.*), erreurs internes (new Error), et toute ligne marquée « i18n-ok » (avec la raison).
+const EXCLUDED = ['app/admin/', 'app/api/admin/', 'app/affiche/', 'lib/config.ts', 'lib/profanity.ts', 'components/ScaleBadge.tsx', 'messages/', 'scripts/', 'node_modules/', '.next/']
 
 let failed = false
 const fail = msg => {
@@ -69,7 +71,12 @@ function stripComments(src) {
 
 const found = []
 for (const { full, rel } of [...walk(join(root, 'app')), ...walk(join(root, 'components')), ...walk(join(root, 'lib')), ...walk(join(root, 'i18n'))]) {
-  const code = stripComments(readFileSync(full, 'utf8'))
+  const raw = readFileSync(full, 'utf8')
+  const skip = new Set(raw.split('\n').flatMap((l, i) => (/console\.|new Error\(|i18n-ok/.test(l) ? [i] : [])))
+  const code = stripComments(raw)
+    .split('\n')
+    .map((l, i) => (skip.has(i) ? '' : l))
+    .join('\n')
   let count = 0
   for (const m of code.matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*?)\1/g)) if (french(m[2])) count++
   for (const m of code.matchAll(/>([^<>{}]+)</g)) if (french(m[1])) count++

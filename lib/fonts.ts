@@ -30,7 +30,7 @@ let pending: Promise<void> | null = null
 /** Charge les polices du canvas ; se résout quand elles sont prêtes (ou échouent : le texte se rabat alors sur une police système). */
 export function ensureFonts(): Promise<void> {
   if (typeof document === 'undefined' || !document.fonts) return Promise.resolve()
-  pending ??= Promise.all(FACES.map(f => document.fonts.load(f, 'AaÉé0123456789'))).then(
+  pending ??= Promise.all(FACES.map(f => document.fonts.load(f, 'AaÉé0123456789'))).then( // i18n-ok : échantillon de glyphes
     () => undefined,
     () => undefined,
   )

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
   const secret = process.env.STRIPE_WEBHOOK_SECRET
-  if (!signature || !secret) return NextResponse.json({ error: 'Webhook non configuré' }, { status: 400 })
+  if (!signature || !secret) return NextResponse.json({ error: 'Webhook non configuré' }, { status: 400 }) // i18n-ok : réponse à Stripe, pas au visiteur
 
   let event: Stripe.Event
   try {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
-      return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 })
+      return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
     }
   }
 

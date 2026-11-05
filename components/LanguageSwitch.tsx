@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { LOCALE_COOKIE, englishEnabled, type Locale } from '@/i18n/config'
 
 /**
- * Bascule FR ↔ EN : pose le cookie de langue puis recharge le rendu serveur. N'affiche rien (pas même `prefix`) tant que l'anglais est coupé.
+ * Bascule FR ↔ EN : pose le cookie de langue puis recharge le rendu serveur. N'affiche rien (pas même `prefix`) quand l'anglais est coupé (NEXT_PUBLIC_ENGLISH=0).
  * `prefix` : séparateur placé devant le bouton (« · » dans un pied de page), absent quand le bouton l'est.
  */
 export default function LanguageSwitch({ className, style, prefix }: { className?: string; style?: CSSProperties; prefix?: string }) {
