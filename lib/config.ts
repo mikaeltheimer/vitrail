@@ -28,6 +28,25 @@ export const CONFIG = {
     studio: 'Studio Existence',
     studioUrl: 'https://studioexistence.com',
   },
+  /**
+   * Coordonnées juridiques de l'organisme, reprises par la politique de confidentialité et les conditions d'utilisation.
+   * Un champ vide s'affiche « [À COMPLÉTER : …] » (surligné) : à remplir avant la mise en ligne publique.
+   * Fixes pour toutes les langues ; à l'étape 3, ils passent en base avec le reste des réglages de l'organisme.
+   */
+  legal: {
+    /** Raison sociale exacte et numéro d'entreprise du Québec (NEQ). */
+    entity: '',
+    /** Adresse postale. */
+    address: '',
+    /** Responsable de la protection des renseignements personnels : nom et titre, courriel, téléphone. */
+    officerName: '',
+    officerEmail: '',
+    officerPhone: '',
+    /** Date de la dernière mise à jour des textes juridiques (AAAA-MM-JJ). */
+    updated: '',
+    /** Durée de conservation des renseignements, rédigée par l'organisme. */
+    retention: '',
+  } as Record<'entity' | 'address' | 'officerName' | 'officerEmail' | 'officerPhone' | 'updated' | 'retention', string>,
   currency: 'cad',
 
   /** Montants en cents. Le minimum protège le don net contre les frais fixes du fournisseur de paiement. */

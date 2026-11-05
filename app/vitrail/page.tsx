@@ -1381,6 +1381,9 @@ function Header({
               <Link href="/confidentialite" style={menuLink}>
                 {tc('confidentialiteCourt')}
               </Link>
+              <Link href="/conditions" style={menuLink}>
+                {tc('conditionsCourt')}
+              </Link>
               <LanguageSwitch style={{ ...menuLink, display: 'block', width: '100%', textAlign: 'left', borderBottom: 0 }} />
             </nav>
           </>

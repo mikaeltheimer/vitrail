@@ -15,7 +15,9 @@
     "confidentialiteCourt": "Privacy",
     "fermer": "Close",
     "anonyme": "Anonymous",
-    "ordinal": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}"
+    "ordinal": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+    "conditionsCourt": "Terms",
+    "aCompleter": "TO COMPLETE"
   },
   "erreurs": {
     "courrielRequis": "Email address required.",
@@ -305,5 +307,125 @@
     "recuPied": "This email confirms your donation. This organization is not yet a registered charity, so no tax receipt is issued at this time.",
     "lienObjet": "Your link — {org}",
     "lienCorps": "Here is your link to edit your piece or make it bigger (valid for 30 days):"
+  },
+  "confidentialite": {
+    "retour": "← Back to the stained glass",
+    "titre": "Privacy policy",
+    "metaTitre": "Privacy policy — {brand}",
+    "sousTitre": "{brand} — {org} · Last updated: <updated>date</updated>",
+    "voirConditions": "See also our <terms>terms of use</terms>.",
+    "qui": {
+      "titre": "Who we are",
+      "texte": "This fundraiser is run by {org} (<entity>exact legal name, Québec enterprise number (NEQ)</entity>), located at <address>mailing address</address>. Each donation becomes a piece of glass shown on a digital stained-glass window, on site and online."
+    },
+    "responsable": {
+      "titre": "Person in charge of personal information protection",
+      "nom": "<officerName>Name and title of the person in charge</officerName>",
+      "coordonnees": "Email: <officerEmail>email address</officerEmail> · Phone: <officerPhone>number</officerPhone>",
+      "texte": "You can send any question, request or complaint about your personal information to this person."
+    },
+    "collecte": {
+      "titre": "The information we collect",
+      "courriel": "<b>Your email</b>: to confirm your donation, recognize you if you give again (your piece grows), and send you a link to edit your piece. It is never displayed.",
+      "don": "<b>The amount and date of your donation</b>: to keep the fundraiser's accounts and to size your piece of glass.",
+      "facultatif": "<b>Only if you provide them</b>: the name you choose, your testimonial and your photo, shown on the organization's screen and on the stained glass's public page. The name is optional: without it, your piece appears as “Anonymous”, with your testimonial and photo if you added them.",
+      "consentement": "<b>Your consent to be quoted</b>, if you tick the box: the organization may then reuse your testimonial in its communications (website, social media, annual report). Without it, your testimonial stays on the stained glass only. You can withdraw this consent at any time with your edit link.",
+      "paiement": "<b>Your payment information</b> is entered directly with our payment provider, Stripe. We never see your card number.",
+      "langue": "<b>Your language</b> (French or English): so we can write to you in the language you chose.",
+      "provenance": "<b>Where your visit came from</b> (for example: the café poster), with no data that identifies you, to know which placements spread the word about the fundraiser."
+    },
+    "temoins": {
+      "titre": "Cookies and trackers",
+      "texte": "This site uses no advertising cookies or third-party tracking tools. Your browser only keeps, for the length of your visit, where it came from, and for one year your language choice. The team members who run the fundraiser use a sign-in cookie for the administration console."
+    },
+    "acces": {
+      "titre": "Who can access your information",
+      "intro": "Only the people in charge of the fundraiser at the organization can access it. We never sell or rent any information. We use service providers who process it on our behalf:",
+      "studio": "{studio}, which designs and operates the {brand} platform;",
+      "stripe": "Stripe (payments);",
+      "supabase": "Supabase (hosting of the database and photos);",
+      "vercel": "Vercel (website hosting);",
+      "resend": "Resend (sending emails).",
+      "horsQuebec": "Some of these providers may keep information outside Québec. <todo>hosting regions chosen, and confirmation of the privacy impact assessment required by Québec's Law 25 for a transfer outside Québec</todo>"
+    },
+    "conservation": {
+      "titre": "How long we keep it",
+      "texte": "<retention>retention period, e.g.: donation records are kept X years for the organization's accounting; names, messages and photos are removed from display at the end of the fundraiser or on your request</retention>"
+    },
+    "droits": {
+      "titre": "Your rights",
+      "intro": "You can, at any time:",
+      "modifier": "edit or remove your name, testimonial or photo, using the link you received after your donation (or by requesting a new link on the donation page);",
+      "acces": "ask for access to the information we hold about you, and for its correction or deletion;",
+      "retrait": "withdraw your consent to the display of your name and photo.",
+      "suite": "Write to the person in charge (above). We reply within 30 days. If you are not satisfied with our answer, you can contact the Commission d'accès à l'information du Québec."
+    },
+    "securite": {
+      "titre": "Security",
+      "texte": "Exchanges with the site are encrypted. Access to information is limited to the fundraiser team and protected by a code. Submitted photos may be reviewed by the team before they are displayed."
+    },
+    "recus": {
+      "titre": "Tax receipts",
+      "texte": "{org} is not yet a registered charity: no tax receipt is issued for now. <todo>to update if this changes</todo>"
+    },
+    "modifications": {
+      "titre": "Changes",
+      "texte": "We will post any change to this policy here, with its update date."
+    }
+  },
+  "conditions": {
+    "retour": "← Back to the stained glass",
+    "titre": "Terms of use",
+    "metaTitre": "Terms of use — {brand}",
+    "sousTitre": "{brand} — {org} · Last updated: <updated>date</updated>",
+    "intro": "By using this site or making a donation, you accept these terms. They are in addition to our <privacy>privacy policy</privacy>.",
+    "service": {
+      "titre": "The service",
+      "texte": "{brand} is a giving platform designed and operated by {studio}. Each donation goes to the beneficiary organization: {org} (<entity>exact legal name, Québec enterprise number (NEQ)</entity>). The platform receives donations and displays them on a digital stained-glass window, on site and online."
+    },
+    "dons": {
+      "titre": "Donations",
+      "paiement": "Donations are made in Canadian dollars, by card, through Stripe. The minimum donation is {min} and the maximum is {max}.",
+      "frais": "You may choose to cover the transaction fees: this share is optional and added to your donation.",
+      "definitif": "A donation is voluntary. If there is an error or an unauthorized payment, write to us (see “Contact us”). <todo>refund policy to be confirmed by the organization</todo>",
+      "recus": "No tax receipt is issued for now. <todo>to update if this changes</todo>",
+      "taille": "The size of a piece reflects the amount of donations. Its size and position may change as the stained glass grows."
+    },
+    "contenu": {
+      "titre": "Your name, testimonial and photo",
+      "facultatif": "The name, testimonial and photo are optional. By adding them, you authorize their display on the stained glass (the organization's screen and the public page) until you remove them.",
+      "droits": "You declare that you have the right to use this content, including the consent of anyone recognizable in your photo. You keep all your rights in your content.",
+      "interdit": "The following are prohibited: hateful, abusive, defamatory or unlawful remarks, sexual content, other people's personal information, advertising, and any content that infringes a third party's rights.",
+      "moderation": "We may hide or remove any content that breaches these terms, without notice. An automatic word filter is used, the team may review photos before they are displayed, and any visitor can report a piece.",
+      "citation": "Your testimonial is reused in the organization's communications only if you ticked the consent box."
+    },
+    "lien": {
+      "titre": "Your personal link",
+      "texte": "After your donation, a personal link lets you edit or remove your name, testimonial and photo. Keep it to yourself: anyone who has it can edit your piece. You can request a new one with your email."
+    },
+    "usage": {
+      "titre": "Using the site",
+      "texte": "You agree not to disrupt the service, not to try to access data that is not yours, and not to use the site in an abusive automated way (for example, fake donations or card testing)."
+    },
+    "propriete": {
+      "titre": "Intellectual property",
+      "texte": "The {brand} platform, its design, code and brand belong to {studio}. The organization's name, logos and texts belong to the organization."
+    },
+    "responsabilite": {
+      "titre": "Availability and liability",
+      "texte": "We do our best to keep the site available, without guaranteeing uninterrupted access. To the extent permitted by law, neither {studio} nor the organization is liable for indirect damages arising from the use of the site or an interruption of service. Nothing here limits the rights the law gives you as a consumer."
+    },
+    "modifications": {
+      "titre": "Changes",
+      "texte": "We may change these terms. The version in force is the one posted here, with its update date; continuing to use the site after a change means you accept it."
+    },
+    "droit": {
+      "titre": "Governing law and language",
+      "texte": "These terms are governed by the laws of Québec and the federal laws of Canada that apply there. The courts of the <todo>judicial district</todo> have jurisdiction, subject to your consumer rights. The parties have expressly required that these terms be drawn up in French; the English version is provided for convenience."
+    },
+    "contact": {
+      "titre": "Contact us",
+      "texte": "For any question: <officerEmail>email address</officerEmail>."
+    }
   }
 }

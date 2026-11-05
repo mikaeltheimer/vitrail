@@ -136,6 +136,10 @@ export default function AboutPanel({
           <a href="/confidentialite" style={{ color: 'rgba(255,255,255,0.6)' }}>
             {tc('confidentialiteCourt')}
           </a>
+          {' · '}
+          <a href="/conditions" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            {tc('conditionsCourt')}
+          </a>
         </p>
 
         {/* La plateforme : seul endroit (avec la confidentialité) où Studio Existence apparaît */}

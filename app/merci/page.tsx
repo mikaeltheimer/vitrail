@@ -137,6 +137,10 @@ function Merci() {
             <Link href="/confidentialite" className="underline">
               {tc('confidentialiteCourt')}
             </Link>
+            {' · '}
+            <Link href="/conditions" className="underline">
+              {tc('conditionsCourt')}
+            </Link>
           </p>
         </>
       )}

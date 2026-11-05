@@ -728,6 +728,14 @@ export default function ClaimPanel({
         >
           {tc("confidentialiteCourt")}
         </Link>
+        {" · "}
+        <Link
+          href="/conditions"
+          target="_blank"
+          style={{ color: "rgba(255,255,255,0.6)" }}
+        >
+          {tc("conditionsCourt")}
+        </Link>
       </p>
     </div>
   );

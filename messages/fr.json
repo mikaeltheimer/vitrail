@@ -15,7 +15,9 @@
     "confidentialiteCourt": "Confidentialité",
     "fermer": "Fermer",
     "anonyme": "Anonyme",
-    "ordinal": "{n, selectordinal, one {#er} other {#e}}"
+    "ordinal": "{n, selectordinal, one {#er} other {#e}}",
+    "conditionsCourt": "Conditions",
+    "aCompleter": "À COMPLÉTER"
   },
   "erreurs": {
     "courrielRequis": "Courriel requis.",
@@ -305,5 +307,125 @@
     "recuPied": "Ce courriel confirme votre don. Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment.",
     "lienObjet": "Votre lien — {org}",
     "lienCorps": "Voici votre lien pour modifier votre morceau ou l'agrandir (valide 30 jours) :"
+  },
+  "confidentialite": {
+    "retour": "← Retour au vitrail",
+    "titre": "Politique de confidentialité",
+    "metaTitre": "Politique de confidentialité — {brand}",
+    "sousTitre": "{brand} — {org} · Dernière mise à jour : <updated>date</updated>",
+    "voirConditions": "Voir aussi nos <terms>conditions d'utilisation</terms>.",
+    "qui": {
+      "titre": "Qui sommes-nous",
+      "texte": "Organisme responsable de cette collecte de dons : {org} (<entity>raison sociale exacte, numéro d'entreprise du Québec (NEQ)</entity>), situé au <address>adresse postale</address>. Chaque don devient un morceau de verre affiché sur un vitrail numérique, sur place et en ligne."
+    },
+    "responsable": {
+      "titre": "Responsable de la protection des renseignements personnels",
+      "nom": "<officerName>Nom et titre de la personne responsable</officerName>",
+      "coordonnees": "Courriel : <officerEmail>adresse courriel</officerEmail> · Téléphone : <officerPhone>numéro</officerPhone>",
+      "texte": "C'est à cette personne que vous pouvez adresser toute question, demande ou plainte au sujet de vos renseignements."
+    },
+    "collecte": {
+      "titre": "Les renseignements que nous recueillons",
+      "courriel": "<b>Votre courriel</b> : pour confirmer votre don, vous reconnaître si vous donnez de nouveau (votre morceau grandit), et vous envoyer un lien pour modifier votre morceau. Il n'est jamais affiché.",
+      "don": "<b>Le montant et la date de votre don</b> : pour tenir les comptes de la collecte et dimensionner votre morceau de verre.",
+      "facultatif": "<b>Seulement si vous les fournissez</b> : le nom que vous choisissez, votre témoignage et votre photo, affichés sur l'écran de l'organisme et sur la page publique du vitrail. Le nom est facultatif : sans lui, votre morceau apparaît comme « Anonyme », avec votre témoignage et votre photo si vous en avez ajouté.",
+      "consentement": "<b>Votre consentement à être cité</b>, si vous cochez la case prévue : l'organisme peut alors reprendre votre témoignage dans ses communications (site, réseaux sociaux, rapport annuel). Sans cette case, il reste uniquement sur le vitrail. Vous pouvez retirer ce consentement en tout temps avec votre lien de modification.",
+      "paiement": "<b>Vos informations de paiement</b> sont saisies directement chez notre fournisseur de paiement, Stripe. Nous ne voyons jamais votre numéro de carte.",
+      "langue": "<b>Votre langue</b> (français ou anglais) : pour vous écrire dans la langue de votre choix.",
+      "provenance": "<b>La provenance de votre visite</b> (par exemple : l'affiche du café), sans aucune donnée qui vous identifie, pour savoir quels emplacements font connaître la collecte."
+    },
+    "temoins": {
+      "titre": "Témoins et traceurs",
+      "texte": "Ce site n'utilise aucun témoin publicitaire ni outil de suivi tiers. Votre navigateur garde seulement, le temps de votre visite, la provenance de celle-ci, et pendant un an votre choix de langue. Les membres de l'équipe qui gèrent la collecte utilisent un témoin de connexion à la console d'administration."
+    },
+    "acces": {
+      "titre": "Qui a accès à vos renseignements",
+      "intro": "Seules les personnes chargées de la collecte au sein de l'organisme y ont accès. Nous ne vendons ni ne louons aucun renseignement. Nous faisons appel à des fournisseurs qui les traitent pour notre compte :",
+      "studio": "{studio}, qui conçoit et exploite la plateforme {brand} ;",
+      "stripe": "Stripe (paiements) ;",
+      "supabase": "Supabase (hébergement de la base de données et des photos) ;",
+      "vercel": "Vercel (hébergement du site) ;",
+      "resend": "Resend (envoi des courriels).",
+      "horsQuebec": "Certains de ces fournisseurs peuvent conserver des renseignements à l'extérieur du Québec. <todo>régions d'hébergement retenues et confirmation de l'évaluation des facteurs relatifs à la vie privée exigée par la Loi 25 pour une communication hors Québec</todo>"
+    },
+    "conservation": {
+      "titre": "Combien de temps nous les gardons",
+      "texte": "<retention>durée de conservation, p. ex. : les renseignements liés aux dons sont conservés X ans pour la comptabilité de l'organisme ; les noms, messages et photos sont retirés de l'affichage à la fin de la collecte ou à votre demande</retention>"
+    },
+    "droits": {
+      "titre": "Vos droits",
+      "intro": "Vous pouvez en tout temps :",
+      "modifier": "modifier ou retirer votre nom, votre témoignage ou votre photo, avec le lien reçu après votre don (ou en demandant un nouveau lien sur la page de don) ;",
+      "acces": "demander l'accès aux renseignements que nous détenons sur vous, leur rectification ou leur suppression ;",
+      "retrait": "retirer votre consentement à l'affichage de votre nom et de votre photo.",
+      "suite": "Écrivez à la personne responsable (ci-dessus). Nous répondons dans un délai de 30 jours. Si vous n'êtes pas satisfait de notre réponse, vous pouvez vous adresser à la Commission d'accès à l'information du Québec."
+    },
+    "securite": {
+      "titre": "Sécurité",
+      "texte": "Les échanges avec le site sont chiffrés. L'accès aux renseignements est limité à l'équipe de la collecte et protégé par un code. Les photos proposées peuvent être vérifiées par l'équipe avant leur affichage."
+    },
+    "recus": {
+      "titre": "Reçus fiscaux",
+      "texte": "{org} n'est pas encore un organisme de bienfaisance enregistré : aucun reçu fiscal n'est émis pour le moment. <todo>à mettre à jour si la situation change</todo>"
+    },
+    "modifications": {
+      "titre": "Modifications",
+      "texte": "Nous publierons ici toute modification de cette politique, avec sa date de mise à jour."
+    }
+  },
+  "conditions": {
+    "retour": "← Retour au vitrail",
+    "titre": "Conditions d'utilisation",
+    "metaTitre": "Conditions d'utilisation — {brand}",
+    "sousTitre": "{brand} — {org} · Dernière mise à jour : <updated>date</updated>",
+    "intro": "En utilisant ce site ou en faisant un don, vous acceptez ces conditions. Elles s'ajoutent à notre <privacy>politique de confidentialité</privacy>.",
+    "service": {
+      "titre": "Le service",
+      "texte": "{brand} est une plateforme de dons conçue et exploitée par {studio}. Chaque don est destiné à l'organisme bénéficiaire : {org} (<entity>raison sociale exacte, numéro d'entreprise du Québec (NEQ)</entity>). La plateforme sert à recevoir les dons et à les afficher sur un vitrail numérique, sur place et en ligne."
+    },
+    "dons": {
+      "titre": "Les dons",
+      "paiement": "Les dons se font en dollars canadiens, par carte, par l'intermédiaire de Stripe. Le don minimal est de {min} et le don maximal, de {max}.",
+      "frais": "Vous pouvez choisir de couvrir les frais de transaction : cette part est facultative et s'ajoute à votre don.",
+      "definitif": "Un don est volontaire. En cas d'erreur ou de paiement non autorisé, écrivez-nous (voir « Nous joindre »). <todo>politique de remboursement à confirmer par l'organisme</todo>",
+      "recus": "Aucun reçu fiscal n'est émis pour le moment. <todo>à mettre à jour si la situation change</todo>",
+      "taille": "La taille d'un morceau reflète le montant des dons. Elle et son emplacement peuvent changer à mesure que le vitrail grandit."
+    },
+    "contenu": {
+      "titre": "Votre nom, votre témoignage et votre photo",
+      "facultatif": "Le nom, le témoignage et la photo sont facultatifs. En les ajoutant, vous autorisez leur affichage sur le vitrail (écran de l'organisme et page publique), tant que vous ne les retirez pas.",
+      "droits": "Vous déclarez avoir le droit d'utiliser ce contenu, y compris le consentement des personnes reconnaissables sur votre photo. Vous gardez tous vos droits sur votre contenu.",
+      "interdit": "Sont interdits : les propos haineux, injurieux, diffamatoires ou illégaux, les contenus sexuels, les renseignements personnels d'autrui, la publicité et tout contenu qui porte atteinte aux droits d'un tiers.",
+      "moderation": "Nous pouvons masquer ou retirer tout contenu qui contrevient à ces conditions, sans préavis. Un filtre automatique de mots est utilisé, l'équipe peut vérifier les photos avant leur affichage et tout visiteur peut signaler un morceau.",
+      "citation": "Votre témoignage n'est repris dans les communications de l'organisme que si vous avez coché la case de consentement."
+    },
+    "lien": {
+      "titre": "Votre lien personnel",
+      "texte": "Après votre don, un lien personnel vous permet de modifier ou de retirer votre nom, votre témoignage et votre photo. Gardez-le pour vous : quiconque le possède peut modifier votre morceau. Vous pouvez en demander un nouveau avec votre courriel."
+    },
+    "usage": {
+      "titre": "Utilisation du site",
+      "texte": "Vous vous engagez à ne pas perturber le service, à ne pas tenter d'accéder à des données qui ne sont pas les vôtres et à ne pas utiliser le site de façon automatisée abusive (par exemple, de faux dons ou des essais de cartes)."
+    },
+    "propriete": {
+      "titre": "Propriété intellectuelle",
+      "texte": "La plateforme {brand}, son design, son code et sa marque appartiennent à {studio}. Le nom, les logos et les textes de l'organisme lui appartiennent."
+    },
+    "responsabilite": {
+      "titre": "Disponibilité et responsabilité",
+      "texte": "Nous faisons de notre mieux pour que le site soit disponible, sans garantir un accès continu. Dans la mesure permise par la loi, ni {studio} ni l'organisme ne répondent des dommages indirects liés à l'utilisation du site ou à une interruption de service. Rien ici ne limite les droits que la loi vous accorde comme consommateur."
+    },
+    "modifications": {
+      "titre": "Modifications",
+      "texte": "Nous pouvons modifier ces conditions. La version en vigueur est celle publiée ici, avec sa date de mise à jour ; continuer d'utiliser le site après une modification vaut acceptation."
+    },
+    "droit": {
+      "titre": "Droit applicable et langue",
+      "texte": "Ces conditions sont régies par les lois du Québec et les lois fédérales du Canada qui s'y appliquent. Les tribunaux du <todo>district judiciaire</todo> sont compétents, sous réserve de vos droits de consommateur. Les parties ont expressément exigé que ces conditions soient rédigées en français ; la version anglaise est fournie par commodité."
+    },
+    "contact": {
+      "titre": "Nous joindre",
+      "texte": "Pour toute question : <officerEmail>adresse courriel</officerEmail>."
+    }
   }
 }

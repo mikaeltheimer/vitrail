@@ -24,6 +24,7 @@ export default function DonPage() {
 
 function DonForm() {
   const t = useTranslations('don')
+  const tc = useTranslations('commun')
   const org = useOrg()
   const money = useMoney()
   const params = useSearchParams()
@@ -191,6 +192,10 @@ function DonForm() {
           {t('courrielUsage')}{' '}
           <Link href="/confidentialite" className="underline">
             {t('politique')}
+          </Link>
+          {' · '}
+          <Link href="/conditions" className="underline">
+            {tc('conditionsCourt')}
           </Link>
           {' · '}
           <Link href="/vitrail" className="underline">
