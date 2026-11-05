@@ -16,7 +16,7 @@ import { ensureFonts } from '@/lib/fonts'
 import { formatMoney } from '@/lib/format'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
-import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
+import { drawScene, photoRect, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
@@ -158,7 +158,7 @@ export default function Ecran() {
      * droite, reliée à lui par un fil de lumière ; le code QR garde le coin en bas à droite. Le morceau porte la photo,
      * la légende porte les mots : rien n'est montré deux fois.
      */
-    const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number } => {
+    const stageLayout = (tile: Tile, wide: boolean, photo: boolean): { cam: Cam; cardLeft: number; linkFrom: number } => {
       const em = Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
       const qrLeft = W - em * (2.4 + 14)
       const cardRight = qrLeft - em * 1.5
@@ -170,8 +170,10 @@ export default function Ecran() {
       const halfH = H * 0.4
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
-      const ex = Math.max(lx - x0, x1 - lx, 1e-6)
-      const ey = Math.max(ly - y0, y1 - ly, 1e-6)
+      let ex = Math.max(lx - x0, x1 - lx, 1e-6)
+      let ey = Math.max(ly - y0, y1 - ly, 1e-6)
+      // Avec une photo, c'est elle qu'on cadre en entier (un carré qui couvre le morceau, le surplus en transparence)
+      if (photo) ex = ey = Math.max(ex, ey)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
       const cam = { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
       // Le fil part du bord droit du morceau, à la hauteur de son centre (là où il croise l'horizontale)
@@ -251,7 +253,7 @@ export default function Ecran() {
       const p = list.find(x => x.id === id)
       const message = CONFIG.showMessagesOnScreen ? p?.message ?? null : null
       const wide = isLong(message)
-      const lay = stageLayout(tile, wide)
+      const lay = stageLayout(tile, wide, !!p?.photoUrl)
       const color = p?.color ?? '#E0657F'
       // Dès le départ du vol, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
       stage = id
@@ -393,6 +395,20 @@ export default function Ecran() {
         rest.addPath(tile.path)
         ctx.fillStyle = 'rgba(5,4,8,0.45)'
         ctx.fill(rest, 'evenodd')
+        // La photo entière : ce qui déborde du morceau apparaît en transparence par-dessus le vitrail assombri
+        const url = pieces.get(tile.id)?.photoUrl
+        const img = url ? images.peek(url) : null
+        if (img && img.naturalWidth > 0) {
+          const [px, py, pw, ph] = photoRect(tile, img.naturalWidth, img.naturalHeight)
+          const fade = link ? Math.min(1, (now - link.at) / 900) : 0
+          if (fade > 0) {
+            ctx.save()
+            ctx.clip(rest, 'evenodd')
+            ctx.globalAlpha = 0.36 * fade
+            ctx.drawImage(img, px, py, pw, ph)
+            ctx.restore()
+          }
+        }
         const color = pieces.get(tile.id)?.color ?? '#ffffff'
         const pulse = Math.sin(now / 420) * 0.5 + 0.5
         ctx.lineJoin = 'round'

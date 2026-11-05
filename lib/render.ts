@@ -108,6 +108,20 @@ export interface Scene {
   stageId?: string | null
 }
 
+/**
+ * Rectangle où la photo d'un morceau est posée (le même que dans le verre) : un carré centré sur le cœur du morceau,
+ * assez grand pour le couvrir entièrement. Sert à montrer, en transparence, la partie de la photo qui déborde.
+ */
+export function photoRect(tile: Tile, iw: number, ih: number): [number, number, number, number] {
+  const [x0, y0, x1, y1] = tile.bbox
+  const [cx, cy] = tile.labelCenter
+  const side = Math.max(cx - x0, x1 - cx, cy - y0, y1 - cy) * 2
+  const aspect = iw / ih
+  const dw = aspect >= 1 ? side * aspect : side
+  const dh = aspect >= 1 ? side : side / aspect
+  return [cx - dw / 2, cy - dh / 2, dw, dh]
+}
+
 /** Initiales d'un nom : « Marie-Ève Gagnon » → « MG », « Alex » → « A ». */
 export function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)
@@ -117,40 +131,10 @@ export function initials(name: string): string {
   return (first + last).toLocaleUpperCase('fr-CA')
 }
 
-/**
- * Morceau en scène (écran) : la photo entière, sertie dans le plus grand cercle inscrit de la forme (rien n'est rogné),
- * avec un plomb autour ; sans photo, les initiales du donateur, gravées dans le verre. Coordonnées monde.
- */
-function paintMedallion(ctx: CanvasRenderingContext2D, tile: Tile, piece: PaintPiece | undefined, photo: HTMLImageElement | null, scale: number) {
+/** Morceau en scène (écran) sans photo : les initiales du donateur, gravées dans le verre. Coordonnées monde. */
+function paintInitials(ctx: CanvasRenderingContext2D, tile: Tile, piece: PaintPiece | undefined, scale: number) {
   const [cx, cy] = tile.labelCenter
   const R = tile.inRadius * 0.9
-  if (photo && photo.naturalWidth > 0) {
-    // Le plus grand carré qui tient dans le cercle : la photo (carrée) se voit en entier
-    const side = R * Math.SQRT2
-    const x = cx - side / 2
-    const y = cy - side / 2
-    const rad = side * 0.05
-    ctx.save()
-    ctx.beginPath()
-    ctx.roundRect(x, y, side, side, rad)
-    ctx.shadowColor = 'rgba(0,0,0,0.55)'
-    ctx.shadowBlur = 24 / scale
-    ctx.fillStyle = '#050408'
-    ctx.fill()
-    ctx.shadowBlur = 0
-    ctx.clip()
-    const w = photo.naturalWidth
-    const h = photo.naturalHeight
-    const k = Math.max(side / w, side / h)
-    ctx.drawImage(photo, cx - (w * k) / 2, cy - (h * k) / 2, w * k, h * k)
-    ctx.restore()
-    ctx.beginPath()
-    ctx.roundRect(x, y, side, side, rad)
-    ctx.lineWidth = 4 / scale
-    ctx.strokeStyle = '#050408'
-    ctx.stroke()
-    return
-  }
   const text = piece?.name ? initials(piece.name) : ''
   if (!text) return
   ctx.save()
@@ -188,13 +172,13 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
         colors: glassColors(piece?.color ?? '#E0657F', id),
         sizePx: sidePx,
         zoom: view.scale,
-        // En scène, la photo n'est pas étalée dans la forme (elle y serait rognée) : elle est sertie en médaillon
-        avatar: staged ? null : avatar,
+        avatar,
         reveal,
         dim: s.focusId && !focused ? 0.55 : 1,
         hovered: false,
       })
-      if (staged) paintMedallion(ctx, tile, piece, piece?.photoUrl ? s.images.get(piece.photoUrl) : null, view.scale)
+      // En scène sans photo : les initiales du donateur, gravées dans le verre (le nom est dans la légende)
+      if (staged && !avatar) paintInitials(ctx, tile, piece, view.scale)
       // Photo + texte : on l'assombrit un peu en plus du voile coloré (les photos très claires restent lisibles)
       if (piece?.rows && avatar && tile.path) {
         ctx.fillStyle = `rgba(4,3,8,${0.3 * (s.labelAlpha ?? 1)})`
