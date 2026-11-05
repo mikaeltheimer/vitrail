@@ -98,16 +98,16 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
   for (const id of ids) {
     const d = donors.get(id)
     if (!d) skip('fiche absente')
-    else if (!paid.has(id)) skip('aucun don payé')
-    else if (d.hidden) skip('morceau masqué')
-    else if (d.message && d.message.trim()) skip('a déjà un témoignage')
-    else if (reminded.has(id)) skip('déjà rappelé')
-    else if (unreachable.has(id)) skip('adresse en rebond ou signalée')
+    else if (!paid.has(id)) skip('aucun don payé') // i18n-ok : console admin (FR)
+    else if (d.hidden) skip('morceau masqué') // i18n-ok : console admin (FR)
+    else if (d.message && d.message.trim()) skip('a déjà un témoignage') // i18n-ok : console admin (FR)
+    else if (reminded.has(id)) skip('déjà rappelé') // i18n-ok : console admin (FR)
+    else if (unreachable.has(id)) skip('adresse en rebond ou signalée') // i18n-ok : console admin (FR)
     else eligible.push({ id, email: d.email, locale: isLocale(d.locale) ? d.locale : 'fr' })
   }
   result.candidates = eligible.length
   const batch = eligible.slice(0, limit)
-  if (eligible.length > batch.length) result.skipped['reporté au prochain passage'] = eligible.length - batch.length
+  if (eligible.length > batch.length) result.skipped['reporté au prochain passage'] = eligible.length - batch.length // i18n-ok : console admin (FR)
 
   if (opts.dry) {
     result.wouldSend = batch.map(d => maskEmail(d.email))
