@@ -14,9 +14,9 @@ import { ANON_LABEL, CONFIG } from '@/lib/config'
 import { donorNameFamily, donorNamesSerif } from '@/lib/fonts'
 import { ensureFonts } from '@/lib/fonts'
 import { formatMoney } from '@/lib/format'
-import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
+import { Ambience, drawGlassTile, glassColors, type GlassColors } from '@/lib/glass'
 import { ImageCache } from '@/lib/images'
-import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
+import { drawScene, paintInitials, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
@@ -89,7 +89,8 @@ export default function Ecran() {
     /** Morceau mis en scène (vraie photo, sans étiquette) : dès le départ du vol vers lui. */
     let stage: string | null = null
     /** Fil de lumière entre le morceau et sa légende, en px à l'écran (à la hauteur du centre de l'écran). */
-    let link: { from: number; to: number; color: string; at: number } | null = null
+    let link: { from: number; to: number; color: string; at: number; center: number } | null = null
+    let liveScale = 1
     let ready = false
     // Moteur arrêté (démontage, double montage en développement) : plus aucune action, sinon deux visites
     // se disputeraient la carte et on verrait le nom d'un autre morceau pendant le vol
@@ -158,7 +159,7 @@ export default function Ecran() {
      * droite, reliée à lui par un fil de lumière ; le code QR garde le coin en bas à droite. Le morceau porte la photo,
      * la légende porte les mots : rien n'est montré deux fois.
      */
-    const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number } => {
+    const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number; center: number } => {
       const em = Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
       const qrLeft = W - em * (2.4 + 14)
       const cardRight = qrLeft - em * 1.5
@@ -183,7 +184,7 @@ export default function Ecran() {
         if ((ay - ly) * (by - ly) <= 0 && ay !== by) xi = Math.max(xi, ax + ((ly - ay) / (by - ay)) * (bx - ax))
       }
       if (!Number.isFinite(xi)) xi = x1
-      return { cam, cardLeft, linkFrom: W / 2 + (xi - cam.x) * zoom }
+      return { cam, cardLeft, linkFrom: W / 2 + (xi - cam.x) * zoom, center: sx }
     }
 
     // Visite sans répétition : chaque morceau passe une fois par tour, et jamais un morceau vu parmi les derniers
@@ -278,7 +279,7 @@ export default function Ecran() {
         needs = true
         setCardOut(false)
         setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide })
-        link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now() }
+        link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now(), center: lay.center }
         const rich = !!(p?.name || p?.photoUrl || message)
         // Le temps de lire le témoignage en entier
         const reading = Math.min(READ_MAX_MS, (message?.length ?? 0) * READ_MS_PER_CHAR)
@@ -411,16 +412,36 @@ export default function Ecran() {
         rest.addPath(tile.path)
         ctx.fillStyle = 'rgba(5,4,8,0.45)'
         ctx.fill(rest, 'evenodd')
-        const color = pieces.get(tile.id)?.color ?? '#ffffff'
+        const info = pieces.get(tile.id)
+        const color = info?.color ?? '#ffffff'
         const pulse = Math.sin(now / 420) * 0.5 + 0.5
-        // Le morceau respire : une lumière douce, dans sa couleur, qui monte et descend (il y a toujours un peu de vie à l'écran)
+        // Le morceau sort légèrement du vitrail et respire : il grandit et s'éclaire, puis revient, en boucle
         const breath = Math.sin(now / 700) * 0.5 + 0.5
+        const lift = link ? 0.5 - Math.cos(Math.PI * Math.min(1, (now - link.at) / 900)) / 2 : 0
+        const sc = 1 + lift * (0.045 + 0.04 * breath)
+        const [gx, gy] = tile.labelCenter
+        ctx.save()
+        ctx.translate(gx, gy)
+        ctx.scale(sc, sc)
+        ctx.translate(-gx, -gy)
+        if (lift > 0) {
+          // Ombre portée : le morceau flotte au-dessus des autres
+          ctx.save()
+          ctx.shadowColor = 'rgba(0,0,0,0.75)'
+          ctx.shadowBlur = (30 + 20 * lift) * dpr
+          ctx.shadowOffsetY = 14 * lift * dpr
+          ctx.fillStyle = '#050408'
+          ctx.fill(tile.path)
+          ctx.restore()
+          const avatar = info?.photoUrl ? images.peek(info.photoUrl) : null
+          drawGlassTile(ctx, tile, { colors: glassColors(color, tile.id), sizePx: tile.equivRadius * z * sc * 1.7725, zoom: z * sc, avatar, reveal: 1, dim: 1, hovered: false })
+          if (!avatar) paintInitials(ctx, tile, info, z * sc)
+        }
         {
-          const [gx, gy] = tile.labelCenter
           const gr = Math.max(tile.inRadius * 1.8, tile.equivRadius)
           const lightG = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr)
-          lightG.addColorStop(0, hexA('#FFE2A8', 0.1 + 0.22 * breath))
-          lightG.addColorStop(0.6, hexA(color, 0.05 + 0.12 * breath))
+          lightG.addColorStop(0, hexA('#FFE2A8', 0.08 + 0.26 * breath))
+          lightG.addColorStop(0.6, hexA(color, 0.04 + 0.14 * breath))
           lightG.addColorStop(1, hexA(color, 0))
           ctx.save()
           ctx.clip(tile.path)
@@ -431,22 +452,26 @@ export default function Ecran() {
         }
         ctx.lineJoin = 'round'
         ctx.shadowColor = color
-        ctx.shadowBlur = 24 + pulse * 22
+        ctx.shadowBlur = (24 + pulse * 22) * dpr
         ctx.strokeStyle = hexA(color, 0.4 + pulse * 0.3)
-        ctx.lineWidth = 10 / z
+        ctx.lineWidth = 10 / (z * sc)
         ctx.stroke(tile.path)
         ctx.shadowBlur = 0
         ctx.shadowColor = 'transparent'
         ctx.strokeStyle = GOLD
-        ctx.lineWidth = 3 / z
+        ctx.lineWidth = 3 / (z * sc)
         ctx.stroke(tile.path)
+        ctx.restore()
+        liveScale = sc
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       }
       // Le fil : du bord du morceau jusqu'à sa légende, dans la couleur du verre
       if (link && tile) {
         const a = Math.min(1, (now - link.at) / 700)
         const y = H / 2
-        const x0 = link.from + 6
+        // Le fil suit le bord du morceau qui respire (agrandi autour de son centre, placé à l'écran en sx)
+        const centerX = link.center
+        const x0 = centerX + (link.from - centerX) * liveScale + 6
         const x1 = x0 + (link.to - x0) * (0.5 - Math.cos(Math.PI * a) / 2)
         const g = ctx.createLinearGradient(x0, y, link.to, y)
         g.addColorStop(0, hexA(link.color, 0.95))

@@ -132,7 +132,7 @@ export function initials(name: string): string {
 }
 
 /** Morceau en scène (écran) sans photo : les initiales du donateur, gravées dans le verre. Coordonnées monde. */
-function paintInitials(ctx: CanvasRenderingContext2D, tile: Tile, piece: PaintPiece | undefined, scale: number) {
+export function paintInitials(ctx: CanvasRenderingContext2D, tile: Tile, piece: PaintPiece | undefined, scale: number) {
   const [cx, cy] = tile.labelCenter
   const R = tile.inRadius * 0.9
   const text = piece?.name ? initials(piece.name) : ''
