@@ -446,6 +446,7 @@ export default function AdminConsole() {
 
       {data && tab === 'outils' && (
         <section className="mt-4 space-y-3">
+          <EmailJournal />
           <div className="card text-sm">
             <b>Pages</b>
             <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -608,5 +609,105 @@ function NewEvent({ onSubmit }: { onSubmit: (p: Record<string, unknown>, ok?: st
         Créer
       </button>
     </form>
+  )
+}
+
+// ── Journal des courriels (lecture seule) ─────────────────────────────────────
+interface JournalRow {
+  id: string
+  created_at: string
+  to_email: string
+  kind: string
+  status: string
+  error: string | null
+  subject: string
+}
+interface Journal {
+  available: boolean
+  counts: Record<string, number>
+  rows: JournalRow[]
+}
+const KIND_LABEL: Record<string, string> = { receipt: 'Reçu de don', magic_link: 'Lien personnel', reminder: 'Rappel', moderation: 'Modération' }
+// Un statut en langage courant ; `bad` = demande l'attention de l'équipe.
+const STATUS_INFO: Record<string, { label: string; bad?: boolean; help?: string }> = {
+  queued: { label: 'En attente' },
+  sent: { label: 'Envoyé' },
+  delivered: { label: 'Livré' },
+  delayed: { label: 'Retardé', help: 'Le courriel tarde à arriver ; il sera retenté.' },
+  bounced: { label: 'Adresse invalide', bad: true, help: "L'adresse n'existe pas ou refuse le courriel : le donateur ne le reçoit pas. Corrigez-la ou joignez-le autrement." },
+  complained: { label: 'Signalé comme pourriel', bad: true, help: 'Le donateur a signalé le courriel : on ne lui en écrira plus.' },
+  failed: { label: 'Échec', bad: true, help: "Le courriel n'a pas pu partir (service d'envoi indisponible ou mal configuré)." },
+  skipped: { label: 'Non envoyé', help: "Le service d'envoi n'est pas configuré (développement)." },
+}
+
+function EmailJournal() {
+  const [j, setJ] = useState<Journal | null>(null)
+  const [error, setError] = useState(false)
+  const [open, setOpen] = useState(false)
+  const load = useCallback(() => {
+    fetch('/api/admin/journal', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json().then(d => (setJ(d), setError(false))) : setError(true)))
+      .catch(() => setError(true))
+  }, [])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const problems = (j?.counts.bounced ?? 0) + (j?.counts.complained ?? 0) + (j?.counts.failed ?? 0)
+  return (
+    <div className="card text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <b>Courriels envoyés</b>
+        <button className="muted text-xs underline" onClick={load}>
+          Actualiser
+        </button>
+      </div>
+      {error && <p className="mt-2" style={{ color: '#f87171' }}>Impossible de lire le journal.</p>}
+      {j && !j.available && <p className="muted mt-2">Le journal n&apos;est pas encore activé sur ce site (migration « journal-courriels » à appliquer).</p>}
+      {j?.available && (
+        <>
+          <p className="muted mt-1">
+            {Object.entries(j.counts)
+              .sort((a, b) => b[1] - a[1])
+              .map(([k, n]) => `${n} ${(STATUS_INFO[k]?.label ?? k).toLowerCase()}`)
+              .join(' · ') || 'Aucun courriel envoyé pour le moment.'}
+          </p>
+          {problems > 0 && (
+            <p className="mt-2 font-semibold" style={{ color: '#f87171' }}>
+              {problems} courriel{problems > 1 ? 's' : ''} à vérifier (en rouge ci-dessous).
+            </p>
+          )}
+          {j.rows.length > 0 && (
+            <>
+              <button className="chip mt-3 !px-3 text-sm" aria-pressed={open} onClick={() => setOpen(!open)}>
+                {open ? 'Masquer la liste' : `Voir les ${j.rows.length} derniers`}
+              </button>
+              {open && (
+                <ul className="mt-3 space-y-2">
+                  {j.rows.map(r => {
+                    const st = STATUS_INFO[r.status] ?? { label: r.status }
+                    return (
+                      <li key={r.id} className="border-t pt-2" style={{ borderColor: 'var(--line)' }}>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="min-w-0 truncate">{r.to_email}</span>
+                          <b className="shrink-0 text-xs" style={{ color: st.bad ? '#f87171' : undefined }}>
+                            {st.label}
+                          </b>
+                        </div>
+                        <div className="muted text-xs">
+                          {KIND_LABEL[r.kind] ?? r.kind} · {time(r.created_at)}
+                        </div>
+                        {st.bad && st.help && <div className="mt-1 text-xs">{st.help}</div>}
+                        {st.bad && r.error && <div className="muted mt-1 break-words text-xs">{r.error}</div>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
   )
 }
