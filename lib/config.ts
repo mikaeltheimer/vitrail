@@ -1,6 +1,7 @@
 // Réglages du Donivers de l'organisme (ici, l'École d'art de Sutton). Tout ce qui se discute avec l'organisme est ici.
 
 import { DEFAULT_GLASSES } from './theme'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/config'
 
 export const CONFIG = {
   orgName: "École d'art de Sutton",
@@ -92,6 +93,65 @@ export const CONFIG = {
   ctaEvery: 6,
   ctaMs: 9000,
 } as const
+
+// ── Textes par langue ─────────────────────────────────────────────────────
+// Le français vit dans CONFIG ci-dessus (champs à plat, encore lus par les écrans pas encore migrés) ; l'anglais est ici.
+// Les écrans lisent ces textes par orgFor(locale) / brandFor(locale), ou par useOrg() / useBrand() (lib/useOrg.ts).
+// À l'étape 3, ils passent en base, éditables par l'organisme (anglais facultatif, avec repli sur le français).
+
+/** Ce que l'organisme rédige lui-même : nom, présentation, pourquoi donner, invitation à témoigner. */
+export interface OrgTexts {
+  name: string
+  url: string
+  about: string
+  why: string
+  whyShort: string
+  vitrailTitle: string
+  testimonial: { question: string; cta: string; placeholder: string; lead: string; consent: string }
+}
+
+/** La marque de la plateforme, la même pour tous les organismes. */
+export interface BrandTexts {
+  descriptor: string
+  slogan: string
+  poweredBy: string
+}
+
+export const ORG: Record<Locale, OrgTexts> = {
+  fr: {
+    name: CONFIG.orgName,
+    url: CONFIG.orgUrl,
+    about: CONFIG.orgAbout,
+    why: CONFIG.orgWhy,
+    whyShort: CONFIG.orgWhyShort,
+    vitrailTitle: CONFIG.vitrailTitle,
+    testimonial: { ...CONFIG.testimonial },
+  },
+  en: {
+    name: 'Sutton School of Art',
+    url: CONFIG.orgUrl,
+    about:
+      'Sutton School of Art is a non-profit organization devoted to awakening the artistic curiosity of children, young and old, through creative experiences. Since 2016, it has also been a multidisciplinary art centre where artists and children meet: free exploration, exhibitions, screenings, performances and artist residencies in research-creation.',
+    why: 'The School runs without government funding: its community is what keeps it alive. Every donation makes its workshops, exhibitions and artist residencies possible.',
+    whyShort: 'The community keeps the School alive',
+    vitrailTitle: "The community's stained glass",
+    testimonial: {
+      question: 'Why do you support Sutton School of Art?',
+      cta: 'Add your testimonial.',
+      placeholder: 'A story, an event that stayed with you, what the School has changed for you.',
+      lead: 'Your testimonial goes with your piece, here and on the big screen.',
+      consent: 'The School may quote my testimonial in its communications (website, social media, annual report).',
+    },
+  },
+}
+
+export const BRAND: Record<Locale, BrandTexts> = {
+  fr: { descriptor: CONFIG.brand.descriptor, slogan: CONFIG.brand.slogan, poweredBy: CONFIG.brand.poweredBy },
+  en: { descriptor: "Your community's giving platform", slogan: 'Every donation, a piece of the universe.', poweredBy: 'Powered by Donivers' },
+}
+
+export const orgFor = (locale: Locale = DEFAULT_LOCALE): OrgTexts => ORG[locale]
+export const brandFor = (locale: Locale = DEFAULT_LOCALE): BrandTexts => BRAND[locale]
 
 /** Verres disponibles : les cinq de la palette (plus tard, ceux choisis par l'organisme). */
 export const GLASS_COLORS = DEFAULT_GLASSES
