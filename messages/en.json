@@ -302,11 +302,21 @@
   },
   "courriel": {
     "recuObjet": "Thank you for your donation — {org}",
-    "recuConfirmation": "Thank you! Your donation of {montant} has been recorded and your piece is being added to the stained glass.",
-    "recuInvite": "Add your testimonial, or edit your piece (name, photo):",
+    "recuConfirmation": "Your donation of {montant} has been recorded and your piece is being added to the stained glass.",
     "recuPied": "This email confirms your donation. This organization is not yet a registered charity, so no tax receipt is issued at this time.",
     "lienObjet": "Your link — {org}",
-    "lienCorps": "Here is your link to edit your piece or make it bigger (valid for 30 days):"
+    "lienCorps": "Here is your link to edit your piece or make it bigger. It stays valid for 30 days.",
+    "recuPreheader": "Your piece is being added to the stained glass.",
+    "recuTitre": "Thank you!",
+    "recuBouton": "Add my testimonial",
+    "recuLienNote": "This link also lets you edit your piece (name, photo) or make it bigger. It stays valid for 30 days; you can request a new one at any time.",
+    "lienPreheader": "Your personal link to edit your piece.",
+    "lienTitre": "Your personal link",
+    "lienBouton": "Edit my piece",
+    "lienIgnorer": "Didn't ask for this? Ignore this email: nobody can edit your piece without this link.",
+    "lienAlt": "Button not working? Copy this link into your browser:",
+    "piedExpediteur": "This email was sent to you by {brand} — {org}, because you made a donation or asked for a personal link.",
+    "piedRepondre": "Questions? Just reply to this email."
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",

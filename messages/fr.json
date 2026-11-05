@@ -302,11 +302,21 @@
   },
   "courriel": {
     "recuObjet": "Merci pour votre don — {org}",
-    "recuConfirmation": "Merci! Votre don de {montant} est enregistré et votre morceau s'ajoute au vitrail.",
-    "recuInvite": "Ajoutez votre témoignage, ou modifiez votre morceau (nom, photo) :",
+    "recuConfirmation": "Votre don de {montant} est enregistré et votre morceau s'ajoute au vitrail.",
     "recuPied": "Ce courriel confirme votre don. Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment.",
     "lienObjet": "Votre lien — {org}",
-    "lienCorps": "Voici votre lien pour modifier votre morceau ou l'agrandir (valide 30 jours) :"
+    "lienCorps": "Voici votre lien pour modifier votre morceau ou l'agrandir. Il reste valable 30 jours.",
+    "recuPreheader": "Votre morceau s'ajoute au vitrail.",
+    "recuTitre": "Merci!",
+    "recuBouton": "Ajouter mon témoignage",
+    "recuLienNote": "Ce lien vous permet aussi de modifier votre morceau (nom, photo) ou de l'agrandir. Il reste valable 30 jours ; vous pouvez en demander un nouveau à tout moment.",
+    "lienPreheader": "Votre lien personnel pour modifier votre morceau.",
+    "lienTitre": "Votre lien personnel",
+    "lienBouton": "Modifier mon morceau",
+    "lienIgnorer": "Vous n'avez rien demandé? Ignorez ce courriel : personne ne peut modifier votre morceau sans ce lien.",
+    "lienAlt": "Le bouton ne fonctionne pas? Copiez ce lien dans votre navigateur :",
+    "piedExpediteur": "Ce courriel vous est envoyé par {brand} — {org}, parce que vous avez fait un don ou demandé un lien personnel.",
+    "piedRepondre": "Une question? Répondez simplement à ce courriel."
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",

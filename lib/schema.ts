@@ -23,3 +23,13 @@ export async function hasTestimonialColumns(): Promise<boolean> {
   cache = { ok: !error, at: Date.now() }
   return cache.ok
 }
+
+/** Journal des courriels (migration 2026-11-05-journal-courriels.sql) : table email_log. */
+let emailLogCache: { ok: boolean; at: number } | null = null
+export async function hasEmailLog(): Promise<boolean> {
+  if (emailLogCache && Date.now() - emailLogCache.at < 60_000) return emailLogCache.ok
+  const { error } = await getDb().from('email_log').select('id').limit(1)
+  if (error) console.error('Journal des courriels absent : lancez supabase/migrations/2026-11-05-journal-courriels.sql')
+  emailLogCache = { ok: !error, at: Date.now() }
+  return emailLogCache.ok
+}

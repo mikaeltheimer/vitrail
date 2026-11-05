@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
 import { createTokenForEmail } from '@/lib/donations'
 import { sendMagicLink } from '@/lib/email'
@@ -14,12 +14,16 @@ export async function POST(request: NextRequest) {
   const { email } = (await request.json().catch(() => ({}))) as { email?: unknown }
   const v = validateEmail(email)
   if (v.ok) {
-    try {
-      const token = await createTokenForEmail(v.value)
-      if (token) await sendMagicLink(v.value, token, localeOf(request))
-    } catch (e) {
-      console.error('Lien magique non envoyé :', e)
-    }
+    // Après la réponse : la durée de la requête ne révèle pas si le courriel a déjà donné, et un envoi lent ne fait pas attendre.
+    const locale = localeOf(request)
+    after(async () => {
+      try {
+        const found = await createTokenForEmail(v.value)
+        if (found) await sendMagicLink({ to: v.value, token: found.token, locale, donorId: found.donorId })
+      } catch (e) {
+        console.error('Lien magique non envoyé :', e)
+      }
+    })
   }
   return NextResponse.json({ ok: true })
 }

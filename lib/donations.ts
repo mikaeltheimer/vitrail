@@ -179,9 +179,9 @@ export async function createToken(donorId: string): Promise<string> {
   return token
 }
 
-export async function createTokenForEmail(email: string): Promise<string | null> {
+export async function createTokenForEmail(email: string): Promise<{ token: string; donorId: string } | null> {
   const donor = await findDonorByEmail(email)
-  return donor ? createToken(donor.id) : null
+  return donor ? { token: await createToken(donor.id), donorId: donor.id } : null
 }
 
 export interface DonorView {

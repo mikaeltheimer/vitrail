@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/payments'
 import { recordDonation, createToken } from '@/lib/donations'
@@ -59,12 +59,18 @@ export async function POST(request: NextRequest) {
         locale: isLocale(m.lang) ? m.lang : undefined,
       })
       if (!result.duplicate) {
-        // Le courriel est un confort : un échec ne doit pas faire rejouer le webhook (le don est déjà enregistré).
-        try {
-          await sendReceipt(email, session.amount_total, await createToken(result.donorId), isLocale(m.lang) ? m.lang : 'fr')
-        } catch (e) {
-          console.error('Courriel de reçu non envoyé :', e)
-        }
+        // Le courriel est un confort : un échec ne doit pas faire rejouer le webhook (le don est déjà enregistré),
+        // ni retarder la réponse à Stripe : il part après.
+        const locale = isLocale(m.lang) ? m.lang : 'fr'
+        const { donorId } = result
+        const amountCents = session.amount_total
+        after(async () => {
+          try {
+            await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId })
+          } catch (e) {
+            console.error('Courriel de reçu non envoyé :', e)
+          }
+        })
       }
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
