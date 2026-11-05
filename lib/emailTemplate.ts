@@ -1,4 +1,5 @@
 import type { Locale } from '@/i18n/config'
+import { CONFIG, brandFor } from './config'
 
 // Gabarit des courriels : une version HTML (mise en page en tableaux et styles en ligne, pour tous les logiciels de courriel)
 // et une version texte du même contenu. Le contenu vient de messages/*.json (espace « courriel »).
@@ -17,48 +18,72 @@ export interface EmailContent {
   footer: string[]
 }
 
-const INK = '#2A2433'
-const MUTED = '#6B6475'
+// Palette Donivers (lib/theme.ts) : fond nuit, panneau sombre, texte crème, accent ambre. Les couleurs sont posées en attributs
+// (bgcolor) ET en styles : les logiciels qui réécrivent les couleurs en mode sombre gardent ainsi un rendu cohérent.
+const BG = '#0B0A12'
+const PANEL = '#14121D'
+const LINE = '#2A2735'
+const TEXT = '#F4EFE6'
+const MUTED = '#B8B2C4'
 const GOLD = '#F0B24A'
-const PAPER = '#F6F1E7'
+const ON_GOLD = '#1A1208'
+const SERIF = "Fraunces,Georgia,'Times New Roman',serif"
+const SANS = "'DM Sans',Arial,Helvetica,sans-serif"
+/** Les cinq verres : le bandeau du haut est un petit vitrail (cellules de largeurs inégales, sans image). */
+const GLASS: [string, number][] = [
+  ['#F0B24A', 22],
+  ['#E0657F', 14],
+  ['#3DB5A6', 24],
+  ['#6A78E6', 16],
+  ['#A56BD9', 24],
+]
 
 export const escapeHtml = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
 export function renderEmail(c: EmailContent, locale: Locale): { html: string; text: string } {
-  const p = (s: string, style = '') => `<p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:${INK};${style}">${escapeHtml(s)}</p>`
+  const p = (t: string, style = '') => `<p style="margin:0 0 16px;font-family:${SANS};font-size:16px;line-height:1.6;color:${TEXT};${style}">${escapeHtml(t)}</p>`
   const button = c.button
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px"><tr><td style="background:${GOLD};border-radius:999px">
-<a href="${escapeHtml(c.button.url)}" style="display:inline-block;padding:14px 26px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#1A1208;text-decoration:none">${escapeHtml(c.button.label)}</a>
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 24px"><tr><td bgcolor="${GOLD}" style="background:${GOLD};border-radius:14px">
+<a href="${escapeHtml(c.button.url)}" style="display:inline-block;padding:15px 28px;font-family:${SANS};font-size:16px;font-weight:bold;color:${ON_GOLD};text-decoration:none">${escapeHtml(c.button.label)}</a>
 </td></tr></table>`
     : ''
   const note = c.note ? p(c.note, `font-size:14px;color:${MUTED};`) : ''
   const help =
     c.button && c.linkHelp
-      ? `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:${MUTED}">${escapeHtml(c.linkHelp)}<br><a href="${escapeHtml(c.button.url)}" style="color:${MUTED};word-break:break-all">${escapeHtml(c.button.url)}</a></p>`
+      ? `<p style="margin:0 0 8px;font-family:${SANS};font-size:13px;line-height:1.5;color:${MUTED}">${escapeHtml(c.linkHelp)}<br><a href="${escapeHtml(c.button.url)}" style="color:${GOLD};word-break:break-all">${escapeHtml(c.button.url)}</a></p>`
       : ''
-  const footer = c.footer.map(l => `<p style="margin:0 0 6px;font-size:12px;line-height:1.5;color:${MUTED}">${escapeHtml(l)}</p>`).join('')
+  const footer = c.footer.map(l => `<p style="margin:0 0 6px;font-family:${SANS};font-size:12px;line-height:1.5;color:${MUTED}">${escapeHtml(l)}</p>`).join('')
   const pre = c.preheader
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(c.preheader)}</div>`
     : ''
+  const glass = GLASS.map(([color, w]) => `<td width="${w}%" bgcolor="${color}" style="background:${color};height:8px;font-size:0;line-height:0">&nbsp;</td>`).join(
+    '<td width="2" bgcolor="' + PANEL + '" style="width:2px;font-size:0;line-height:0">&nbsp;</td>',
+  )
+  const brand = CONFIG.brand.name
+  const slogan = brandFor(locale).slogan
 
   const html = `<!doctype html>
 <html lang="${locale}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(c.heading)}</title></head>
-<body style="margin:0;padding:0;background:${PAPER}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>${escapeHtml(c.heading)}</title></head>
+<body bgcolor="${BG}" style="margin:0;padding:0;background:${BG}">
 ${pre}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER}"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#FFFFFF;border-radius:16px">
-<tr><td style="height:6px;background:${GOLD};border-radius:16px 16px 0 0;font-size:0;line-height:0">&nbsp;</td></tr>
-<tr><td style="padding:32px 32px 12px;font-family:Arial,Helvetica,sans-serif">
-<h1 style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.25;font-weight:normal;color:${INK}">${escapeHtml(c.heading)}</h1>
-${c.paragraphs.map(s => p(s)).join('\n')}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${BG}" style="background:${BG}"><tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="${PANEL}" style="width:100%;max-width:560px;background:${PANEL};border:1px solid ${LINE};border-radius:18px">
+<tr><td style="padding:0;border-radius:18px 18px 0 0;overflow:hidden"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${glass}</tr></table></td></tr>
+<tr><td style="padding:28px 32px 4px">
+<div style="font-family:${SERIF};font-size:22px;font-weight:500;letter-spacing:-0.01em;color:${TEXT}">${escapeHtml(brand)}</div>
+<div style="font-family:${SERIF};font-size:14px;font-style:italic;color:${GOLD};padding-top:2px">${escapeHtml(slogan)}</div>
+</td></tr>
+<tr><td style="padding:24px 32px 12px">
+<h1 style="margin:0 0 20px;font-family:${SERIF};font-size:28px;line-height:1.25;font-weight:500;letter-spacing:-0.01em;color:${TEXT}">${escapeHtml(c.heading)}</h1>
+${c.paragraphs.map(t => p(t)).join('\n')}
 ${button}
 ${note}
 ${help}
 </td></tr>
-<tr><td style="padding:12px 32px 28px;font-family:Arial,Helvetica,sans-serif;border-top:1px solid #EEE7D8">
-<div style="padding-top:16px">${footer}</div>
+<tr><td style="padding:0 32px 28px">
+<div style="border-top:1px solid ${LINE};padding-top:16px">${footer}</div>
 </td></tr>
 </table>
 </td></tr></table>
@@ -68,7 +93,7 @@ ${help}
   const text = [
     c.heading,
     '',
-    ...c.paragraphs.flatMap(s => [s, '']),
+    ...c.paragraphs.flatMap(t => [t, '']),
     ...(c.button ? [`${c.button.label}${locale === 'fr' ? ' :' : ':'}`, c.button.url, ''] : []),
     ...(c.note ? [c.note, ''] : []),
     '--',
