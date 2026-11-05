@@ -19,6 +19,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('metaTitre', { brand: CONFIG.brand.name }) }
 }
 
+const studioVars = {
+  studioName: CONFIG.brand.studioLegal.name,
+  neq: CONFIG.brand.studioLegal.neq,
+  studioAddress: CONFIG.brand.studioLegal.address,
+  studioEmail: CONFIG.brand.studioLegal.email,
+}
+
 export default function ConditionsPage() {
   const t = useTranslations('conditions')
   const tc = useTranslations('commun')
@@ -29,6 +36,7 @@ export default function ConditionsPage() {
     org: org.name,
     brand: CONFIG.brand.name,
     studio: CONFIG.brand.studio,
+    ...studioVars,
     min: formatMoney(CONFIG.minAmountCents, locale),
     max: formatMoney(CONFIG.maxAmountCents, locale),
   }
@@ -67,6 +75,7 @@ export default function ConditionsPage() {
       {(['lien', 'usage', 'propriete', 'responsabilite', 'modifications', 'droit', 'contact'] as const).map(k => (
         <Section key={k} title={t(`${k}.titre`)}>
           <p>{rich(`${k}.texte`)}</p>
+          {k === 'contact' && <p className="mt-2">{rich('contact.plateforme')}</p>}
         </Section>
       ))}
       <BrandFooter className="mt-10 text-center" />

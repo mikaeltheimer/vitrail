@@ -316,7 +316,8 @@
     "voirConditions": "Voir aussi nos <terms>conditions d'utilisation</terms>.",
     "qui": {
       "titre": "Qui sommes-nous",
-      "texte": "Organisme responsable de cette collecte de dons : {org} (<entity>raison sociale exacte, numéro d'entreprise du Québec (NEQ)</entity>), situé au <address>adresse postale</address>. Chaque don devient un morceau de verre affiché sur un vitrail numérique, sur place et en ligne."
+      "texte": "Organisme responsable de cette collecte de dons : {org} (<entity>raison sociale exacte, numéro d'entreprise du Québec (NEQ)</entity>), situé au <address>adresse postale</address>. Chaque don devient un morceau de verre affiché sur un vitrail numérique, sur place et en ligne.",
+      "plateforme": "La plateforme {brand} est exploitée par {studioName} (NEQ {neq}), {studioAddress}, qui traite vos renseignements pour le compte de l'organisme. Vous pouvez la joindre à {studioEmail}."
     },
     "responsable": {
       "titre": "Responsable de la protection des renseignements personnels",
@@ -341,7 +342,7 @@
     "acces": {
       "titre": "Qui a accès à vos renseignements",
       "intro": "Seules les personnes chargées de la collecte au sein de l'organisme y ont accès. Nous ne vendons ni ne louons aucun renseignement. Nous faisons appel à des fournisseurs qui les traitent pour notre compte :",
-      "studio": "{studio}, qui conçoit et exploite la plateforme {brand} ;",
+      "studio": "{studioName}, qui conçoit et exploite la plateforme {brand} ;",
       "stripe": "Stripe (paiements) ;",
       "supabase": "Supabase (hébergement de la base de données et des photos) ;",
       "vercel": "Vercel (hébergement du site) ;",
@@ -381,7 +382,7 @@
     "intro": "En utilisant ce site ou en faisant un don, vous acceptez ces conditions. Elles s'ajoutent à notre <privacy>politique de confidentialité</privacy>.",
     "service": {
       "titre": "Le service",
-      "texte": "{brand} est une plateforme de dons conçue et exploitée par {studio}. Chaque don est destiné à l'organisme bénéficiaire : {org} (<entity>raison sociale exacte, numéro d'entreprise du Québec (NEQ)</entity>). La plateforme sert à recevoir les dons et à les afficher sur un vitrail numérique, sur place et en ligne."
+      "texte": "{brand} est une plateforme de dons conçue et exploitée par {studioName} (NEQ {neq}), {studioAddress}. Chaque don est destiné à l'organisme bénéficiaire : {org} (<entity>raison sociale exacte, numéro d'entreprise du Québec (NEQ)</entity>). La plateforme sert à recevoir les dons et à les afficher sur un vitrail numérique, sur place et en ligne."
     },
     "dons": {
       "titre": "Les dons",
@@ -425,7 +426,8 @@
     },
     "contact": {
       "titre": "Nous joindre",
-      "texte": "Pour toute question : <officerEmail>adresse courriel</officerEmail>."
+      "texte": "Pour toute question : <officerEmail>adresse courriel</officerEmail>.",
+      "plateforme": "Pour une question sur la plateforme {brand} : {studioEmail}."
     }
   }
 }

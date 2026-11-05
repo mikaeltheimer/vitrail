@@ -17,12 +17,19 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('metaTitre', { brand: CONFIG.brand.name }) }
 }
 
+const studioVars = {
+  studioName: CONFIG.brand.studioLegal.name,
+  neq: CONFIG.brand.studioLegal.neq,
+  studioAddress: CONFIG.brand.studioLegal.address,
+  studioEmail: CONFIG.brand.studioLegal.email,
+}
+
 export default function ConfidentialitePage() {
   const t = useTranslations('confidentialite')
   const tc = useTranslations('commun')
   const org = useOrg()
   const tags = legalTags(tc('aCompleter'))
-  const v = { org: org.name, brand: CONFIG.brand.name, studio: CONFIG.brand.studio }
+  const v = { org: org.name, brand: CONFIG.brand.name, studio: CONFIG.brand.studio, ...studioVars }
   const tr = t.rich as unknown as (key: string, values: Record<string, unknown>) => ReactNode
   const rich = (key: string) => tr(key, { ...v, ...tags })
 
@@ -36,6 +43,7 @@ export default function ConfidentialitePage() {
 
       <Section title={t('qui.titre')}>
         <p>{rich('qui.texte')}</p>
+        <p className="mt-2">{rich('qui.plateforme')}</p>
       </Section>
 
       <Section title={t('responsable.titre')}>

@@ -27,6 +27,13 @@ export const CONFIG = {
     poweredBy: 'Propulsé par Donivers',
     studio: 'Studio Existence',
     studioUrl: 'https://studioexistence.com',
+    /** Exploitant de la plateforme (fixe pour tous les organismes) : repris par la politique de confidentialité et les conditions. */
+    studioLegal: {
+      name: 'Studio Existence inc.',
+      neq: '1181980765',
+      address: '59, rue Academy, Sutton (Québec) J0E 2K0',
+      email: 'mikael@studioexistence.com',
+    },
   },
   /**
    * Coordonnées juridiques de l'organisme, reprises par la politique de confidentialité et les conditions d'utilisation.
