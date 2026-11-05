@@ -6,14 +6,20 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import MiniGlass from '@/components/MiniGlass'
 import PhotoField, { type PhotoValue } from '@/components/PhotoField'
+import { useTranslations } from 'next-intl'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
-import { formatMoney } from '@/lib/format'
+import { useOrg } from '@/lib/useOrg'
+import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Piece, Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
 
 // Lien magique : on ajoute son témoignage, on modifie le nom, la photo et la couleur de son morceau, ou on l'agrandit. Pas de compte.
 
 export default function ManagePage() {
+  const t = useTranslations('gerer')
+  const org = useOrg()
+  const money = useMoney()
+  const glassName = useGlassName()
   const { token } = useParams<{ token: string }>()
   const [loaded, setLoaded] = useState<'wait' | 'ok' | 'expired'>('wait')
   const [donorId, setDonorId] = useState('')
@@ -68,7 +74,7 @@ export default function ManagePage() {
         body: JSON.stringify({ token, action: 'update', showName, name, message, quoteConsent, color, ...(photoChanged ? { photoPath: photo.path ?? '' } : {}) }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erreur inattendue.')
+      if (!res.ok) throw new Error(typeof data.error === 'string' && data.error ? data.error : t('erreurInattendue'))
       setSaved(true)
       setPhotoChanged(false)
       const snap = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
@@ -80,15 +86,15 @@ export default function ManagePage() {
     }
   }
 
-  if (loaded === 'wait') return <main className="mx-auto max-w-md px-4 py-10 text-center muted">Chargement…</main>
+  if (loaded === 'wait') return <main className="mx-auto max-w-md px-4 py-10 text-center muted">{t('chargement')}</main>
 
   if (loaded === 'expired') {
     return (
       <main className="mx-auto max-w-md px-4 py-10 text-center">
-        <h1 className="text-2xl font-bold">Ce lien a expiré</h1>
-        <p className="muted mt-2">Demandez-en un nouveau avec le courriel utilisé pour votre don.</p>
+        <h1 className="text-2xl font-bold">{t('expireTitre')}</h1>
+        <p className="muted mt-2">{t('expireTexte')}</p>
         <Link href="/vitrail" className="btn mt-6">
-          Retrouver mon morceau
+          {t('retrouver')}
         </Link>
       </main>
     )
@@ -96,9 +102,9 @@ export default function ManagePage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-8">
-      <h1 className="text-center text-2xl font-bold">Mon morceau de vitrail</h1>
+      <h1 className="text-center text-2xl font-bold">{t('titre')}</h1>
       <p className="muted mt-1 text-center text-sm">
-        {CONFIG.orgName} · {formatMoney(totalCents)} donnés
+        {t('sousTitre', { org: org.name, montant: money(totalCents) })}
       </p>
 
       <div className="my-5">
@@ -108,24 +114,24 @@ export default function ManagePage() {
       <form onSubmit={save} className="space-y-5">
         {/* Le témoignage d'abord : c'est souvent pour lui qu'on revient avec ce lien */}
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold">{CONFIG.testimonial.question}</h2>
+          <h2 className="text-lg font-semibold">{org.testimonial.question}</h2>
           <p className="text-sm" style={{ color: '#F0B24A' }}>
-            {CONFIG.testimonial.cta} <span className="muted">{CONFIG.testimonial.lead}</span>
+            {org.testimonial.cta} <span className="muted">{org.testimonial.lead}</span>
           </p>
           <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={5} />
-          {messagePending && <p className="muted text-xs">Votre témoignage apparaîtra dès que l&apos;équipe l&apos;aura lu.</p>}
+          {messagePending && <p className="muted text-xs">{t('temoignageAttente')}</p>}
         </section>
 
         <label className="flex cursor-pointer items-start gap-3 text-sm">
           <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={showName} onChange={e => setShowName(e.target.checked)} />
           <span>
-            <b>Afficher mon nom sur l&apos;écran</b>
-            <span className="muted block">Sinon, votre don apparaît comme « Anonyme » (avec votre photo et votre mot, si vous en ajoutez).</span>
+            <b>{t('afficherNom')}</b>
+            <span className="muted block">{t('afficherNomAide')}</span>
           </span>
         </label>
 
         <div className="space-y-3">
-          {showName && <input className="field" placeholder="Nom affiché" maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} />}
+          {showName && <input className="field" placeholder={t('nomPlaceholder')} maxLength={CONFIG.nameMax} value={name} onChange={e => setName(e.target.value)} />}
           <PhotoField
             value={photo}
             onChange={v => {
@@ -134,17 +140,17 @@ export default function ManagePage() {
             }}
             onBusyChange={setPhotoBusy}
           />
-          {photoPending && !photoChanged && <p className="muted text-xs">Votre photo apparaîtra sur l&apos;écran dès que l&apos;équipe l&apos;aura approuvée.</p>}
+          {photoPending && !photoChanged && <p className="muted text-xs">{t('photoAttente')}</p>}
         </div>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold">Couleur de votre verre</legend>
+          <legend className="mb-2 text-sm font-semibold">{t('couleur')}</legend>
           <div className="flex flex-wrap gap-2">
             {GLASS_COLORS.map(c => (
               <button
                 key={c.value}
                 type="button"
-                aria-label={c.name}
+                aria-label={glassName(c)}
                 aria-pressed={color === c.value}
                 onClick={() => setColor(c.value)}
                 className="h-10 w-10 rounded-full"
@@ -155,13 +161,13 @@ export default function ManagePage() {
         </fieldset>
 
         {error && <p role="alert" className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
-        {saved && <p className="text-sm" style={{ color: '#3DB5A6' }}>Enregistré. Votre morceau est à jour sur l&apos;écran.</p>}
+        {saved && <p className="text-sm" style={{ color: '#3DB5A6' }}>{t('enregistre')}</p>}
 
         <button className="btn" disabled={saving || photoBusy || (showName && name.trim().length < 2)}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
+          {saving ? t('enregistrement') : t('enregistrer')}
         </button>
         <Link href={`/don?t=${token}`} className="btn btn-ghost">
-          Agrandir mon morceau
+          {t('agrandir')}
         </Link>
       </form>
       <BrandFooter className="mt-10 text-center" />

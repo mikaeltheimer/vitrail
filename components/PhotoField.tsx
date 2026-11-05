@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { squareJpeg, uploadPhoto } from '@/lib/photoClient'
+import { useTranslations } from 'next-intl'
+import { PhotoError, squareJpeg, uploadPhoto } from '@/lib/photoClient'
 
 export interface PhotoValue {
   /** Aperçu immédiat (blob local) ou adresse de la photo déjà enregistrée. */
@@ -12,6 +13,7 @@ export interface PhotoValue {
 
 /** Choix d'une photo : recadrage carré et envoi immédiats, pour que le don lui-même soit instantané. */
 export default function PhotoField({ value, onChange, onBusyChange }: { value: PhotoValue; onChange: (v: PhotoValue) => void; onBusyChange?: (busy: boolean) => void }) {
+  const t = useTranslations('photo')
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export default function PhotoField({ value, onChange, onBusyChange }: { value: P
       const path = await uploadPhoto(blob)
       onChange({ src: blobUrl.current, path })
     } catch (e) {
-      setError((e as Error).message)
+      setError(e instanceof PhotoError ? (e.serverMessage ?? t(`erreurs.${e.key}`)) : t('erreurs.envoi'))
       onChange({ src: null, path: null })
     } finally {
       setBusy(false)
@@ -51,7 +53,7 @@ export default function PhotoField({ value, onChange, onBusyChange }: { value: P
       <div className="flex items-center gap-3">
         {value.src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value.src} alt="Votre photo" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+          <img src={value.src} alt={t('alt')} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
         ) : (
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px dashed var(--line)' }} aria-hidden>
             +
@@ -59,18 +61,18 @@ export default function PhotoField({ value, onChange, onBusyChange }: { value: P
         )}
         <div className="flex flex-wrap gap-2">
           <button type="button" className="chip !px-4 text-sm" onClick={() => input.current?.click()} disabled={busy}>
-            {busy ? 'Envoi…' : value.src ? 'Changer la photo' : 'Ajouter une photo'}
+            {busy ? t('envoi') : value.src ? t('changer') : t('ajouter')}
           </button>
           {value.src && !busy && (
             <button type="button" className="muted text-sm underline" onClick={() => onChange({ src: null, path: null })}>
-              Retirer
+              {t('retirer')}
             </button>
           )}
         </div>
       </div>
       <input ref={input} type="file" accept="image/*" className="hidden" onChange={e => void pick(e.target.files?.[0])} />
       {error && <p role="alert" className="mt-2 text-sm" style={{ color: '#f87171' }}>{error}</p>}
-      <p className="muted mt-2 text-xs">Votre photo sera visible par tous sur l&apos;écran de l&apos;école. Elle est recadrée en carré.</p>
+      <p className="muted mt-2 text-xs">{t('note')}</p>
     </div>
   )
 }

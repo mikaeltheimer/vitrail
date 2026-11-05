@@ -3,10 +3,11 @@
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CONFIG } from '@/lib/config'
+import { useTranslations } from 'next-intl'
+import { useOrg } from '@/lib/useOrg'
+import { useMoney } from '@/lib/useI18n'
 import ClaimPanel, { type ClaimDraft, type KnownDonor } from '@/components/vitrail/ClaimPanel'
 import DonationPreview from '@/components/DonationPreview'
-import { formatMoney } from '@/lib/format'
 import type { Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
 
@@ -22,6 +23,9 @@ export default function DonPage() {
 }
 
 function DonForm() {
+  const t = useTranslations('don')
+  const org = useOrg()
+  const money = useMoney()
   const params = useSearchParams()
   const tokenParam = params.get('t')
   const cancelled = !!params.get('annule')
@@ -105,12 +109,12 @@ function DonForm() {
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-6">
       <header className="mb-5 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ecole-logo.png" alt={CONFIG.orgName} className="mx-auto mb-4" style={{ width: 180, height: 'auto' }} />
-        <h1 className="mt-1 text-3xl">{CONFIG.vitrailTitle}</h1>
-        <p className="muted mt-2 text-[0.95rem]">Chaque don devient un morceau de verre dans le vitrail de l&apos;École.</p>
+        <img src="/ecole-logo.png" alt={org.name} className="mx-auto mb-4" style={{ width: 180, height: 'auto' }} />
+        <h1 className="mt-1 text-3xl">{org.vitrailTitle}</h1>
+        <p className="muted mt-2 text-[0.95rem]">{t('intro')}</p>
         {donorsCount > 0 && (
           <p className="mt-3 inline-block rounded-full px-3 py-1 text-sm" style={{ background: 'rgba(255,226,168,0.1)', color: '#FFE2A8' }}>
-            {donorsCount === 1 ? '1 personne a déjà son morceau' : `${donorsCount} personnes ont déjà leur morceau`}
+            {t('dejaDonne', { count: donorsCount })}
           </p>
         )}
       </header>
@@ -120,7 +124,7 @@ function DonForm() {
           <div className="flex items-baseline justify-between text-sm">
             <span className="muted">{event.name}</span>
             <span>
-              <b>{formatMoney(event.totalCents)}</b> <span className="muted">sur {formatMoney(event.goalCents)}</span>
+              <b>{money(event.totalCents)}</b> <span className="muted">{t('sur', { montant: money(event.goalCents) })}</span>
             </span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }}>
@@ -129,9 +133,9 @@ function DonForm() {
         </section>
       )}
 
-      {cancelled && <p className="card mb-5 text-sm">Le paiement a été annulé. Rien n&apos;a été prélevé.</p>}
-      {linkExpired && <p className="card mb-5 text-sm">Ce lien a expiré. Donnez normalement ci-dessous, ou demandez un nouveau lien tout en bas.</p>}
-      {mode === 'off' && <p className="card mb-5 text-sm">Les dons en ligne ne sont pas encore ouverts. Revenez bientôt!</p>}
+      {cancelled && <p className="card mb-5 text-sm">{t('annule')}</p>}
+      {linkExpired && <p className="card mb-5 text-sm">{t('lienExpire')}</p>}
+      {mode === 'off' && <p className="card mb-5 text-sm">{t('ferme')}</p>}
 
       {/* Aperçu du morceau, comme sur le vitrail */}
       {snap && draft && (
@@ -170,27 +174,27 @@ function DonForm() {
       <footer className="mt-10 border-t pt-5 text-center text-sm" style={{ borderColor: 'var(--line)' }}>
         {!magicOpen ? (
           <button className="muted underline" onClick={() => setMagicOpen(true)}>
-            J&apos;ai déjà donné : retrouver mon morceau
+            {t('jaiDejaDonne')}
           </button>
         ) : magicSent ? (
-          <p className="muted">Si ce courriel a déjà donné, un lien vient de lui être envoyé.</p>
+          <p className="muted">{t('magicEnvoye')}</p>
         ) : (
           <form onSubmit={sendMagic} className="space-y-2 text-left">
             <label htmlFor="magic" className="muted block text-xs">
-              Entrez le courriel utilisé pour votre don : nous vous envoyons un lien.
+              {t('magicLabel')}
             </label>
-            <input id="magic" className="field" type="email" required value={magicEmail} onChange={e => setMagicEmail(e.target.value)} placeholder="vous@exemple.com" />
-            <button className="btn btn-ghost">Envoyer le lien</button>
+            <input id="magic" className="field" type="email" required value={magicEmail} onChange={e => setMagicEmail(e.target.value)} placeholder={t('magicPlaceholder')} />
+            <button className="btn btn-ghost">{t('magicEnvoyer')}</button>
           </form>
         )}
         <p className="muted mt-4 text-xs">
-          Votre courriel sert seulement à vous reconnaître et à vous écrire à propos de ce don. Il n&apos;est jamais affiché.{' '}
+          {t('courrielUsage')}{' '}
           <Link href="/confidentialite" className="underline">
-            Politique de confidentialité
+            {t('politique')}
           </Link>
           {' · '}
           <Link href="/vitrail" className="underline">
-            Voir le vitrail
+            {t('voirVitrail')}
           </Link>
         </p>
       </footer>

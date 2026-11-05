@@ -4,7 +4,15 @@
       "label": "Language",
       "fr": "Français",
       "en": "English"
-    }
+    },
+    "verres": {
+      "ambre": "Amber",
+      "rose": "Rose",
+      "turquoise": "Turquoise",
+      "indigo": "Indigo",
+      "violet": "Violet"
+    },
+    "confidentialiteCourt": "Privacy"
   },
   "erreurs": {
     "courrielRequis": "Email address required.",
@@ -38,5 +46,83 @@
     "morceauInconnu": "Unknown piece.",
     "signalementEchec": "The report couldn't be sent.",
     "indisponible": "Unavailable"
+  },
+  "photo": {
+    "alt": "Your photo",
+    "envoi": "Uploading…",
+    "changer": "Change photo",
+    "ajouter": "Add a photo",
+    "retirer": "Remove",
+    "note": "Your photo will be visible to everyone on the big screen. It is cropped to a square.",
+    "erreurs": {
+      "pasUneImage": "This file isn't an image.",
+      "illisible": "Couldn't read this photo. Try a JPEG or PNG photo.",
+      "navigateur": "Incompatible browser.",
+      "imageVide": "Empty image",
+      "tropLourde": "Photo too large, even after shrinking.",
+      "envoi": "The photo couldn't be uploaded."
+    }
+  },
+  "apercu": {
+    "votreNom": "Your name",
+    "aria": "Preview of your piece of glass",
+    "legende": "Preview of your piece, circled in gold. Its exact position changes as other donations arrive."
+  },
+  "temoignage": {
+    "aide": "Shown with your piece, here and on the big screen."
+  },
+  "don": {
+    "intro": "Every donation becomes a piece of glass in the stained-glass window.",
+    "dejaDonne": "{count, plural, one {1 person already has their piece} other {# people already have their piece}}",
+    "sur": "of {montant}",
+    "annule": "The payment was cancelled. Nothing was charged.",
+    "lienExpire": "This link has expired. Donate as usual below, or request a new link at the bottom of the page.",
+    "ferme": "Online donations aren't open yet. Come back soon!",
+    "jaiDejaDonne": "I've already donated: find my piece",
+    "magicEnvoye": "If this email address has already donated, a link has just been sent to it.",
+    "magicLabel": "Enter the email address you used for your donation and we'll send you a link.",
+    "magicPlaceholder": "you@example.com",
+    "magicEnvoyer": "Send the link",
+    "courrielUsage": "Your email address is only used to recognize you and to write to you about this donation. It is never displayed.",
+    "politique": "Privacy policy",
+    "voirVitrail": "View the stained glass"
+  },
+  "merci": {
+    "titre": "Thank you!",
+    "titreNom": "Thank you, {nom}!",
+    "attente": "We're confirming your donation and making your piece of glass…",
+    "perdu": "We haven't received the payment confirmation yet. If you were charged, your piece will appear within a few minutes, and a confirmation email will be sent to you.",
+    "retour": "Back",
+    "donEnregistre": "Your donation of <b>{montant}</b> has been recorded.",
+    "auTotal": "In total, you have donated {montant}.",
+    "ecranTitre": "Look at the big screen!",
+    "ecranTexte": "Your piece will come out of the stained glass in a few seconds, with your name and your message.",
+    "photoAttente": "Your photo will be added as soon as the team has seen it.",
+    "coeur": "Your piece, circled in gold, at the heart of the stained glass.",
+    "explorer": "Explore the stained glass full size",
+    "ajouterTemoignage": "Add my testimonial",
+    "pasMaintenant": "Not now? Keep this link: it's also in the confirmation email.",
+    "agrandir": "Make my piece bigger",
+    "modifier": "Edit my piece",
+    "piedCourriel": "A confirmation email with these links is on its way to you. No tax receipt is issued at this time."
+  },
+  "gerer": {
+    "chargement": "Loading…",
+    "expireTitre": "This link has expired",
+    "expireTexte": "Request a new one with the email address you used for your donation.",
+    "retrouver": "Find my piece",
+    "titre": "My piece of the stained glass",
+    "sousTitre": "{org} · {montant} donated",
+    "temoignageAttente": "Your testimonial will appear as soon as the team has read it.",
+    "afficherNom": "Show my name on the screen",
+    "afficherNomAide": "Otherwise, your donation appears as “Anonymous” (with your photo and your note, if you add them).",
+    "nomPlaceholder": "Displayed name",
+    "photoAttente": "Your photo will appear on the screen as soon as the team has approved it.",
+    "couleur": "Your glass colour",
+    "enregistre": "Saved. Your piece is up to date on the screen.",
+    "enregistrement": "Saving…",
+    "enregistrer": "Save",
+    "agrandir": "Make my piece bigger",
+    "erreurInattendue": "Unexpected error."
   }
 }

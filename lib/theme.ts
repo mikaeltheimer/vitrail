@@ -29,12 +29,13 @@ export const DEFAULT_THEME: Theme = {
   glow: '#FFE2A8',
 }
 
+// `id` : clé du nom dans messages/*.json (commun.verres) ; `name` : nom français historique (console d'administration).
 export const DEFAULT_GLASSES = [
-  { name: 'Ambre', value: '#F0B24A' },
-  { name: 'Rose', value: '#E0657F' },
-  { name: 'Turquoise', value: '#3DB5A6' },
-  { name: 'Indigo', value: '#6A78E6' },
-  { name: 'Violet', value: '#A56BD9' },
+  { id: 'ambre', name: 'Ambre', value: '#F0B24A' },
+  { id: 'rose', name: 'Rose', value: '#E0657F' },
+  { id: 'turquoise', name: 'Turquoise', value: '#3DB5A6' },
+  { id: 'indigo', name: 'Indigo', value: '#6A78E6' },
+  { id: 'violet', name: 'Violet', value: '#A56BD9' },
 ] as const
 
 // ── Contraste (WCAG) : texte 4,5:1 au moins, texte large 3:1 ───────────────────

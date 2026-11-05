@@ -4,7 +4,15 @@
       "label": "Langue",
       "fr": "Français",
       "en": "English"
-    }
+    },
+    "verres": {
+      "ambre": "Ambre",
+      "rose": "Rose",
+      "turquoise": "Turquoise",
+      "indigo": "Indigo",
+      "violet": "Violet"
+    },
+    "confidentialiteCourt": "Confidentialité"
   },
   "erreurs": {
     "courrielRequis": "Courriel requis.",
@@ -38,5 +46,83 @@
     "morceauInconnu": "Morceau inconnu.",
     "signalementEchec": "Le signalement n'a pas pu être envoyé.",
     "indisponible": "Indisponible"
+  },
+  "photo": {
+    "alt": "Votre photo",
+    "envoi": "Envoi…",
+    "changer": "Changer la photo",
+    "ajouter": "Ajouter une photo",
+    "retirer": "Retirer",
+    "note": "Votre photo sera visible par tous sur le grand écran. Elle est recadrée en carré.",
+    "erreurs": {
+      "pasUneImage": "Ce fichier n'est pas une image.",
+      "illisible": "Impossible de lire cette photo. Essayez une photo JPEG ou PNG.",
+      "navigateur": "Navigateur incompatible.",
+      "imageVide": "Image vide",
+      "tropLourde": "Photo trop lourde, même réduite.",
+      "envoi": "La photo n'a pas pu être envoyée."
+    }
+  },
+  "apercu": {
+    "votreNom": "Votre nom",
+    "aria": "Aperçu de votre morceau de verre",
+    "legende": "Aperçu de votre morceau, cerclé d'or. Sa place exacte change à mesure que d'autres dons arrivent."
+  },
+  "temoignage": {
+    "aide": "Affiché avec votre morceau, ici et sur le grand écran."
+  },
+  "don": {
+    "intro": "Chaque don devient un morceau de verre dans le vitrail.",
+    "dejaDonne": "{count, plural, one {1 personne a déjà son morceau} other {# personnes ont déjà leur morceau}}",
+    "sur": "sur {montant}",
+    "annule": "Le paiement a été annulé. Rien n'a été prélevé.",
+    "lienExpire": "Ce lien a expiré. Donnez normalement ci-dessous, ou demandez un nouveau lien tout en bas.",
+    "ferme": "Les dons en ligne ne sont pas encore ouverts. Revenez bientôt!",
+    "jaiDejaDonne": "J'ai déjà donné : retrouver mon morceau",
+    "magicEnvoye": "Si ce courriel a déjà donné, un lien vient de lui être envoyé.",
+    "magicLabel": "Entrez le courriel utilisé pour votre don : nous vous envoyons un lien.",
+    "magicPlaceholder": "vous@exemple.com",
+    "magicEnvoyer": "Envoyer le lien",
+    "courrielUsage": "Votre courriel sert seulement à vous reconnaître et à vous écrire à propos de ce don. Il n'est jamais affiché.",
+    "politique": "Politique de confidentialité",
+    "voirVitrail": "Voir le vitrail"
+  },
+  "merci": {
+    "titre": "Merci!",
+    "titreNom": "Merci, {nom}!",
+    "attente": "Nous confirmons votre don et fabriquons votre morceau de verre…",
+    "perdu": "Nous n'avons pas encore reçu la confirmation du paiement. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes, et un courriel de confirmation vous sera envoyé.",
+    "retour": "Retour",
+    "donEnregistre": "Votre don de <b>{montant}</b> est enregistré.",
+    "auTotal": "Au total, vous avez donné {montant}.",
+    "ecranTitre": "Regardez le grand écran!",
+    "ecranTexte": "Votre morceau y sort du vitrail dans quelques secondes, avec votre nom et votre message.",
+    "photoAttente": "Votre photo s'ajoutera dès que l'équipe l'aura vue.",
+    "coeur": "Votre morceau, cerclé d'or, au cœur du vitrail.",
+    "explorer": "Explorer le vitrail en grand",
+    "ajouterTemoignage": "Ajouter mon témoignage",
+    "pasMaintenant": "Pas maintenant ? Gardez ce lien : il est aussi dans le courriel de confirmation.",
+    "agrandir": "Agrandir mon morceau",
+    "modifier": "Modifier mon morceau",
+    "piedCourriel": "Un courriel de confirmation avec ces liens vous est envoyé. Aucun reçu fiscal n'est émis pour le moment."
+  },
+  "gerer": {
+    "chargement": "Chargement…",
+    "expireTitre": "Ce lien a expiré",
+    "expireTexte": "Demandez-en un nouveau avec le courriel utilisé pour votre don.",
+    "retrouver": "Retrouver mon morceau",
+    "titre": "Mon morceau de vitrail",
+    "sousTitre": "{org} · {montant} donnés",
+    "temoignageAttente": "Votre témoignage apparaîtra dès que l'équipe l'aura lu.",
+    "afficherNom": "Afficher mon nom sur l'écran",
+    "afficherNomAide": "Sinon, votre don apparaît comme « Anonyme » (avec votre photo et votre mot, si vous en ajoutez).",
+    "nomPlaceholder": "Nom affiché",
+    "photoAttente": "Votre photo apparaîtra sur l'écran dès que l'équipe l'aura approuvée.",
+    "couleur": "Couleur de votre verre",
+    "enregistre": "Enregistré. Votre morceau est à jour sur l'écran.",
+    "enregistrement": "Enregistrement…",
+    "enregistrer": "Enregistrer",
+    "agrandir": "Agrandir mon morceau",
+    "erreurInattendue": "Erreur inattendue."
   }
 }

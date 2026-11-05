@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOrg } from '@/lib/useOrg'
 import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS } from '@/lib/render'
@@ -12,6 +13,7 @@ import type { Piece } from '@/lib/types'
  * le reste du vitrail est assombri.
  */
 export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces: Piece[]; highlightId?: string | null; size?: number }) {
+  const org = useOrg()
   const ref = useRef<HTMLCanvasElement>(null)
   const images = useMemo(() => new ImageCache(), [])
   const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
@@ -58,5 +60,5 @@ export default function MiniGlass({ pieces, highlightId, size = 300 }: { pieces:
     })
   }, [tiles, pieces, images, imageVersion, fontsVersion, highlightId, size])
 
-  return <canvas ref={ref} style={{ width: size, height: size }} className="mx-auto block" aria-label="Le vitrail de l'école" />
+  return <canvas ref={ref} style={{ width: size, height: size }} className="mx-auto block" aria-label={org.vitrailTitle} />
 }

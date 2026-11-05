@@ -10,8 +10,8 @@ import { join, relative, sep } from 'node:path'
 const root = process.cwd()
 const strict = process.argv.includes('--strict')
 
-// Hors champ (voir docs/i18n.md) : console d'administration, affiches (prototype), liste de mots grossiers.
-const EXCLUDED = ['app/admin/', 'app/api/admin/', 'app/affiche/', 'lib/profanity.ts', 'messages/', 'scripts/', 'node_modules/', '.next/']
+// Hors champ (voir docs/i18n.md) : console d'administration, affiches (prototype), liste de mots grossiers, outil de calibrage réservé au développement.
+const EXCLUDED = ['app/admin/', 'app/api/admin/', 'app/affiche/', 'lib/profanity.ts', 'components/ScaleBadge.tsx', 'messages/', 'scripts/', 'node_modules/', '.next/']
 
 let failed = false
 const fail = msg => {

@@ -4,8 +4,9 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import MiniGlass from '@/components/MiniGlass'
-import { CONFIG } from '@/lib/config'
-import { formatMoney } from '@/lib/format'
+import { useTranslations } from 'next-intl'
+import { useOrg } from '@/lib/useOrg'
+import { useMoney } from '@/lib/useI18n'
 import type { Piece, Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
 
@@ -29,6 +30,10 @@ export default function MerciPage() {
 }
 
 function Merci() {
+  const t = useTranslations('merci')
+  const tc = useTranslations('commun')
+  const org = useOrg()
+  const money = useMoney()
   const ref = useSearchParams().get('ref')
   const [result, setResult] = useState<'wait' | 'ok' | 'lost'>('wait')
   const state = ref ? result : 'lost'
@@ -70,70 +75,67 @@ function Merci() {
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-8 text-center">
       {state === 'wait' && (
         <>
-          <h1 className="text-2xl font-bold">Merci!</h1>
-          <p className="muted mt-2">Nous confirmons votre don et fabriquons votre morceau de verre…</p>
+          <h1 className="text-2xl font-bold">{t('titre')}</h1>
+          <p className="muted mt-2">{t('attente')}</p>
         </>
       )}
 
       {state === 'lost' && (
         <>
-          <h1 className="text-2xl font-bold">Merci!</h1>
-          <p className="muted mt-2">
-            Nous n&apos;avons pas encore reçu la confirmation du paiement. Si vous avez été débité, votre morceau apparaîtra dans quelques minutes, et un courriel de confirmation
-            vous sera envoyé.
-          </p>
+          <h1 className="text-2xl font-bold">{t('titre')}</h1>
+          <p className="muted mt-2">{t('perdu')}</p>
           <Link href="/vitrail" className="btn btn-ghost mt-6">
-            Retour
+            {t('retour')}
           </Link>
         </>
       )}
 
       {state === 'ok' && thanks && (
         <>
-          <h1 className="text-3xl font-bold">Merci{thanks.name ? `, ${thanks.name}` : ''}!</h1>
+          <h1 className="text-3xl font-bold">{thanks.name ? t('titreNom', { nom: thanks.name }) : t('titre')}</h1>
           <p className="muted mt-2">
-            Votre don de <b style={{ color: 'var(--text)' }}>{formatMoney(thanks.donationCents)}</b> est enregistré.
-            {thanks.totalCents > thanks.donationCents && <> Au total, vous avez donné {formatMoney(thanks.totalCents)}.</>}
+            {t.rich('donEnregistre', { montant: money(thanks.donationCents), b: chunks => <b style={{ color: 'var(--text)' }}>{chunks}</b> })}
+            {thanks.totalCents > thanks.donationCents && <> {t('auTotal', { montant: money(thanks.totalCents) })}</>}
           </p>
 
           <div className="card mt-5 text-left text-sm" style={{ borderColor: 'rgba(255,226,168,0.5)' }}>
-            <b style={{ color: '#FFE2A8' }}>Regardez le grand écran!</b>
-            <div className="muted mt-1">Votre morceau y sort du vitrail dans quelques secondes, avec votre nom et votre message.</div>
-            {thanks.photoPending && <div className="muted mt-1">Votre photo s&apos;ajoutera dès que l&apos;équipe l&apos;aura vue.</div>}
+            <b style={{ color: '#FFE2A8' }}>{t('ecranTitre')}</b>
+            <div className="muted mt-1">{t('ecranTexte')}</div>
+            {thanks.photoPending && <div className="muted mt-1">{t('photoAttente')}</div>}
           </div>
 
           <div className="my-6">
             <MiniGlass pieces={pieces} highlightId={thanks.donorId} size={300} />
-            <p className="muted mt-3 text-sm">Votre morceau, cerclé d&apos;or, au cœur du vitrail de l&apos;école.</p>
+            <p className="muted mt-3 text-sm">{t('coeur')}</p>
             <Link href={`/vitrail?d=${thanks.donorId}`} className="mt-2 inline-block text-sm underline">
-              Explorer le vitrail en grand
+              {t('explorer')}
             </Link>
           </div>
 
           {!thanks.hasMessage && (
           <div className="card mb-4 text-left text-sm" style={{ borderColor: 'rgba(255,226,168,0.5)' }}>
-            <b style={{ color: '#FFE2A8' }}>{CONFIG.testimonial.question}</b>
+            <b style={{ color: '#FFE2A8' }}>{org.testimonial.question}</b>
             <div className="muted mt-1">
-              {CONFIG.testimonial.cta} {CONFIG.testimonial.lead}
+              {org.testimonial.cta} {org.testimonial.lead}
             </div>
             <Link href={`/m/${thanks.token}`} className="btn mt-3">
-              Ajouter mon témoignage
+              {t('ajouterTemoignage')}
             </Link>
-            <div className="muted mt-2 text-xs">Pas maintenant ? Gardez ce lien : il est aussi dans le courriel de confirmation.</div>
+            <div className="muted mt-2 text-xs">{t('pasMaintenant')}</div>
           </div>
           )}
           <div className="space-y-3">
             <Link href={`/don?t=${thanks.token}`} className="btn btn-ghost">
-              Agrandir mon morceau
+              {t('agrandir')}
             </Link>
             <Link href={`/m/${thanks.token}`} className="btn btn-ghost">
-              Modifier mon morceau
+              {t('modifier')}
             </Link>
           </div>
           <p className="muted mt-6 text-xs">
-            Un courriel de confirmation avec ces liens vous est envoyé. L&apos;{CONFIG.orgName} n&apos;émet pas encore de reçu fiscal.{' '}
+            {t('piedCourriel')}{' '}
             <Link href="/confidentialite" className="underline">
-              Confidentialité
+              {tc('confidentialiteCourt')}
             </Link>
           </p>
         </>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { ensureFonts } from '@/lib/fonts'
 import { ImageCache } from '@/lib/images'
@@ -27,6 +28,7 @@ export interface PreviewDraft {
  * la caméra centrée dessus, son nom, son message et sa photo. Se met à jour à chaque frappe.
  */
 export default function DonationPreview({ pieces, draft, size = 340 }: { pieces: Piece[]; draft: PreviewDraft; size?: number }) {
+  const t = useTranslations('apercu')
   const ref = useRef<HTMLCanvasElement>(null)
   const images = useMemo(() => new ImageCache(), [])
   const [tiles, setTiles] = useState<Map<string, Tile> | null>(null)
@@ -80,7 +82,7 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
     if (!existing) {
       map.set(draftId, {
         color: draft.color,
-        name: draft.showName ? draft.name.trim() || 'Votre nom' : null,
+        name: draft.showName ? draft.name.trim() || t('votreNom') : null,
         message: draft.message.trim() || null,
         photoUrl: draft.photoSrc,
       })
@@ -95,15 +97,15 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
       height: size,
       focusId: draftId,
     })
-  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size])
+  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size, t])
 
   return (
     <figure className="m-0">
       <div className="mx-auto overflow-hidden rounded-2xl" style={{ width: size, height: size, background: '#0B0A12', border: '1px solid var(--line)' }}>
-        {tiles ? <canvas ref={ref} style={{ width: size, height: size, display: 'block' }} aria-label="Aperçu de votre morceau de verre" /> : null}
+        {tiles ? <canvas ref={ref} style={{ width: size, height: size, display: 'block' }} aria-label={t('aria')} /> : null}
       </div>
       <figcaption className="muted mt-2 text-center text-xs">
-        Aperçu de votre morceau, cerclé d&apos;or. Sa place exacte change à mesure que d&apos;autres dons arrivent.
+        {t('legende')}
       </figcaption>
     </figure>
   )
