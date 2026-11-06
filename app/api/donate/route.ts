@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       baseUrl: baseUrlOf(request),
       channel: cleanChannel(body.channel),
       locale: localeOf(request),
+      mailingConsent: body.mailingConsent === true,
     })
     return NextResponse.json({ url })
   } catch (e) {

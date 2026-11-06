@@ -73,6 +73,7 @@ interface SavedDraft {
   color: string;
   message: string;
   quoteConsent?: boolean;
+  mailing?: boolean;
   photo: { src: string | null; path: string | null };
 }
 function readSaved(): SavedDraft | null {
@@ -155,6 +156,8 @@ export default function ClaimPanel({
   const [quoteConsent, setQuoteConsent] = useState(
     saved?.quoteConsent ?? false,
   );
+  // Liste d'envoi de l'organisme : jamais cochée d'avance (consentement exprès, loi anti-pourriel)
+  const [mailing, setMailing] = useState(saved?.mailing ?? false);
   const [photo, setPhoto] = useState<{
     src: string | null;
     path: string | null;
@@ -284,6 +287,7 @@ export default function ClaimPanel({
         body: JSON.stringify({
           amountCents: baseCents,
           coverFees,
+          mailingConsent: mailing,
           returnTo,
           channel,
           ...(agrandir
@@ -318,6 +322,7 @@ export default function ClaimPanel({
           color,
           message,
           quoteConsent,
+          mailing,
           photo: { src, path: photo.path },
         };
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -524,6 +529,24 @@ export default function ClaimPanel({
           <span>
             {t("frais", { frais: money(feeCents), montant: money(baseCents) })}
           </span>
+        </label>
+        <label
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "flex-start",
+            fontSize: "13px",
+            color: "rgba(255,255,255,0.75)",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={mailing}
+            onChange={(e) => setMailing(e.target.checked)}
+            style={{ accentColor: GOLD, marginTop: "2px" }}
+          />
+          <span>{t("listeEnvoi", { org: org.name })}</span>
         </label>
       </div>
 

@@ -28,6 +28,8 @@ export default function ManagePage() {
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
   const [quoteConsent, setQuoteConsent] = useState(false)
+  const [mailing, setMailing] = useState(false)
+  const [mailingSaved, setMailingSaved] = useState(false)
   const [messagePending, setMessagePending] = useState(false)
   const [color, setColor] = useState<string>(GLASS_COLORS[0].value)
   const [photo, setPhoto] = useState<PhotoValue>({ src: null, path: null })
@@ -49,6 +51,7 @@ export default function ManagePage() {
         setName(d.name)
         setMessage(d.message)
         setQuoteConsent(!!d.quoteConsent)
+        setMailing(!!d.mailing)
         setMessagePending(!!d.messagePending)
         setColor(d.color)
         setPhoto({ src: d.photoUrl ?? null, path: null })
@@ -170,6 +173,30 @@ export default function ManagePage() {
           {t('agrandir')}
         </Link>
       </form>
+
+      {/* Liste d'envoi : s'enregistre aussitôt, indépendamment du formulaire du morceau */}
+      <section className="card mt-8 space-y-2 text-sm">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5 shrink-0"
+            checked={mailing}
+            onChange={async e => {
+              const subscribed = e.target.checked
+              setMailing(subscribed)
+              setMailingSaved(false)
+              const res = await fetch('/api/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'mailing', subscribed }) })
+              if (res.ok) setMailingSaved(true)
+              else setMailing(!subscribed)
+            }}
+          />
+          <span>
+            <b>{t('listeEnvoi', { org: org.name })}</b>
+            <span className="muted block">{t('listeEnvoiAide')}</span>
+          </span>
+        </label>
+        {mailingSaved && <p style={{ color: '#3DB5A6' }}>{mailing ? t('listeEnvoiOui') : t('listeEnvoiNon')}</p>}
+      </section>
       <BrandFooter className="mt-10 text-center" />
     </main>
   )

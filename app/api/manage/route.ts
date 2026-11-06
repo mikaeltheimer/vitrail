@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
 import { resolveToken, updateDonorProfile, updateTestimonial } from '@/lib/donations'
+import { getDb } from '@/lib/db'
+import { grantMailingConsent, isSubscribed, withdrawMailingConsent } from '@/lib/consent'
+import { localeOf } from '@/lib/i18n'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { requireTenant } from '@/lib/tenant'
 import { validateColor, validateMessage, validateProfile } from '@/lib/validate'
@@ -35,7 +38,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, pending })
   }
 
+  // Liste d'envoi de l'organisme : s'inscrire ou se retirer, à tout moment
+  if (body.action === 'mailing') {
+    if (body.subscribed === true) await grantMailingConsent(donor.id, localeOf(request))
+    else await withdrawMailingConsent(donor.id)
+    return NextResponse.json({ ok: true, subscribed: body.subscribed === true })
+  }
+
+  const { data: m } = await getDb().from('donors').select('mailing_consent_at,mailing_withdrawn_at').eq('id', donor.id).maybeSingle()
   return NextResponse.json({
+    mailing: isSubscribed(m ?? {}),
     donorId: donor.id,
     messagePending: donor.messagePending,
     quoteConsent: donor.quoteConsent,

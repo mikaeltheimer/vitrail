@@ -36,6 +36,8 @@ export interface CheckoutRequest {
   channel: string | null
   /** Langue du donateur : page de paiement Stripe, retour, et courriels. */
   locale: Locale
+  /** Case « recevoir les nouvelles de l'organisme » cochée. */
+  mailingConsent?: boolean
 }
 
 /** Adresses de retour : depuis le vitrail, on y revient ; sinon, la page de remerciement. */
@@ -67,6 +69,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       providerRef: ref,
       channel: req.channel,
       locale: req.locale,
+      mailingConsent: req.mailingConsent,
     })
     return { url: returnUrls(req.returnTo, ref, req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail)).success }
   }
@@ -119,6 +122,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       feeCents: String(req.feeCents),
       platformFee: String(platformFee),
       lang: req.locale,
+      mailing: req.mailingConsent ? '1' : '0',
     },
     success_url: urls.success,
     cancel_url: urls.cancel,

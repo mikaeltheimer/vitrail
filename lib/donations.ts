@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { getDb } from './db'
+import { grantMailingConsent } from './consent'
 import { paymentModeFor } from './env'
 import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
@@ -71,6 +72,8 @@ export interface RecordInput {
   platformFeeCents?: number
   /** Langue du donateur à ce don (pour ses courriels) ; absente = on ne la change pas (français pour un nouveau donateur). */
   locale?: Locale
+  /** Case « recevoir les nouvelles de l'organisme » cochée à ce don. Non cochée ne retire rien (le retrait passe par le lien personnel). */
+  mailingConsent?: boolean
 }
 
 export interface RecordResult {
@@ -128,6 +131,8 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
     const { error: localeError } = await db.from('donors').update({ locale: i.locale }).eq('id', donor.id)
     if (localeError) console.error('Langue du donateur non enregistrée :', localeError.message)
   }
+
+  if (i.mailingConsent) await grantMailingConsent(donor.id, i.locale ?? 'fr')
 
   const row: Record<string, unknown> = { organization_id: i.organizationId, vitrail_id: i.vitrailId, donor_id: donor.id, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null }
   if (i.feeCents) row.fee_cents = i.feeCents

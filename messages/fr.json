@@ -129,7 +129,11 @@
     "enregistrement": "Enregistrement…",
     "enregistrer": "Enregistrer",
     "agrandir": "Agrandir mon morceau",
-    "erreurInattendue": "Erreur inattendue."
+    "erreurInattendue": "Erreur inattendue.",
+    "listeEnvoi": "Recevoir les nouvelles de {org} par courriel",
+    "listeEnvoiAide": "Campagnes et événements. Décochez pour vous retirer de sa liste d’envoi, à tout moment.",
+    "listeEnvoiOui": "C’est noté : vous recevrez ses nouvelles.",
+    "listeEnvoiNon": "C’est noté : vous êtes retiré de sa liste d’envoi."
   },
   "vitrail": {
     "canvasAria": "Le vitrail de dons",
@@ -270,7 +274,8 @@
     "instant": "Un instant…",
     "donner": "Donner {montant}",
     "pied": "Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre morceau. Pas de reçu fiscal pour le moment.",
-    "erreurInattendue": "Erreur inattendue. Réessayez."
+    "erreurInattendue": "Erreur inattendue. Réessayez.",
+    "listeEnvoi": "J’accepte de recevoir par courriel les nouvelles de {org} (campagnes, événements). Je peux me désabonner en tout temps."
   },
   "ecran": {
     "sur": "sur {montant}",

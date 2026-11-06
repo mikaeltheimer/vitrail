@@ -100,6 +100,16 @@ async function main() {
   check('campagne : son objectif', gala.event?.goalCents === 500000)
   check('les requêtes sont filtrées par vitrail et par organisme', calls.some(c => c.table === 'vitrail_donor_totals' && c.filters.some(([k, v]) => k === 'vitrail_id' && v === 'gala')) && calls.some(c => c.table === 'donors' && c.filters.some(([k, v]) => k === 'organization_id' && v === 'orgA')))
   check('version différente par vitrail', sp.version !== gala.version)
+
+  console.log('Liste d\'envoi')
+  const { MAILING_CONSENT_VERSION } = await import('../lib/consent')
+  const sub = await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'zed@x.ca', profile, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_mail1111', locale: 'en', mailingConsent: true })
+  const zed = () => tables.donors.find(d => d.id === sub.donorId)!
+  check('case cochée : consentement, version du texte et langue gardés', !!zed().mailing_consent_at && zed().mailing_consent_version === MAILING_CONSENT_VERSION && zed().mailing_consent_locale === 'en')
+  await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'zed@x.ca', profile, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_mail2222' })
+  check('un don suivant sans la case ne retire pas le consentement', !!zed().mailing_consent_at && !zed().mailing_withdrawn_at)
+  const none = await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'yan@x.ca', profile, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_mail3333' })
+  check('case non cochée : aucun consentement', !tables.donors.find(d => d.id === none.donorId)!.mailing_consent_at)
   done()
 }
 main().catch(e => { console.error(e); process.exit(1) })

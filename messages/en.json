@@ -129,7 +129,11 @@
     "enregistrement": "Saving…",
     "enregistrer": "Save",
     "agrandir": "Make my piece bigger",
-    "erreurInattendue": "Unexpected error."
+    "erreurInattendue": "Unexpected error.",
+    "listeEnvoi": "Receive news from {org} by email",
+    "listeEnvoiAide": "Campaigns and events. Uncheck to leave its mailing list, at any time.",
+    "listeEnvoiOui": "Done: you’ll receive its news.",
+    "listeEnvoiNon": "Done: you’ve left its mailing list."
   },
   "vitrail": {
     "canvasAria": "The donation stained glass",
@@ -270,7 +274,8 @@
     "instant": "One moment…",
     "donner": "Donate {montant}",
     "pied": "What you see is a preview. Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your piece. No tax receipt at this time.",
-    "erreurInattendue": "Unexpected error. Please try again."
+    "erreurInattendue": "Unexpected error. Please try again.",
+    "listeEnvoi": "I agree to receive news from {org} by email (campaigns, events). I can unsubscribe at any time."
   },
   "ecran": {
     "sur": "of {montant}",
