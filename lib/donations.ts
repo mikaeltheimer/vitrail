@@ -305,13 +305,15 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
     fetchWhere<{ donor_id: string; total_cents: number | string }>('vitrail_donor_totals', 'donor_id,total_cents', 'vitrail_id', vitrail.id, 'donor_id'),
     fetchWhere<DonorPublicRow>('donors', `id,display_name,show_name,message,photo_url,photo_status,color,hidden${ms}`, 'organization_id', org.id, 'id'),
     db.from('vitrail_totals').select('total_cents,donations_count').eq('vitrail_id', vitrail.id).maybeSingle(),
+    // Les 30 derniers dons du vitrail (les donateurs masqués en retirent quelques-uns) ; une vue ne se joint pas aux donateurs :
+    // on les relie ensuite avec la liste des donateurs de l'organisme, déjà lue.
     db
       .from('vitrail_donations')
-      .select(`donation_id,donor_id,net_cents,created_at,donors!inner(display_name,show_name,message,photo_url,photo_status,hidden${ms})`)
+      .select('donation_id,donor_id,net_cents,created_at')
       .eq('vitrail_id', vitrail.id)
       .gt('net_cents', 0)
       .order('created_at', { ascending: false })
-      .limit(15),
+      .limit(30),
   ])
   if (vtRes.error) throw vtRes.error
   if (recentRes.error) throw recentRes.error
@@ -333,17 +335,11 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
   // Toujours présent : « goalCents 0 » veut dire « pas d'objectif » (les pages le savent déjà)
   const event: EventInfo = { id: vitrail.id, name: vitrail.name, goalCents: vitrail.goalCents, totalCents }
 
-  type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; photo_status: string; message_status?: string; hidden: boolean }
-  type RecentRow = {
-    donation_id: string
-    donor_id: string
-    net_cents: number
-    created_at: string
-    donors: RecentDonor | RecentDonor[]
-  }
-  const recent: RecentDonation[] = ((recentRes.data ?? []) as unknown as RecentRow[])
-    .map(r => ({ r, d: Array.isArray(r.donors) ? r.donors[0] : r.donors }))
-    .filter(({ d }) => d && !d.hidden)
+  const donorById = new Map(donors.map(d => [d.id, d]))
+  const recent: RecentDonation[] = ((recentRes.data ?? []) as { donation_id: string; donor_id: string; net_cents: number; created_at: string }[])
+    .map(r => ({ r, d: donorById.get(r.donor_id) }))
+    .filter((x): x is { r: (typeof x)['r']; d: DonorPublicRow } => !!x.d && !x.d.hidden)
+    .slice(0, 15)
     .map(({ r, d }) => ({
       id: r.donation_id,
       donorId: r.donor_id,

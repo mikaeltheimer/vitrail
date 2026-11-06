@@ -83,10 +83,16 @@ async function main() {
     { vitrail_id: 'permA', organization_id: 'orgA', total_cents: 7900, donations_count: 3 },
     { vitrail_id: 'gala', organization_id: 'orgA', total_cents: 2000, donations_count: 1 },
   ]
+  tables.vitrail_donations = [
+    { donation_id: 'n1', vitrail_id: 'permA', organization_id: 'orgA', donor_id: 'dA', net_cents: 7000, created_at: '2026-11-05T10:00:00Z' },
+    { donation_id: 'n2', vitrail_id: 'permA', organization_id: 'orgA', donor_id: 'dH', net_cents: 900, created_at: '2026-11-05T11:00:00Z' },
+    { donation_id: 'n3', vitrail_id: 'gala', organization_id: 'orgA', donor_id: 'dA', net_cents: 2000, created_at: '2026-11-05T12:00:00Z' },
+  ]
   const tenantA = { org: { id: 'orgA', slug: 'ecoleartsutton', status: 'live', name: 'École A', nameEn: null, photoModeration: 'live', senderName: null, replyTo: null, stripeAccountId: null, stripeReady: false } as never, vitrail: { id: 'permA', organizationId: 'orgA', kind: 'permanent', slug: null, name: 'Vitrail A', state: 'active', inMain: true, goalCents: 0 } as never }
   const sp = await getSnapshot(tenantA)
   check('vitrail permanent : le morceau d\'Ana à 70 $', sp.pieces.length === 1 && sp.pieces[0].amountCents === 7000)
   check('le morceau masqué n\'est pas affiché mais son argent compte', sp.totalCents === 7900)
+  check('derniers dons : ceux du vitrail, sans le donateur masqué', sp.recent.length === 1 && sp.recent[0].id === 'n1' && sp.recent[0].name === 'Ana')
   check('aucun morceau d\'un autre organisme', !sp.pieces.some(p => p.id === 'dB'))
   check('l\'événement est toujours présent, sans objectif', sp.event?.goalCents === 0 && sp.event?.id === 'permA')
   const gala = await getSnapshot({ ...tenantA, vitrail: { ...(tenantA.vitrail as object), id: 'gala', kind: 'campaign', slug: 'gala-2027', name: 'Gala', goalCents: 500000 } as never })

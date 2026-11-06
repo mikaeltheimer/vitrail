@@ -15,7 +15,8 @@ class Query {
   private to = Infinity
   private mode: 'one' | 'maybe' | null = null
   constructor(private table: string) {}
-  select() { return this }
+  private cols = ''
+  select(cols?: string) { if (typeof cols === 'string') this.cols = cols; return this }
   insert(p: Row | Row[]) { this.op = 'insert'; this.payload = p; return this }
   update(p: Row) { this.op = 'update'; this.payload = p; return this }
   delete() { this.op = 'delete'; return this }
@@ -35,6 +36,8 @@ class Query {
   then(res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) { return Promise.resolve(this.run()).then(res, rej) }
   private run(): { data: unknown; error: unknown } {
     calls.push({ table: this.table, op: this.op, filters: this.described })
+    // Une vue n'a pas de clé étrangère : PostgREST refuse de joindre une table à travers elle
+    if (VIEWS.has(this.table) && this.cols.includes('(')) return { data: null, error: { code: 'PGRST200', message: `Could not find a relationship between '${this.table}' and another table` } }
     const rows = (tables[this.table] ??= [])
     if (this.op === 'insert') {
       const list: Row[] = (Array.isArray(this.payload) ? this.payload : [this.payload!]).map(p => ({ id: `id-${++seq}`, created_at: new Date(1_000 + seq).toISOString(), ...p }))
@@ -58,6 +61,7 @@ class Query {
   }
 }
 // Contraintes d'unicité de la base réelle (colonnes séparées par « + »)
+const VIEWS = new Set(['vitrail_donations', 'vitrail_totals', 'vitrail_donor_totals', 'donor_totals', 'grand_total', 'organization_fee_totals'])
 const UNIQUE: Record<string, string[]> = {
   donors: ['organization_id+email'],
   donations: ['provider_ref'],
