@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
             if (intentId && connected) {
               const pi = await getStripe().paymentIntents.retrieve(intentId, { expand: ['latest_charge.balance_transaction'] }, { stripeAccount: connected })
               const bt = (pi.latest_charge as Stripe.Charge | null)?.balance_transaction as Stripe.BalanceTransaction | null
-              if (bt) console.info('Détail des frais Stripe :', JSON.stringify({ session: session.id, amount: bt.amount, fee: bt.fee, net: bt.net, fee_details: bt.fee_details }))
+              if (bt) console.error('Détail des frais Stripe (diagnostic) :', JSON.stringify({ session: session.id, amount: bt.amount, fee: bt.fee, net: bt.net, fee_details: bt.fee_details }))
             }
           } catch (e) {
             console.error('Détail des frais illisible :', e)
