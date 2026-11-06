@@ -42,6 +42,8 @@ interface DonationRow {
   amount_cents: number
   fee_cents: number | null
   refunded_cents: number
+  dispute_status: 'open' | 'won' | 'lost' | null
+  dispute_due_by: string | null
   source: string
   created_at: string
   donors: DonationDonor | DonationDonor[] | null
@@ -58,8 +60,16 @@ interface ReportRow {
   reason: string | null
   created_at: string
 }
+interface DisputeRow {
+  id: string
+  amount_cents: number
+  fee_cents: number | null
+  dispute_due_by: string | null
+  created_at: string
+}
 interface Data {
   mode: 'stripe' | 'demo' | 'off'
+  disputes: DisputeRow[]
   stripe: { accountId: string | null; ready: boolean }
   reports: ReportRow[]
   photoModeration: 'live' | 'moderation'
@@ -120,6 +130,13 @@ export default function AdminConsole() {
     setMsg(res.ok ? { ok: true, text: okText } : { ok: false, text: body.error || 'Erreur.' })
     if (res.ok) await load()
     return res.ok
+  }
+
+  async function openStripeDashboard() {
+    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stripeDashboard' }) })
+    const body = await res.json().catch(() => ({}))
+    if (res.ok && body.url) window.open(body.url, '_blank', 'noopener')
+    else setMsg({ ok: false, text: body.error || 'Erreur.' })
   }
 
   async function logout() {
@@ -184,6 +201,32 @@ export default function AdminConsole() {
 
       {loadError && <p className="mt-6" style={{ color: 'crimson' }}>Chargement impossible : {loadError}</p>}
       {!data && !loadError && <p className="muted mt-6">Chargement…</p>}
+
+      {/* ── Litiges ouverts : visibles sur tous les onglets, la date limite ne pardonne pas ── */}
+      {data && data.disputes.length > 0 && (
+        <section className="card mt-4 space-y-2 !p-4" style={{ borderColor: 'rgba(248,113,113,.6)' }} role="alert">
+          <p className="font-semibold">
+            {data.disputes.length === 1 ? 'Un don est contesté' : `${data.disputes.length} dons sont contestés`} par le donateur auprès de sa banque.
+          </p>
+          <ul className="text-sm">
+            {data.disputes.map(x => (
+              <li key={x.id}>
+                {formatMoney(x.amount_cents + (x.fee_cents ?? 0))} (don du {time(x.created_at)})
+                {x.dispute_due_by && <> · répondre avant le <b>{new Date(x.dispute_due_by).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}</b></>}
+              </li>
+            ))}
+          </ul>
+          <p className="muted text-xs">
+            Sans réponse avant la date limite, le litige est perdu : la banque rend l&apos;argent au donateur, Stripe facture des frais de litige à
+            l&apos;organisme et le morceau disparaît. Répondez (ou acceptez le litige) dans le tableau de bord Stripe.
+          </p>
+          {data.stripe.ready && (
+            <button className="btn" onClick={() => void openStripeDashboard()}>
+              Répondre dans Stripe
+            </button>
+          )}
+        </section>
+      )}
 
       {/* ── En direct ── */}
       {data && tab === 'direct' && (
@@ -312,7 +355,12 @@ export default function AdminConsole() {
                 <div className="min-w-0 flex-1 text-sm">
                   <div className="truncate">
                     <b>{formatMoney(n.amount_cents)}</b> · {d?.display_name ?? '—'} {d?.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
-                    {n.refunded_cents > 0 && (
+                    {n.dispute_status && (
+                      <span style={{ color: n.dispute_status === 'won' ? '#4ade80' : '#f87171' }}>
+                        {' '}({n.dispute_status === 'open' ? 'contesté' : n.dispute_status === 'won' ? 'litige gagné' : 'litige perdu'})
+                      </span>
+                    )}
+                    {n.refunded_cents > 0 && n.dispute_status !== 'lost' && (
                       <span style={{ color: '#f87171' }}>
                         {' '}({n.refunded_cents >= n.amount_cents ? 'remboursé' : `remboursé en partie : ${formatMoney(n.refunded_cents)}`})
                       </span>
@@ -334,7 +382,7 @@ export default function AdminConsole() {
                   <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: n.donor_id, hidden: !d?.hidden })}>
                     {d?.hidden ? 'Réafficher' : 'Masquer'}
                   </button>
-                  {n.source === 'stripe' && n.refunded_cents < n.amount_cents && (
+                  {n.source === 'stripe' && n.refunded_cents < n.amount_cents && n.dispute_status !== 'open' && n.dispute_status !== 'lost' && (
                     <button className="chip !px-3 text-sm" aria-expanded={refunding === n.id} onClick={() => setRefunding(refunding === n.id ? null : n.id)}>
                       Rembourser…
                     </button>
@@ -508,12 +556,7 @@ export default function AdminConsole() {
               {data.stripe.ready && (
                 <button
                   className="btn btn-ghost"
-                  onClick={async () => {
-                    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stripeDashboard' }) })
-                    const body = await res.json().catch(() => ({}))
-                    if (res.ok && body.url) window.open(body.url, '_blank', 'noopener')
-                    else setMsg({ ok: false, text: body.error || 'Erreur.' })
-                  }}
+                  onClick={() => void openStripeDashboard()}
                 >
                   Ouvrir le tableau de bord Stripe
                 </button>

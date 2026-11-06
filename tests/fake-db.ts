@@ -51,7 +51,8 @@ class Query {
       return { data: this.mode ? list[0] : list, error: null }
     }
     const hit = rows.filter(r => this.filters.every(f => f(r)))
-    if (this.op === 'update') { for (const r of hit) Object.assign(r, this.payload); return { data: null, error: null } }
+    // update().select() renvoie les lignes modifiées (comme PostgREST) ; sans select(), rien
+    if (this.op === 'update') { for (const r of hit) Object.assign(r, this.payload); return { data: this.cols ? hit.map(r => ({ ...r })) : null, error: null } }
     if (this.op === 'delete') { tables[this.table] = rows.filter(r => !hit.includes(r)); return { data: null, error: null } }
     let out = [...hit]
     if (this.orderBy) out.sort((a, b) => (String(a[this.orderBy!]) < String(b[this.orderBy!]) ? -1 : 1))

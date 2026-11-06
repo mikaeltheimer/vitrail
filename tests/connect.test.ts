@@ -8,10 +8,17 @@ const sessionsByIntent: Record<string, { id: string; metadata?: Record<string, s
 const created: { params: Record<string, any>; opts: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
 const accountCalls: { params: Record<string, any>; opts?: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
 // Paiements vus depuis les comptes connectés (pour le remboursement depuis la console), par session Checkout
-const charges: Record<string, { account: string; charge: { id: string; amount: number; amount_refunded: number; application_fee: string | null } }> = {}
+const charges: Record<string, { account: string; charge: { id: string; amount: number; amount_refunded: number; application_fee: string | null; disputed?: boolean } }> = {}
 const refundsMade: { params: Record<string, any>; opts: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
 const seenKeys = new Set<string>()
 const fakeStripe = {
+  charges: {
+    retrieve: async (id: string, _p: unknown, opts: { stripeAccount: string }) => {
+      const x = Object.values(charges).find(c => c.charge.id === id && c.account === opts.stripeAccount)
+      if (!x) throw new Error('No such charge')
+      return { ...x.charge, payment_intent: `pi_${id}` }
+    },
+  },
   refunds: {
     create: async (params: Record<string, any>, opts: Record<string, any>) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (seenKeys.has(opts.idempotencyKey)) return { id: 're_same', status: 'succeeded' }
@@ -232,6 +239,62 @@ async function main() {
   tables.donations[0].source = 'cash'
   rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, null)
   check('don comptant : pas de remboursement par Stripe', !rr.ok && rr.reason === 'not_stripe')
+
+  console.log('Litiges')
+  const dispute = (status: string, extra: object = {}) => ({ id: 'dp_1', status, amount: 5200, charge: 'ch_d', evidence_details: { due_by: 1796000000 }, ...extra })
+  const dEvent = (type: string, d: object, account = 'acct_A') => ({ type, account, data: { object: d } })
+  const seedDispute = async () => {
+    seed()
+    await send(session())
+    charges['cs_live_000001'] = { account: 'acct_A', charge: { id: 'ch_d', amount: 5200, amount_refunded: 0, application_fee: 'fee_d', disputed: true } }
+    sessionsByIntent['pi_ch_d'] = { id: 'cs_live_000001', metadata: { orgId: 'orgA' } }
+    fees['fee_d'] = { amount: 140, amount_refunded: 0 }
+    feeRefunds.length = 0
+  }
+  await seedDispute()
+  r = await send(dEvent('charge.dispute.created', dispute('needs_response')))
+  const dd = () => tables.donations[0]
+  check('litige ouvert : noté avec sa date limite', r.status === 200 && dd().dispute_status === 'open' && dd().dispute_id === 'dp_1' && !!dd().dispute_due_by)
+  check('litige ouvert : le morceau reste entier, la commission aussi', dd().refunded_cents === 0 && feeRefunds.length === 0)
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', dd().id as string, null)
+  check('paiement contesté : pas de remboursement depuis la console', !rr.ok && rr.reason === 'disputed')
+  await send(dEvent('charge.dispute.closed', dispute('lost')))
+  check('litige perdu : traité comme un remboursement total', dd().dispute_status === 'lost' && dd().refunded_cents === 5000 && dd().dispute_due_by === null)
+  check('litige perdu : toute la commission est rendue', feeRefunds.length === 1 && feeRefunds[0].amount === 140 && dd().platform_fee_refunded_cents === 140)
+  await send(dEvent('charge.dispute.closed', dispute('lost')))
+  await send({ type: 'charge.refunded', account: 'acct_A', data: { object: { ...charges['cs_live_000001'].charge, payment_intent: 'pi_ch_d' } } })
+  check('rejoué, ou suivi d\'un charge.refunded : rien ne bouge', dd().refunded_cents === 5000 && feeRefunds.length === 1)
+
+  await seedDispute()
+  await send(dEvent('charge.dispute.created', dispute('needs_response')))
+  await send(dEvent('charge.dispute.closed', dispute('won')))
+  check('litige gagné : rien n\'est repris', dd().dispute_status === 'won' && dd().refunded_cents === 0 && feeRefunds.length === 0)
+
+  await seedDispute()
+  charges['cs_live_000001'].charge.amount_refunded = 2600
+  await send(dEvent('charge.dispute.closed', dispute('lost', { amount: 2600 })))
+  check('remboursé à moitié puis litige perdu sur le reste : tout est repris', dd().refunded_cents === 5000 && dd().platform_fee_refunded_cents === 140)
+
+  await seedDispute()
+  await send(dEvent('charge.dispute.created', dispute('warning_needs_response')))
+  await send(dEvent('charge.dispute.closed', dispute('warning_closed')))
+  check('demande de renseignements close sans litige : plus rien de signalé', dd().dispute_status === null && dd().refunded_cents === 0)
+
+  await seedDispute()
+  // Le compte B émet un litige sur un paiement qui, par erreur de routage, mène à la session du don de A : le filtre par organisme protège A
+  charges['cs_b'] = { account: 'acct_B', charge: { id: 'ch_d', amount: 5200, amount_refunded: 0, application_fee: null, disputed: true } }
+  r = await send(dEvent('charge.dispute.created', dispute('needs_response'), 'acct_B'))
+  check('litige reçu d\'un autre compte : le don de A n\'est pas touché', r.status === 200 && dd().dispute_status == null)
+
+  console.log('Remboursement qui échoue après coup')
+  await seedDispute()
+  charges['cs_live_000001'].charge.disputed = false
+  charges['cs_live_000001'].charge.amount_refunded = 5200
+  await send({ type: 'charge.refunded', account: 'acct_A', data: { object: { ...charges['cs_live_000001'].charge, payment_intent: 'pi_ch_d' } } })
+  check('remboursé', dd().refunded_cents === 5000)
+  charges['cs_live_000001'].charge.amount_refunded = 0
+  await send({ type: 'charge.refund.updated', account: 'acct_A', data: { object: { id: 're_1', status: 'failed', charge: 'ch_d' } } })
+  check('remboursement échoué : le don redevient entier', dd().refunded_cents === 0)
 
   console.log('Paiement direct')
   const { startCheckout } = await import('../lib/payments')

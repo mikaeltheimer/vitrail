@@ -33,13 +33,13 @@ export async function GET(request: NextRequest) {
   const db = getDb()
   const donorCols: string = `id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at${(await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''}`
 
-  const [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes, moderation, allDonations, visitRows, reportsRes] = await Promise.all([
+  const [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes, moderation, allDonations, visitRows, reportsRes, disputesRes] = await Promise.all([
     db.from('donors').select(donorCols).eq('organization_id', orgId).order('created_at', { ascending: false }).limit(1000),
     db.from('vitraux').select('id,kind,slug,name,state,in_main,goal_cents,starts_on,created_at').eq('organization_id', orgId).order('created_at', { ascending: false }),
     db.from('vitrail_totals').select('vitrail_id,total_cents,donations_count').eq('organization_id', orgId),
     db
       .from('donations')
-      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,refunded_cents,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
+      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
       'donations', 'id,donor_id,channel,amount_cents,refunded_cents,source,created_at', 'organization_id', orgId, 'id'),
     fetchWhere<{ id: string; channel: string }>('visits', 'id,channel', 'organization_id', orgId, 'id'),
     db.from('reports').select('id,donor_id,reason,created_at').eq('organization_id', orgId).eq('resolved', false).order('created_at', { ascending: false }).limit(200),
+    // Litiges ouverts : à traiter dans le tableau de bord Stripe avant la date limite (tous, pas seulement les 100 derniers dons)
+    db.from('donations').select('id,amount_cents,fee_cents,dispute_due_by,created_at').eq('organization_id', orgId).eq('dispute_status', 'open').order('dispute_due_by', { ascending: true }),
   ])
   for (const r of [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes]) if (r.error) { console.error('Admin GET :', r.error); return fail(r.error.message, 500) }
 
@@ -80,6 +82,7 @@ export async function GET(request: NextRequest) {
     stripe: { accountId: t.tenant.org.stripeAccountId, ready: t.tenant.org.stripeReady },
     photoModeration: moderation,
     reports: reportsRes.error ? [] : reportsRes.data ?? [],
+    disputes: disputesRes.error ? [] : disputesRes.data ?? [],
     channels: [...channels.values()].sort((a, b) => b.totalCents - a.totalCents || b.visits - a.visits),
     donors: ((donorsRes.data ?? []) as unknown as ({ id: string } & Record<string, unknown>)[]).map(d => ({
       ...d,
@@ -332,6 +335,7 @@ export async function POST(request: NextRequest) {
           not_stripe: "Ce don n'a pas été payé par carte : il ne se rembourse pas par Stripe.",
           no_account: "Le compte Stripe de l'organisme n'est pas prêt.",
           not_found: 'Paiement introuvable chez Stripe.',
+          disputed: 'Ce paiement est contesté par le donateur : le litige se règle dans le tableau de bord Stripe, pas par un remboursement.',
           nothing_left: 'Ce paiement est déjà entièrement remboursé.',
           bad_amount: `Montant invalide : au plus ${formatMoney(r.remainingCents ?? 0)}.`,
           failed: 'Stripe a refusé le remboursement.',

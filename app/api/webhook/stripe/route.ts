@@ -8,7 +8,7 @@ import { ANON_LABEL } from '@/lib/config'
 import { pathFromPublicUrl } from '@/lib/photos'
 import { isLocale } from '@/i18n/config'
 import { getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
-import { applyRefund, refundPlatformFee } from '@/lib/refunds'
+import { applyRefund, reconcileCharge, recordDispute, refundPlatformFee } from '@/lib/refunds'
 import { isAccountReady, orgByAccount, setAccountReady } from '@/lib/connect'
 
 export const runtime = 'nodejs'
@@ -156,11 +156,41 @@ export async function POST(request: NextRequest) {
         // Un paiement de Donivers dont le don n'est pas encore enregistré : on réessaiera ; sinon ce n'est pas le nôtre
         return session.metadata?.orgId === orgId ? NextResponse.json({ error: 'Don pas encore enregistré' }, { status: 500 }) : ok() // i18n-ok : réponse à Stripe
       }
-      await refundPlatformFee(getStripe(), charge, refund.donationId)
+      await refundPlatformFee(getStripe(), { ...charge, amount_refunded: refund.reversedCents ?? charge.amount_refunded }, refund.donationId)
     } catch (e) {
       console.error('Remboursement non enregistré :', e)
       return NextResponse.json({ error: 'Remboursement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
     }
+  }
+
+  // ── Un remboursement qui change d'état après coup (échec, annulation) : on relit le paiement ──
+  if (event.type === 'charge.refund.updated') {
+    const refund = event.data.object as Stripe.Refund
+    const chargeId = typeof refund.charge === 'string' ? refund.charge : refund.charge?.id
+    if (!chargeId) return ok()
+    try {
+      const r = await reconcileCharge(getStripe(), orgId, event.account, chargeId)
+      if (r === 'pending') return NextResponse.json({ error: 'Don pas encore enregistré' }, { status: 500 }) // i18n-ok : réponse à Stripe
+    } catch (e) {
+      console.error('Remboursement mis à jour non enregistré :', e)
+      return NextResponse.json({ error: 'Mise à jour échouée' }, { status: 500 }) // i18n-ok : réponse à Stripe
+    }
+    return ok()
+  }
+
+  // ── Un litige (contestation du paiement par le donateur auprès de sa banque) ──
+  // Ouvert : le morceau reste, la console le signale. Perdu : traité comme un remboursement. Gagné : rien n'est repris.
+  if (event.type === 'charge.dispute.created' || event.type === 'charge.dispute.updated' || event.type === 'charge.dispute.closed') {
+    const dispute = event.data.object as Stripe.Dispute
+    try {
+      const r = await recordDispute(getStripe(), orgId, event.account, dispute)
+      if (r === 'pending') return NextResponse.json({ error: 'Don pas encore enregistré' }, { status: 500 }) // i18n-ok : réponse à Stripe
+      if (event.type === 'charge.dispute.created' && r !== 'unknown') console.error('Litige ouvert :', orgId, dispute.id, dispute.amount) // niveau erreur : seul conservé
+    } catch (e) {
+      console.error('Litige non enregistré :', e)
+      return NextResponse.json({ error: 'Litige non enregistré' }, { status: 500 }) // i18n-ok : réponse à Stripe
+    }
+    return ok()
   }
 
   return ok()
