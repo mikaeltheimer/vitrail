@@ -7,7 +7,29 @@ const fees: Record<string, { amount: number; amount_refunded: number }> = {}
 const sessionsByIntent: Record<string, { id: string; metadata?: Record<string, string> }> = {}
 const created: { params: Record<string, any>; opts: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
 const accountCalls: { params: Record<string, any>; opts?: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
+// Paiements vus depuis les comptes connectés (pour le remboursement depuis la console), par session Checkout
+const charges: Record<string, { account: string; charge: { id: string; amount: number; amount_refunded: number; application_fee: string | null } }> = {}
+const refundsMade: { params: Record<string, any>; opts: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
+const seenKeys = new Set<string>()
 const fakeStripe = {
+  refunds: {
+    create: async (params: Record<string, any>, opts: Record<string, any>) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (seenKeys.has(opts.idempotencyKey)) return { id: 're_same', status: 'succeeded' }
+      seenKeys.add(opts.idempotencyKey)
+      refundsMade.push({ params, opts })
+      const c = Object.values(charges).find(x => x.account === opts.stripeAccount && `pi_${x.charge.id}` === params.payment_intent)!.charge
+      const before = c.amount_refunded
+      c.amount_refunded += params.amount
+      // refund_application_fee : Stripe rend la part proportionnelle de la commission
+      if (params.refund_application_fee && c.application_fee) {
+        const f = fees[c.application_fee]
+        const due = c.amount_refunded >= c.amount ? f.amount : Math.floor((f.amount * c.amount_refunded) / c.amount)
+        f.amount_refunded = Math.max(f.amount_refunded, due)
+      }
+      void before
+      return { id: 're_' + refundsMade.length, status: 'succeeded' }
+    },
+  },
   accounts: {
     create: async (params: Record<string, unknown>, opts?: Record<string, unknown>) => { accountCalls.push({ params, opts }); return { id: 'acct_NEW' } },
     retrieve: async (id: string) => ({ id, controller: { stripe_dashboard: { type: id === 'acct_FULL' ? 'full' : 'express' } } }),
@@ -15,7 +37,13 @@ const fakeStripe = {
   },
   accountLinks: { create: async () => ({ url: 'https://connect.stripe.com/setup/x' }) },
   webhooks: { constructEvent: (body: string, _sig: string, secret: string) => { if (secret !== 'whsec_connect') throw new Error('bad'); return JSON.parse(body) } },
-  checkout: { sessions: { create: async (params: Record<string, unknown>, opts: Record<string, unknown>) => { created.push({ params, opts }); return { url: 'https://checkout.test/x' } }, list: async ({ payment_intent }: { payment_intent: string }, opts: { stripeAccount: string }) => { void opts; return { data: sessionsByIntent[payment_intent] ? [sessionsByIntent[payment_intent]] : [] } } } },
+  checkout: { sessions: {
+    retrieve: async (id: string, _p: unknown, opts: { stripeAccount: string }) => {
+      const x = charges[id]
+      if (!x || x.account !== opts.stripeAccount) throw new Error('No such checkout.session')
+      return { id, payment_intent: { id: `pi_${x.charge.id}`, latest_charge: { ...x.charge } } }
+    },
+    create: async (params: Record<string, unknown>, opts: Record<string, unknown>) => { created.push({ params, opts }); return { url: 'https://checkout.test/x' } }, list: async ({ payment_intent }: { payment_intent: string }, opts: { stripeAccount: string }) => { void opts; return { data: sessionsByIntent[payment_intent] ? [sessionsByIntent[payment_intent]] : [] } } } },
   applicationFees: {
     retrieve: async (id: string) => ({ id, ...fees[id] }),
     createRefund: async (id: string, p: { amount: number }, o: { idempotencyKey: string }) => { feeRefunds.push({ id, amount: p.amount, key: o.idempotencyKey }); fees[id].amount_refunded += p.amount; return {} },
@@ -164,6 +192,46 @@ async function main() {
   r = await send(refundEvent(100))
   check('remboursement d\'un don pas encore enregistré : 500, Stripe réessaiera', r.status === 500)
   void calls
+
+  console.log('Remboursement depuis la console')
+  const { refundDonationFromConsole } = await import('../lib/refunds')
+  seed()
+  await send(session())
+  const donId = tables.donations[0].id as string
+  charges['cs_live_000001'] = { account: 'acct_A', charge: { id: 'ch_c', amount: 5200, amount_refunded: 0, application_fee: 'fee_c' } }
+  fees['fee_c'] = { amount: 140, amount_refunded: 0 }
+  refundsMade.length = 0; seenKeys.clear()
+  let rr = await refundDonationFromConsole(fakeStripe as never, 'orgB', 'acct_B', donId, null)
+  check('un autre organisme ne peut pas rembourser ce don', !rr.ok && rr.reason === 'unknown' && refundsMade.length === 0)
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', null, donId, null)
+  check('sans compte prêt : refusé', !rr.ok && rr.reason === 'no_account' && refundsMade.length === 0)
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, 5201)
+  check('plus que le paiement : refusé, avec le maximum', !rr.ok && rr.reason === 'bad_amount' && rr.remainingCents === 5200 && refundsMade.length === 0)
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, 2600)
+  const made = refundsMade[0]
+  check('remboursement partiel fait sur le compte de l\'organisme', rr.ok && made.opts.stripeAccount === 'acct_A' && made.params.amount === 2600 && made.params.payment_intent === 'pi_ch_c')
+  check('commission rendue par Stripe dans le même appel', made.params.refund_application_fee === true && fees['fee_c'].amount_refunded === 70)
+  check('base à jour tout de suite : moitié du don', tables.donations[0].refunded_cents === 2500 && tables.donations[0].platform_fee_refunded_cents === 70)
+  feeRefunds.length = 0
+  await send({ type: 'charge.refunded', account: 'acct_A', data: { object: { ...charges['cs_live_000001'].charge, payment_intent: 'pi_ch_c' } } })
+  sessionsByIntent['pi_ch_c'] = { id: 'cs_live_000001', metadata: { orgId: 'orgA' } }
+  await send({ type: 'charge.refunded', account: 'acct_A', data: { object: { ...charges['cs_live_000001'].charge, payment_intent: 'pi_ch_c' } } })
+  check('le webhook qui suit ne change rien et ne rend rien de plus', tables.donations[0].refunded_cents === 2500 && feeRefunds.length === 0)
+  // Double clic : même état du paiement, même montant → même clé, un seul remboursement
+  charges['cs_live_000001'].charge.amount_refunded = 0
+  seenKeys.add(`console-refund-${donId}-0-2600`)
+  const n = refundsMade.length
+  await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, 2600)
+  check('double clic : la même clé d\'idempotence, aucun second remboursement', refundsMade.length === n)
+  charges['cs_live_000001'].charge.amount_refunded = 2600
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, null)
+  check('« tout » = ce qui reste du paiement', rr.ok && refundsMade.at(-1)!.params.amount === 2600)
+  check('remboursement total : morceau à zéro, toute la commission rendue', tables.donations[0].refunded_cents === 5000 && tables.donations[0].platform_fee_refunded_cents === 140)
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, null)
+  check('déjà tout remboursé : refusé', !rr.ok && rr.reason === 'nothing_left')
+  tables.donations[0].source = 'cash'
+  rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, null)
+  check('don comptant : pas de remboursement par Stripe', !rr.ok && rr.reason === 'not_stripe')
 
   console.log('Paiement direct')
   const { startCheckout } = await import('../lib/payments')

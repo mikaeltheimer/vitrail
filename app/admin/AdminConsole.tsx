@@ -40,6 +40,8 @@ interface DonationRow {
   id: string
   donor_id: string
   amount_cents: number
+  fee_cents: number | null
+  refunded_cents: number
   source: string
   created_at: string
   donors: DonationDonor | DonationDonor[] | null
@@ -89,6 +91,7 @@ export default function AdminConsole() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [mergeFrom, setMergeFrom] = useState<string | null>(null)
+  const [refunding, setRefunding] = useState<string | null>(null)
   // Décisions de modération : le donateur reçoit un courriel, sauf si la case est décochée (pourriel, abus).
   const [notifyDonor, setNotifyDonor] = useState(true)
   const [search, setSearch] = useState('')
@@ -301,7 +304,7 @@ export default function AdminConsole() {
           {data.donations.map(n => {
             const d = one(n.donors)
             return (
-              <div key={n.id} className="card flex items-center justify-between gap-3 !p-3">
+              <div key={n.id} className="card flex flex-wrap items-center justify-between gap-3 !p-3">
                 {d?.photo_url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={d.photo_url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
@@ -309,6 +312,11 @@ export default function AdminConsole() {
                 <div className="min-w-0 flex-1 text-sm">
                   <div className="truncate">
                     <b>{formatMoney(n.amount_cents)}</b> · {d?.display_name ?? '—'} {d?.hidden && <span style={{ color: '#f87171' }}>(masqué)</span>}
+                    {n.refunded_cents > 0 && (
+                      <span style={{ color: '#f87171' }}>
+                        {' '}({n.refunded_cents >= n.amount_cents ? 'remboursé' : `remboursé en partie : ${formatMoney(n.refunded_cents)}`})
+                      </span>
+                    )}
                   </div>
                   <div className="muted truncate text-xs">
                     {time(n.created_at)} · {SOURCE_LABEL[n.source] ?? n.source} · {d?.email}
@@ -326,7 +334,22 @@ export default function AdminConsole() {
                   <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: n.donor_id, hidden: !d?.hidden })}>
                     {d?.hidden ? 'Réafficher' : 'Masquer'}
                   </button>
+                  {n.source === 'stripe' && n.refunded_cents < n.amount_cents && (
+                    <button className="chip !px-3 text-sm" aria-expanded={refunding === n.id} onClick={() => setRefunding(refunding === n.id ? null : n.id)}>
+                      Rembourser…
+                    </button>
+                  )}
                 </div>
+                {refunding === n.id && (
+                  <RefundPanel
+                    donation={n}
+                    onCancel={() => setRefunding(null)}
+                    onSubmit={async amountCents => {
+                      const ok = await act({ action: 'refundDonation', donationId: n.id, amountCents }, 'Remboursement envoyé à Stripe. Le donateur reçoit l’argent sur sa carte en 5 à 10 jours.')
+                      if (ok) setRefunding(null)
+                    }}
+                  />
+                )}
               </div>
             )
           })}
@@ -748,6 +771,76 @@ function EmailJournal() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * Remboursement d'un don par carte. Le montant est celui du PAIEMENT (don + frais que le donateur a couverts) ;
+ * par défaut, tout ce qui reste. Les frais de Stripe ne sont pas rendus à l'organisme : on le dit avant de confirmer.
+ */
+function RefundPanel({ donation, onCancel, onSubmit }: { donation: DonationRow; onCancel: () => void; onSubmit: (amountCents: number | null) => Promise<void> }) {
+  const paid = donation.amount_cents + (donation.fee_cents ?? 0)
+  // La base garde la part remboursée du DON ; le reste du paiement s'en déduit au prorata (Stripe aura le dernier mot)
+  const alreadyPaidBack = donation.amount_cents > 0 ? Math.round((donation.refunded_cents * paid) / donation.amount_cents) : 0
+  const remaining = Math.max(0, paid - alreadyPaidBack)
+  const [all, setAll] = useState(true)
+  const [amount, setAmount] = useState('')
+  const [busy, setBusy] = useState(false)
+  const partial = toCents(amount)
+  const valid = all || (partial > 0 && partial <= remaining)
+  return (
+    <div className="w-full space-y-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'rgba(248,113,113,.4)' }}>
+      <p>
+        Paiement : <b>{formatMoney(paid)}</b>
+        {(donation.fee_cents ?? 0) > 0 && <span className="muted"> (don {formatMoney(donation.amount_cents)} + frais couverts {formatMoney(donation.fee_cents ?? 0)})</span>}
+        {alreadyPaidBack > 0 && <span className="muted"> · déjà remboursé : environ {formatMoney(alreadyPaidBack)}</span>}
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2">
+          <input type="radio" checked={all} onChange={() => setAll(true)} /> Tout ({formatMoney(remaining)})
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="radio" checked={!all} onChange={() => setAll(false)} /> Une partie :
+          <input
+            className="field !w-28 !py-1"
+            inputMode="decimal"
+            placeholder="0,00"
+            value={amount}
+            onFocus={() => setAll(false)}
+            onChange={e => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))}
+            aria-label="Montant à rembourser"
+          />
+          $
+        </label>
+      </div>
+      <p className="muted text-xs">
+        L&apos;argent revient sur la carte du donateur en 5 à 10 jours. Les frais de Stripe ne sont pas rendus par Stripe : ils restent
+        à la charge de l&apos;organisme. Notre commission est rendue au prorata. Le morceau rétrécit (ou disparaît si tout est remboursé).
+        Cette action est définitive.
+      </p>
+      <div className="flex gap-2">
+        <button
+          className="btn"
+          disabled={!valid || busy}
+          onClick={async () => {
+            const cents = all ? null : partial
+            if (!confirm(`Rembourser ${formatMoney(cents ?? remaining)} à ce donateur ? Cette action est définitive.`)) return
+            setBusy(true)
+            try {
+              await onSubmit(cents)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          {busy ? 'Remboursement…' : 'Rembourser'}
+        </button>
+        <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>
+          Annuler
+        </button>
+      </div>
+      {!all && amount && !valid && <p style={{ color: '#f87171' }}>Entre 0,01 $ et {formatMoney(remaining)}.</p>}
     </div>
   )
 }

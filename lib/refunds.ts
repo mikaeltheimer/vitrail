@@ -54,3 +54,61 @@ export async function refundPlatformFee(
   }
   return returned
 }
+
+type RefundApi = Pick<Stripe, 'checkout' | 'refunds' | 'applicationFees'>
+
+export type ConsoleRefundResult =
+  | { ok: true; refundedCents: number; chargeRefundedCents: number; chargeAmountCents: number }
+  | { ok: false; reason: 'unknown' | 'not_stripe' | 'no_account' | 'not_found' | 'nothing_left' | 'bad_amount' | 'failed'; remainingCents?: number }
+
+/**
+ * Remboursement lancé depuis notre console (pas depuis le tableau de bord Stripe).
+ *
+ * - Le don doit appartenir à l'organisme et être un paiement Stripe sur SON compte connecté (jamais celui d'un autre).
+ * - `amountCents` est un montant du PAIEMENT (don + frais couverts par le donateur) ; null = tout ce qui reste.
+ * - `refund_application_fee` : Stripe rend en même temps la part proportionnelle de notre commission.
+ * - Ensuite, la base est mise à jour tout de suite (même calcul que le webhook, donc le webhook qui suivra ne changera rien) ;
+ *   si cette mise à jour échoue, le webhook charge.refunded la refera.
+ * - Clé d'idempotence liée à l'état du paiement : un double clic ne rembourse pas deux fois.
+ * Les frais de Stripe ne sont pas rendus par Stripe : ils restent à la charge de l'organisme.
+ */
+export async function refundDonationFromConsole(
+  stripe: RefundApi,
+  orgId: string,
+  accountId: string | null,
+  donationId: string,
+  amountCents: number | null,
+): Promise<ConsoleRefundResult> {
+  if (!accountId) return { ok: false, reason: 'no_account' }
+  const { data: donation, error } = await getDb().from('donations').select('id,source,provider_ref').eq('organization_id', orgId).eq('id', donationId).maybeSingle()
+  if (error) throw error
+  if (!donation) return { ok: false, reason: 'unknown' }
+  if (donation.source !== 'stripe' || !donation.provider_ref) return { ok: false, reason: 'not_stripe' }
+
+  const session = await stripe.checkout.sessions.retrieve(donation.provider_ref as string, { expand: ['payment_intent.latest_charge'] }, { stripeAccount: accountId })
+  const intent = session.payment_intent && typeof session.payment_intent === 'object' ? session.payment_intent : null
+  const charge = intent?.latest_charge && typeof intent.latest_charge === 'object' ? intent.latest_charge : null
+  if (!intent || !charge) return { ok: false, reason: 'not_found' }
+
+  const remaining = charge.amount - charge.amount_refunded
+  if (remaining <= 0) return { ok: false, reason: 'nothing_left' }
+  const amount = amountCents ?? remaining
+  if (!Number.isInteger(amount) || amount <= 0 || amount > remaining) return { ok: false, reason: 'bad_amount', remainingCents: remaining }
+
+  const refund = await stripe.refunds.create(
+    { payment_intent: intent.id, amount, refund_application_fee: true, reason: 'requested_by_customer', metadata: { donationId, source: 'console' } },
+    { stripeAccount: accountId, idempotencyKey: `console-refund-${donationId}-${charge.amount_refunded}-${amount}` },
+  )
+  if (refund.status === 'failed' || refund.status === 'canceled') return { ok: false, reason: 'failed' }
+
+  const chargeRefunded = charge.amount_refunded + amount
+  const updated = { ...charge, amount_refunded: chargeRefunded }
+  try {
+    const applied = await applyRefund(orgId, donation.provider_ref as string, charge.amount, chargeRefunded)
+    await refundPlatformFee(stripe, updated, applied.donationId)
+  } catch (e) {
+    // L'argent est déjà rendu chez Stripe : on ne renvoie pas d'erreur, le webhook mettra la base à jour
+    console.error('Remboursement fait chez Stripe, base pas encore à jour (le webhook s\'en chargera) :', e)
+  }
+  return { ok: true, refundedCents: amount, chargeRefundedCents: chargeRefunded, chargeAmountCents: charge.amount }
+}

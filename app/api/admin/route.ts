@@ -8,6 +8,9 @@ import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrai
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
 import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
+import { getStripe } from '@/lib/payments'
+import { refundDonationFromConsole } from '@/lib/refunds'
+import { formatMoney } from '@/lib/format'
 import { baseUrlOf } from '@/lib/tenant'
 import { hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest) {
     db.from('vitrail_totals').select('vitrail_id,total_cents,donations_count').eq('organization_id', orgId),
     db
       .from('donations')
-      .select('id,donor_id,vitrail_id,amount_cents,refunded_cents,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
+      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,refunded_cents,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -310,6 +313,33 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error('Lecture du compte Stripe impossible :', e)
         return fail("Le compte Stripe n'a pas pu être lu.", 502)
+      }
+    }
+
+    // Rembourser un don payé par carte, depuis la console (sur le compte Stripe de l'organisme ; notre commission est rendue au prorata)
+    case 'refundDonation': {
+      const accountId = t.tenant.org.stripeReady ? t.tenant.org.stripeAccountId : null
+      if (!process.env.STRIPE_SECRET_KEY) return fail("Stripe n'est pas configuré (STRIPE_SECRET_KEY).", 500)
+      // Montant du paiement à rendre, en cents ; absent = tout ce qui reste
+      const raw = b.amountCents
+      const amount = raw === undefined || raw === null || raw === '' ? null : Math.round(Number(raw))
+      if (amount !== null && !Number.isFinite(amount)) return fail('Montant invalide.')
+      try {
+        const r = await refundDonationFromConsole(getStripe(), orgId, accountId, str(b.donationId), amount)
+        if (r.ok) return NextResponse.json(r)
+        const messages: Record<typeof r.reason, string> = {
+          unknown: 'Don inconnu.',
+          not_stripe: "Ce don n'a pas été payé par carte : il ne se rembourse pas par Stripe.",
+          no_account: "Le compte Stripe de l'organisme n'est pas prêt.",
+          not_found: 'Paiement introuvable chez Stripe.',
+          nothing_left: 'Ce paiement est déjà entièrement remboursé.',
+          bad_amount: `Montant invalide : au plus ${formatMoney(r.remainingCents ?? 0)}.`,
+          failed: 'Stripe a refusé le remboursement.',
+        }
+        return fail(messages[r.reason], r.reason === 'unknown' ? 404 : 400)
+      } catch (e) {
+        console.error('Remboursement depuis la console impossible :', e)
+        return fail(`Le remboursement n'a pas pu être fait : ${(e as { message?: string }).message ?? 'erreur Stripe'}`, 502)
       }
     }
 
