@@ -3,9 +3,15 @@ import { getDb } from './db'
 import { getStripe } from './payments'
 import { forgetTenantCache, type OrgRow } from './tenant'
 
-// Compte Stripe connecté d'un organisme : type « Standard » (l'organisme a son tableau de bord Stripe, paie lui-même
-// les frais de Stripe, et répond des litiges). Le payeur de frais se fixe à la création du compte : à ne pas changer ici
-// sans y penser (voir la documentation de Stripe sur le comportement des frais en paiements directs).
+// Compte Stripe connecté d'un organisme, créé avec les « propriétés de contrôle » (pas un type hérité) :
+//   - paiements directs : l'argent va chez l'organisme ;
+//   - fees.payer = account : l'organisme paie lui-même les frais de Stripe (nous ne prélevons que notre commission) ;
+//   - losses.payments = stripe : Stripe, pas la plateforme, absorbe un solde négatif (obligatoire avec fees.payer = account) ;
+//   - requirement_collection = stripe : Stripe recueille l'identité (inscription hébergée) ;
+//   - tableau de bord : « express » (allégé, ouvert depuis notre console par un lien à usage unique ; remboursements et litiges
+//     y sont possibles) ou « full » (tableau de bord complet de Stripe). Il ne change JAMAIS après la création du compte.
+// Choix par STRIPE_ACCOUNT_DASHBOARD (défaut : express). Express + frais payés par le compte demande une version récente de l'API
+// de Stripe : STRIPE_CONNECT_API_VERSION la fixe pour cet appel seulement (les paiements gardent la version du client).
 
 /** Le compte est prêt à encaisser : identité vérifiée et paiements activés. */
 export const isAccountReady = (a: Pick<Stripe.Account, 'charges_enabled' | 'details_submitted'>): boolean => !!a.charges_enabled && !!a.details_submitted
@@ -15,12 +21,23 @@ export async function startOnboarding(org: OrgRow, baseUrl: string): Promise<{ u
   const stripe = getStripe()
   let accountId = org.stripeAccountId
   if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: 'standard',
-      country: 'CA',
-      business_profile: { name: org.name },
-      metadata: { orgId: org.id },
-    })
+    const dashboard = process.env.STRIPE_ACCOUNT_DASHBOARD === 'full' ? 'full' : 'express'
+    const version = process.env.STRIPE_CONNECT_API_VERSION?.trim()
+    const account = await stripe.accounts.create(
+      {
+        country: 'CA',
+        controller: {
+          stripe_dashboard: { type: dashboard },
+          fees: { payer: 'account' },
+          losses: { payments: 'stripe' },
+          requirement_collection: 'stripe',
+        },
+        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+        business_profile: { name: org.name },
+        metadata: { orgId: org.id },
+      },
+      version ? { apiVersion: version } : undefined,
+    )
     accountId = account.id
     const { error } = await getDb().from('organizations').update({ stripe_account_id: accountId }).eq('id', org.id)
     if (error) throw error
@@ -57,4 +74,14 @@ export async function orgByAccount(accountId: string): Promise<{ id: string; slu
   if (!data) return null
   const { data: s } = await db.from('organization_slugs').select('slug').eq('organization_id', data.id).eq('is_current', true).maybeSingle()
   return { id: data.id as string, slug: (s?.slug as string) ?? '' }
+}
+
+/**
+ * Lien à usage unique vers le tableau de bord Express de l'organisme (remboursements, litiges, versements, coordonnées bancaires).
+ * Un compte à tableau de bord complet n'a pas de lien de ce genre : il se connecte lui-même sur stripe.com.
+ */
+export async function dashboardLink(accountId: string): Promise<string | null> {
+  const account = await getStripe().accounts.retrieve(accountId)
+  if (account.controller?.stripe_dashboard?.type !== 'express') return null
+  return (await getStripe().accounts.createLoginLink(accountId)).url
 }

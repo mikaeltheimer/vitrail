@@ -7,7 +7,7 @@ import { fetchWhere, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrail, requireTenant } from '@/lib/tenant'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
-import { refreshAccount, startOnboarding } from '@/lib/connect'
+import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
 import { baseUrlOf } from '@/lib/tenant'
 import { hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
@@ -285,6 +285,19 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error('Inscription Stripe impossible :', e)
         return fail("L'inscription Stripe n'a pas pu démarrer.", 502)
+      }
+    }
+
+    // Ouvrir le tableau de bord Stripe (Express) de l'organisme
+    case 'stripeDashboard': {
+      const accountId = t.tenant.org.stripeAccountId
+      if (!accountId || !t.tenant.org.stripeReady) return fail("Le compte Stripe n'est pas encore prêt.")
+      try {
+        const url = await dashboardLink(accountId)
+        return url ? NextResponse.json({ ok: true, url }) : fail('Ce compte se gère directement sur stripe.com.')
+      } catch (e) {
+        console.error('Lien du tableau de bord Stripe impossible :', e)
+        return fail("Le tableau de bord Stripe n'a pas pu s'ouvrir.", 502)
       }
     }
 

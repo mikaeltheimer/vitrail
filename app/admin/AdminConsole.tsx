@@ -479,6 +479,19 @@ export default function AdminConsole() {
                   {data.stripe.accountId ? "Terminer l'inscription Stripe" : 'Connecter le compte Stripe'}
                 </button>
               )}
+              {data.stripe.ready && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={async () => {
+                    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stripeDashboard' }) })
+                    const body = await res.json().catch(() => ({}))
+                    if (res.ok && body.url) window.open(body.url, '_blank', 'noopener')
+                    else setMsg({ ok: false, text: body.error || 'Erreur.' })
+                  }}
+                >
+                  Ouvrir le tableau de bord Stripe
+                </button>
+              )}
               {data.stripe.accountId && (
                 <button className="btn btn-ghost" onClick={() => void act({ action: 'refreshStripe' }, 'État du compte Stripe mis à jour.')}>
                   Vérifier l&apos;état du compte

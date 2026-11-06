@@ -6,7 +6,14 @@ const feeRefunds: { id: string; amount: number; key: string }[] = []
 const fees: Record<string, { amount: number; amount_refunded: number }> = {}
 const sessionsByIntent: Record<string, { id: string; metadata?: Record<string, string> }> = {}
 const created: { params: Record<string, any>; opts: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
+const accountCalls: { params: Record<string, any>; opts?: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
 const fakeStripe = {
+  accounts: {
+    create: async (params: Record<string, unknown>, opts?: Record<string, unknown>) => { accountCalls.push({ params, opts }); return { id: 'acct_NEW' } },
+    retrieve: async (id: string) => ({ id, controller: { stripe_dashboard: { type: id === 'acct_FULL' ? 'full' : 'express' } } }),
+    createLoginLink: async () => ({ url: 'https://connect.stripe.com/express/login' }),
+  },
+  accountLinks: { create: async () => ({ url: 'https://connect.stripe.com/setup/x' }) },
   webhooks: { constructEvent: (body: string, _sig: string, secret: string) => { if (secret !== 'whsec_connect') throw new Error('bad'); return JSON.parse(body) } },
   checkout: { sessions: { create: async (params: Record<string, unknown>, opts: Record<string, unknown>) => { created.push({ params, opts }); return { url: 'https://checkout.test/x' } }, list: async ({ payment_intent }: { payment_intent: string }, opts: { stripeAccount: string }) => { void opts; return { data: sessionsByIntent[payment_intent] ? [sessionsByIntent[payment_intent]] : [] } } } },
   applicationFees: {
@@ -177,6 +184,29 @@ async function main() {
   let threw = false
   try { await startCheckout({ ...base, tenant: { org: { ...orgRow, stripeAccountId: null }, vitrail: vit } }) } catch { threw = true }
   check('sans compte connecté : aucun paiement ne démarre', threw)
+
+  console.log('Compte connecté')
+  const { startOnboarding, dashboardLink } = await import('../lib/connect')
+  seed()
+  tables.organizations[0].stripe_account_id = null
+  const out = await startOnboarding({ ...orgRow, stripeAccountId: null }, 'https://ecoleartsutton.donivers.test')
+  const ac = accountCalls.at(-1)!
+  check('compte créé avec frais payés par l\'organisme et pertes couvertes par Stripe', ac.params.controller.fees.payer === 'account' && ac.params.controller.losses.payments === 'stripe')
+  check('tableau de bord Express, identité recueillie par Stripe', ac.params.controller.stripe_dashboard.type === 'express' && ac.params.controller.requirement_collection === 'stripe')
+  check('pays Canada, paiements par carte demandés', ac.params.country === 'CA' && ac.params.capabilities.card_payments.requested === true)
+  check('le compte est enregistré sur l\'organisme', tables.organizations[0].stripe_account_id === 'acct_NEW' && out.accountId === 'acct_NEW')
+  process.env.STRIPE_CONNECT_API_VERSION = '2026-06-24.preview'
+  tables.organizations[0].stripe_account_id = null
+  await startOnboarding({ ...orgRow, stripeAccountId: null }, 'https://x.test')
+  check('version d\'API fixée seulement pour la création du compte', accountCalls.at(-1)!.opts?.apiVersion === '2026-06-24.preview')
+  delete process.env.STRIPE_CONNECT_API_VERSION
+  process.env.STRIPE_ACCOUNT_DASHBOARD = 'full'
+  tables.organizations[0].stripe_account_id = null
+  await startOnboarding({ ...orgRow, stripeAccountId: null }, 'https://x.test')
+  check('tableau de bord complet sur demande', accountCalls.at(-1)!.params.controller.stripe_dashboard.type === 'full')
+  delete process.env.STRIPE_ACCOUNT_DASHBOARD
+  check('lien du tableau de bord Express', (await dashboardLink('acct_A')) === 'https://connect.stripe.com/express/login')
+  check('pas de lien pour un tableau de bord complet', (await dashboardLink('acct_FULL')) === null)
   done()
 }
 main().catch(e => { console.error(e); process.exit(1) })
