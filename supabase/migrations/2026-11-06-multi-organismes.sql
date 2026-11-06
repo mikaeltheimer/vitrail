@@ -10,8 +10,13 @@
 -- Modèle :
 --   organizations ─┬─ organization_slugs  (sous-domaines ; un ancien identifiant reste réservé et redirige)
 --                  ├─ org_members         (équipe : propriétaire, bénévole)
---                  ├─ vitraux             (un permanent + des campagnes : actif, clos, fusionné)
---                  └─ donors ── donations (campagne d'origine immuable + vitrail d'affichage modifiable)
+--                  ├─ vitraux             (un permanent + des campagnes : active ou close)
+--                  └─ donors ── donations (chaque don appartient à UN vitrail, celui où il a été fait, pour toujours)
+--
+-- Affichage : un vitrail de campagne montre ses propres dons. Le vitrail permanent montre TOUS les dons de l'organisme,
+-- sauf ceux des campagnes privées (in_main = false), qui n'y apparaissent ni ne s'y comptent jamais. La pièce d'un donateur
+-- dans un vitrail est la somme de ses dons affichés dans ce vitrail. Pas de fusion : rien à décider en fin de campagne.
+--
 -- L'isolation entre organismes est garantie par la base elle-même : clés étrangères composées (id, organization_id).
 
 -- ── Organismes ──────────────────────────────────────────────────────────────
@@ -65,11 +70,14 @@ create table public.vitraux (
   id               uuid primary key default gen_random_uuid(),
   organization_id  uuid not null references public.organizations (id) on delete restrict,
   kind             text not null check (kind in ('permanent', 'campaign')),
-  -- Adresse d'une campagne (…/c/<slug>) ; le permanent n'en a pas. Un identifiant de campagne n'est jamais réutilisé.
+  -- Adresse d'une campagne (…/<slug>) ; le permanent n'en a pas. Un identifiant de campagne n'est jamais réutilisé.
   slug             text check (slug ~ '^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$'),
   name             text not null,
-  state            text not null default 'active' check (state in ('active', 'closed', 'merged')),
-  merged_into      uuid,
+  -- Une campagne close reste en ligne (remerciement, total) mais n'accepte plus de dons.
+  state            text not null default 'active' check (state in ('active', 'closed')),
+  -- false = campagne PRIVÉE : jamais affichée ni comptée dans le vitrail permanent. Fixé avant le premier don
+  -- (le consentement des donateurs en dépend) ; pas d'interface à ce sujet au lancement.
+  in_main          boolean not null default true,
   -- 0 = pas d'objectif
   goal_cents       integer not null default 0 check (goal_cents >= 0),
   starts_on        date,
@@ -81,11 +89,9 @@ create table public.vitraux (
   closed_at        timestamptz,
   created_at       timestamptz not null default now(),
   unique (id, organization_id),
-  foreign key (merged_into, organization_id) references public.vitraux (id, organization_id),
   check ((kind = 'permanent') = (slug is null)),
-  check ((state = 'merged') = (merged_into is not null)),
-  -- Le permanent ne se clôt ni ne fusionne : seules les campagnes ont un cycle de vie
-  check (kind = 'campaign' or state = 'active')
+  -- Le permanent ne se clôt pas et compte évidemment ses propres dons : seules les campagnes ont un cycle de vie
+  check (kind = 'campaign' or (state = 'active' and in_main))
 );
 create unique index vitraux_one_permanent on public.vitraux (organization_id) where kind = 'permanent';
 create unique index vitraux_slug_per_org on public.vitraux (organization_id, slug) where slug is not null;
@@ -93,23 +99,22 @@ create unique index vitraux_slug_per_org on public.vitraux (organization_id, slu
 create function public.vitraux_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if tg_op = 'UPDATE' and (new.organization_id <> old.organization_id or new.kind <> old.kind) then
+  if new.organization_id <> old.organization_id or new.kind <> old.kind then
     raise exception 'L''organisme et le type d''un vitrail ne changent jamais';
   end if;
-  if new.merged_into is not null
-     and not exists (select 1 from public.vitraux p where p.id = new.merged_into and p.kind = 'permanent') then
-    raise exception 'Un vitrail ne fusionne que vers le vitrail permanent de son organisme';
+  if new.in_main <> old.in_main and exists (select 1 from public.donations d where d.vitrail_id = old.id) then
+    raise exception 'Une campagne qui a reçu des dons ne change plus de visibilité (privée ou non)';
   end if;
   return new;
 end $$;
-create trigger vitraux_guard before insert or update on public.vitraux
+create trigger vitraux_guard before update on public.vitraux
   for each row execute function public.vitraux_guard();
 
 -- ── Colonnes d'organisme sur les tables existantes (d'abord nullables, remplies plus bas) ──────────────
 alter table public.donors    add column organization_id uuid references public.organizations (id) on delete restrict;
 alter table public.donations add column organization_id uuid references public.organizations (id) on delete restrict,
-                             add column origin_vitrail_id uuid,
-                             add column display_vitrail_id uuid,
+                             -- Le vitrail où le don a été fait : il ne change jamais (rapports, consentement du donateur).
+                             add column vitrail_id uuid,
                              -- Remboursement (total ou partiel) : le don net = amount_cents - refunded_cents ; à 0, le morceau disparaît.
                              add column refunded_cents integer not null default 0 check (refunded_cents >= 0),
                              add constraint donations_refund_le_amount check (refunded_cents <= amount_cents);
@@ -138,7 +143,7 @@ begin
   update public.organizations set photo_moderation = case when moderation = 'moderation' then 'moderation' else 'live' end where id = org;
 
   update public.donors    set organization_id = org where organization_id is null;
-  update public.donations set organization_id = org, origin_vitrail_id = perm, display_vitrail_id = perm where organization_id is null;
+  update public.donations set organization_id = org, vitrail_id = perm where organization_id is null;
   update public.visits    set organization_id = org, vitrail_id = perm where organization_id is null;
   update public.reports   set organization_id = org where organization_id is null;
   update public.email_log set organization_id = org where organization_id is null;
@@ -146,8 +151,7 @@ begin
   -- Transition : le code actuel n'écrit pas ces colonnes, la base les remplit par défaut (retiré à la phase « resserrer »)
   execute format('alter table public.donors    alter column organization_id set default %L', org);
   execute format('alter table public.donations alter column organization_id set default %L', org);
-  execute format('alter table public.donations alter column origin_vitrail_id set default %L', perm);
-  execute format('alter table public.donations alter column display_vitrail_id set default %L', perm);
+  execute format('alter table public.donations alter column vitrail_id set default %L', perm);
   execute format('alter table public.visits    alter column organization_id set default %L', org);
   execute format('alter table public.visits    alter column vitrail_id set default %L', perm);
   execute format('alter table public.reports   alter column organization_id set default %L', org);
@@ -156,8 +160,7 @@ end $$;
 
 alter table public.donors    alter column organization_id set not null;
 alter table public.donations alter column organization_id set not null,
-                             alter column origin_vitrail_id set not null,
-                             alter column display_vitrail_id set not null;
+                             alter column vitrail_id set not null;
 alter table public.visits    alter column organization_id set not null,
                              alter column vitrail_id set not null;
 alter table public.reports   alter column organization_id set not null;
@@ -178,9 +181,8 @@ alter table public.donors add constraint donors_org_email_key unique (organizati
 alter table public.donors add constraint donors_id_org_key unique (id, organization_id);
 
 alter table public.donations
-  add constraint donations_donor_org_fk   foreign key (donor_id, organization_id)            references public.donors (id, organization_id),
-  add constraint donations_origin_org_fk  foreign key (origin_vitrail_id, organization_id)   references public.vitraux (id, organization_id),
-  add constraint donations_display_org_fk foreign key (display_vitrail_id, organization_id)  references public.vitraux (id, organization_id);
+  add constraint donations_donor_org_fk  foreign key (donor_id, organization_id)   references public.donors (id, organization_id),
+  add constraint donations_vitrail_org_fk foreign key (vitrail_id, organization_id) references public.vitraux (id, organization_id);
 alter table public.visits
   add constraint visits_vitrail_org_fk foreign key (vitrail_id, organization_id) references public.vitraux (id, organization_id);
 alter table public.reports
@@ -191,20 +193,19 @@ alter table public.email_log
   add constraint email_log_donor_org_fk foreign key (donor_id, organization_id)
     references public.donors (id, organization_id) on delete set null (donor_id);
 
--- La campagne d'origine d'un don ne change jamais (rapports, total de la campagne) ; seul le vitrail d'affichage bouge (fusion).
+-- Un don ne change jamais d'organisme ni de vitrail (une erreur de saisie se corrige en supprimant puis en recréant le don).
 create function public.donations_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.organization_id <> old.organization_id or new.origin_vitrail_id <> old.origin_vitrail_id then
-    raise exception 'L''organisme et la campagne d''origine d''un don ne changent jamais';
+  if new.organization_id <> old.organization_id or new.vitrail_id <> old.vitrail_id then
+    raise exception 'L''organisme et le vitrail d''un don ne changent jamais';
   end if;
   return new;
 end $$;
 create trigger donations_guard before update on public.donations
   for each row execute function public.donations_guard();
 
-create index donations_display_idx on public.donations (display_vitrail_id);
-create index donations_origin_idx  on public.donations (origin_vitrail_id);
+create index donations_vitrail_idx on public.donations (vitrail_id);
 create index visits_vitrail_idx    on public.visits (vitrail_id, channel);
 create index email_log_org_idx     on public.email_log (organization_id, created_at desc);
 create index reports_org_open_idx  on public.reports (organization_id, resolved, created_at desc);
@@ -224,32 +225,37 @@ create or replace view public.grand_total with (security_invoker = true) as
          count(*) filter (where amount_cents > refunded_cents) as donations_count
   from public.donations;
 
--- Ce qu'un vitrail AFFICHE (les campagnes fusionnées s'y ajoutent)
+-- Quels dons chaque vitrail affiche : la source unique de toutes les règles d'affichage.
+create view public.vitrail_donations with (security_invoker = true) as
+  -- chaque don, dans le vitrail où il a été fait
+  select n.id as donation_id, n.vitrail_id, n.organization_id, n.donor_id,
+         n.amount_cents - n.refunded_cents as net_cents, n.created_at
+  from public.donations n
+  union all
+  -- et, si sa campagne n'est pas privée, dans le vitrail permanent de l'organisme
+  select n.id, p.id, n.organization_id, n.donor_id,
+         n.amount_cents - n.refunded_cents, n.created_at
+  from public.donations n
+  join public.vitraux c on c.id = n.vitrail_id and c.kind = 'campaign' and c.in_main
+  join public.vitraux p on p.organization_id = n.organization_id and p.kind = 'permanent';
+
+-- Total et nombre de dons d'un vitrail (celui d'une campagne = ce qu'elle a levé)
 create view public.vitrail_totals with (security_invoker = true) as
   select v.id as vitrail_id, v.organization_id,
-         coalesce(sum(n.amount_cents - n.refunded_cents), 0)::bigint as total_cents,
-         count(n.id) filter (where n.amount_cents > n.refunded_cents) as donations_count
+         coalesce(sum(d.net_cents), 0)::bigint as total_cents,
+         count(d.donation_id) filter (where d.net_cents > 0) as donations_count
   from public.vitraux v
-  left join public.donations n on n.display_vitrail_id = v.id
+  left join public.vitrail_donations d on d.vitrail_id = v.id
   group by v.id, v.organization_id;
 
--- Ce qu'une campagne a LEVÉ, avant ou après fusion (rapport de fin de campagne)
-create view public.campaign_totals with (security_invoker = true) as
-  select v.id as vitrail_id, v.organization_id,
-         coalesce(sum(n.amount_cents - n.refunded_cents), 0)::bigint as total_cents,
-         count(n.id) filter (where n.amount_cents > n.refunded_cents) as donations_count
-  from public.vitraux v
-  left join public.donations n on n.origin_vitrail_id = v.id
-  group by v.id, v.organization_id;
-
--- Les morceaux d'un vitrail : la somme des dons d'un donateur affichés dans CE vitrail (campagnes fusionnées comprises)
+-- Les morceaux d'un vitrail : la somme des dons d'un donateur affichés dans CE vitrail
 create view public.vitrail_donor_totals with (security_invoker = true) as
-  select n.display_vitrail_id as vitrail_id, n.organization_id, n.donor_id,
-         sum(n.amount_cents - n.refunded_cents)::bigint as total_cents,
-         max(n.created_at) as last_donation_at
-  from public.donations n
-  group by n.display_vitrail_id, n.organization_id, n.donor_id
-  having sum(n.amount_cents - n.refunded_cents) > 0;
+  select d.vitrail_id, d.organization_id, d.donor_id,
+         sum(d.net_cents)::bigint as total_cents,
+         max(d.created_at) as last_donation_at
+  from public.vitrail_donations d
+  group by d.vitrail_id, d.organization_id, d.donor_id
+  having sum(d.net_cents) > 0;
 
 -- ── Accès : serveur seulement (service_role), comme le reste ───────────────────────────────────────────
 alter table public.organizations       enable row level security;
@@ -257,4 +263,4 @@ alter table public.organization_slugs  enable row level security;
 alter table public.org_members         enable row level security;
 alter table public.vitraux             enable row level security;
 revoke all on public.organizations, public.organization_slugs, public.org_members, public.vitraux from anon, authenticated;
-revoke all on public.vitrail_totals, public.campaign_totals, public.vitrail_donor_totals from anon, authenticated;
+revoke all on public.vitrail_donations, public.vitrail_totals, public.vitrail_donor_totals from anon, authenticated;
