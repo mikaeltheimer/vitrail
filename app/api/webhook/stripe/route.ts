@@ -126,20 +126,6 @@ export async function POST(request: NextRequest) {
         const locale = isLocale(m.lang) ? m.lang : 'fr'
         const { donorId } = result
         const amountCents = session.amount_total
-        // Diagnostic temporaire : détail réel des frais de traitement (Stripe, taxes, commission), à retirer une fois les frais compris
-        const connected = event.account
-        const intentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
-        after(async () => {
-          try {
-            if (intentId && connected) {
-              const pi = await getStripe().paymentIntents.retrieve(intentId, { expand: ['latest_charge.balance_transaction'] }, { stripeAccount: connected })
-              const bt = (pi.latest_charge as Stripe.Charge | null)?.balance_transaction as Stripe.BalanceTransaction | null
-              if (bt) console.error('Détail des frais Stripe (diagnostic) :', JSON.stringify({ session: session.id, amount: bt.amount, fee: bt.fee, net: bt.net, fee_details: bt.fee_details }))
-            }
-          } catch (e) {
-            console.error('Détail des frais illisible :', e)
-          }
-        })
         after(async () => {
           try {
             await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
