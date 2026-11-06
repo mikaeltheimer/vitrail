@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { getDb } from '@/lib/db'
 import { paymentModeFor } from '@/lib/env'
 import { requireAdmin, createInvitation, normalizeEmail, organizationsOf, removeMember, revokeInvitation, teamOf, type Role } from '@/lib/auth'
-import { sendInvitation } from '@/lib/email'
+import { sendInvitation, sendMagicLink } from '@/lib/email'
+import { createToken } from '@/lib/donations'
 import { fetchWhere, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
@@ -13,7 +14,7 @@ import { getStripe } from '@/lib/payments'
 import { refundDonationFromConsole } from '@/lib/refunds'
 import { formatMoney } from '@/lib/format'
 import { baseUrlOf } from '@/lib/tenant'
-import { hasTestimonialColumns } from '@/lib/schema'
+import { hasEmailLog, hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { errorMessage } from '@/lib/errors'
 import { notifyModeration } from '@/lib/moderation'
@@ -78,9 +79,42 @@ export async function GET(request: NextRequest) {
   }
   const vitrailTotals = new Map((vitrailTotalsRes.data ?? []).map(x => [x.vitrail_id as string, x]))
 
-  const [team, orgs] = await Promise.all([t.role === 'owner' ? teamOf(orgId) : Promise.resolve(null), organizationsOf(t.account.id)])
+  const [team, orgs, mailingRows, logRows] = await Promise.all([
+    t.role === 'owner' ? teamOf(orgId) : Promise.resolve(null),
+    organizationsOf(t.account.id),
+    fetchWhere<{ id: string; mailing_consent_at: string | null; mailing_withdrawn_at: string | null }>('donors', 'id,mailing_consent_at,mailing_withdrawn_at', 'organization_id', orgId, 'id').catch(() => []),
+    (await hasEmailLog())
+      ? db.from('email_log').select('donor_id,to_email,status,kind,created_at').eq('organization_id', orgId).in('kind', ['receipt', 'magic_link', 'reminder']).order('created_at', { ascending: false }).limit(2000)
+      : Promise.resolve({ data: [] as { donor_id: string | null; to_email: string; status: string; kind: string; created_at: string }[] }),
+  ])
+
+  // Rebonds : le DERNIER courriel envoyé à un donateur a rebondi (ou été signalé comme pourriel). Corrigé ou renvoyé avec succès depuis : plus signalé.
+  const lastByDonor = new Map<string, { email: string; status: string; at: string }>()
+  for (const r of ((logRows as { data: { donor_id: string | null; to_email: string; status: string; created_at: string }[] | null }).data ?? [])) {
+    if (r.donor_id && !lastByDonor.has(r.donor_id)) lastByDonor.set(r.donor_id, { email: r.to_email, status: r.status, at: r.created_at })
+  }
+  const bounces = [...lastByDonor.entries()].filter(([, v]) => v.status === 'bounced' || v.status === 'complained').map(([donorId, v]) => ({ donorId, ...v }))
+
+  // Résumé du vitrail principal : argent net reçu, dons et donateurs (remboursements et litiges perdus déduits)
+  const netByDonor = new Map<string, number>()
+  let summaryDonations = 0
+  for (const d of allDonations) {
+    const net = d.amount_cents - d.refunded_cents
+    if (net <= 0) continue
+    summaryDonations++
+    netByDonor.set(d.donor_id, (netByDonor.get(d.donor_id) ?? 0) + net)
+  }
 
   return NextResponse.json({
+    org: { name: t.tenant.org.name, slug: t.tenant.org.slug, status: t.tenant.org.status },
+    summary: {
+      totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
+      donations: summaryDonations,
+      donors: netByDonor.size,
+      goalCents: perm.kind === 'campaign' && perm.goalCents > 0 ? perm.goalCents : null,
+    },
+    bounces,
+    mailingCount: (mailingRows as { mailing_consent_at: string | null; mailing_withdrawn_at: string | null }[]).filter(d => d.mailing_consent_at && !d.mailing_withdrawn_at).length,
     me: { name: t.account.name, email: t.account.email, role: t.role, accountId: t.account.id },
     orgs: orgs.filter(o => o.id !== orgId),
     team,
@@ -120,7 +154,7 @@ export async function GET(request: NextRequest) {
 // masquer les boutons dans la console ne protège rien.
 const OWNER_ONLY = new Set([
   'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
-  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation',
+  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail',
 ])
 
 export async function POST(request: NextRequest) {
@@ -359,6 +393,32 @@ export async function POST(request: NextRequest) {
         console.error('Remboursement depuis la console impossible :', e)
         return fail(`Le remboursement n'a pas pu être fait : ${(e as { message?: string }).message ?? 'erreur Stripe'}`, 502)
       }
+    }
+
+    // Renvoyer au donateur son lien personnel (il l'a perdu, ou son adresse vient d'être corrigée)
+    case 'resendLink': {
+      const { data: d } = await db.from('donors').select('id,email,locale').eq('id', str(b.donorId)).eq('organization_id', orgId).maybeSingle()
+      if (!d) return fail('Donateur introuvable.', 404)
+      if (String(d.email).endsWith('.invalid')) return fail("Ce donateur n'a pas d'adresse courriel.")
+      const org = t.tenant.org
+      after(async () => {
+        try {
+          await sendMagicLink({ to: d.email as string, token: await createToken(d.id as string), locale: d.locale === 'en' ? 'en' : 'fr', donorId: d.id as string, organizationId: org.id, baseUrl: orgBaseUrl(org.slug) })
+        } catch (e) {
+          console.error('Lien personnel non renvoyé :', e)
+        }
+      })
+      return NextResponse.json({ ok: true })
+    }
+
+    // Corriger une adresse mal tapée (reçu en rebond). Si l'adresse correcte a déjà son morceau : il faut fusionner.
+    case 'changeDonorEmail': {
+      const e = validateEmail(normalizeEmail(b.email))
+      if (!e.ok) return fail(errorMessage('fr', e.error))
+      const { data: other } = await db.from('donors').select('id').eq('organization_id', orgId).eq('email', e.value).maybeSingle()
+      if (other && other.id !== str(b.donorId)) return fail('Cette adresse a déjà son propre morceau : fusionnez les deux morceaux plutôt.')
+      const { error } = await db.from('donors').update({ email: e.value, updated_at: new Date().toISOString() }).eq('id', str(b.donorId)).eq('organization_id', orgId)
+      return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
     }
 
     // Équipe : inviter quelqu'un (propriétaire ou bénévole). Le lien part par courriel et vaut 7 jours.

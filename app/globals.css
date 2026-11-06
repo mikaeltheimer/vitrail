@@ -47,15 +47,19 @@ body {
   min-height: 100dvh;
 }
 
-a {
-  color: var(--gold);
-}
+/* En couche « base » : les classes utilitaires (text-sm, text-[11px]…) doivent pouvoir les remplacer.
+   Hors couche, elles l'emporteraient sur toute classe Tailwind v4. */
+@layer base {
+  a {
+    color: var(--gold);
+  }
 
-input,
-textarea,
-button,
-select {
-  font: inherit;
+  input,
+  textarea,
+  button,
+  select {
+    font: inherit;
+  }
 }
 
 /* ── Éléments communs (pages mobiles) ── */

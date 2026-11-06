@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { currentAccount, organizationsOf, roleIn } from '@/lib/auth'
 import { resolveTenant } from '@/lib/tenant'
 import AdminLogin from './AdminLogin'
-import AdminConsole from './AdminConsole'
+import Console from '@/components/console/Console'
 import NoAccess from './NoAccess'
 
 export const dynamic = 'force-dynamic'
@@ -19,5 +19,5 @@ export default async function AdminPage() {
   if (!account) return <AdminLogin orgName={r.tenant.org.name} />
   const role = await roleIn(account.id, r.tenant.org.id)
   if (!role) return <NoAccess orgName={r.tenant.org.name} email={account.email} orgs={await organizationsOf(account.id)} />
-  return <AdminConsole />
+  return <Console />
 }
