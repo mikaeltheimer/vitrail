@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     db.from('vitrail_totals').select('vitrail_id,total_cents,donations_count').eq('organization_id', orgId),
     db
       .from('donations')
-      .select('id,donor_id,vitrail_id,amount_cents,refunded_cents,source,channel,created_at,donors(display_name,email,hidden,photo_url,photo_status)')
+      .select('id,donor_id,vitrail_id,amount_cents,refunded_cents,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false })
       .limit(100),
