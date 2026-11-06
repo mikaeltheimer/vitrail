@@ -318,6 +318,7 @@ export async function acceptInvitation(
       account = toAccount(created as AccountRow)
     }
     newSession = await createSession(account.id, input.userAgent)
+    await db.from('accounts').update({ last_login_at: now }).eq('id', account.id)
   }
 
   const orgId = (inv.organization_id as string | null) ?? null
