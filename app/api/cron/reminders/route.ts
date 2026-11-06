@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
-import { siteUrl } from '@/lib/env'
 import { runReminders } from '@/lib/reminders'
 import { isAdmin } from '@/lib/session'
 
@@ -30,7 +29,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const dry = params.get('dry') === '1' || (byAdmin && params.get('send') !== '1')
   try {
-    const result = await runReminders({ dry, baseUrl: siteUrl() })
+    const result = await runReminders({ dry })
     return NextResponse.json({ enabled: true, dry, ...result })
   } catch (e) {
     console.error('Rappels : passage échoué :', e)

@@ -7,6 +7,8 @@ import { cleanChannel, defaultColorFor, validateColor } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
 import { pathFromPublicUrl } from '@/lib/photos'
 import { isLocale } from '@/i18n/config'
+import { defaultTenant, getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
+import { applyRefund } from '@/lib/refunds'
 
 export const runtime = 'nodejs'
 
@@ -29,6 +31,31 @@ export async function POST(request: NextRequest) {
     if (session.payment_status !== 'paid') return NextResponse.json({ received: true })
 
     const m = session.metadata ?? {}
+
+    // Où ranger le don : l'organisme et le vitrail inscrits dans le paiement. Sans métadonnées (paiement commencé avant
+    // la bascule), c'est l'organisme par défaut. Un vitrail qui n'appartient pas à l'organisme est une anomalie : on
+    // refuse (500, Stripe réessaiera et le tableau de bord le montrera) plutôt que de ranger un don au mauvais endroit.
+    // Un vitrail clos reçoit quand même le don : il a été payé, il doit être consigné.
+    let orgId: string | undefined
+    let vitrailId: string | undefined
+    let baseUrl = orgBaseUrl(null)
+    if (m.orgId && m.vitrailId) {
+      const org = await getOrg(m.orgId)
+      const vitrail = org ? await getVitrail(org.id, m.vitrailId) : null
+      if (!org || !vitrail) {
+        console.error('Paiement avec un vitrail qui n\'appartient pas à l\'organisme :', session.id, m.orgId, m.vitrailId)
+        return NextResponse.json({ error: 'Vitrail inconnu' }, { status: 500 }) // i18n-ok : réponse à Stripe
+      }
+      orgId = org.id
+      vitrailId = vitrail.id
+      baseUrl = orgBaseUrl(org.slug)
+    } else {
+      const fallback = await defaultTenant()
+      if (!fallback) return NextResponse.json({ error: 'Organisme par défaut introuvable' }, { status: 500 }) // i18n-ok : réponse à Stripe
+      orgId = fallback.org.id
+      vitrailId = fallback.vitrail.id
+      baseUrl = orgBaseUrl(fallback.org.slug)
+    }
     const email = (m.email || session.customer_details?.email || '').trim().toLowerCase()
     if (!email || !session.amount_total) {
       console.error('Session sans courriel ou sans montant :', session.id)
@@ -41,6 +68,8 @@ export async function POST(request: NextRequest) {
 
     try {
       const result = await recordDonation({
+        organizationId: orgId,
+        vitrailId,
         email,
         profile: {
           showName: m.showName === '1',
@@ -54,7 +83,6 @@ export async function POST(request: NextRequest) {
         feeCents,
         source: 'stripe',
         providerRef: session.id,
-        eventId: m.eventId ? m.eventId : null,
         channel: cleanChannel(m.channel),
         locale: isLocale(m.lang) ? m.lang : undefined,
       })
@@ -66,7 +94,7 @@ export async function POST(request: NextRequest) {
         const amountCents = session.amount_total
         after(async () => {
           try {
-            await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId })
+            await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId, organizationId: orgId, baseUrl })
           } catch (e) {
             console.error('Courriel de reçu non envoyé :', e)
           }
@@ -75,6 +103,23 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
       return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
+    }
+  }
+
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge
+    const intent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id
+    if (!intent) return NextResponse.json({ received: true })
+    try {
+      // Le don est rangé sous la session Checkout : on la retrouve par le paiement
+      const sessions = await getStripe().checkout.sessions.list({ payment_intent: intent, limit: 1 })
+      const sessionId = sessions.data[0]?.id
+      if (!sessionId) return NextResponse.json({ received: true })
+      const outcome = await applyRefund(sessionId, charge.amount, charge.amount_refunded)
+      if (outcome === 'unknown') console.error('Remboursement d\'un paiement sans don enregistré :', sessionId)
+    } catch (e) {
+      console.error('Remboursement non enregistré :', e)
+      return NextResponse.json({ error: 'Remboursement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe
     }
   }
 

@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import Stripe from 'stripe'
-import { CONFIG, orgFor } from './config'
+import { CONFIG } from './config'
 import { translatorFor } from './i18n'
 import type { Locale } from '@/i18n/config'
-import { paymentMode, requireEnv, siteUrl } from './env'
+import { paymentMode, requireEnv } from './env'
+import { orgName, vitrailPath, type Tenant } from './tenant'
 import { recordDonation } from './donations'
 import type { DonorProfileInput } from './validate'
 
@@ -27,18 +28,21 @@ export interface CheckoutRequest {
   returnTo: 'vitrail' | 'don'
   profile: DonorProfileInput
   color: string
-  eventId: string | null
+  /** L'organisme et le vitrail où se fait le don (jamais pris tel quel dans la requête : résolus par l'adresse). */
+  tenant: Tenant
+  /** Adresse de l'organisme (sous-domaine) : le donateur revient là où il a commencé. */
+  baseUrl: string
   channel: string | null
   /** Langue du donateur : page de paiement Stripe, retour, et courriels. */
   locale: Locale
 }
 
 /** Adresses de retour : depuis le vitrail, on y revient ; sinon, la page de remerciement. */
-function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string, locale: Locale) {
-  const base = siteUrl()
+function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string, locale: Locale, baseUrl: string, vitrailRoute: string) {
+  const base = baseUrl.replace(/\/$/, '')
   // ?lang= : on revient dans la langue du don, même si le cookie a disparu entre-temps
   return returnTo === 'vitrail'
-    ? { success: `${base}/vitrail?merci=${ref}&lang=${locale}`, cancel: `${base}/vitrail?don&annule=1&lang=${locale}` }
+    ? { success: `${base}${vitrailRoute}?merci=${ref}&lang=${locale}`, cancel: `${base}${vitrailRoute}?don&annule=1&lang=${locale}` }
     : { success: `${base}/merci?ref=${ref}&lang=${locale}`, cancel: `${base}/don?annule=1&lang=${locale}` }
 }
 
@@ -50,6 +54,8 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
   if (mode === 'demo') {
     const ref = `demo_${randomUUID()}`
     await recordDonation({
+      organizationId: req.tenant.org.id,
+      vitrailId: req.tenant.vitrail.id,
       // Démo sans courriel : un morceau à part (comme un vrai donateur nouveau)
       email: req.email ?? `demo+${randomUUID()}@donateur.invalid`,
       profile: req.profile,
@@ -58,16 +64,15 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       feeCents: req.feeCents,
       source: 'demo',
       providerRef: ref,
-      eventId: req.eventId,
       channel: req.channel,
       locale: req.locale,
     })
-    return { url: returnUrls(req.returnTo, ref, req.locale).success }
+    return { url: returnUrls(req.returnTo, ref, req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail)).success }
   }
 
-  const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}', req.locale)
+  const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}', req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail))
   const t = translatorFor(req.locale)
-  const org = orgFor(req.locale).name
+  const org = orgName(req.tenant.org, req.locale)
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     submit_type: 'donate',
@@ -90,7 +95,9 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
     payment_intent_data: { description: t('stripe.description', { org }) },
     metadata: {
       email: req.email ?? '',
-      eventId: req.eventId ?? '',
+      // L'organisme et le vitrail voyagent avec le paiement : le webhook sait où ranger le don, même s'il arrive tard
+      orgId: req.tenant.org.id,
+      vitrailId: req.tenant.vitrail.id,
       showName: req.profile.showName ? '1' : '0',
       name: req.profile.name,
       message: req.profile.message ?? '', // ≤ 500 caractères (limite Stripe par valeur)

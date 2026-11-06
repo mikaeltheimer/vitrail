@@ -7,6 +7,7 @@ import { getSnapshot } from '@/lib/donations'
 import { formatMoney } from '@/lib/format'
 import { translatorFor } from '@/lib/i18n'
 import { resolveLocale } from '@/i18n/config'
+import { requireTenant } from '@/lib/tenant'
 
 // Image d'aperçu des liens partagés (Facebook, messageries) : le logo, l'appel et le total amassé, dans la langue du lien
 // (/api/og?lang=fr|en). Les robots de partage n'envoient pas de cookie : la langue vient de l'adresse seulement.
@@ -20,7 +21,9 @@ export async function GET(request: NextRequest) {
   const logo = `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public', 'ecole-logo.png'))).toString('base64')}`
   let total = ''
   try {
-    const s = await getSnapshot()
+    const tenant = await requireTenant(request)
+    if ('response' in tenant) throw new Error('organisme introuvable')
+    const s = await getSnapshot(tenant.tenant)
     total = t('meta.ogTotal', { montant: formatMoney(s.totalCents, locale), count: s.pieces.length })
   } catch {}
   const colors = ['#F0B24A', '#E0657F', '#3DB5A6', '#6A78E6', '#A56BD9']

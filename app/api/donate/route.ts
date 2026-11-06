@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
 import { localeOf } from '@/lib/i18n'
 import { paymentMode } from '@/lib/env'
-import { getCurrentEventRow, resolveToken } from '@/lib/donations'
+import { resolveToken } from '@/lib/donations'
+import { baseUrlOf, campaignParam, resolveTenant, tenantResponse, type Tenant } from '@/lib/tenant'
 import { startCheckout } from '@/lib/payments'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { cleanChannel, defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
@@ -22,6 +23,12 @@ export async function POST(request: NextRequest) {
     return errorResponse(request, err('requeteInvalide'))
   }
 
+  const resolved = await resolveTenant(request, { vitrailSlug: campaignParam(body.campaign) })
+  const stop = tenantResponse(resolved)
+  if (stop) return stop
+  const { tenant } = resolved as { tenant: Tenant }
+  if (tenant.vitrail.state === 'closed') return errorResponse(request, err('campagneFermee'), 409)
+
   const amount = validateAmountCents(body.amountCents)
   if (!amount.ok) return errorResponse(request, amount.error)
 
@@ -31,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   if (typeof body.token === 'string' && body.token) {
     // Donateur reconnu par lien magique : son morceau existe déjà, on ne touche ni au nom ni à la couleur.
-    const donor = await resolveToken(body.token)
+    const donor = await resolveToken(body.token, tenant.org.id)
     if (!donor) return errorResponse(request, err('lienExpire'), 400)
     email = donor.email
     profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl, quoteConsent: donor.quoteConsent }
@@ -53,7 +60,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const event = await getCurrentEventRow()
     const { url } = await startCheckout({
       email,
       // Le don seul fait la taille du morceau ; les frais couverts sont recalculés ici, jamais repris du navigateur
@@ -62,7 +68,8 @@ export async function POST(request: NextRequest) {
       returnTo: body.returnTo === 'vitrail' ? 'vitrail' : 'don',
       profile: { ...profile, name: profile.showName ? profile.name : ANON_LABEL },
       color,
-      eventId: event?.id ?? null,
+      tenant,
+      baseUrl: baseUrlOf(request),
       channel: cleanChannel(body.channel),
       locale: localeOf(request),
     })

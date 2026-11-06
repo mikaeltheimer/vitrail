@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
 import { createToken, findByProviderRef, getDonorView } from '@/lib/donations'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
+import { requireTenant } from '@/lib/tenant'
 
 export const runtime = 'nodejs'
 
@@ -11,12 +12,15 @@ export const runtime = 'nodejs'
  */
 export async function POST(request: NextRequest) {
   if (!rateLimit(clientKey(request, 'merci'), 600, 60_000)) return errorResponse(request, err('tropDeRequetes'), 429)
+  const t = await requireTenant(request)
+  if ('response' in t) return t.response
+  const orgId = t.tenant.org.id
   const { ref } = (await request.json().catch(() => ({}))) as { ref?: string }
-  const found = ref ? await findByProviderRef(ref) : null
+  const found = ref ? await findByProviderRef(ref, orgId) : null
   // Le webhook de paiement peut arriver quelques secondes après le retour du donateur
   if (!found) return NextResponse.json({ pending: true })
 
-  const donor = await getDonorView(found.donorId)
+  const donor = await getDonorView(found.donorId, orgId)
   if (!donor) return NextResponse.json({ pending: true })
 
   return NextResponse.json({

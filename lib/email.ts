@@ -41,6 +41,8 @@ interface Outgoing {
   to: string
   locale: Locale
   donorId?: string | null
+  /** Organisme du courriel (journal) ; absent, on le lit sur le donateur. */
+  organizationId?: string | null
   subject: string
   content: EmailContent
 }
@@ -49,9 +51,16 @@ interface Outgoing {
 async function logCreate(o: Outgoing): Promise<string | null> {
   try {
     if (!(await hasEmailLog())) return null
-    const { data, error } = await getDb()
+    const db = getDb()
+    // Le journal est rattaché à l'organisme du donateur (clé composite) : on le lit si l'appelant ne l'a pas donné
+    let organizationId = o.organizationId ?? null
+    if (!organizationId && o.donorId) {
+      const { data: d } = await db.from('donors').select('organization_id').eq('id', o.donorId).maybeSingle()
+      organizationId = (d?.organization_id as string | undefined) ?? null
+    }
+    const { data, error } = await db
       .from('email_log')
-      .insert({ donor_id: o.donorId ?? null, to_email: o.to, kind: o.kind, locale: o.locale, subject: o.subject })
+      .insert({ ...(organizationId ? { organization_id: organizationId } : {}), donor_id: o.donorId ?? null, to_email: o.to, kind: o.kind, locale: o.locale, subject: o.subject })
       .select('id')
       .single()
     if (error) throw error
@@ -146,6 +155,7 @@ export interface ReceiptInput {
   token: string
   locale: Locale
   donorId?: string | null
+  organizationId?: string | null
   baseUrl?: string
 }
 
@@ -172,7 +182,7 @@ export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'lo
 }
 
 export async function sendReceipt(i: ReceiptInput): Promise<boolean> {
-  return sendEmail({ kind: 'receipt', to: i.to, locale: i.locale, donorId: i.donorId, ...buildReceipt(i) })
+  return sendEmail({ kind: 'receipt', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildReceipt(i) })
 }
 
 export interface MagicLinkInput {
@@ -180,6 +190,7 @@ export interface MagicLinkInput {
   token: string
   locale: Locale
   donorId?: string | null
+  organizationId?: string | null
   baseUrl?: string
 }
 
@@ -199,7 +210,7 @@ export function buildMagicLink(i: Pick<MagicLinkInput, 'token' | 'locale' | 'bas
 }
 
 export async function sendMagicLink(i: MagicLinkInput): Promise<boolean> {
-  return sendEmail({ kind: 'magic_link', to: i.to, locale: i.locale, donorId: i.donorId, ...buildMagicLink(i) })
+  return sendEmail({ kind: 'magic_link', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildMagicLink(i) })
 }
 
 export interface ReminderInput {
@@ -207,6 +218,7 @@ export interface ReminderInput {
   token: string
   locale: Locale
   donorId: string
+  organizationId?: string | null
   baseUrl?: string
 }
 
@@ -229,7 +241,7 @@ export function buildReminder(i: Pick<ReminderInput, 'token' | 'locale' | 'baseU
 }
 
 export async function sendReminder(i: ReminderInput): Promise<boolean> {
-  return sendEmail({ kind: 'reminder', to: i.to, locale: i.locale, donorId: i.donorId, ...buildReminder(i) })
+  return sendEmail({ kind: 'reminder', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildReminder(i) })
 }
 
 /** Ce que l'équipe a fait : publier ou retirer le témoignage ou la photo, ou effacer le nom, le témoignage et la photo d'un coup. */
@@ -240,6 +252,7 @@ export interface ModerationInput {
   event: ModerationEvent
   locale: Locale
   donorId?: string | null
+  organizationId?: string | null
   baseUrl?: string
 }
 
@@ -272,5 +285,5 @@ export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'b
 }
 
 export async function sendModeration(i: ModerationInput): Promise<boolean> {
-  return sendEmail({ kind: 'moderation', to: i.to, locale: i.locale, donorId: i.donorId, ...buildModeration(i) })
+  return sendEmail({ kind: 'moderation', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildModeration(i) })
 }

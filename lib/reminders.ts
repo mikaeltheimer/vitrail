@@ -3,6 +3,7 @@ import { getDb } from './db'
 import { sendReminder } from './email'
 import { hasEmailLog, hasLocaleColumn } from './schema'
 import { isLocale, type Locale } from '@/i18n/config'
+import { getOrg, orgBaseUrl } from './tenant'
 
 // Rappel du lendemain : un seul courriel par donateur, qui l'invite à ajouter un témoignage.
 // Lancé chaque jour par Vercel Cron (vercel.json → /api/cron/reminders).
@@ -27,6 +28,7 @@ export interface ReminderOptions {
   limit?: number
   /** Ne rien envoyer : dire seulement qui recevrait le rappel. */
   dry?: boolean
+  /** Force l'adresse des liens (tests) ; par défaut, celle de l'organisme de chaque donateur. */
   baseUrl?: string
   pauseMs?: number
 }
@@ -75,7 +77,7 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
 
   // 2. Leur fiche, leurs dons réels et ce qu'on leur a déjà écrit
   const withLocale = await hasLocaleColumn()
-  const donorCols: string = `id,email,message,hidden${withLocale ? ',locale' : ''}`
+  const donorCols: string = `id,organization_id,email,message,hidden${withLocale ? ',locale' : ''}`
   const [donorsRes, paidRes, logRes] = await Promise.all([
     db.from('donors').select(donorCols).in('id', ids),
     db.from('donations').select('donor_id').in('donor_id', ids).eq('source', 'stripe'),
@@ -83,7 +85,7 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
   ])
   for (const r of [donorsRes, paidRes, logRes]) if (r.error) throw r.error
 
-  const donorRows = (donorsRes.data ?? []) as unknown as { id: string; email: string; message: string | null; hidden: boolean; locale?: string }[]
+  const donorRows = (donorsRes.data ?? []) as unknown as { id: string; organization_id: string; email: string; message: string | null; hidden: boolean; locale?: string }[]
   const donors = new Map(donorRows.map(d => [d.id, d]))
   const paid = new Set((paidRes.data ?? []).map(r => r.donor_id as string))
   const reminded = new Set<string>()
@@ -94,16 +96,22 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
     if (l.status === 'bounced' || l.status === 'complained') unreachable.add(l.donor_id as string)
   }
 
-  const eligible: { id: string; email: string; locale: Locale }[] = []
+  const eligible: { id: string; orgId: string; baseUrl: string; email: string; locale: Locale }[] = []
+  const baseUrls = new Map<string, string | null>() // organisme → adresse, ou null s'il n'envoie pas (brouillon, suspendu)
+  for (const orgId of new Set(donorRows.map(d => d.organization_id))) {
+    const org = await getOrg(orgId)
+    baseUrls.set(orgId, org && org.status === 'live' ? orgBaseUrl(org.slug) : null)
+  }
   for (const id of ids) {
     const d = donors.get(id)
     if (!d) skip('fiche absente')
     else if (!paid.has(id)) skip('aucun don payé') // i18n-ok : console admin (FR)
+    else if (!baseUrls.get(d.organization_id)) skip('organisme non actif') // i18n-ok : console admin (FR)
     else if (d.hidden) skip('morceau masqué') // i18n-ok : console admin (FR)
     else if (d.message && d.message.trim()) skip('a déjà un témoignage') // i18n-ok : console admin (FR)
     else if (reminded.has(id)) skip('déjà rappelé') // i18n-ok : console admin (FR)
     else if (unreachable.has(id)) skip('adresse en rebond ou signalée') // i18n-ok : console admin (FR)
-    else eligible.push({ id, email: d.email, locale: isLocale(d.locale) ? d.locale : 'fr' })
+    else eligible.push({ id, orgId: d.organization_id, baseUrl: opts.baseUrl ?? baseUrls.get(d.organization_id)!, email: d.email, locale: isLocale(d.locale) ? d.locale : 'fr' })
   }
   result.candidates = eligible.length
   const batch = eligible.slice(0, limit)
@@ -118,7 +126,7 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
   for (const [i, d] of batch.entries()) {
     try {
       const token = await createToken(d.id)
-      const ok = await sendReminder({ to: d.email, token, locale: d.locale, donorId: d.id, baseUrl: opts.baseUrl })
+      const ok = await sendReminder({ to: d.email, token, locale: d.locale, donorId: d.id, organizationId: d.orgId, baseUrl: d.baseUrl })
       if (ok) result.sent++
       else result.failed++
     } catch (e) {

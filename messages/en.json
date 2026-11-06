@@ -45,6 +45,7 @@
     "tropDePhotos": "Too many photos uploaded. Please try again in a minute.",
     "tropDeSignalements": "Too many reports.",
     "donsFermes": "Online donations aren't open yet.",
+    "campagneFermee": "This campaign has ended: it no longer accepts donations.",
     "requeteInvalide": "Invalid request.",
     "lienExpire": "This link has expired. Please request a new one.",
     "paiementEchec": "The payment couldn't be started. Please try again in a moment.",

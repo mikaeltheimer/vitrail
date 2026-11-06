@@ -4,6 +4,7 @@ import { paymentMode } from './env'
 import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
 import { newPhotoStatus } from './settings'
+import type { Tenant } from './tenant'
 import { hasLocaleColumn, hasTestimonialColumns } from './schema'
 import type { Locale } from '@/i18n/config'
 import type { DonorProfileInput } from './validate'
@@ -24,11 +25,17 @@ export async function fetchAll<T>(table: string, columns: string): Promise<T[]> 
   return out
 }
 
-// ── Événements ─────────────────────────────────────────────────────────────────
-export async function getCurrentEventRow(): Promise<{ id: string; name: string; goal_cents: number } | null> {
-  const { data, error } = await getDb().from('events').select('id,name,goal_cents').eq('is_current', true).maybeSingle()
-  if (error) throw error
-  return data
+/** Comme fetchAll, filtré par une colonne (organisme ou vitrail). */
+export async function fetchWhere<T>(table: string, columns: string, column: string, value: string, orderBy: string): Promise<T[]> {
+  const db = getDb()
+  const out: T[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from(table).select(columns).eq(column, value).order(orderBy).range(from, from + 999)
+    if (error) throw error
+    out.push(...((data ?? []) as T[]))
+    if (!data || data.length < 1000) break
+  }
+  return out
 }
 
 // ── Donateurs ──────────────────────────────────────────────────────────────────
@@ -37,13 +44,17 @@ interface DonorRow {
   email: string
 }
 
-async function findDonorByEmail(email: string): Promise<DonorRow | null> {
-  const { data, error } = await getDb().from('donors').select('id,email').eq('email', email).maybeSingle()
+/** Un donateur est propre à son organisme : le même courriel chez deux organismes, ce sont deux donateurs. */
+async function findDonorByEmail(orgId: string, email: string): Promise<DonorRow | null> {
+  const { data, error } = await getDb().from('donors').select('id,email').eq('organization_id', orgId).eq('email', email).maybeSingle()
   if (error) throw error
   return data
 }
 
 export interface RecordInput {
+  organizationId: string
+  /** Le vitrail où le don est fait (il doit appartenir à l'organisme : la base le vérifie aussi). */
+  vitrailId: string
   email: string
   /** Utilisé seulement si le courriel est nouveau : on ne modifie jamais le profil d'un donateur existant ici. */
   profile: DonorProfileInput
@@ -54,8 +65,6 @@ export interface RecordInput {
   feeCents?: number
   source: DonationSource
   providerRef: string | null
-  /** undefined = événement en cours ; null = aucun. */
-  eventId?: string | null
   /** Provenance (écran, affiche…), pour savoir quels emplacements font donner. */
   channel?: string | null
   /** Langue du donateur à ce don (pour ses courriels) ; absente = on ne la change pas (français pour un nouveau donateur). */
@@ -81,20 +90,21 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
     if (existing) return { donationId: existing.id, donorId: existing.donor_id, duplicate: true }
   }
 
-  let donor = await findDonorByEmail(i.email)
+  let donor = await findDonorByEmail(i.organizationId, i.email)
   if (!donor) {
     const insert: Record<string, unknown> = {
+      organization_id: i.organizationId,
       email: i.email,
       display_name: i.profile.name,
       show_name: i.profile.showName,
       message: i.profile.message,
       photo_url: i.profile.photoUrl,
-      photo_status: i.profile.photoUrl ? await newPhotoStatus() : 'approved',
+      photo_status: i.profile.photoUrl ? await newPhotoStatus(i.organizationId) : 'approved',
       color: i.color,
     }
     // Témoignage : publié tout de suite ou mis en attente, comme les photos
     if (await hasTestimonialColumns()) {
-      insert.message_status = i.profile.message ? await newPhotoStatus() : 'approved'
+      insert.message_status = i.profile.message ? await newPhotoStatus(i.organizationId) : 'approved'
       insert.quote_consent = i.profile.quoteConsent
     }
     if (i.locale && (await hasLocaleColumn())) insert.locale = i.locale
@@ -104,7 +114,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
       .select('id,email')
       .single()
     if (error) {
-      donor = await findDonorByEmail(i.email) // deux dons simultanés du même courriel : le second retrouve le morceau
+      donor = await findDonorByEmail(i.organizationId, i.email) // deux dons simultanés du même courriel : le second retrouve le morceau
       if (!donor) throw error
     } else {
       donor = data
@@ -117,8 +127,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
     if (localeError) console.error('Langue du donateur non enregistrée :', localeError.message)
   }
 
-  const eventId = i.eventId !== undefined ? i.eventId : (await getCurrentEventRow())?.id ?? null
-  const row: Record<string, unknown> = { donor_id: donor.id, event_id: eventId, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null }
+  const row: Record<string, unknown> = { organization_id: i.organizationId, vitrail_id: i.vitrailId, donor_id: donor.id, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null }
   if (i.feeCents) row.fee_cents = i.feeCents
   let { data: donation, error: insertError } = await db.from('donations').insert(row).select('id').single()
   // Migration des frais pas encore passée : on enregistre le don quand même, sans les frais (jamais perdre un don)
@@ -139,6 +148,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
 }
 
 export async function updateDonorProfile(
+  orgId: string,
   donorId: string,
   profile: DonorProfileInput,
   color?: string,
@@ -154,12 +164,12 @@ export async function updateDonorProfile(
   }
   if (color) patch.color = color
   // Nouvelle photo : publiée tout de suite ou mise en attente, selon le mode de la console
-  if (profile.photoUrl && profile.photoUrl !== previousPhotoUrl) patch.photo_status = await newPhotoStatus()
+  if (profile.photoUrl && profile.photoUrl !== previousPhotoUrl) patch.photo_status = await newPhotoStatus(orgId)
   if (await hasTestimonialColumns()) {
-    if (profile.message !== previousMessage) patch.message_status = profile.message ? await newPhotoStatus() : 'approved'
+    if (profile.message !== previousMessage) patch.message_status = profile.message ? await newPhotoStatus(orgId) : 'approved'
     patch.quote_consent = profile.quoteConsent
   }
-  const { error } = await getDb().from('donors').update(patch).eq('id', donorId)
+  const { error } = await getDb().from('donors').update(patch).eq('id', donorId).eq('organization_id', orgId)
   if (error) throw error
   // L'ancienne photo, remplacée ou retirée, quitte le stockage (après la mise à jour, jamais avant)
   if (previousPhotoUrl && previousPhotoUrl !== profile.photoUrl) await removePhotoFile(previousPhotoUrl)
@@ -179,13 +189,14 @@ export async function createToken(donorId: string): Promise<string> {
   return token
 }
 
-export async function createTokenForEmail(email: string): Promise<{ token: string; donorId: string } | null> {
-  const donor = await findDonorByEmail(email)
+export async function createTokenForEmail(orgId: string, email: string): Promise<{ token: string; donorId: string } | null> {
+  const donor = await findDonorByEmail(orgId, email)
   return donor ? { token: await createToken(donor.id), donorId: donor.id } : null
 }
 
 export interface DonorView {
   id: string
+  organizationId: string
   email: string
   showName: boolean
   name: string
@@ -200,23 +211,25 @@ export interface DonorView {
   totalCents: number
 }
 
-export async function resolveToken(token: string): Promise<DonorView | null> {
+/** Le lien n'ouvre que le morceau d'un donateur de CET organisme : un lien de l'un ne marche jamais chez l'autre. */
+export async function resolveToken(token: string, orgId: string): Promise<DonorView | null> {
   if (typeof token !== 'string' || token.length < 20 || token.length > 100) return null
   const db = getDb()
   const { data: row } = await db.from('edit_tokens').select('donor_id,expires_at').eq('token_hash', hashToken(token)).maybeSingle()
   if (!row || new Date(row.expires_at).getTime() < Date.now()) return null
-  return getDonorView(row.donor_id)
+  return getDonorView(row.donor_id, orgId)
 }
 
-export async function getDonorView(donorId: string): Promise<DonorView | null> {
+export async function getDonorView(donorId: string, orgId: string): Promise<DonorView | null> {
   const db = getDb()
   const extra = (await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''
-  const { data } = await db.from('donors').select(`id,email,display_name,show_name,message,photo_url,photo_status,color${extra}`).eq('id', donorId).maybeSingle()
+  const { data } = await db.from('donors').select(`id,email,display_name,show_name,message,photo_url,photo_status,color${extra}`).eq('id', donorId).eq('organization_id', orgId).maybeSingle()
   const d = data as unknown as (DonorPublicRow & { email: string; quote_consent?: boolean }) | null
   if (!d) return null
   const { data: t } = await db.from('donor_totals').select('total_cents').eq('donor_id', donorId).maybeSingle()
   return {
     id: d.id,
+    organizationId: orgId,
     email: d.email,
     showName: d.show_name,
     name: d.display_name,
@@ -236,20 +249,20 @@ export async function updateTestimonial(donor: DonorView, message: string | null
   let pending = false
   if (await hasTestimonialColumns()) {
     if (message !== donor.message) {
-      patch.message_status = message ? await newPhotoStatus() : 'approved'
+      patch.message_status = message ? await newPhotoStatus(donor.organizationId) : 'approved'
       pending = patch.message_status === 'pending'
     } else pending = donor.messagePending
     patch.quote_consent = quoteConsent && !!message
   }
-  const { error } = await getDb().from('donors').update(patch).eq('id', donor.id)
+  const { error } = await getDb().from('donors').update(patch).eq('id', donor.id).eq('organization_id', donor.organizationId)
   if (error) throw error
   return { pending }
 }
 
 /** Retrouve le morceau d'un paiement à partir de la référence du fournisseur (session Stripe, démo…). */
-export async function findByProviderRef(ref: string): Promise<{ donorId: string; amountCents: number } | null> {
+export async function findByProviderRef(ref: string, orgId: string): Promise<{ donorId: string; amountCents: number } | null> {
   if (typeof ref !== 'string' || ref.length < 8 || ref.length > 200) return null
-  const { data } = await getDb().from('donations').select('donor_id,amount_cents').eq('provider_ref', ref).maybeSingle()
+  const { data } = await getDb().from('donations').select('donor_id,amount_cents').eq('provider_ref', ref).eq('organization_id', orgId).maybeSingle()
   return data ? { donorId: data.donor_id, amountCents: data.amount_cents } : null
 }
 
@@ -276,21 +289,28 @@ interface DonorPublicRow {
   hidden: boolean
 }
 
-export async function getSnapshot(): Promise<Snapshot> {
+/**
+ * L'instantané public d'un vitrail. Les règles d'affichage (campagne = ses dons ; permanent = tous sauf les campagnes
+ * privées ; remboursements déduits) vivent dans les vues vitrail_* de la base : ici on ne filtre que par vitrail.
+ */
+export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
   const db = getDb()
+  const { org, vitrail } = tenant
   const ms = (await hasTestimonialColumns()) ? ',message_status' : ''
-  const [donors, totals, currentRes, grandRes, recentRes] = await Promise.all([
-    fetchAll<DonorPublicRow>('donors', `id,display_name,show_name,message,photo_url,photo_status,color,hidden${ms}`),
-    fetchAll<{ donor_id: string; total_cents: number | string }>('donor_totals', 'donor_id,total_cents'),
-    db.from('events').select('id,name,goal_cents').eq('is_current', true).maybeSingle(),
-    db.from('grand_total').select('total_cents,donations_count').maybeSingle(),
+
+  const [totals, donors, vtRes, recentRes] = await Promise.all([
+    fetchWhere<{ donor_id: string; total_cents: number | string }>('vitrail_donor_totals', 'donor_id,total_cents', 'vitrail_id', vitrail.id, 'donor_id'),
+    fetchWhere<DonorPublicRow>('donors', `id,display_name,show_name,message,photo_url,photo_status,color,hidden${ms}`, 'organization_id', org.id, 'id'),
+    db.from('vitrail_totals').select('total_cents,donations_count').eq('vitrail_id', vitrail.id).maybeSingle(),
     db
-      .from('donations')
-      .select(`id,donor_id,amount_cents,created_at,donors!inner(display_name,show_name,message,photo_url,photo_status,hidden${ms})`)
+      .from('vitrail_donations')
+      .select(`donation_id,donor_id,net_cents,created_at,donors!inner(display_name,show_name,message,photo_url,photo_status,hidden${ms})`)
+      .eq('vitrail_id', vitrail.id)
+      .gt('net_cents', 0)
       .order('created_at', { ascending: false })
       .limit(15),
   ])
-  if (currentRes.error) throw currentRes.error
+  if (vtRes.error) throw vtRes.error
   if (recentRes.error) throw recentRes.error
 
   const totalByDonor = new Map(totals.map(t => [t.donor_id, Number(t.total_cents)]))
@@ -306,22 +326,15 @@ export async function getSnapshot(): Promise<Snapshot> {
     }))
     .sort((a, b) => (a.id < b.id ? -1 : 1))
 
-  let event: EventInfo | null = null
-  if (currentRes.data) {
-    const { data: et } = await db.from('event_totals').select('total_cents').eq('event_id', currentRes.data.id).maybeSingle()
-    event = {
-      id: currentRes.data.id,
-      name: currentRes.data.name,
-      goalCents: currentRes.data.goal_cents,
-      totalCents: Number(et?.total_cents ?? 0),
-    }
-  }
+  const totalCents = Number(vtRes.data?.total_cents ?? 0)
+  // Toujours présent : « goalCents 0 » veut dire « pas d'objectif » (les pages le savent déjà)
+  const event: EventInfo = { id: vitrail.id, name: vitrail.name, goalCents: vitrail.goalCents, totalCents }
 
   type RecentDonor = { display_name: string; show_name: boolean; message: string | null; photo_url: string | null; photo_status: string; message_status?: string; hidden: boolean }
   type RecentRow = {
-    id: string
+    donation_id: string
     donor_id: string
-    amount_cents: number
+    net_cents: number
     created_at: string
     donors: RecentDonor | RecentDonor[]
   }
@@ -329,16 +342,14 @@ export async function getSnapshot(): Promise<Snapshot> {
     .map(r => ({ r, d: Array.isArray(r.donors) ? r.donors[0] : r.donors }))
     .filter(({ d }) => d && !d.hidden)
     .map(({ r, d }) => ({
-      id: r.id,
+      id: r.donation_id,
       donorId: r.donor_id,
       name: d.show_name ? d.display_name : null,
       message: d.message_status === 'pending' ? null : d.message,
       photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
-      amountCents: r.amount_cents,
+      amountCents: r.net_cents,
       at: r.created_at,
     }))
-
-  const totalCents = Number(grandRes.data?.total_cents ?? 0)
 
   // « La plupart donnent X $ » : médiane des morceaux, ramenée au montant suggéré le plus proche
   let typicalCents: number | null = null
@@ -347,7 +358,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     const median = sorted[Math.floor(sorted.length / 2)]
     typicalCents = CONFIG.suggestedCents.reduce((best, c) => (Math.abs(c - median) < Math.abs(best - median) ? c : best), CONFIG.suggestedCents[0])
   }
-  const version = fnv(JSON.stringify([pieces, event, totalCents]))
+  const version = fnv(JSON.stringify([vitrail.id, pieces, event, totalCents]))
 
   return {
     version,
@@ -355,7 +366,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     mode: paymentMode(),
     event,
     totalCents,
-    donationsCount: Number(grandRes.data?.donations_count ?? 0),
+    donationsCount: Number(vtRes.data?.donations_count ?? 0),
     pieces,
     recent,
     typicalCents,
