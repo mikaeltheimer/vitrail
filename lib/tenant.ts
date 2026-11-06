@@ -56,7 +56,7 @@ export interface Tenant {
 export type TenantResult = { tenant: Tenant } | { redirect: string } | { notFound: true }
 
 const defaultSlug = () => (process.env.DEFAULT_ORG_SLUG || 'ecoleartsutton').trim().toLowerCase()
-const platformDomain = () => (process.env.PLATFORM_DOMAIN || '').trim().toLowerCase().replace(/^\.+/, '')
+export const platformDomain = () => (process.env.PLATFORM_DOMAIN || '').trim().toLowerCase().replace(/^\.+/, '')
 
 /** L'identifiant d'organisme lu dans l'adresse, ou null (domaine inconnu, domaine nu, sous-sous-domaine). */
 export function orgSlugFromHost(hostHeader: string | null | undefined): string | null {

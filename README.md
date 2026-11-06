@@ -15,7 +15,7 @@ npm run dev
 ```
 
 1. **Supabase** : créer un projet neuf, ouvrir *SQL Editor*, lancer le contenu de `supabase/schema.sql`. Copier l'URL du projet et la clé de service dans `.env.local` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
-2. **Console** : définir `ADMIN_CODE` et `SESSION_SECRET` (32 caractères ou plus), puis ouvrir `/admin`, créer un événement et le mettre « en cours ».
+2. **Console** : chaque organisme a ses administrateurs (courriel + mot de passe, rôle propriétaire ou bénévole ; voir `lib/auth.ts`). Le premier propriétaire reçoit une invitation, puis ouvre `/admin` sur l'adresse de son organisme.
 3. **Écran** : ouvrir `/ecran` (touche F ou clic pour le plein écran).
 4. **Don** : ouvrir `/vitrail` (ou `/don`, le formulaire mobile) sur un téléphone, ou dans un autre onglet.
 

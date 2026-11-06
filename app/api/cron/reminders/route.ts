@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { runReminders } from '@/lib/reminders'
-import { isAdmin } from '@/lib/session'
+import { currentAccount } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,7 +22,8 @@ function cronAuthorized(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   const byCron = cronAuthorized(request)
-  const byAdmin = !byCron && (await isAdmin())
+  // Les rappels concernent TOUS les organismes : le déclenchement à la main est réservé aux comptes de Studio
+  const byAdmin = !byCron && !!(await currentAccount())?.isStudio
   if (!byCron && !byAdmin) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 }) // i18n-ok : appel de la plateforme, pas du visiteur
   if (process.env.REMINDERS_ENABLED === '0') return NextResponse.json({ enabled: false })
 

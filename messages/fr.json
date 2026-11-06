@@ -341,7 +341,22 @@
     "modContenuRetireTitre": "Votre morceau a été modifié",
     "modContenuRetirePreheader": "Ce que vous aviez ajouté enfreint nos règles.",
     "modContenuRetireCorps": "Après vérification, l'équipe a retiré ce que vous aviez ajouté à votre morceau (nom, témoignage ou photo) : ce contenu enfreint nos règles d'utilisation (contenu vulgaire, haineux, injurieux ou sexuel, par exemple). Votre morceau reste dans le vitrail, de façon anonyme, et votre don n'est pas touché.",
-    "modBoutonRegles": "Lire les règles d'utilisation"
+    "modBoutonRegles": "Lire les règles d'utilisation",
+    "invitationObjet": "Invitation à gérer le vitrail de {org}",
+    "invitationPreheader": "Créez votre accès à la console en une minute.",
+    "invitationTitre": "Vous êtes invité à rejoindre l’équipe",
+    "invitationCorps": "{inviter} vous invite à gérer le vitrail de dons de {org}, comme {role}. Choisissez votre mot de passe pour accéder à la console.",
+    "invitationCorpsSansAuteur": "Vous êtes invité à gérer le vitrail de dons de {org}, comme {role}. Choisissez votre mot de passe pour accéder à la console.",
+    "invitationBouton": "Accepter l’invitation",
+    "invitationNote": "Ce lien est personnel et vaut 7 jours. Si vous ne vous attendiez pas à cette invitation, ignorez ce courriel.",
+    "reinitObjet": "Choisir un nouveau mot de passe",
+    "reinitPreheader": "Le lien vaut une heure.",
+    "reinitTitre": "Nouveau mot de passe",
+    "reinitCorps": "Quelqu’un (sans doute vous) a demandé à changer le mot de passe de votre accès à la console de {brand}. Le lien vaut une heure et ne sert qu’une fois.",
+    "reinitBouton": "Choisir un mot de passe",
+    "reinitIgnorer": "Vous n’avez rien demandé? Ignorez ce courriel : votre mot de passe actuel reste valide.",
+    "roleProprietaire": "propriétaire",
+    "roleBenevole": "bénévole"
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",

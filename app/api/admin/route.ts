@@ -2,9 +2,10 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { getDb } from '@/lib/db'
 import { paymentModeFor } from '@/lib/env'
-import { isAdmin } from '@/lib/session'
+import { requireAdmin, createInvitation, normalizeEmail, organizationsOf, removeMember, revokeInvitation, teamOf, type Role } from '@/lib/auth'
+import { sendInvitation } from '@/lib/email'
 import { fetchWhere, recordDonation } from '@/lib/donations'
-import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrail, requireTenant } from '@/lib/tenant'
+import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
 import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
@@ -25,9 +26,9 @@ const fail = (error: string, status = 400) => NextResponse.json({ error }, { sta
 
 // ── Lecture : tout ce que la console affiche ──────────────────────────────────
 export async function GET(request: NextRequest) {
-  if (!(await isAdmin())) return fail('Non autorisé', 403)
-  const t = await requireTenant(request)
-  if ('response' in t) return t.response
+  const a = await requireAdmin(request)
+  if ('response' in a) return a.response
+  const t = a.ctx
   const orgId = t.tenant.org.id
   const perm = t.tenant.vitrail
   const db = getDb()
@@ -77,7 +78,12 @@ export async function GET(request: NextRequest) {
   }
   const vitrailTotals = new Map((vitrailTotalsRes.data ?? []).map(x => [x.vitrail_id as string, x]))
 
+  const [team, orgs] = await Promise.all([t.role === 'owner' ? teamOf(orgId) : Promise.resolve(null), organizationsOf(t.account.id)])
+
   return NextResponse.json({
+    me: { name: t.account.name, email: t.account.email, role: t.role, accountId: t.account.id },
+    orgs: orgs.filter(o => o.id !== orgId),
+    team,
     mode: paymentModeFor(t.tenant.org),
     stripe: { accountId: t.tenant.org.stripeAccountId, ready: t.tenant.org.stripeReady },
     photoModeration: moderation,
@@ -109,12 +115,20 @@ export async function GET(request: NextRequest) {
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
+// Ce que seul le propriétaire peut faire : l'argent, Stripe, les vitraux, l'équipe, les suppressions en masse.
+// Le bénévole (téléphone le jour de l'événement) modère et ajoute des dons comptants. Le refus est fait ICI, côté serveur :
+// masquer les boutons dans la console ne protège rien.
+const OWNER_ONLY = new Set([
+  'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
+  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation',
+])
+
 export async function POST(request: NextRequest) {
-  if (!(await isAdmin())) return fail('Non autorisé', 403)
-  const t = await requireTenant(request)
-  if ('response' in t) return t.response
-  const orgId = t.tenant.org.id
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
+  const a = await requireAdmin(request, OWNER_ONLY.has(String(b.action)) ? 'owner' : 'volunteer')
+  if ('response' in a) return a.response
+  const t = a.ctx
+  const orgId = t.tenant.org.id
   const db = getDb()
   const str = (v: unknown) => (typeof v === 'string' ? v : '')
   // Avis au donateur après une décision de modération (sauf si l'équipe décoche « Prévenir le donateur »).
@@ -345,6 +359,36 @@ export async function POST(request: NextRequest) {
         console.error('Remboursement depuis la console impossible :', e)
         return fail(`Le remboursement n'a pas pu être fait : ${(e as { message?: string }).message ?? 'erreur Stripe'}`, 502)
       }
+    }
+
+    // Équipe : inviter quelqu'un (propriétaire ou bénévole). Le lien part par courriel et vaut 7 jours.
+    case 'inviteMember': {
+      const email = normalizeEmail(b.email)
+      const e = validateEmail(email)
+      if (!e.ok) return fail(errorMessage('fr', e.error))
+      const role: Role = b.role === 'owner' ? 'owner' : 'volunteer'
+      const team = await teamOf(orgId)
+      if (team.members.some(m => m.email === e.value)) return fail('Cette personne fait déjà partie de l\'équipe.')
+      const inv = await createInvitation({ email: e.value, organizationId: orgId, role, invitedBy: t.account.id })
+      const org = t.tenant.org
+      after(async () => {
+        try {
+          await sendInvitation({ to: e.value, token: inv.token, locale: 'fr', orgName: org.name, organizationId: org.id, role, inviterName: t.account.name || null, baseUrl: orgBaseUrl(org.slug) })
+        } catch (err) {
+          console.error('Invitation non envoyée :', err)
+        }
+      })
+      return NextResponse.json({ ok: true })
+    }
+
+    case 'removeMember': {
+      const r = await removeMember(orgId, str(b.accountId))
+      return r.ok ? NextResponse.json({ ok: true }) : fail(r.error)
+    }
+
+    case 'revokeInvitation': {
+      await revokeInvitation(orgId, str(b.invitationId))
+      return NextResponse.json({ ok: true })
     }
 
     // Il n'y a plus d'« événement en cours » : le vitrail permanent est toujours celui de l'organisme

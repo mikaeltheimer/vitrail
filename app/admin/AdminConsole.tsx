@@ -67,7 +67,14 @@ interface DisputeRow {
   dispute_due_by: string | null
   created_at: string
 }
+interface TeamData {
+  members: { accountId: string; email: string; name: string; role: 'owner' | 'volunteer' }[]
+  invitations: { id: string; email: string; role: 'owner' | 'volunteer'; expiresAt: string }[]
+}
 interface Data {
+  me: { name: string; email: string; role: 'owner' | 'volunteer'; accountId: string }
+  orgs: { id: string; name: string; url: string }[]
+  team: TeamData | null
   mode: 'stripe' | 'demo' | 'off'
   disputes: DisputeRow[]
   stripe: { accountId: string | null; ready: boolean }
@@ -145,6 +152,8 @@ export default function AdminConsole() {
   }
 
   const current = data?.events.find(e => e.is_current) ?? null
+  // Le serveur refuse de toute façon au bénévole ce qui est réservé au propriétaire : ici, on évite seulement de lui montrer des boutons inutiles
+  const owner = data?.me.role === 'owner'
   // Signalements regroupés par morceau
   const reported = useMemo(() => {
     const byDonor = new Map<string, { donor: Donor | undefined; reasons: string[]; count: number }>()
@@ -175,13 +184,35 @@ export default function AdminConsole() {
             {data?.mode === 'demo' && <b style={{ color: 'var(--gold)' }}> · MODE DÉMO</b>}
           </p>
         </div>
-        <button className="muted text-sm underline" onClick={logout}>
-          Quitter
-        </button>
+        <div className="text-right text-sm">
+          {data && (
+            <p className="muted">
+              {data.me.name || data.me.email} · {data.me.role === 'owner' ? 'propriétaire' : 'bénévole'}
+            </p>
+          )}
+          {data && data.orgs.length > 0 && (
+            <select
+              className="field !mt-1 !w-auto !py-1 text-xs"
+              aria-label="Changer d'organisme"
+              value=""
+              onChange={e => { if (e.target.value) window.location.href = e.target.value }}
+            >
+              <option value="">Autre organisme…</option>
+              {data.orgs.map(o => (
+                <option key={o.id} value={o.url}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <button className="muted underline" onClick={logout}>
+            Se déconnecter
+          </button>
+        </div>
       </header>
 
       <nav className="mt-4 flex gap-2 overflow-x-auto pb-1">
-        {TABS.map(([id, label]) => (
+        {TABS.filter(([id]) => id !== 'evenements' || owner).map(([id, label]) => (
           <button key={id} className="chip whitespace-nowrap px-4" aria-pressed={tab === id} onClick={() => setTab(id)}>
             {label}
           </button>
@@ -220,7 +251,7 @@ export default function AdminConsole() {
             Sans réponse avant la date limite, le litige est perdu : la banque rend l&apos;argent au donateur, Stripe facture des frais de litige à
             l&apos;organisme et le morceau disparaît. Répondez (ou acceptez le litige) dans le tableau de bord Stripe.
           </p>
-          {data.stripe.ready && (
+          {data.stripe.ready && owner && (
             <button className="btn" onClick={() => void openStripeDashboard()}>
               Répondre dans Stripe
             </button>
@@ -382,7 +413,7 @@ export default function AdminConsole() {
                   <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: n.donor_id, hidden: !d?.hidden })}>
                     {d?.hidden ? 'Réafficher' : 'Masquer'}
                   </button>
-                  {n.source === 'stripe' && n.refunded_cents < n.amount_cents && n.dispute_status !== 'open' && n.dispute_status !== 'lost' && (
+                  {owner && n.source === 'stripe' && n.refunded_cents < n.amount_cents && n.dispute_status !== 'open' && n.dispute_status !== 'lost' && (
                     <button className="chip !px-3 text-sm" aria-expanded={refunding === n.id} onClick={() => setRefunding(refunding === n.id ? null : n.id)}>
                       Rembourser…
                     </button>
@@ -454,9 +485,11 @@ export default function AdminConsole() {
                     <button className="chip !px-3 text-sm" onClick={() => act({ action: 'hideDonor', donorId: d.id, hidden: !d.hidden })}>
                       {d.hidden ? 'Réafficher' : 'Masquer'}
                     </button>
-                    <button className="chip !px-3 text-sm" onClick={() => setMergeFrom(d.id)}>
-                      Fusionner…
-                    </button>
+                    {owner && (
+                      <button className="chip !px-3 text-sm" onClick={() => setMergeFrom(d.id)}>
+                        Fusionner…
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -533,6 +566,9 @@ export default function AdminConsole() {
               </li>
             </ul>
           </div>
+          {owner && data.team && <TeamCard team={data.team} meId={data.me.accountId} onAct={act} />}
+          {owner && (
+            <>
           <div className="card text-sm">
             <b>Mode de paiement : {data.mode === 'stripe' ? 'Stripe (réel)' : data.mode === 'demo' ? 'Démo (aucun paiement)' : 'Désactivé'}</b>
             <p className="muted mt-1">Le réglage général se fait avec les variables d&apos;environnement (PAYMENT_MODE) ; chaque organisme paie par Stripe seulement quand son compte est prêt.</p>
@@ -580,6 +616,8 @@ export default function AdminConsole() {
               Supprimer les dons de démo
             </button>
           </div>
+            </>
+          )}
         </section>
       )}
     </main>
@@ -884,6 +922,64 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: DonationRow; 
         </button>
       </div>
       {!all && amount && !valid && <p style={{ color: '#f87171' }}>Entre 0,01 $ et {formatMoney(remaining)}.</p>}
+    </div>
+  )
+}
+
+/** Équipe de l'organisme (propriétaire seulement) : membres, invitations en attente, inviter quelqu'un. */
+function TeamCard({ team, meId, onAct }: { team: TeamData; meId: string; onAct: (p: Record<string, unknown>, ok?: string) => Promise<boolean> }) {
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'volunteer' | 'owner'>('volunteer')
+  const label = (r: 'owner' | 'volunteer') => (r === 'owner' ? 'propriétaire' : 'bénévole')
+  return (
+    <div className="card space-y-3 text-sm">
+      <b>Équipe</b>
+      <p className="muted">
+        Le bénévole modère et ajoute des dons comptants. Le propriétaire peut aussi rembourser, gérer Stripe, les vitraux et l&apos;équipe.
+      </p>
+      <ul className="space-y-1">
+        {team.members.map(m => (
+          <li key={m.accountId} className="flex items-center justify-between gap-2">
+            <span>
+              {m.name || m.email} <span className="muted">· {m.email} · {label(m.role)}</span>
+            </span>
+            {m.accountId !== meId && (
+              <button
+                className="chip !px-3 text-xs"
+                onClick={() => {
+                  if (confirm(`Retirer ${m.email} de l'équipe ? Cette personne perd tout accès à cet organisme.`)) void onAct({ action: 'removeMember', accountId: m.accountId }, 'Retiré de l’équipe.')
+                }}
+              >
+                Retirer
+              </button>
+            )}
+          </li>
+        ))}
+        {team.invitations.map(i => (
+          <li key={i.id} className="flex items-center justify-between gap-2">
+            <span className="muted">
+              {i.email} · {label(i.role)} · invitation en attente (jusqu&apos;au {new Date(i.expiresAt).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })})
+            </span>
+            <button className="chip !px-3 text-xs" onClick={() => void onAct({ action: 'revokeInvitation', invitationId: i.id }, 'Invitation annulée.')}>
+              Annuler
+            </button>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={async e => {
+          e.preventDefault()
+          if (await onAct({ action: 'inviteMember', email, role }, `Invitation envoyée à ${email}.`)) setEmail('')
+        }}
+      >
+        <input className="field !w-64" type="email" placeholder="Courriel de la personne" value={email} onChange={e => setEmail(e.target.value)} required />
+        <select className="field !w-auto" value={role} onChange={e => setRole(e.target.value as 'volunteer' | 'owner')} aria-label="Rôle">
+          <option value="volunteer">Bénévole</option>
+          <option value="owner">Propriétaire</option>
+        </select>
+        <button className="btn">Inviter</button>
+      </form>
     </div>
   )
 }

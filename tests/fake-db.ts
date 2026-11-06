@@ -22,6 +22,7 @@ class Query {
   delete() { this.op = 'delete'; return this }
   private f(col: string, v: unknown, fn: (x: unknown) => boolean) { this.described.push([col, v]); this.filters.push(r => fn(r[col])); return this }
   eq(c: string, v: unknown) { return this.f(c, v, x => x === v) }
+  is(c: string, v: null) { return this.f(c, v, x => x === v || x === undefined) }
   in(c: string, v: unknown[]) { return this.f(c, v, x => v.includes(x)) }
   gt(c: string, v: number) { return this.f(c, v, x => Number(x) > v) }
   gte(c: string, v: string) { return this.f(c, v, x => String(x) >= v) }
@@ -66,6 +67,10 @@ const VIEWS = new Set(['vitrail_donations', 'vitrail_totals', 'vitrail_donor_tot
 const UNIQUE: Record<string, string[]> = {
   donors: ['organization_id+email'],
   donations: ['provider_ref'],
+  accounts: ['email'],
+  memberships: ['account_id+organization_id'],
+  sessions: ['token_hash'],
+  invitations: ['token_hash'],
 }
 export const fakeDb = {
   from(table: string) {

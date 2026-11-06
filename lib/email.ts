@@ -12,7 +12,7 @@ import type { Locale } from '@/i18n/config'
 // (Resend en panne, journal absent) est écrit dans la console et le journal, et le don ou la demande suit son cours.
 // Sans RESEND_API_KEY (développement), le courriel est simplement écrit dans la console du serveur.
 
-export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation'
+export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset'
 
 export type EmailStatus = 'queued' | 'sent' | 'delivered' | 'delayed' | 'bounced' | 'complained' | 'failed' | 'skipped'
 
@@ -286,4 +286,60 @@ export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'b
 
 export async function sendModeration(i: ModerationInput): Promise<boolean> {
   return sendEmail({ kind: 'moderation', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildModeration(i) })
+}
+
+// ── Comptes de la console (administrateurs) ────────────────────────────────────
+
+export interface InvitationEmailInput {
+  to: string
+  token: string
+  locale: Locale
+  orgName: string
+  organizationId: string
+  role: 'owner' | 'volunteer'
+  inviterName?: string | null
+  /** Adresse de l'organisme : le lien ouvre sa console. */
+  baseUrl: string
+}
+
+export function buildInvitation(i: Omit<InvitationEmailInput, 'to' | 'organizationId'>): Built {
+  const t = translatorFor(i.locale)
+  const url = `${i.baseUrl.replace(/\/$/, '')}/admin/invitation?jeton=${encodeURIComponent(i.token)}`
+  const role = i.role === 'owner' ? t('courriel.roleProprietaire') : t('courriel.roleBenevole')
+  return {
+    subject: t('courriel.invitationObjet', { org: i.orgName }),
+    content: {
+      preheader: t('courriel.invitationPreheader'),
+      heading: t('courriel.invitationTitre'),
+      paragraphs: [i.inviterName ? t('courriel.invitationCorps', { inviter: i.inviterName, org: i.orgName, role }) : t('courriel.invitationCorpsSansAuteur', { org: i.orgName, role })],
+      button: { label: t('courriel.invitationBouton'), url },
+      note: t('courriel.invitationNote'),
+      linkHelp: t('courriel.lienAlt'),
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendInvitation(i: InvitationEmailInput): Promise<boolean> {
+  return sendEmail({ kind: 'invitation', to: i.to, locale: i.locale, organizationId: i.organizationId, ...buildInvitation(i) })
+}
+
+export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: string }): Built {
+  const t = translatorFor(i.locale)
+  const url = `${i.baseUrl.replace(/\/$/, '')}/admin/reinitialiser?jeton=${encodeURIComponent(i.token)}`
+  return {
+    subject: t('courriel.reinitObjet'),
+    content: {
+      preheader: t('courriel.reinitPreheader'),
+      heading: t('courriel.reinitTitre'),
+      paragraphs: [t('courriel.reinitCorps', { brand: CONFIG.brand.name }), t('courriel.reinitIgnorer')],
+      button: { label: t('courriel.reinitBouton'), url },
+      linkHelp: t('courriel.lienAlt'),
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendPasswordReset(i: { to: string; token: string; locale: Locale; baseUrl: string; organizationId?: string | null }): Promise<boolean> {
+  return sendEmail({ kind: 'password_reset', to: i.to, locale: i.locale, organizationId: i.organizationId ?? null, ...buildPasswordReset(i) })
 }

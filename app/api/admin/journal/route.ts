@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { isAdmin } from '@/lib/session'
+import { requireAdmin } from '@/lib/auth'
 import { hasEmailLog } from '@/lib/schema'
 
 export const runtime = 'nodejs'
@@ -8,13 +8,16 @@ export const dynamic = 'force-dynamic'
 
 // Journal des courriels pour la console (lecture seule) : compteurs par statut et derniers envois.
 // Sans la table email_log (migration 2026-11-05-journal-courriels.sql), « available: false ».
-export async function GET() {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 }) // i18n-ok : console admin (FR)
+// Seulement les courriels de l'organisme de l'adresse : jamais ceux d'un autre.
+export async function GET(request: NextRequest) {
+  const a = await requireAdmin(request)
+  if ('response' in a) return a.response
+  const orgId = a.ctx.tenant.org.id
   if (!(await hasEmailLog())) return NextResponse.json({ available: false, counts: {}, rows: [] })
   const db = getDb()
   const [rowsRes, statusRes] = await Promise.all([
-    db.from('email_log').select('id,created_at,to_email,kind,status,error,subject').order('created_at', { ascending: false }).limit(100),
-    db.from('email_log').select('status').order('created_at', { ascending: false }).limit(2000),
+    db.from('email_log').select('id,created_at,to_email,kind,status,error,subject').eq('organization_id', orgId).order('created_at', { ascending: false }).limit(100),
+    db.from('email_log').select('status').eq('organization_id', orgId).order('created_at', { ascending: false }).limit(2000),
   ])
   if (rowsRes.error || statusRes.error) return NextResponse.json({ error: (rowsRes.error ?? statusRes.error)!.message }, { status: 500 })
   const counts: Record<string, number> = {}

@@ -3,7 +3,8 @@ import { buildMagicLink, buildModeration, buildReceipt, buildReminder, sendEmail
 import { escapeHtml, renderEmail } from '@/lib/emailTemplate'
 import { siteUrl } from '@/lib/env'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
-import { isAdmin } from '@/lib/session'
+import { currentAccount, roleIn } from '@/lib/auth'
+import { requireTenant } from '@/lib/tenant'
 import { validateEmail } from '@/lib/validate'
 import { isLocale, type Locale } from '@/i18n/config'
 
@@ -44,6 +45,14 @@ const SECURITY = {
   'Cache-Control': 'no-store',
 }
 
+/** Propriétaire de l'organisme de l'adresse (les exemples ne lisent aucune donnée, mais l'envoi d'essai part à une adresse libre). */
+async function isOwner(request: NextRequest): Promise<boolean> {
+  const t = await requireTenant(request)
+  if ('response' in t) return false
+  const me = await currentAccount()
+  return !!me && (await roleIn(me.id, t.tenant.org.id)) === 'owner'
+}
+
 const page = (body: string, status = 200) =>
   new NextResponse(
     `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Courriels — aperçu</title>
@@ -53,7 +62,7 @@ form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}input
   )
 
 export async function GET(request: NextRequest) {
-  if (!(await isAdmin())) return page('<p>Connectez-vous d\'abord à la <a href="/admin">console</a>, puis rouvrez cette adresse.</p>', 403)
+  if (!(await isOwner(request))) return page('<p>Connectez-vous d\'abord à la <a href="/admin">console</a> comme propriétaire, puis rouvrez cette adresse.</p>', 403)
   const params = request.nextUrl.searchParams
   const type = params.get('type')
   const lang = params.get('lang')
@@ -87,7 +96,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await isAdmin())) return page('<p>Non autorisé.</p>', 403)
+  if (!(await isOwner(request))) return page('<p>Non autorisé.</p>', 403)
   if (!rateLimit(clientKey(request, 'admin-courriels'), 10, 10 * 60_000)) return page('<p>Trop d\'essais. Réessayez dans quelques minutes.</p>', 429)
   const form = await request.formData().catch(() => null)
   const type = form?.get('type')

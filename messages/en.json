@@ -341,7 +341,22 @@
     "modContenuRetireTitre": "Your piece has been changed",
     "modContenuRetirePreheader": "What you had added breaks our rules.",
     "modContenuRetireCorps": "After review, the team removed what you had added to your piece (name, testimonial or photo): this content breaks our rules of use (for example, vulgar, hateful, abusive or sexual content). Your piece stays in the stained glass, anonymously, and your donation is not affected.",
-    "modBoutonRegles": "Read the rules of use"
+    "modBoutonRegles": "Read the rules of use",
+    "invitationObjet": "Invitation to manage the donation stained glass of {org}",
+    "invitationPreheader": "Set up your console access in a minute.",
+    "invitationTitre": "You’re invited to join the team",
+    "invitationCorps": "{inviter} invites you to manage the donation stained glass of {org}, as {role}. Choose your password to access the console.",
+    "invitationCorpsSansAuteur": "You’re invited to manage the donation stained glass of {org}, as {role}. Choose your password to access the console.",
+    "invitationBouton": "Accept the invitation",
+    "invitationNote": "This link is personal and valid for 7 days. If you weren’t expecting this invitation, ignore this email.",
+    "reinitObjet": "Choose a new password",
+    "reinitPreheader": "The link is valid for one hour.",
+    "reinitTitre": "New password",
+    "reinitCorps": "Someone (probably you) asked to change the password for your {brand} console access. The link is valid for one hour and works only once.",
+    "reinitBouton": "Choose a password",
+    "reinitIgnorer": "Didn’t ask for this? Ignore this email: your current password still works.",
+    "roleProprietaire": "owner",
+    "roleBenevole": "volunteer"
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",
