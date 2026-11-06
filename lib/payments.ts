@@ -3,7 +3,8 @@ import Stripe from 'stripe'
 import { CONFIG } from './config'
 import { translatorFor } from './i18n'
 import type { Locale } from '@/i18n/config'
-import { paymentMode, requireEnv } from './env'
+import { paymentModeFor, requireEnv } from './env'
+import { cumulativePlatformFees, platformFeeCents } from './platform-fee'
 import { orgName, vitrailPath, type Tenant } from './tenant'
 import { recordDonation } from './donations'
 import type { DonorProfileInput } from './validate'
@@ -48,7 +49,7 @@ function returnUrls(returnTo: CheckoutRequest['returnTo'], ref: string, locale: 
 
 /** Renvoie l'adresse où envoyer le donateur (paiement Stripe, ou retour direct en mode démo). */
 export async function startCheckout(req: CheckoutRequest): Promise<{ url: string }> {
-  const mode = paymentMode()
+  const mode = paymentModeFor(req.tenant.org)
   if (mode === 'off') throw new Error('Les paiements ne sont pas activés.')
 
   if (mode === 'demo') {
@@ -70,10 +71,16 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
     return { url: returnUrls(req.returnTo, ref, req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail)).success }
   }
 
+  // Paiement direct sur le compte de l'organisme : l'argent va chez lui, nous ne prélevons que notre commission
+  const accountId = req.tenant.org.stripeAccountId
+  if (!accountId) throw new Error("L'organisme n'a pas de compte Stripe connecté.")
+  const platformFee = platformFeeCents(req.amountCents, req.tenant.org.feeSchedule, await cumulativePlatformFees(req.tenant.org.id))
+
   const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}', req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail))
   const t = translatorFor(req.locale)
   const org = orgName(req.tenant.org, req.locale)
-  const session = await getStripe().checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create(
+    {
     mode: 'payment',
     submit_type: 'donate',
     locale: req.locale === 'en' ? 'en' : 'fr-CA',
@@ -92,7 +99,11 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
         ? [{ quantity: 1, price_data: { currency: CONFIG.currency, unit_amount: req.feeCents, product_data: { name: t('stripe.frais') } } }]
         : []),
     ],
-    payment_intent_data: { description: t('stripe.description', { org }) },
+    payment_intent_data: {
+      description: t('stripe.description', { org }),
+      // Notre commission, prélevée par Stripe sur le paiement ; les frais de Stripe restent à la charge de l'organisme
+      ...(platformFee > 0 ? { application_fee_amount: platformFee } : {}),
+    },
     metadata: {
       email: req.email ?? '',
       // L'organisme et le vitrail voyagent avec le paiement : le webhook sait où ranger le don, même s'il arrive tard
@@ -106,11 +117,14 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       color: req.color,
       channel: req.channel ?? '',
       feeCents: String(req.feeCents),
+      platformFee: String(platformFee),
       lang: req.locale,
     },
     success_url: urls.success,
     cancel_url: urls.cancel,
-  })
+    },
+    { stripeAccount: accountId },
+  )
   if (!session.url) throw new Error('Stripe n\'a pas renvoyé d\'adresse de paiement.')
   return { url: session.url }
 }

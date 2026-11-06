@@ -4,8 +4,11 @@ import { fakeDb } from './fake-db'
 
 // Remplace ./db et @/lib/db par la base factice, avant tout import du code de l'application.
 const root = path.resolve(__dirname, '..')
+/** Modules remplacés par un test (clé = adresse d'import exacte, relative ou « @/… »). */
+export const mocks: Record<string, unknown> = {}
 const original = (Module as unknown as { _load: (...a: unknown[]) => unknown })._load
 ;(Module as unknown as { _load: (...a: unknown[]) => unknown })._load = function (request: unknown, ...rest: unknown[]) {
+  if (typeof request === 'string' && request in mocks) return mocks[request]
   if (request === './db' || request === '@/lib/db' || (typeof request === 'string' && request.endsWith('/lib/db'))) return { getDb: () => fakeDb }
   if (typeof request === 'string' && request.startsWith('@/')) return original.call(this, path.join(root, request.slice(2)), ...rest)
   return original.call(this, request, ...rest)

@@ -40,6 +40,19 @@ export function paymentMode(): PaymentMode {
   return process.env.NODE_ENV === 'production' ? 'off' : 'demo'
 }
 
+/**
+ * Mode de paiement d'UN organisme. Le réglage global est l'interrupteur maître de Studio Existence :
+ * - global « off » ou « demo » : s'applique à tous (tant que PAYMENT_MODE=demo, aucun vrai paiement nulle part) ;
+ * - global « stripe » : un organisme en brouillon reste en démo ; un organisme en ligne paie par Stripe seulement
+ *   si son compte est prêt (identifié, paiements activés), sinon les dons sont fermés.
+ */
+export function paymentModeFor(org: { status: string; stripeReady: boolean }): PaymentMode {
+  const global = paymentMode()
+  if (global !== 'stripe') return global
+  if (org.status === 'draft') return 'demo'
+  return org.status === 'live' && org.stripeReady ? 'stripe' : 'off'
+}
+
 export function requireEnv(name: string): string {
   const v = process.env[name]
   if (!v) throw new Error(`Variable d'environnement manquante : ${name}`)

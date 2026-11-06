@@ -1,5 +1,6 @@
 import { getDb } from './db'
 import { siteUrl } from './env'
+import { parseFeeSchedule, type FeeSchedule } from './platform-fee'
 
 // Résolution de l'organisme (et de son vitrail) à partir de l'adresse de la requête.
 //
@@ -33,6 +34,7 @@ export interface OrgRow {
   replyTo: string | null
   stripeAccountId: string | null
   stripeReady: boolean
+  feeSchedule: FeeSchedule
 }
 
 export interface VitrailRow {
@@ -98,6 +100,7 @@ interface OrgDbRow {
   reply_to: string | null
   stripe_account_id: string | null
   stripe_ready: boolean
+  fee_schedule: unknown
 }
 
 const toOrg = (r: OrgDbRow, slug: string): OrgRow => ({
@@ -111,6 +114,7 @@ const toOrg = (r: OrgDbRow, slug: string): OrgRow => ({
   replyTo: r.reply_to,
   stripeAccountId: r.stripe_account_id,
   stripeReady: r.stripe_ready,
+  feeSchedule: parseFeeSchedule(r.fee_schedule),
 })
 
 /** Nom de l'organisme dans la langue demandée (repli sur le français). */
@@ -154,7 +158,7 @@ export async function getOrg(orgId: string): Promise<OrgRow | null> {
   return remember(`org:${orgId}`, async () => {
     const db = getDb()
     const [orgRes, slugRes] = await Promise.all([
-      db.from('organizations').select('id,status,name_fr,texts,photo_moderation,sender_name,reply_to,stripe_account_id,stripe_ready').eq('id', orgId).maybeSingle(),
+      db.from('organizations').select('id,status,name_fr,texts,photo_moderation,sender_name,reply_to,stripe_account_id,stripe_ready,fee_schedule').eq('id', orgId).maybeSingle(),
       db.from('organization_slugs').select('slug').eq('organization_id', orgId).eq('is_current', true).maybeSingle(),
     ])
     if (orgRes.error) throw orgRes.error

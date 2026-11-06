@@ -47,11 +47,13 @@ async function main() {
 
   console.log('Remboursements')
   tables.donations.push({ id: 'd-fee', organization_id: 'orgA', vitrail_id: 'permA', donor_id: a.donorId, amount_cents: 5000, fee_cents: 200, refunded_cents: 0, provider_ref: 'cs_test_fee' })
-  check('remboursement partiel proportionnel', (await applyRefund('cs_test_fee', 5200, 2600)) === 'updated' && tables.donations.at(-1)!.refunded_cents === 2500)
-  check('rejouer l\'événement ne change rien', (await applyRefund('cs_test_fee', 5200, 2600)) === 'unchanged' && tables.donations.at(-1)!.refunded_cents === 2500)
-  check('remboursement total = tout le don', (await applyRefund('cs_test_fee', 5200, 5200)) === 'updated' && tables.donations.at(-1)!.refunded_cents === 5000)
-  check('jamais plus que le don', (await applyRefund('cs_test_fee', 5200, 9999)) === 'unchanged' && tables.donations.at(-1)!.refunded_cents === 5000)
-  check('paiement inconnu', (await applyRefund('cs_inconnu', 100, 100)) === 'unknown')
+  check('remboursement partiel proportionnel', (await applyRefund('orgA', 'cs_test_fee', 5200, 2600)).outcome === 'updated' && tables.donations.at(-1)!.refunded_cents === 2500)
+  check('rejouer l\'événement ne change rien', (await applyRefund('orgA', 'cs_test_fee', 5200, 2600)).outcome === 'unchanged' && tables.donations.at(-1)!.refunded_cents === 2500)
+  check('remboursement total = tout le don', (await applyRefund('orgA', 'cs_test_fee', 5200, 5200)).outcome === 'updated' && tables.donations.at(-1)!.refunded_cents === 5000)
+  check('jamais plus que le don', (await applyRefund('orgA', 'cs_test_fee', 5200, 9999)).outcome === 'unchanged' && tables.donations.at(-1)!.refunded_cents === 5000)
+  check('paiement inconnu', (await applyRefund('orgA', 'cs_inconnu', 100, 100)).outcome === 'unknown'
+  )
+  check('un remboursement ne touche pas le don d\'un autre organisme', (await applyRefund('orgB', 'cs_test_fee', 5200, 5200)).outcome === 'unknown')
 
   console.log('Modération par organisme')
   check('organisme A : publié tout de suite', (await newPhotoStatus('orgA')) === 'approved')

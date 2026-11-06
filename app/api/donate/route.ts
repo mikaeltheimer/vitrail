@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { err, errorResponse } from '@/lib/errors'
 import { localeOf } from '@/lib/i18n'
-import { paymentMode } from '@/lib/env'
+import { paymentModeFor } from '@/lib/env'
 import { resolveToken } from '@/lib/donations'
 import { baseUrlOf, campaignParam, resolveTenant, tenantResponse, type Tenant } from '@/lib/tenant'
 import { startCheckout } from '@/lib/payments'
@@ -14,7 +14,6 @@ export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   if (!rateLimit(clientKey(request, 'donate'), 120, 60_000)) return errorResponse(request, err('tropDeTentatives'), 429)
-  if (paymentMode() === 'off') return errorResponse(request, err('donsFermes'), 503)
 
   let body: Record<string, unknown>
   try {
@@ -27,6 +26,7 @@ export async function POST(request: NextRequest) {
   const stop = tenantResponse(resolved)
   if (stop) return stop
   const { tenant } = resolved as { tenant: Tenant }
+  if (paymentModeFor(tenant.org) === 'off') return errorResponse(request, err('donsFermes'), 503)
   if (tenant.vitrail.state === 'closed') return errorResponse(request, err('campagneFermee'), 409)
 
   const amount = validateAmountCents(body.amountCents)

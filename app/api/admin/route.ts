@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { getDb } from '@/lib/db'
-import { paymentMode } from '@/lib/env'
+import { paymentModeFor } from '@/lib/env'
 import { isAdmin } from '@/lib/session'
 import { fetchWhere, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrail, requireTenant } from '@/lib/tenant'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
+import { refreshAccount, startOnboarding } from '@/lib/connect'
+import { baseUrlOf } from '@/lib/tenant'
 import { hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { errorMessage } from '@/lib/errors'
@@ -71,7 +73,8 @@ export async function GET(request: NextRequest) {
   const vitrailTotals = new Map((vitrailTotalsRes.data ?? []).map(x => [x.vitrail_id as string, x]))
 
   return NextResponse.json({
-    mode: paymentMode(),
+    mode: paymentModeFor(t.tenant.org),
+    stripe: { accountId: t.tenant.org.stripeAccountId, ready: t.tenant.org.stripeReady },
     photoModeration: moderation,
     reports: reportsRes.error ? [] : reportsRes.data ?? [],
     channels: [...channels.values()].sort((a, b) => b.totalCents - a.totalCents || b.visits - a.visits),
@@ -271,6 +274,30 @@ export async function POST(request: NextRequest) {
       const { error } = await db.from('vitraux').update(patch).eq('id', str(b.eventId)).eq('organization_id', orgId)
       forgetTenantCache()
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+
+    // Compte Stripe de l'organisme : créer (si besoin) et ouvrir l'inscription hébergée par Stripe
+    case 'connectStripe': {
+      if (!process.env.STRIPE_SECRET_KEY) return fail("Stripe n'est pas configuré (STRIPE_SECRET_KEY).", 500)
+      try {
+        const { url } = await startOnboarding(t.tenant.org, baseUrlOf(request))
+        return NextResponse.json({ ok: true, url })
+      } catch (e) {
+        console.error('Inscription Stripe impossible :', e)
+        return fail("L'inscription Stripe n'a pas pu démarrer.", 502)
+      }
+    }
+
+    // Relire l'état du compte chez Stripe (au retour de l'inscription)
+    case 'refreshStripe': {
+      const accountId = t.tenant.org.stripeAccountId
+      if (!accountId) return fail("Aucun compte Stripe n'est connecté.")
+      try {
+        return NextResponse.json({ ok: true, ready: await refreshAccount(orgId, accountId) })
+      } catch (e) {
+        console.error('Lecture du compte Stripe impossible :', e)
+        return fail("Le compte Stripe n'a pas pu être lu.", 502)
+      }
     }
 
     // Il n'y a plus d'« événement en cours » : le vitrail permanent est toujours celui de l'organisme

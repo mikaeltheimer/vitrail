@@ -58,6 +58,7 @@ interface ReportRow {
 }
 interface Data {
   mode: 'stripe' | 'demo' | 'off'
+  stripe: { accountId: string | null; ready: boolean }
   reports: ReportRow[]
   photoModeration: 'live' | 'moderation'
   channels: ChannelRow[]
@@ -460,7 +461,30 @@ export default function AdminConsole() {
           </div>
           <div className="card text-sm">
             <b>Mode de paiement : {data.mode === 'stripe' ? 'Stripe (réel)' : data.mode === 'demo' ? 'Démo (aucun paiement)' : 'Désactivé'}</b>
-            <p className="muted mt-1">Se règle avec les variables d&apos;environnement, pas ici.</p>
+            <p className="muted mt-1">Le réglage général se fait avec les variables d&apos;environnement (PAYMENT_MODE) ; chaque organisme paie par Stripe seulement quand son compte est prêt.</p>
+            <p className="mt-2">
+              Compte Stripe de l&apos;organisme : <b>{data.stripe.ready ? 'prêt à encaisser' : data.stripe.accountId ? 'inscription à terminer' : 'non connecté'}</b>
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {!data.stripe.ready && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={async () => {
+                    const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'connectStripe' }) })
+                    const body = await res.json().catch(() => ({}))
+                    if (res.ok && body.url) window.location.href = body.url
+                    else setMsg({ ok: false, text: body.error || 'Erreur.' })
+                  }}
+                >
+                  {data.stripe.accountId ? "Terminer l'inscription Stripe" : 'Connecter le compte Stripe'}
+                </button>
+              )}
+              {data.stripe.accountId && (
+                <button className="btn btn-ghost" onClick={() => void act({ action: 'refreshStripe' }, 'État du compte Stripe mis à jour.')}>
+                  Vérifier l&apos;état du compte
+                </button>
+              )}
+            </div>
           </div>
           <div className="card text-sm">
             <b>Retirer les dons de démonstration</b>

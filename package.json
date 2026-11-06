@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "test": "tsx tests/reserved.test.ts && tsx tests/donations.test.ts"
+    "test": "tsx tests/reserved.test.ts && tsx tests/donations.test.ts && tsx tests/connect.test.ts"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
