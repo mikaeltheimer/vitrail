@@ -86,6 +86,7 @@ export default function AdminConsole() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('direct')
   const [data, setData] = useState<Data | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [mergeFrom, setMergeFrom] = useState<string | null>(null)
   // Décisions de modération : le donateur reçoit un courriel, sauf si la case est décochée (pourriel, abus).
@@ -97,9 +98,10 @@ export default function AdminConsole() {
       fetch('/api/admin', { cache: 'no-store' })
         .then(res => {
           if (res.status === 403) router.refresh()
-          else if (res.ok) return res.json().then(setData)
+          else if (res.ok) return res.json().then(d => { setLoadError(null); setData(d) })
+          else return res.json().catch(() => ({})).then(b => setLoadError(`${res.status} — ${(b as { error?: string }).error ?? res.statusText}`))
         })
-        .catch(() => {}),
+        .catch(e => setLoadError(String(e))),
     [router],
   )
 
@@ -177,7 +179,8 @@ export default function AdminConsole() {
         Prévenir le donateur par courriel quand je publie ou retire son témoignage ou sa photo
       </label>
 
-      {!data && <p className="muted mt-6">Chargement…</p>}
+      {loadError && <p className="mt-6" style={{ color: 'crimson' }}>Chargement impossible : {loadError}</p>}
+      {!data && !loadError && <p className="muted mt-6">Chargement…</p>}
 
       {/* ── En direct ── */}
       {data && tab === 'direct' && (

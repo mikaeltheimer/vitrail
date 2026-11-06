@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     fetchWhere<{ id: string; channel: string }>('visits', 'id,channel', 'organization_id', orgId, 'id'),
     db.from('reports').select('id,donor_id,reason,created_at').eq('organization_id', orgId).eq('resolved', false).order('created_at', { ascending: false }).limit(200),
   ])
-  for (const r of [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes]) if (r.error) return fail(r.error.message, 500)
+  for (const r of [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes]) if (r.error) { console.error('Admin GET :', r.error); return fail(r.error.message, 500) }
 
   // Provenance : visites, dons et montants par emplacement (écran, affiches…)
   const channels = new Map<string, { channel: string; visits: number; donations: number; totalCents: number }>()
