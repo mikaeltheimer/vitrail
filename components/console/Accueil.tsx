@@ -234,7 +234,21 @@ function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: s
       </div>
       <ol className="space-y-3 text-sm">
         <li className="flex gap-3">
-          {step(missing === 0, 1)}
+          {step(data.published, 1)}
+          <span className="flex-1 space-y-2">
+            <span className="block">
+              <b>{t('sExercer')}</b>
+              <span className="muted block text-[13px]">{t('sExercerAide')}</span>
+            </span>
+            {data.atelierUrl && (
+              <a className="btn" href={data.atelierUrl}>
+                {t('ouvrirEntrainement')}
+              </a>
+            )}
+          </span>
+        </li>
+        <li className="flex gap-3">
+          {step(missing === 0, 2)}
           <span className="flex-1 space-y-2">
             <span className="block">
               <b>{t('monVitrail')}</b>
@@ -248,7 +262,7 @@ function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: s
           </span>
         </li>
         <li className="flex gap-3">
-          {step(ready, 2)}
+          {step(ready, 3)}
           <span className="flex-1 space-y-2">
             <span className="block">
               <b>{t('stripe')}</b>
@@ -258,20 +272,6 @@ function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: s
               <button className="btn" onClick={() => void open('connectStripe', true)}>
                 {data.stripe.accountId ? t('stripeTerminer') : t('stripeConnecter')}
               </button>
-            )}
-          </span>
-        </li>
-        <li className="flex gap-3">
-          {step(false, 3)}
-          <span className="flex-1 space-y-2">
-            <span className="block">
-              <b>{t('sExercer')}</b>
-              <span className="muted block text-[13px]">{t('sExercerAide')}</span>
-            </span>
-            {data.switchUrl && (
-              <a className="btn btn-ghost" href={data.switchUrl}>
-                {t('ouvrirEntrainement')}
-              </a>
             )}
           </span>
         </li>

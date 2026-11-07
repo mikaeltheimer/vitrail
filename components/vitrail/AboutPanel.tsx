@@ -8,6 +8,8 @@ import { CONFIG } from '@/lib/config'
 import { useBrand, useOrg } from '@/lib/useOrg'
 import { useMoney } from '@/lib/useI18n'
 import { OrgLogo } from '@/components/OrgBrand'
+import Editable from '@/components/atelier/Editable'
+import { useAtelier } from '@/components/atelier/Atelier'
 
 const MONO = "'DM Sans', sans-serif"
 const GOLD = '#F0B24A'
@@ -33,6 +35,8 @@ export default function AboutPanel({
   const tc = useTranslations('commun')
   const td = useTranslations('don')
   const org = useOrg()
+  const editing = !!useAtelier()?.editing
+  const ta = useTranslations('atelier')
   const brand = useBrand()
   const money = useMoney()
   const pct = goalCents > 0 ? Math.min(100, (totalCents / goalCents) * 100) : 0
@@ -72,7 +76,9 @@ export default function AboutPanel({
       </div>
 
       <div style={{ padding: '24px', display: 'grid', gap: 22, paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-        <OrgLogo style={{ width: 240, maxWidth: '100%' }} nameStyle={{ fontSize: 22 }} />
+        <Editable field="logo" block style={{ alignSelf: 'start', justifySelf: 'start' }}>
+          <OrgLogo style={{ width: 240, maxWidth: '100%' }} nameStyle={{ fontSize: 22 }} />
+        </Editable>
 
         <div>
           <h2 className="font-display" style={{ fontSize: 24, lineHeight: 1.2, margin: 0 }}>{t('nomPlateforme', { org: org.name })}</h2>
@@ -99,13 +105,17 @@ export default function AboutPanel({
 
         <div>
           <h3 style={sectionTitle}>{t('pourquoi')}</h3>
-          <p style={{ fontSize: 15, lineHeight: 1.6, color: '#F4EFE6', fontWeight: 500 }}>{org.why}</p>
+          <Editable field="why" block>
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: '#F4EFE6', fontWeight: 500 }}>{org.why}</p>
+          </Editable>
         </div>
 
-        {(org.about || org.url) && (
+        {(org.about || org.url || editing) && (
           <div>
             <h3 style={sectionTitle}>{org.name}</h3>
-            {org.about && <p style={{ fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.75)', whiteSpace: 'pre-line' }}>{org.about}</p>}
+            <Editable field="about" block empty={<p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{ta('ajouterPresentation')}</p>}>
+              {org.about && <p style={{ fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.75)', whiteSpace: 'pre-line' }}>{org.about}</p>}
+            </Editable>
             {org.url && (
               <a href={org.url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 14, color: GOLD, textDecoration: 'none' }}>
                 {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗

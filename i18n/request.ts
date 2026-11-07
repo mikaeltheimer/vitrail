@@ -8,7 +8,7 @@ import { clampLocale, requestIdentity } from '@/lib/identity'
 export default getRequestConfig(async () => {
   const value = (await headers()).get(LOCALE_HEADER)
   let locale = isLocale(value) ? value : DEFAULT_LOCALE
-  const { identity, surface } = await requestIdentity().catch(() => ({ identity: null, surface: 'org' as const }))
+  const { identity, surface } = await requestIdentity().catch(() => ({ identity: null, surface: 'org' as const, atelier: false }))
   if (identity && surface === 'org') locale = clampLocale(identity.locales, locale)
   return { locale, messages: (await import(`../messages/${locale}.json`)).default }
 })

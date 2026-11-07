@@ -49,6 +49,10 @@ export interface ConsoleData {
   vitrailUrl: string
   /** Coordonnées juridiques qui manquent avant la mise en ligne. */
   identityMissing: string[]
+  /** Le vitrail de l'atelier (mode Modifier). */
+  atelierUrl: string | null
+  /** Une version personnalisée a déjà été publiée depuis l'atelier. */
+  published: boolean
   summary: { totalCents: number; donations: number; donors: number; goalCents: number | null }
   me: { name: string; email: string; role: Role; accountId: string }
   orgs: { id: string; name: string; url: string }[]

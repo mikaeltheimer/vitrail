@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { getDb } from '@/lib/db'
-import { forgetTenantCache } from '@/lib/tenant'
-import { IDENTITY_COLUMNS, assetUrl, forgetIdentity, type IdentityRow } from '@/lib/identity'
-import { LEGAL_KEYS, LEGAL_MAX, TEXT_FIELDS, TEXT_MAX, missingForLaunch, parseLocales, type LegalInfo, type StoredTexts } from '@/lib/identity-shared'
+import { forgetTenantCache, orgUrl } from '@/lib/tenant'
+import { practiceOf } from '@/lib/signup'
+import { IDENTITY_COLUMNS, forgetIdentity, type IdentityRow } from '@/lib/identity'
+import { LEGAL_KEYS, LEGAL_MAX, missingForLaunch, type LegalInfo } from '@/lib/identity-shared'
 import { validateEmail } from '@/lib/validate'
-import { isLocale, type Locale } from '@/i18n/config'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Mon vitrail (propriétaire) : l'identité de l'organisme telle qu'il la rédige. L'entraînement n'en a pas : il montre celle
-// de l'organisme réel, qu'on modifie depuis la console de l'organisme réel.
+// Mon vitrail (propriétaire) : les coordonnées administratives de l'organisme (site web, juridique, courriels).
+// Ce qui se voit (langues, textes, logo, icône) se personnalise dans l'atelier, en contexte, puis se publie.
 // Messages d'erreur en français seulement (comme le reste de l'API de la console).
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status })
@@ -25,19 +25,20 @@ export async function GET(request: NextRequest) {
   if (error) throw error
   const r = data as unknown as IdentityRow
   const legal = (r.legal ?? {}) as Partial<LegalInfo>
+  const atelier = await practiceOf(org.id)
   return NextResponse.json(
     {
       practice: false,
-      locales: parseLocales(r.locales),
-      texts: r.texts ?? {},
-      fallbackName: r.name_fr,
       websiteUrl: r.website_url ?? '',
       legal,
       senderName: r.sender_name ?? '',
       replyTo: r.reply_to ?? '',
-      logoUrl: assetUrl(r.logo_path),
-      iconUrl: assetUrl(r.icon_path),
+      orgName: r.name_fr,
       missing: missingForLaunch(legal),
+      // L'atelier : où personnaliser le vitrail, et s'il y a un brouillon qui attend d'être publié
+      atelierUrl: atelier ? orgUrl(atelier.slug, '/vitrail?atelier', request) : null,
+      pending: !!r.draft,
+      publishedAt: r.published_at ?? null,
     },
     { headers: { 'Cache-Control': 'no-store' } },
   )
@@ -66,36 +67,14 @@ function cleanUrl(v: unknown): string | null | false {
   }
 }
 
+// Coordonnées administratives seulement (site web, juridique, courriels) : publiées tout de suite, sans brouillon.
+// Langues, textes, logo et icône se modifient dans l'atelier (app/api/atelier).
 export async function POST(request: NextRequest) {
   const a = await requireAdmin(request, 'owner')
   if ('response' in a) return a.response
   const org = a.ctx.tenant.org
-  if (org.practiceOf) return fail("L'entraînement reprend l'identité de l'organisme : modifiez-la depuis sa console.")
+  if (org.practiceOf) return fail("Les coordonnées se modifient depuis la console de l'organisme.")
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
-
-  // Langues : une ou deux, la première est la langue principale
-  const rawLocales = Array.isArray(b.locales) ? b.locales : []
-  const locales = [...new Set(rawLocales.filter(isLocale))] as Locale[]
-  if (!locales.length || locales.length !== rawLocales.length) return fail('Choisissez au moins une langue.')
-
-  // Textes de chaque langue offerte (ceux d'une langue retirée sont gardés, au cas où on la rajoute)
-  const inTexts = (b.texts ?? {}) as Record<string, Record<string, unknown>>
-  const { data: cur, error: curErr } = await getDb().from('organizations').select('texts,name_fr,legal').eq('id', org.id).single()
-  if (curErr) throw curErr
-  const texts: StoredTexts = { ...((cur.texts as StoredTexts | null) ?? {}) }
-  for (const l of locales) {
-    const src = inTexts[l] ?? {}
-    const out: Partial<Record<(typeof TEXT_FIELDS)[number], string>> = {}
-    for (const f of TEXT_FIELDS) {
-      const v = clean(src[f], TEXT_MAX[f])
-      if (v === null) return fail(`Texte trop long (${f}, ${l}) : ${TEXT_MAX[f]} caractères au plus.`)
-      if (v) out[f] = v
-    }
-    texts[l] = out
-  }
-  const primary = locales[0]
-  const name = texts[primary]?.name
-  if (!name || name.length < 2) return fail("Le nom de l'organisme est obligatoire dans la langue principale.")
 
   const website = cleanUrl(b.websiteUrl)
   if (website === false) return fail('Adresse du site web invalide (ex. : https://monorganisme.org).')
@@ -112,6 +91,8 @@ export async function POST(request: NextRequest) {
     if (!e.ok) return fail('Courriel du responsable des renseignements personnels invalide.')
     legal.officerEmail = e.value
   }
+  const { data: cur, error: curErr } = await getDb().from('organizations').select('legal').eq('id', org.id).single()
+  if (curErr) throw curErr
   // La date de mise à jour des pages juridiques suit les coordonnées : elle change quand elles changent
   const before = (cur.legal ?? {}) as Partial<LegalInfo>
   const changed = LEGAL_KEYS.some(k => (before[k] ?? '') !== (legal[k] ?? ''))
@@ -126,13 +107,8 @@ export async function POST(request: NextRequest) {
     replyTo = e.value
   }
 
-  const { error } = await getDb()
-    .from('organizations')
-    .update({ locales, texts, name_fr: name, website_url: website, legal, sender_name: senderName || null, reply_to: replyTo })
-    .eq('id', org.id)
+  const { error } = await getDb().from('organizations').update({ website_url: website, legal, sender_name: senderName || null, reply_to: replyTo }).eq('id', org.id)
   if (error) throw error
-  // L'entraînement porte le même nom (en-tête de sa console)
-  await getDb().from('organizations').update({ name_fr: name }).eq('practice_of', org.id)
   forgetTenantCache()
   forgetIdentity()
   return NextResponse.json({ ok: true, missing: missingForLaunch(legal) })

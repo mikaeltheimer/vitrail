@@ -23,9 +23,12 @@ export interface IdentityRow {
   locales: string[] | null
   sender_name: string | null
   reply_to: string | null
+  /** Brouillon de l'atelier (voir lib/atelier.ts) : null s'il n'y a rien en cours. */
+  draft?: { locales?: string[]; texts?: StoredTexts; logo_path?: string | null; icon_path?: string | null; logoSize?: [number, number] | null; iconSize?: [number, number] | null } | null
+  published_at?: string | null
 }
 
-export const IDENTITY_COLUMNS = 'id,name_fr,website_url,texts,legal,theme,logo_path,icon_path,locales,sender_name,reply_to'
+export const IDENTITY_COLUMNS = 'id,name_fr,website_url,texts,legal,theme,logo_path,icon_path,locales,sender_name,reply_to,draft,published_at'
 
 /** Adresse d'un fichier de l'organisme : chemin du bucket, ou fichier statique du site (« /… »). */
 export const assetUrl = (path: string | null | undefined): string | null => (!path ? null : path.startsWith('/') ? path : publicPhotoUrl(path))
@@ -44,6 +47,20 @@ export const neutralDefaults: Defaults = (locale, org) => {
       lead: t('identite.lead'),
       consent: t('identite.consent', { org }),
     },
+  }
+}
+
+/** L'identité telle que la montre l'atelier : le brouillon par-dessus la version publiée. */
+export function withDraft(r: IdentityRow): IdentityRow {
+  const d = r.draft
+  if (!d) return r
+  return {
+    ...r,
+    locales: d.locales ?? r.locales,
+    texts: d.texts ?? r.texts,
+    logo_path: d.logo_path !== undefined ? d.logo_path : r.logo_path,
+    icon_path: d.icon_path !== undefined ? d.icon_path : r.icon_path,
+    theme: { ...(r.theme ?? {}), logoSize: d.logoSize ?? undefined, iconSize: d.iconSize ?? undefined },
   }
 }
 
@@ -78,15 +95,20 @@ const TTL_MS = 10_000
 const cache = new Map<string, { at: number; value: Identity | null }>()
 export const forgetIdentity = () => cache.clear()
 
-/** Identité affichée par un organisme (l'entraînement : celle de son organisme réel). Null s'il n'existe plus. */
+/**
+ * Identité affichée par un organisme. L'atelier (organisme d'entraînement) montre celle de son organisme réel AVEC le
+ * brouillon en cours ; le vrai vitrail, la version publiée. Null si l'organisme n'existe plus.
+ */
 export async function getIdentity(org: Pick<OrgRow, 'id' | 'practiceOf'>): Promise<Identity | null> {
   const id = org.practiceOf ?? org.id
-  const hit = cache.get(id)
+  const key = `${id}:${org.practiceOf ? 'atelier' : 'public'}`
+  const hit = cache.get(key)
   if (hit && Date.now() - hit.at < TTL_MS) return hit.value
   const { data, error } = await getDb().from('organizations').select(IDENTITY_COLUMNS).eq('id', id).maybeSingle()
   if (error) throw error
-  const value = data ? identityFromRow(data as unknown as IdentityRow) : null
-  cache.set(id, { at: Date.now(), value })
+  const r = data as unknown as IdentityRow | null
+  const value = r ? identityFromRow(org.practiceOf ? withDraft(r) : r) : null
+  cache.set(key, { at: Date.now(), value })
   return value
 }
 
@@ -104,13 +126,13 @@ const NEUTRAL = (): Identity =>
  * Pour le rendu d'une page : l'identité de l'organisme de l'adresse, et la sorte de page (en-tête posé par proxy.ts).
  * Aucune identité sur les pages de la plateforme (vitrine, inscription, Studio).
  */
-export async function requestIdentity(): Promise<{ identity: Identity | null; surface: Surface }> {
+export async function requestIdentity(): Promise<{ identity: Identity | null; surface: Surface; atelier: boolean }> {
   const h = await headers()
   const raw = h.get(SURFACE_HEADER)
   const surface: Surface = raw === 'platform' || raw === 'console' ? raw : 'org'
-  if (surface === 'platform') return { identity: null, surface }
+  if (surface === 'platform') return { identity: null, surface, atelier: false }
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost'
   const r = await resolveTenant(new Request(`https://${host}/`, { headers: h })).catch(() => null)
-  if (!r || !('tenant' in r)) return { identity: null, surface }
-  return { identity: await getIdentity(r.tenant.org).catch(() => null), surface }
+  if (!r || !('tenant' in r)) return { identity: null, surface, atelier: false }
+  return { identity: await getIdentity(r.tenant.org).catch(() => null), surface, atelier: !!r.tenant.org.practiceOf }
 }

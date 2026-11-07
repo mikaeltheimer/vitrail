@@ -15,6 +15,7 @@ import { INTL_TAG, type Locale } from '@/i18n/config'
 import { brandFor, CONFIG } from '@/lib/config'
 import { requestIdentity } from '@/lib/identity'
 import { OrgIdentityProvider } from '@/components/OrgIdentity'
+import Atelier from '@/components/atelier/Atelier'
 import { siteUrl } from '@/lib/env'
 import { translatorFor } from '@/lib/i18n'
 
@@ -42,13 +43,13 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale
-  const { identity, surface } = await requestIdentity()
+  const { identity, surface, atelier } = await requestIdentity()
   return (
     <html lang={INTL_TAG[locale]}>
       <body>
         <NextIntlClientProvider>
           <OrgIdentityProvider identity={identity} surface={surface}>
-            {children}
+            {atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children}
           </OrgIdentityProvider>
         </NextIntlClientProvider>
       </body>

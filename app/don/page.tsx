@@ -11,6 +11,7 @@ import DonationPreview from '@/components/DonationPreview'
 import type { Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
 import { OrgLogo } from '@/components/OrgBrand'
+import Editable from '@/components/atelier/Editable'
 
 // Formulaire de don sur téléphone (affiches à code QR) : le même panneau que « Ajouter mon morceau » sur le vitrail,
 // en pleine page, avec l'aperçu du morceau au-dessus. Avec un lien magique (?t=…), le donateur agrandit son morceau.
@@ -110,8 +111,12 @@ function DonForm() {
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-6">
       <header className="mb-5 text-center">
-        <OrgLogo className="mx-auto mb-4" style={{ width: 180 }} nameStyle={{ fontSize: 22 }} />
-        <h1 className="mt-1 text-3xl">{org.vitrailTitle}</h1>
+        <Editable field="logo" block style={{ width: 'fit-content', margin: '0 auto' }}>
+          <OrgLogo className="mx-auto mb-4" style={{ width: 180 }} nameStyle={{ fontSize: 22 }} />
+        </Editable>
+        <h1 className="mt-1 text-3xl">
+          <Editable field="vitrailTitle">{org.vitrailTitle}</Editable>
+        </h1>
         <p className="muted mt-2 text-[0.95rem]">{t('intro')}</p>
         {donorsCount > 0 && (
           <p className="mt-3 inline-block rounded-full px-3 py-1 text-sm" style={{ background: 'rgba(255,226,168,0.1)', color: '#FFE2A8' }}>

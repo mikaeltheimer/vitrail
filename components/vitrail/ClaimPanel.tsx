@@ -21,6 +21,7 @@ import { feeFor } from "@/lib/fees";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
 import { OrgMark } from '@/components/OrgBrand';
+import Editable from '@/components/atelier/Editable';
 
 const GOLD = "#F0B24A";
 
@@ -419,7 +420,9 @@ export default function ClaimPanel({
           background: "rgba(240,178,74,0.06)",
         }}
       >
-        <OrgMark size={30} />
+        <Editable field="icon">
+          <OrgMark size={30} />
+        </Editable>
         <span
           style={{
             fontSize: "13px",
@@ -431,7 +434,7 @@ export default function ClaimPanel({
             org: org.name,
             b: (chunks) => <strong style={{ color: GOLD }}>{chunks}</strong>,
           })}{" "}
-          {org.why}
+          <Editable field="why">{org.why}</Editable>
         </span>
       </div>
 
@@ -588,7 +591,7 @@ export default function ClaimPanel({
                   lineHeight: 1.3,
                 }}
               >
-                {org.testimonial.question}
+                <Editable field="question">{org.testimonial.question}</Editable>
               </div>
               <div style={{ fontSize: "14px", color: GOLD, marginTop: "2px" }}>
                 {org.testimonial.cta}

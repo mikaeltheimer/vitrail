@@ -115,6 +115,9 @@ export async function GET(request: NextRequest) {
     vitrailUrl: orgUrl(t.tenant.org.slug, '/vitrail', request),
     // Coordonnées juridiques manquantes (exigées avant la mise en ligne) ; rien pour l'entraînement
     identityMissing: t.tenant.org.practiceOf ? [] : missingForLaunch((await getIdentity(t.tenant.org))?.legal ?? {}),
+    // L'atelier (vitrail d'entraînement en mode Modifier) et si une version personnalisée a déjà été publiée
+    atelierUrl: await atelierUrl(t.tenant.org, request),
+    published: !!(await getDb().from('organizations').select('published_at').eq('id', t.tenant.org.practiceOf ?? t.tenant.org.id).maybeSingle()).data?.published_at,
     summary: {
       totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
       donations: summaryDonations,
@@ -166,6 +169,13 @@ const OWNER_ONLY = new Set([
 ])
 // Ce qui n'a pas de sens dans l'entraînement : l'argent réel, Stripe, l'équipe (c'est celle de l'organisme réel)
 const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive'])
+
+/** Le vitrail de l'atelier, ouvert en mode Modifier. */
+async function atelierUrl(org: { id: string; slug: string; practiceOf: string | null }, request: NextRequest): Promise<string | null> {
+  if (org.practiceOf) return orgUrl(org.slug, '/vitrail?atelier', request)
+  const p = await practiceOf(org.id)
+  return p ? orgUrl(p.slug, '/vitrail?atelier', request) : null
+}
 
 /** L'adresse de la console de l'autre côté : l'entraînement depuis l'organisme réel, et inversement. */
 async function switchUrl(org: { id: string; practiceOf: string | null }, request: NextRequest): Promise<string | null> {

@@ -31,6 +31,7 @@ import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgMark } from '@/components/OrgBrand'
+import Editable from '@/components/atelier/Editable'
 
 const HEADER_HEIGHT = 56
 const MONO = "'DM Sans', sans-serif"
@@ -1337,9 +1338,13 @@ function Header({
   // L'organisme d'abord : son emblème et son nom ; Donivers, discret, dessous
   const brand = (
     <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#F4EFE6', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
-      <OrgMark size={32} />
+      <Editable field="icon">
+        <OrgMark size={32} />
+      </Editable>
       <span style={{ display: 'grid', minWidth: 0, lineHeight: 1.1 }}>
-        <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</span>
+        <Editable field="name">
+          <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</span>
+        </Editable>
         <span style={{ fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.brand.name}</span>
       </span>
     </button>

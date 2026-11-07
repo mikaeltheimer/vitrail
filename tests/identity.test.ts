@@ -72,32 +72,71 @@ async function main() {
   check('tout manque', shared.missingForLaunch({}).length === 6)
   check('espaces = vide', shared.missingForLaunch({ entity: '  ', address: 'a', officerName: 'b', officerEmail: 'c', officerPhone: 'd', retention: 'e' }).join() === 'entity')
 
-  console.log('Mon vitrail : enregistrement')
+  console.log('Mon vitrail (console) : coordonnées seulement')
   seed()
   let current: { id: string; practiceOf: string | null } = { id: 'lac', practiceOf: null }
   mocks['@/lib/auth'] = { requireAdmin: async () => ({ ctx: { tenant: { org: current } } }) }
   const route = await import('../app/api/admin/identite/route')
   const post = (body: unknown) => route.POST(new Request('https://lac.test/api/admin/identite', { method: 'POST', body: JSON.stringify(body) }) as never)
-  const ok = { locales: ['en', 'fr'], texts: { en: { name: 'Lake Theatre', about: '  Theatre by the lake.  ' }, fr: { name: 'Théâtre du Lac' } }, websiteUrl: 'lactheatre.org', legal: { officerEmail: 'DPO@Lac.org' }, senderName: '', replyTo: '' }
+  const ok = { websiteUrl: 'lactheatre.org', legal: { officerEmail: 'DPO@Lac.org', entity: '  Lake Theatre Inc.  ' }, senderName: '', replyTo: '', texts: { en: { name: 'Pirate' } } }
   let res = await post(ok)
   const row = tables.organizations.find(o => o.id === 'lac')!
-  check('enregistré', res.status === 200 && row.name_fr === 'Lake Theatre' && JSON.stringify(row.locales) === '["en","fr"]')
-  check('texte nettoyé, site complété en https', (row.texts as { en: { about: string } }).en.about === 'Theatre by the lake.' && row.website_url === 'https://lactheatre.org/')
-  check('courriel du responsable en minuscules, date posée', (row.legal as { officerEmail: string; updated: string }).officerEmail === 'dpo@lac.org' && /^\d{4}-\d{2}-\d{2}$/.test((row.legal as { updated: string }).updated))
-  check('manque renvoyé', ((await res.json()) as { missing: string[] }).missing.length === 5)
-  res = await post({ ...ok, texts: { en: { name: '' } } })
-  check('nom obligatoire dans la langue principale', res.status === 400)
-  res = await post({ ...ok, texts: { en: { name: 'x'.repeat(81) } } })
-  check('texte trop long refusé', res.status === 400)
-  res = await post({ ...ok, locales: ['de'] })
-  check('langue inconnue refusée', res.status === 400)
+  check('enregistré, site complété en https', res.status === 200 && row.website_url === 'https://lactheatre.org/')
+  check('coordonnées nettoyées, date posée', (row.legal as { entity: string }).entity === 'Lake Theatre Inc.' && (row.legal as { officerEmail: string }).officerEmail === 'dpo@lac.org' && /^\d{4}-\d{2}-\d{2}$/.test((row.legal as { updated: string }).updated))
+  check('les textes n\'y passent plus (atelier)', (row.texts as { en: { name: string } }).en.name === 'Lake Theatre')
+  check('manque renvoyé', ((await res.json()) as { missing: string[] }).missing.length === 4)
   res = await post({ ...ok, websiteUrl: 'javascript:alert(1)' })
   check('site web : pas de javascript:', res.status === 400)
   res = await post({ ...ok, legal: { officerEmail: 'pas-un-courriel' } })
   check('courriel du responsable invalide refusé', res.status === 400)
   current = { id: 'ecole-essai', practiceOf: 'ecole' }
-  res = await post(ok)
-  check('entraînement : refusé (identité de l\'organisme réel)', res.status === 400)
+  check('depuis l\'atelier : refusé', (await post(ok)).status === 400)
+
+  console.log('Atelier : brouillon, publication, abandon')
+  seed()
+  current = { id: 'ecole-essai', practiceOf: 'ecole' }
+  const at = await import('../app/api/atelier/route')
+  const apost = async (body: unknown) => {
+    const r = (await at.POST(new Request('https://x.test/api/atelier', { method: 'POST', body: JSON.stringify(body) }) as never))!
+    return { status: r.status, body: (await r.json()) as { pending: boolean; texts: Record<string, Record<string, string>>; locales: string[] } }
+  }
+  let ar = await apost({ action: 'save', texts: { fr: { name: "École d'art de Sutton", why: '  Nouveau pourquoi.  ' } } })
+  check('brouillon enregistré', ar.status === 200 && ar.body.pending && ar.body.texts.fr.why === 'Nouveau pourquoi.')
+  check('anglais gardé dans le brouillon', ar.body.texts.en.name === 'Sutton School of Art')
+  id.forgetIdentity()
+  check('l\'atelier montre le brouillon', (await id.getIdentity({ id: 'ecole-essai', practiceOf: 'ecole' }))!.texts.fr.why === 'Nouveau pourquoi.')
+  check('le vrai vitrail garde la version publiée', (await id.getIdentity({ id: 'ecole', practiceOf: null }))!.texts.fr.why === "L'École avance sans subvention.")
+  ar = await apost({ action: 'save', locales: ['en'] })
+  check('langues du brouillon', ar.body.locales.join() === 'en')
+  check('langue inconnue refusée', (await apost({ action: 'save', locales: ['de'] })).status === 400)
+  check('texte trop long refusé', (await apost({ action: 'save', texts: { fr: { name: 'x'.repeat(81) } } })).status === 400)
+  ar = await apost({ action: 'publish' })
+  const ecoleRow = tables.organizations.find(o => o.id === 'ecole')!
+  check('publié : le vrai vitrail change', ar.status === 200 && !ar.body.pending && (ecoleRow.texts as { fr: { why: string } }).fr.why === 'Nouveau pourquoi.' && JSON.stringify(ecoleRow.locales) === '["en"]')
+  check('publié : nom de la langue principale', ecoleRow.name_fr === 'Sutton School of Art' && tables.organizations.find(o => o.id === 'ecole-essai')!.name_fr === 'Sutton School of Art')
+  check('plus rien à publier', (await apost({ action: 'publish' })).status === 400)
+  await apost({ action: 'save', texts: { en: { why: 'Oops' } } })
+  ar = await apost({ action: 'discard' })
+  check('abandon : retour à la version publiée', !ar.body.pending && ar.body.texts.en.why !== 'Oops' && !(ecoleRow.draft))
+  console.log('Atelier : images')
+  const removed: string[] = []
+  const fdb = (await import('./fake-db')).fakeDb as unknown as { storage?: unknown }
+  fdb.storage = { from: () => ({ remove: async (p: string[]) => (removed.push(...p), { error: null }), upload: async () => ({ error: null }) }) }
+  const { setDraftImage } = await import('../lib/atelier')
+  ecoleRow.logo_path = 'org/ecole/logo-publie.png'
+  await setDraftImage('ecole', 'logo', 'org/ecole/logo-a.png', [300, 80])
+  await setDraftImage('ecole', 'logo', 'org/ecole/logo-b.png', [300, 80])
+  check('image de brouillon remplacée : effacée', removed.join() === 'org/ecole/logo-a.png')
+  check('image publiée gardée tant que non publié', ecoleRow.logo_path === 'org/ecole/logo-publie.png')
+  await apost({ action: 'publish' })
+  check('publié : l\'ancienne image publiée est effacée', ecoleRow.logo_path === 'org/ecole/logo-b.png' && removed.includes('org/ecole/logo-publie.png'))
+  await setDraftImage('ecole', 'logo', 'org/ecole/logo-c.png', [300, 80])
+  await apost({ action: 'discard' })
+  check('abandon : l\'image non publiée est effacée', removed.includes('org/ecole/logo-c.png') && ecoleRow.logo_path === 'org/ecole/logo-b.png')
+  check('fichier statique jamais effacé', !removed.some(p => p.startsWith('/')))
+
+  current = { id: 'ecole', practiceOf: null }
+  check('hors de l\'atelier : refusé', (await apost({ action: 'save', texts: {} })).status === 404)
   delete mocks['@/lib/auth']
 
   console.log('Sortes de pages et initiales')

@@ -7,6 +7,7 @@ import { type CSSProperties } from 'react'
 import { useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { useOrg } from '@/lib/useOrg'
+import Editable from '@/components/atelier/Editable'
 
 interface Props {
   value: string
@@ -24,6 +25,7 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
 
   return (
     <div style={{ display: 'grid', gap: '6px' }}>
+      <Editable field="placeholder" block>
       <textarea
         value={value}
         maxLength={CONFIG.messageMax}
@@ -33,6 +35,7 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
         onChange={e => onChange(e.target.value)}
         style={textareaStyle}
       />
+      </Editable>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
         <span>{t('aide')}</span>
         <span style={{ fontFamily: "'DM Sans', sans-serif", color: left < 40 ? '#F0B24A' : undefined, flexShrink: 0 }}>{left}</span>
