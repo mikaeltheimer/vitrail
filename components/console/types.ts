@@ -42,7 +42,9 @@ export interface DonationRow {
 }
 
 export interface ConsoleData {
-  org: { name: string; slug: string; status: 'draft' | 'live' | 'suspended' }
+  org: { name: string; slug: string; status: 'draft' | 'live' | 'suspended'; practice: boolean }
+  /** Console de l'autre côté : l'entraînement depuis l'organisme réel, et inversement. */
+  switchUrl: string | null
   summary: { totalCents: number; donations: number; donors: number; goalCents: number | null }
   me: { name: string; email: string; role: Role; accountId: string }
   orgs: { id: string; name: string; url: string }[]

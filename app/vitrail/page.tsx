@@ -168,6 +168,9 @@ function Vitrail() {
   const [intro, setIntro] = useState<IntroPhase>('off')
   const [introCta, setIntroCta] = useState(false)
   const [claimOpen, setClaimOpen] = useState(false)
+  // Dons fermés (organisme pas encore en ligne) : « Donner » affiche un avis au lieu du panneau
+  const closedRef = useRef(false)
+  const [closedNotice, setClosedNotice] = useState(false)
   const [myId, setMyId] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -396,6 +399,10 @@ function Vitrail() {
       frameFor(draft.focus === 'detail')
     }
     const openClaim = () => {
+      if (closedRef.current) {
+        setClosedNotice(true)
+        return
+      }
       endIntro(true)
       w.selected = null
       setSelected(null)
@@ -822,6 +829,7 @@ function Vitrail() {
         const s = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
         if (stop || !s.pieces) return
         setSnap(s)
+        closedRef.current = s.mode === 'off'
         const fresh = s.recent.filter(d => !seen.has(d.id))
         s.recent.forEach(d => seen.add(d.id))
         if (!first && fresh.length) {
@@ -1088,6 +1096,14 @@ function Vitrail() {
       {!mobile && !claimOpen && <HoverCard piece={hoveredPiece} />}
 
       {/* ── Derniers dons  ── */}
+      {closedNotice && (
+        <div role="status" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 200, maxWidth: 'calc(100% - 32px)', background: '#14121D', border: '1px solid rgba(240,178,74,0.5)', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', color: '#F4EFE6', fontSize: 15 }}>
+          <span>{t('ferme')}</span>
+          <button onClick={() => setClosedNotice(false)} aria-label={tc('fermer')} style={{ background: 'none', border: 0, color: 'inherit', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>
+            ×
+          </button>
+        </div>
+      )}
       <Ticker recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
 
       {/* ── À propos de la collecte ── */}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { linksForEmail } from '@/lib/auth'
-import { sendInvitation, sendPasswordReset } from '@/lib/email'
-import { getOrg, orgBaseUrl, baseUrlOf } from '@/lib/tenant'
+import { sendInvitation, sendOrgInvitation, sendPasswordReset } from '@/lib/email'
+import { getOrg, orgUrl, baseUrlOf, platformUrl } from '@/lib/tenant'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 
 export const runtime = 'nodejs'
@@ -20,9 +20,11 @@ export async function POST(request: NextRequest) {
         try {
           if (l.kind === 'password_reset') {
             await sendPasswordReset({ to: l.email, token: l.token, locale: 'fr', baseUrl: base })
+          } else if (!l.organizationId) {
+            await sendOrgInvitation({ to: l.email, token: l.token, locale: 'fr', baseUrl: platformUrl(request) })
           } else {
             const org = await getOrg(l.organizationId)
-            if (org) await sendInvitation({ to: l.email, token: l.token, locale: 'fr', orgName: org.name, organizationId: org.id, role: l.role, baseUrl: orgBaseUrl(org.slug) })
+            if (org) await sendInvitation({ to: l.email, token: l.token, locale: 'fr', orgName: org.name, organizationId: org.id, role: l.role, baseUrl: orgUrl(org.slug, '', request) })
           }
         } catch (e) {
           console.error('Lien de connexion non envoyé :', e)

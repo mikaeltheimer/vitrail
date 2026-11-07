@@ -12,7 +12,7 @@ import type { Locale } from '@/i18n/config'
 // (Resend en panne, journal absent) est écrit dans la console et le journal, et le don ou la demande suit son cours.
 // Sans RESEND_API_KEY (développement), le courriel est simplement écrit dans la console du serveur.
 
-export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset'
+export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request'
 
 export type EmailStatus = 'queued' | 'sent' | 'delivered' | 'delayed' | 'bounced' | 'complained' | 'failed' | 'skipped'
 
@@ -85,9 +85,34 @@ async function logUpdate(id: string | null, patch: { status: EmailStatus; provid
 }
 
 /** Envoie un courriel (HTML + texte) et le consigne. Ne lève jamais d'erreur ; renvoie true si Resend l'a accepté. */
+/**
+ * Organisme d'ENTRAÎNEMENT : ses courriels ne partent qu'aux membres de l'équipe de l'organisme réel. Sinon, n'importe
+ * qui trouvant son adresse pourrait faire envoyer nos courriels à n'importe qui. Renvoie true si l'envoi est bloqué.
+ */
+async function practiceBlocked(o: Outgoing): Promise<boolean> {
+  const db = getDb()
+  let orgId = o.organizationId ?? null
+  if (!orgId && o.donorId) {
+    const { data } = await db.from('donors').select('organization_id').eq('id', o.donorId).maybeSingle()
+    orgId = (data?.organization_id as string | undefined) ?? null
+  }
+  if (!orgId) return false
+  const { data: org } = await db.from('organizations').select('practice_of').eq('id', orgId).maybeSingle()
+  const parent = (org?.practice_of as string | null | undefined) ?? null
+  if (!parent) return false
+  const { data: acc } = await db.from('accounts').select('id').eq('email', o.to.trim().toLowerCase()).maybeSingle()
+  if (!acc) return true
+  const { data: m } = await db.from('memberships').select('role').eq('account_id', acc.id).eq('organization_id', parent).maybeSingle()
+  return !m
+}
+
 export async function sendEmail(o: Outgoing): Promise<boolean> {
   const logId = await logCreate(o)
   try {
+    if (await practiceBlocked(o)) {
+      await logUpdate(logId, { status: 'skipped', error: 'Entraînement : envoyé seulement aux membres de l’équipe.' }) // i18n-ok : journal (FR)
+      return false
+    }
     const { html, text } = renderEmail(o.content, o.locale)
     const key = process.env.RESEND_API_KEY
     if (!key) {
@@ -290,6 +315,16 @@ export async function sendModeration(i: ModerationInput): Promise<boolean> {
 
 // ── Comptes de la console (administrateurs) ────────────────────────────────────
 
+/**
+ * Un chemin sur une adresse de base qui peut porter des paramètres (en prévisualisation : https://x.vercel.app?org=slug).
+ * linkTo('https://x?org=a', '/admin?jeton=1') → 'https://x/admin?jeton=1&org=a'
+ */
+export function linkTo(base: string, path: string): string {
+  const [root, query] = base.split('?')
+  const url = `${root.replace(/\/$/, '')}${path}`
+  return query ? `${url}${url.includes('?') ? '&' : '?'}${query}` : url
+}
+
 export interface InvitationEmailInput {
   to: string
   token: string
@@ -304,7 +339,7 @@ export interface InvitationEmailInput {
 
 export function buildInvitation(i: Omit<InvitationEmailInput, 'to' | 'organizationId'>): Built {
   const t = translatorFor(i.locale)
-  const url = `${i.baseUrl.replace(/\/$/, '')}/admin/invitation?jeton=${encodeURIComponent(i.token)}`
+  const url = linkTo(i.baseUrl, `/admin/invitation?jeton=${encodeURIComponent(i.token)}`)
   const role = i.role === 'owner' ? t('courriel.roleProprietaire') : t('courriel.roleBenevole')
   return {
     subject: t('courriel.invitationObjet', { org: i.orgName }),
@@ -326,7 +361,7 @@ export async function sendInvitation(i: InvitationEmailInput): Promise<boolean> 
 
 export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: string }): Built {
   const t = translatorFor(i.locale)
-  const url = `${i.baseUrl.replace(/\/$/, '')}/admin/reinitialiser?jeton=${encodeURIComponent(i.token)}`
+  const url = linkTo(i.baseUrl, `/admin/reinitialiser?jeton=${encodeURIComponent(i.token)}`)
   return {
     subject: t('courriel.reinitObjet'),
     content: {
@@ -342,4 +377,69 @@ export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: 
 
 export async function sendPasswordReset(i: { to: string; token: string; locale: Locale; baseUrl: string; organizationId?: string | null }): Promise<boolean> {
   return sendEmail({ kind: 'password_reset', to: i.to, locale: i.locale, organizationId: i.organizationId ?? null, ...buildPasswordReset(i) })
+}
+
+// ── Inscription des organismes (plateforme) ────────────────────────────────────
+
+/** Invitation de Studio à CRÉER un organisme : le lien mène à /inscription sur le site de la plateforme. */
+export function buildOrgInvitation(i: { token: string; locale: Locale; orgName?: string | null; message?: string | null; baseUrl: string }): Built {
+  const t = translatorFor(i.locale)
+  const url = linkTo(i.baseUrl, `/inscription?jeton=${encodeURIComponent(i.token)}`)
+  const brand = CONFIG.brand.name
+  return {
+    subject: i.orgName ? t('courriel.creationObjet', { org: i.orgName }) : t('courriel.creationObjetSansNom'),
+    content: {
+      preheader: t('courriel.creationPreheader', { brand }),
+      heading: t('courriel.creationTitre'),
+      paragraphs: [t('courriel.creationCorps', { brand }), ...(i.message ? [t('courriel.creationMot', { message: i.message })] : [])],
+      button: { label: t('courriel.creationBouton'), url },
+      note: t('courriel.creationNote'),
+      linkHelp: t('courriel.lienAlt'),
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendOrgInvitation(i: { to: string; token: string; locale: Locale; orgName?: string | null; message?: string | null; baseUrl: string }): Promise<boolean> {
+  return sendEmail({ kind: 'invitation', to: i.to, locale: i.locale, organizationId: null, ...buildOrgInvitation(i) })
+}
+
+/** Code à 6 chiffres quand la personne invitée s'inscrit avec une autre adresse que celle de l'invitation. */
+export function buildSignupCode(i: { code: string; locale: Locale }): Built {
+  const t = translatorFor(i.locale)
+  const brand = CONFIG.brand.name
+  return {
+    subject: t('courriel.codeObjet', { code: i.code }),
+    content: {
+      preheader: t('courriel.codePreheader'),
+      heading: t('courriel.codeTitre'),
+      paragraphs: [t('courriel.codeCorps', { brand }), i.code, t('courriel.codeIgnorer')],
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendSignupCode(i: { to: string; code: string; locale: Locale }): Promise<boolean> {
+  return sendEmail({ kind: 'signup_code', to: i.to, locale: i.locale, organizationId: null, ...buildSignupCode(i) })
+}
+
+/** Adresse qui reçoit les demandes d'invitation (réglage STUDIO_NOTIFY_EMAIL, sinon le courriel de Studio Existence). */
+export const studioNotifyEmail = () => (process.env.STUDIO_NOTIFY_EMAIL || CONFIG.brand.studioLegal.email).trim()
+
+/** Avis à Studio : une demande d'invitation est arrivée par la vitrine (en français : c'est pour Studio). */
+export async function sendAccessRequestNotice(r: { orgName: string; name: string; email: string; message: string | null; studioUrl: string }): Promise<boolean> {
+  return sendEmail({
+    kind: 'access_request',
+    to: studioNotifyEmail(),
+    locale: 'fr',
+    organizationId: null,
+    subject: `Demande d’invitation : ${r.orgName}`, // i18n-ok : avis pour Studio (FR)
+    content: {
+      preheader: `${r.name} (${r.email})`,
+      heading: 'Nouvelle demande d’invitation', // i18n-ok : avis pour Studio (FR)
+      paragraphs: [`${r.orgName} — ${r.name}, ${r.email}`, ...(r.message ? [`« ${r.message} »`] : [])],
+      button: { label: 'Ouvrir la section Studio', url: r.studioUrl }, // i18n-ok : avis pour Studio (FR)
+      footer: [CONFIG.brand.studioLegal.name],
+    },
+  })
 }

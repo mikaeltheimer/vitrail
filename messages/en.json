@@ -250,7 +250,8 @@
       "etape3Texte": "Here, and on the big screen during events.",
       "recu": "This organization is not yet a registered charity, so no tax receipt is issued at this time. Secure payment by Stripe.",
       "creation": "Created by <lien>{studio}</lien>."
-    }
+    },
+    "ferme": "This stained glass opens soon: donations are not open yet."
   },
   "claim": {
     "titre": "Add my piece",
@@ -361,7 +362,20 @@
     "reinitBouton": "Choose a password",
     "reinitIgnorer": "Didn’t ask for this? Ignore this email: your current password still works.",
     "roleProprietaire": "owner",
-    "roleBenevole": "volunteer"
+    "roleBenevole": "volunteer",
+    "creationObjet": "Your invitation to create the stained glass of {org}",
+    "creationObjetSansNom": "Your invitation to create your donation stained glass",
+    "creationPreheader": "Your access to {brand}, in invitation-only beta.",
+    "creationTitre": "Create your stained glass",
+    "creationCorps": "Studio Existence invites you to create your organization’s donation stained glass on {brand}. Signing up takes a few minutes: your access, the name and address of the stained glass, then the terms.",
+    "creationMot": "A word from Studio Existence: “{message}”",
+    "creationBouton": "Create my stained glass",
+    "creationNote": "This link is personal and valid for 14 days. You can sign up with a different email address if you like.",
+    "codeObjet": "Your confirmation code: {code}",
+    "codePreheader": "It is valid for 15 minutes.",
+    "codeTitre": "Confirm your address",
+    "codeCorps": "Enter this code to confirm the address of your {brand} access. It is valid for 15 minutes.",
+    "codeIgnorer": "Didn’t ask for this? Ignore this email."
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",
@@ -586,7 +600,9 @@
       "derniersDons": "Latest donations",
       "toutVoir": "See all",
       "aucunDon": "No donations yet. Share the link or show the screen to receive the first ones.",
-      "anonyme": "Anonymous"
+      "anonyme": "Anonymous",
+      "etatEntrainement": "Practice",
+      "etatBrouillon": "Not live yet"
     },
     "dons": {
       "ajouterComptant": "Add a cash donation",
@@ -749,7 +765,12 @@
       "purgeAide": "Before opening: deletes all donations made in demo mode, and the pieces left with no donation.",
       "purge": "Delete demo donations",
       "purgeConfirmer": "Delete all demo donations? This can’t be undone.",
-      "purgeOk": "Demo donations deleted."
+      "purgeOk": "Demo donations deleted.",
+      "viderTitre": "Start fresh",
+      "viderAide": "Deletes all practice donations, and the pieces left with no donation.",
+      "vider": "Empty the practice space",
+      "viderConfirmer": "Delete all practice donations?",
+      "viderOk": "Practice space emptied."
     },
     "equipe": {
       "titre": "Team",
@@ -764,6 +785,234 @@
       "role": "Role",
       "inviter": "Invite",
       "envoyee": "Invitation sent to {email}."
+    },
+    "entrainement": {
+      "bandeau": "Practice.",
+      "bandeauAide": "Pretend donations, no real payment. Nothing you do here touches your real stained glass.",
+      "quitter": "Back to the real stained glass",
+      "ouvrir": "Practice"
+    },
+    "demarrage": {
+      "titre": "Getting started",
+      "brouillon": "Not live yet",
+      "stripe": "Connect Stripe",
+      "stripeAide": "To receive donations in your organization’s account. About ten questions, guided by Stripe.",
+      "stripePret": "Your Stripe account is ready.",
+      "stripeConnecter": "Connect Stripe",
+      "stripeTerminer": "Finish Stripe sign-up",
+      "sExercer": "Practise",
+      "sExercerAide": "Make pretend donations, project the screen, moderate: the practice space stays available, even after going live.",
+      "ouvrirEntrainement": "Open the practice space",
+      "enLigne": "Go live",
+      "enLigneAide": "Your stained glass then accepts real donations.",
+      "enLigneAttente": "Possible as soon as Stripe is ready.",
+      "enLigneConfirmer": "Put your stained glass live? It will accept real donations right away.",
+      "mettreEnLigne": "Go live",
+      "erreur": "Something went wrong."
+    }
+  },
+  "plateforme": {
+    "metaTitre": "{brand} — every donation becomes a piece of the stained glass",
+    "metaDescription": "Your organization’s fundraising becomes a collective artwork: each donor picks a colour, leaves a word, and their piece joins the stained glass, online and on the big screen.",
+    "nav": {
+      "comment": "How it works",
+      "tarifs": "Pricing",
+      "questions": "Questions",
+      "connexion": "Sign in",
+      "demander": "Request an invitation",
+      "principale": "Main navigation"
+    },
+    "hero": {
+      "beta": "Beta · invitation only",
+      "titre": "Every donation becomes a piece of the stained glass.",
+      "texte": "{brand} turns your organization’s fundraising into a collective artwork. Each donor picks a colour, leaves a word, and their piece joins the stained glass, online and live on the big screen during your events.",
+      "demander": "Request an invitation",
+      "voir": "See how it works",
+      "pour": "For non-profits, schools, cultural venues and causes in Québec. In French and English.",
+      "illustration": "A stained glass made of coloured pieces; a new piece joins every few seconds",
+      "direct": "Each new donation, a new piece"
+    },
+    "comment": {
+      "titre": "How it works",
+      "e1Titre": "Create your stained glass",
+      "e1": "Your name, your logo, your colours and an address of your own. Connect your Stripe account to receive donations: no technical skills needed.",
+      "e2Titre": "Invite people to give",
+      "e2": "Share the link, print QR codes for your venues and project the stained glass on a big screen during your event.",
+      "e3Titre": "Watch it grow",
+      "e3": "Each donation appears live. The donor gets a receipt and a link to edit their piece whenever they like."
+    },
+    "donateurs": {
+      "titre": "For your donors",
+      "intro": "Giving becomes a visible gesture people want to show.",
+      "l1": "A colour chosen from your stained glass’s palette",
+      "l2": "Their name shown, or anonymity",
+      "l3": "A testimonial and a photo, if they wish",
+      "l4": "Their piece grows if they give again",
+      "l5": "They edit or remove their content at any time"
+    },
+    "equipe": {
+      "titre": "For your team",
+      "intro": "A console designed for the phone, on event night.",
+      "l1": "The total and donations, live",
+      "l2": "Photos and testimonials approved before they reach the screen",
+      "l3": "Cash donations added to the stained glass",
+      "l4": "Where donations come from: which QR code, which link",
+      "l5": "A team of volunteers with limited access",
+      "l6": "A practice stained glass to train the team safely",
+      "l7": "The list of donors who agree to receive your news"
+    },
+    "tarifs": {
+      "titre": "Pricing",
+      "intro": "No subscription, no fixed fees. You only pay when you receive a donation.",
+      "commission": "{brand} commission",
+      "taux": "{taux}",
+      "deChaque": "of each donation",
+      "palier": "<b>{taux}</b> once {seuil} in commissions have been paid, that is about {dons} in donations received. Forever.",
+      "stripeTitre": "Card processing fees",
+      "stripe": "Paid directly to Stripe by your organization: {pct} + {fixe} per Canadian card.",
+      "couvrir": "Donors can choose to cover them by giving a little more.",
+      "exemple": "Example: a {montant} donation",
+      "exCommission": "{brand} commission",
+      "exStripe": "Stripe fees",
+      "exRecu": "Received by your organization",
+      "direct": "The money goes straight to your Stripe account: it never passes through {brand}.",
+      "rembourse": "If a donation is refunded, our commission is returned to you pro rata."
+    },
+    "garanties": {
+      "quebecTitre": "Made in Québec",
+      "quebec": "Designed and run by Studio Existence, in Sutton, in the Eastern Townships.",
+      "loiTitre": "Law 25 compliant",
+      "loi": "Donors decide what is shown and can remove their name, word or photo at any time.",
+      "stripeTitre": "Secure payments",
+      "stripe": "Cards are processed by Stripe. {brand} never sees or stores any card number.",
+      "languesTitre": "French and English",
+      "langues": "The stained glass, the emails and the projection screen, in both languages."
+    },
+    "faq": {
+      "titre": "Questions",
+      "q1": "Do we need a Stripe account already?",
+      "r1": "No. You create it from your console in a few steps guided by Stripe. Meanwhile, you can practise on your practice stained glass.",
+      "q2": "Do we need to hold an event?",
+      "r2": "No. The stained glass is online at all times. The projection screen is a bonus for your evenings and exhibitions.",
+      "q3": "Who decides what is shown?",
+      "r3": "You do. You can approve each photo and testimonial before it appears, and hide a piece in one tap.",
+      "q4": "What about official tax receipts?",
+      "r4": "Donors get a payment receipt by email. Official tax receipts are still issued by your organization, if it is a registered charity.",
+      "q5": "Why invitation only?",
+      "r5": "{brand} is in beta. We personally support the first organizations before opening sign-up to everyone."
+    },
+    "demande": {
+      "titre": "Does your organization want its stained glass?",
+      "intro": "Tell us who you are. We will answer personally, with your invitation.",
+      "deja": "Already invited? Follow the link you received by email.",
+      "organisme": "Organization",
+      "nom": "Your name",
+      "courriel": "Email",
+      "message": "Your project, in a few words (optional)",
+      "envoyer": "Request an invitation",
+      "envoi": "Sending…",
+      "confidentialite": "Your details are only used to answer you.",
+      "merci": "Thank you! Your request has arrived. We will write to you very soon.",
+      "erreurs": {
+        "organisme": "Enter your organization’s name.",
+        "nom": "Enter your name.",
+        "courriel": "This email address looks incomplete.",
+        "trop": "Too many requests from this device. Please try again later.",
+        "serveur": "The request could not be saved. Please try again in a moment."
+      }
+    },
+    "pied": {
+      "projet": "{brand} is a project of {studio}, Sutton (Québec).",
+      "conditions": "Terms of use",
+      "confidentialite": "Privacy",
+      "ecrire": "Write to us",
+      "juridiques": "Legal links"
+    },
+    "provisoire": "Provisional text, under legal review.",
+    "legal": {
+      "conditionsTitre": "Terms of use for organizations",
+      "conditionsIntro": "These terms govern the use of {brand} by organizations. Here are the essentials, until the full version is ready.",
+      "conditionsContact": "Questions: {email}.",
+      "confTitre": "Platform privacy policy",
+      "confIntro": "This policy covers the {brand} website, invitation requests and team accounts. Each organization has its own policy for its donors.",
+      "confCollecte": "What we collect: for an invitation request, the organization’s name, your name, your email and your message; for a team account, your name, your email and a hash of your password.",
+      "confUsage": "What it is for: answering you, inviting you and giving you access to the console. Nothing is sold or used for advertising.",
+      "confDroits": "Your rights: access, correct or have your information deleted by writing to {email}.",
+      "confResponsable": "Person in charge of protecting personal information: {studio}, {address}."
+    }
+  },
+  "inscription": {
+    "metaTitre": "Create my stained glass — {brand}",
+    "etape": "Step {n} of 3",
+    "retour": "Back",
+    "invalide": "This invitation has expired or has already been used.",
+    "invalideAide": "Write to us and we will send you a new one.",
+    "chargement": "Loading…",
+    "compte": {
+      "titre": "Welcome!",
+      "intro": "Studio Existence invites you to create the stained glass of {org}. Let’s start with your access.",
+      "introSansNom": "Studio Existence invites you to create your organization’s stained glass. Let’s start with your access.",
+      "mot": "A word from Studio Existence: “{message}”",
+      "nom": "Your name",
+      "courriel": "Email",
+      "courrielAide": "This is the address that received the invitation. You can use another one: we will send you a code to confirm it.",
+      "motdepasse": "Password",
+      "motdepasseAide": "10 characters or more.",
+      "dejaCompte": "Already have access? Use the same address and password."
+    },
+    "code": {
+      "titre": "Confirm your address",
+      "intro": "We just sent a 6-digit code to <b>{email}</b>. It is valid for 15 minutes.",
+      "champ": "Code received",
+      "renvoyer": "Send a new code",
+      "corriger": "Change the address",
+      "aide": "Nothing received? Check your spam folder.",
+      "confirmer": "Confirm",
+      "renvoye": "New code sent."
+    },
+    "organisme": {
+      "titre": "Your organization",
+      "intro": "The logo, colours and texts come next, in your console.",
+      "nom": "Organization name",
+      "nomAide": "As it will appear on the stained glass and in emails.",
+      "adresse": "Stained-glass address",
+      "adresseAide": "Lowercase letters and numbers, hyphens allowed. This is the address printed on your QR codes: choose it carefully.",
+      "verification": "Checking…",
+      "disponible": "Available",
+      "pris": "Already taken",
+      "reserve": "Reserved: choose another one",
+      "forme": "3 to 33 characters: letters, numbers, one hyphen at a time"
+    },
+    "conditions": {
+      "titre": "The terms, in short",
+      "l1": "<b>{taux} per donation</b>, then {palier} after {seuil} in commissions. No fixed fees.",
+      "l2": "<b>Stripe fees</b> (and any disputes) are borne by your organization, even when a donation is refunded.",
+      "l3": "Your organization is <b>responsible for its donors’ personal information</b> (Law 25); Studio Existence hosts and processes it on your behalf.",
+      "l4": "You moderate what appears on your stained glass.",
+      "lire": "Read the full terms of use",
+      "accepte": "I have read and accept the terms of use on behalf of {org}, and I am authorized to do so.",
+      "creer": "Create my stained glass",
+      "creation": "Creating…",
+      "note": "Your stained glass opens when you put it live. Until then, practise on your practice stained glass."
+    },
+    "continuer": "Continue",
+    "erreurs": {
+      "invitation": "This invitation has expired or has already been used.",
+      "nom": "Enter your name.",
+      "courriel": "First confirm this address with the code you received.",
+      "meme": "This is already the invitation’s address.",
+      "motdepasse": "Password too weak.",
+      "compte": "An access already exists for this address: enter its password.",
+      "organisme": "Enter the organization’s name.",
+      "adresse": "This address is not in the right form.",
+      "adresseReservee": "This address is reserved.",
+      "adressePrise": "This address was just taken: choose another one.",
+      "conditions": "Accept the terms to continue.",
+      "code": "This code does not match.",
+      "expire": "This code has expired: request a new one.",
+      "trop": "Too many attempts. Wait a little, then request a new code.",
+      "reseau": "No connection. Please try again.",
+      "inconnue": "Something went wrong."
     }
   }
 }

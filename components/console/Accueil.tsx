@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useMoney } from '@/lib/useI18n'
 import type { ConsoleData } from './types'
@@ -75,7 +76,7 @@ export default function Accueil({
       action: t('voir'),
       onClick: () => openDonor(data.bounces[0].donorId),
     })
-  if (owner && !data.stripe.ready)
+  if (owner && !data.stripe.ready && !data.org.practice && data.org.status !== 'draft')
     todos.push({
       key: 'stripe',
       icon: 'carte',
@@ -87,11 +88,20 @@ export default function Accueil({
 
   const colorOf = new Map(data.donors.map(d => [d.id, d.color]))
   const recent = data.donations.filter(n => n.amount_cents > n.refunded_cents).slice(0, 6)
-  const stateLabel = data.mode === 'demo' ? t('etatDemo') : data.mode === 'off' ? t('etatFerme') : t('etatEnLigne')
+  const stateLabel = data.org.practice
+    ? t('etatEntrainement')
+    : data.org.status === 'draft'
+      ? t('etatBrouillon')
+      : data.mode === 'demo'
+        ? t('etatDemo')
+        : data.mode === 'off'
+          ? t('etatFerme')
+          : t('etatEnLigne')
   const stateColor = data.mode === 'stripe' ? GREEN : data.mode === 'demo' ? 'var(--accent)' : RED
 
   return (
     <div className="space-y-6">
+      {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} />}
       <section aria-label={t('collecte')} className="card space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="muted">{t('vitrailPrincipal')}</span>
@@ -115,7 +125,7 @@ export default function Accueil({
           <span>{t('dons', { count: s.donations })}</span>
           <span>{t('donateurs', { count: s.donors })}</span>
         </p>
-        {data.mode === 'demo' && owner && <p className="text-xs" style={{ color: 'var(--accent)' }}>{t('demoExplication')}</p>}
+        {data.mode === 'demo' && owner && !data.org.practice && <p className="text-xs" style={{ color: 'var(--accent)' }}>{t('demoExplication')}</p>}
       </section>
 
       <Section
@@ -173,7 +183,7 @@ export default function Accueil({
               const d = one(n.donors)
               return (
                 <li key={n.id} className={i ? 'border-t' : ''} style={{ borderColor: 'var(--line)' }}>
-                  <button className="flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => openDonor(n.donor_id)}>
+                  <button className="console-row flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => openDonor(n.donor_id)}>
                     <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: colorOf.get(n.donor_id) ?? 'var(--accent)' }} />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-[15px]">{d?.display_name || t('anonyme')}</span>
@@ -190,5 +200,91 @@ export default function Accueil({
         )}
       </Section>
     </div>
+  )
+}
+
+/** Organisme en brouillon : les étapes avant la mise en ligne (le propriétaire seul peut connecter Stripe et mettre en ligne). */
+function Demarrage({ data, open }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void> }) {
+  const t = useTranslations('console.demarrage')
+  const owner = data.me.role === 'owner'
+  const ready = data.stripe.ready
+  const [busy, setBusy] = useState(false)
+  const step = (done: boolean, n: number) => (
+    <span
+      className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full text-[13px] font-bold"
+      style={done ? { background: GREEN, color: 'var(--bg)' } : { border: '2px solid var(--accent)', color: 'var(--accent)' }}
+      aria-hidden="true"
+    >
+      {done ? '✓' : n}
+    </span>
+  )
+  return (
+    <section className="card space-y-4" style={{ borderColor: 'rgba(240,178,74,0.45)' }} aria-labelledby="demarrage">
+      <div className="flex items-center justify-between">
+        <h2 id="demarrage" className="text-[17px] font-bold">
+          {t('titre')}
+        </h2>
+        <span className="text-xs" style={{ color: 'var(--accent)' }}>
+          {t('brouillon')}
+        </span>
+      </div>
+      <ol className="space-y-3 text-sm">
+        <li className="flex gap-3">
+          {step(ready, 1)}
+          <span className="flex-1 space-y-2">
+            <span className="block">
+              <b>{t('stripe')}</b>
+              <span className="muted block text-[13px]">{ready ? t('stripePret') : t('stripeAide')}</span>
+            </span>
+            {!ready && owner && (
+              <button className="btn" onClick={() => void open('connectStripe', true)}>
+                {data.stripe.accountId ? t('stripeTerminer') : t('stripeConnecter')}
+              </button>
+            )}
+          </span>
+        </li>
+        <li className="flex gap-3">
+          {step(false, 2)}
+          <span className="flex-1 space-y-2">
+            <span className="block">
+              <b>{t('sExercer')}</b>
+              <span className="muted block text-[13px]">{t('sExercerAide')}</span>
+            </span>
+            {data.switchUrl && (
+              <a className="btn btn-ghost" href={data.switchUrl}>
+                {t('ouvrirEntrainement')}
+              </a>
+            )}
+          </span>
+        </li>
+        <li className="flex gap-3">
+          {step(false, 3)}
+          <span className="flex-1 space-y-2">
+            <span className="block">
+              <b>{t('enLigne')}</b>
+              <span className="muted block text-[13px]">{ready ? t('enLigneAide') : t('enLigneAttente')}</span>
+            </span>
+            {owner && (
+              <button
+                className="btn"
+                disabled={!ready || busy}
+                onClick={async () => {
+                  if (!confirm(t('enLigneConfirmer'))) return
+                  setBusy(true)
+                  const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'goLive' }) })
+                  if (res.ok) window.location.reload()
+                  else {
+                    setBusy(false)
+                    alert(((await res.json().catch(() => ({}))) as { error?: string }).error || t('erreur'))
+                  }
+                }}
+              >
+                {t('mettreEnLigne')}
+              </button>
+            )}
+          </span>
+        </li>
+      </ol>
+    </section>
   )
 }

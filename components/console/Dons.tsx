@@ -75,7 +75,7 @@ export default function Dons({
           <ul className="card !p-0">
             {donors.slice(0, 200).map((d, i) => (
               <li key={d.id} className={i ? 'border-t' : ''} style={{ borderColor: 'var(--line)' }}>
-                <button className="flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => setDonorId(d.id)}>
+                <button className="console-row flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => setDonorId(d.id)}>
                   <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: d.color, opacity: d.hidden ? 0.35 : 1 }} />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-[15px]">

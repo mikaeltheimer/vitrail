@@ -123,6 +123,55 @@ body {
 .muted {
   color: var(--muted);
 }
+/* Retour visuel : ce qui est cliquable réagit au survol (seulement avec une souris) et se voit au clavier.
+   Les cartes d'information (div.card) ne bougent pas : c'est justement ce qui les distingue. */
+.btn,
+.chip,
+a.card,
+button.card,
+.console-row {
+  transition: background-color 0.15s, border-color 0.15s, filter 0.15s, color 0.15s;
+}
+a.card,
+button.card,
+.console-row {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .btn:not(:disabled):hover {
+    filter: brightness(1.08);
+  }
+  .btn-ghost:not(:disabled):hover {
+    filter: none;
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  .chip:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  .chip[aria-pressed='true']:not(:disabled):hover {
+    background: var(--gold);
+    filter: brightness(1.08);
+  }
+  a.card:hover,
+  button.card:not(:disabled):hover {
+    border-color: rgba(240, 178, 74, 0.55);
+    background: color-mix(in srgb, var(--panel) 90%, white);
+  }
+  .console-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+.btn:focus-visible,
+.chip:focus-visible,
+a.card:focus-visible,
+button.card:focus-visible,
+.console-row:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 
 /* ── Écran d'affichage : tailles proportionnelles à l'écran (1 em ≈ 1/54 de la hauteur en 16:9) ── */
 .tv-display {

@@ -60,6 +60,18 @@ export default function Console() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-5 md:pb-12">
+      {data?.org.practice && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(165,107,217,0.18)', border: '1px solid rgba(165,107,217,0.6)' }} role="note">
+          <span>
+            <b>{t('entrainement.bandeau')}</b> {t('entrainement.bandeauAide')}
+          </span>
+          {data.switchUrl && (
+            <a href={data.switchUrl} className="chip !px-3 !text-[var(--text)]">
+              {t('entrainement.quitter')}
+            </a>
+          )}
+        </div>
+      )}
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="muted text-xs tracking-wide">{owner || !data ? t('titre') : t('titreBenevole')}</p>
@@ -67,7 +79,14 @@ export default function Console() {
             {data?.org.name ?? '…'}
           </h1>
         </div>
-        {data && <Account data={data} />}
+        <div className="flex items-center gap-2">
+          {data && !data.org.practice && data.switchUrl && (
+            <a href={data.switchUrl} className="chip hidden !px-3 text-sm !text-[var(--text)] sm:inline-flex">
+              {t('entrainement.ouvrir')}
+            </a>
+          )}
+          {data && <Account data={data} />}
+        </div>
       </header>
 
       <nav
@@ -80,7 +99,7 @@ export default function Console() {
             key={x}
             aria-current={tab === x ? 'page' : undefined}
             onClick={() => setTab(x)}
-            className="relative flex min-h-[60px] flex-col items-center justify-center gap-1 text-[11px] md:min-h-0 md:flex-row md:rounded-xl md:px-4 md:py-2 md:text-sm"
+            className={`console-row relative flex min-h-[60px] flex-col items-center justify-center gap-1 text-[11px] md:min-h-0 md:flex-row md:rounded-xl md:px-4 md:py-2 md:text-sm ${tab === x ? '' : 'hover:!text-[var(--text)]'}`}
             style={{ color: tab === x ? 'var(--accent)' : 'var(--muted)', fontWeight: tab === x ? 700 : 500, background: 'transparent' }}
           >
             <Icon name={icon[x]} />
@@ -130,7 +149,7 @@ function Account({ data }: { data: NonNullable<ReturnType<typeof useConsole>['da
   return (
     <div className="relative">
       <button
-        className="h-11 w-11 rounded-full border text-[15px] font-semibold"
+        className="console-row h-11 w-11 rounded-full border text-[15px] font-semibold"
         style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}
         aria-label={t('compte.menu')}
         aria-expanded={openMenu}

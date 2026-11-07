@@ -86,7 +86,8 @@ async function main() {
   check('taux absurde refusé (> 20 %)', parseFeeSchedule({ rate: 0.9 }).rate === S.rate)
 
   console.log('Mode de paiement par organisme')
-  check('brouillon : démo', paymentModeFor({ status: 'draft', stripeReady: false }) === 'demo')
+  check('brouillon : dons fermés (on s\'exerce sur l\'entraînement)', paymentModeFor({ status: 'draft', stripeReady: true }) === 'off')
+  check('entraînement : toujours démo, jamais Stripe', paymentModeFor({ status: 'live', stripeReady: true, practiceOf: 'orgA' }) === 'demo')
   check('en ligne et compte prêt : Stripe', paymentModeFor({ status: 'live', stripeReady: true }) === 'stripe')
   check('en ligne, compte pas prêt : dons fermés', paymentModeFor({ status: 'live', stripeReady: false }) === 'off')
   check('suspendu : fermé', paymentModeFor({ status: 'suspended', stripeReady: true }) === 'off')
@@ -299,7 +300,7 @@ async function main() {
   console.log('Paiement direct')
   const { startCheckout } = await import('../lib/payments')
   const base = { email: 'ana@x.ca', amountCents: 10000, feeCents: 0, returnTo: 'vitrail' as const, profile: { showName: true, name: 'Ana', message: null, photoUrl: null, quoteConsent: false }, color: '#fff', channel: null, locale: 'fr' as const, baseUrl: 'https://ecoleartsutton.donivers.test' }
-  const orgRow = { id: 'orgA', slug: 'ecoleartsutton', status: 'live' as const, name: 'École A', nameEn: null, photoModeration: 'live' as const, senderName: null, replyTo: null, stripeAccountId: 'acct_A', stripeReady: true, feeSchedule: S }
+  const orgRow = { id: 'orgA', slug: 'ecoleartsutton', status: 'live' as const, practiceOf: null, name: 'École A', nameEn: null, photoModeration: 'live' as const, senderName: null, replyTo: null, stripeAccountId: 'acct_A', stripeReady: true, feeSchedule: S }
   const vit = { id: 'permA', organizationId: 'orgA', kind: 'permanent' as const, slug: null, name: 'A', state: 'active' as const, inMain: true, goalCents: 0 }
   seed()
   tables.organization_fee_totals = [{ organization_id: 'orgA', fees_cents: 0 }]

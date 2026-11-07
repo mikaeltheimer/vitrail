@@ -15,7 +15,7 @@ export default function Plus({ data, act, open }: { data: ConsoleData; act: Act;
         <p className="card muted text-sm">{t('monVitrailBientot')}</p>
       </Section>
 
-      <Section title={t('paiements')}>
+      {!data.org.practice && <Section title={t('paiements')}>
         <div className="card space-y-3 text-sm">
           <p>
             {t('stripeEtat')}{' '}
@@ -40,22 +40,22 @@ export default function Plus({ data, act, open }: { data: ConsoleData; act: Act;
             )}
           </div>
         </div>
-      </Section>
+      </Section>}
 
-      {data.team && <Team team={data.team} meId={data.me.accountId} act={act} />}
+      {data.team && !data.org.practice && <Team team={data.team} meId={data.me.accountId} act={act} />}
 
       <Journal />
 
-      <Section title={t('donnees')}>
+      <Section title={data.org.practice ? t('viderTitre') : t('donnees')}>
         <div className="card space-y-3 text-sm">
-          <p className="muted">{t('purgeAide')}</p>
+          <p className="muted">{data.org.practice ? t('viderAide') : t('purgeAide')}</p>
           <button
             className="btn btn-ghost"
             onClick={() => {
-              if (confirm(t('purgeConfirmer'))) void act({ action: 'purgeDemo' }, t('purgeOk'))
+              if (confirm(data.org.practice ? t('viderConfirmer') : t('purgeConfirmer'))) void act({ action: 'purgeDemo' }, data.org.practice ? t('viderOk') : t('purgeOk'))
             }}
           >
-            {t('purge')}
+            {data.org.practice ? t('vider') : t('purge')}
           </button>
         </div>
       </Section>

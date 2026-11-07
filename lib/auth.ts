@@ -2,7 +2,7 @@ import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'no
 import { promisify } from 'node:util'
 import { cookies } from 'next/headers'
 import { getDb } from './db'
-import { getOrg, orgBaseUrl, platformDomain, requireTenant, type Tenant } from './tenant'
+import { getOrg, orgUrl, platformDomain, requireTenant, type Tenant } from './tenant'
 
 // Comptes des administrateurs : courriel + mot de passe, membres d'un ou plusieurs organismes (propriétaire ou bénévole).
 //
@@ -25,6 +25,7 @@ export const SESSION_COOKIE = 'donivers_session'
 const SESSION_DAYS = 30
 const DAY_MS = 86_400_000
 const INVITATION_DAYS = 7
+export const CREATE_INVITATION_DAYS = 14
 const RESET_MINUTES = 60
 const LOCK_FAILURES = 10
 const LOCK_MINUTES = 15
@@ -184,14 +185,22 @@ export async function roleIn(accountId: string, orgId: string): Promise<Role | n
   return (data?.role as Role | undefined) ?? null
 }
 
+/**
+ * Rôle d'une personne dans un organisme tel qu'on y accède : pour un organisme d'ENTRAÎNEMENT, c'est son rôle dans
+ * l'organisme réel (l'entraînement n'a pas de membres à lui).
+ */
+export async function accessRole(accountId: string, org: { id: string; practiceOf?: string | null }): Promise<Role | null> {
+  return roleIn(accountId, org.practiceOf ?? org.id)
+}
+
 /** Les organismes d'une personne (pour le sélecteur et la page « pas d'accès ici »). */
-export async function organizationsOf(accountId: string): Promise<{ id: string; name: string; role: Role; url: string }[]> {
+export async function organizationsOf(accountId: string, request?: Request): Promise<{ id: string; name: string; role: Role; url: string }[]> {
   const { data, error } = await getDb().from('memberships').select('organization_id,role').eq('account_id', accountId)
   if (error) throw error
   const out: { id: string; name: string; role: Role; url: string }[] = []
   for (const m of data ?? []) {
     const org = await getOrg(m.organization_id as string)
-    if (org) out.push({ id: org.id, name: org.name, role: m.role as Role, url: `${orgBaseUrl(org.slug)}/admin` })
+    if (org) out.push({ id: org.id, name: org.name, role: m.role as Role, url: orgUrl(org.slug, '/admin', request) })
   }
   return out
 }
@@ -222,7 +231,7 @@ export async function requireAdmin(request: Request, minRole: Role = 'volunteer'
   if ('response' in t) return t
   const account = await currentAccount()
   if (!account) return deny(401, 'Connectez-vous.')
-  const role = await roleIn(account.id, t.tenant.org.id)
+  const role = await accessRole(account.id, t.tenant.org)
   if (!role) return deny(403, "Vous n'avez pas accès à cet organisme.")
   if (RANK[role] < RANK[minRole]) return deny(403, 'Réservé au propriétaire de l\'organisme.')
   return { ctx: { tenant: t.tenant, account, role } }
@@ -241,23 +250,47 @@ export interface InvitationInfo {
 }
 
 /** Crée une invitation et renvoie le jeton à mettre dans le lien (l'appelant envoie le courriel). */
-export async function createInvitation(i: { email: string; organizationId: string; role: Role; invitedBy: string | null }): Promise<{ id: string; token: string }> {
+/**
+ * Crée une invitation et renvoie le jeton à mettre dans le lien (l'appelant envoie le courriel).
+ * organizationId null = invitation de Studio à CRÉER un organisme (14 jours ; lien vers /inscription).
+ */
+export async function createInvitation(i: {
+  email: string
+  organizationId: string | null
+  role: Role
+  invitedBy: string | null
+  orgName?: string | null
+  message?: string | null
+  locale?: 'fr' | 'en'
+}): Promise<{ id: string; token: string }> {
   const token = newToken()
   const db = getDb()
-  // Une seule invitation en attente par personne et par organisme : la nouvelle remplace l'ancienne
-  await db.from('invitations').update({ revoked_at: new Date().toISOString() }).eq('email', i.email).eq('organization_id', i.organizationId).is('accepted_at', null).is('revoked_at', null)
+  // Une seule invitation en attente par personne et par organisme (ou par création) : la nouvelle remplace l'ancienne
+  const pending = db.from('invitations').update({ revoked_at: new Date().toISOString() }).eq('email', i.email)
+  await (i.organizationId ? pending.eq('organization_id', i.organizationId) : pending.is('organization_id', null)).is('accepted_at', null).is('revoked_at', null)
   const { data, error } = await db
     .from('invitations')
-    .insert({ email: i.email, organization_id: i.organizationId, role: i.role, token_hash: tokenHash(token), invited_by: i.invitedBy, created_at: new Date().toISOString(), expires_at: inDays(INVITATION_DAYS) })
+    .insert({
+      email: i.email,
+      organization_id: i.organizationId,
+      role: i.role,
+      token_hash: tokenHash(token),
+      invited_by: i.invitedBy,
+      org_name: i.orgName ?? null,
+      message: i.message ?? null,
+      locale: i.locale ?? 'fr',
+      created_at: new Date().toISOString(),
+      expires_at: inDays(i.organizationId ? INVITATION_DAYS : CREATE_INVITATION_DAYS),
+    })
     .select('id')
     .single()
   if (error) throw error
   return { id: data.id as string, token }
 }
 
-async function pendingInvitationByToken(token: string): Promise<Record<string, unknown> | null> {
+export async function pendingInvitationByToken(token: string): Promise<Record<string, unknown> | null> {
   if (!token || token.length > 100) return null
-  const { data, error } = await getDb().from('invitations').select('id,email,organization_id,role,expires_at,accepted_at,revoked_at').eq('token_hash', tokenHash(token)).maybeSingle()
+  const { data, error } = await getDb().from('invitations').select('id,email,organization_id,role,org_name,message,locale,expires_at,accepted_at,revoked_at').eq('token_hash', tokenHash(token)).maybeSingle()
   if (error) throw error
   if (!data || data.accepted_at || data.revoked_at || new Date(data.expires_at as string).getTime() <= Date.now()) return null
   return data
@@ -291,6 +324,7 @@ export async function acceptInvitation(
 ): Promise<AcceptResult> {
   const inv = await pendingInvitationByToken(token)
   if (!inv) return { ok: false, error: 'Cette invitation a expiré ou a déjà servi. Demandez-en une nouvelle.' }
+  if (!inv.organization_id) return { ok: false, error: 'Cette invitation sert à créer un organisme : ouvrez le lien reçu par courriel.' }
   const db = getDb()
   const email = inv.email as string
   const { data: existing, error } = await db.from('accounts').select('id,email,name,is_studio,password_hash').eq('email', email).maybeSingle()
@@ -338,7 +372,7 @@ export async function acceptInvitation(
 
 // ── Mot de passe oublié / première connexion ───────────────────────────────────
 
-export type LinkToSend = { kind: 'password_reset'; email: string; token: string } | { kind: 'invitation'; email: string; token: string; organizationId: string; role: Role }
+export type LinkToSend = { kind: 'password_reset'; email: string; token: string } | { kind: 'invitation'; email: string; token: string; organizationId: string | null; role: Role }
 
 /**
  * « Recevoir un lien » : un compte actif reçoit un lien de réinitialisation ; une personne invitée qui n'a pas encore de compte
@@ -366,12 +400,11 @@ export async function linksForEmail(emailIn: unknown): Promise<LinkToSend[]> {
   if (invErr) throw invErr
   const out: LinkToSend[] = []
   for (const inv of invs ?? []) {
-    if (!inv.organization_id) continue // inviter à créer un organisme : étape suivante
     if (String(inv.created_at) >= twoMinAgo) continue
     const token = newToken()
-    const { error: upErr } = await db.from('invitations').update({ token_hash: tokenHash(token), created_at: new Date().toISOString(), expires_at: inDays(INVITATION_DAYS) }).eq('id', inv.id)
+    const { error: upErr } = await db.from('invitations').update({ token_hash: tokenHash(token), created_at: new Date().toISOString(), expires_at: inDays(inv.organization_id ? INVITATION_DAYS : CREATE_INVITATION_DAYS) }).eq('id', inv.id)
     if (upErr) throw upErr
-    out.push({ kind: 'invitation', email, token, organizationId: inv.organization_id as string, role: inv.role as Role })
+    out.push({ kind: 'invitation', email, token, organizationId: (inv.organization_id as string | null) ?? null, role: inv.role as Role })
   }
   return out
 }

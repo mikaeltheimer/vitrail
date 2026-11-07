@@ -250,7 +250,8 @@
       "etape3Texte": "Ici, et sur le grand écran pendant les événements.",
       "recu": "Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment. Paiement sécurisé par Stripe.",
       "creation": "Une création de <lien>{studio}</lien>."
-    }
+    },
+    "ferme": "Ce vitrail ouvrira bientôt : les dons ne sont pas encore ouverts."
   },
   "claim": {
     "titre": "Ajouter mon morceau",
@@ -361,7 +362,20 @@
     "reinitBouton": "Choisir un mot de passe",
     "reinitIgnorer": "Vous n’avez rien demandé? Ignorez ce courriel : votre mot de passe actuel reste valide.",
     "roleProprietaire": "propriétaire",
-    "roleBenevole": "bénévole"
+    "roleBenevole": "bénévole",
+    "creationObjet": "Votre invitation à créer le vitrail de {org}",
+    "creationObjetSansNom": "Votre invitation à créer votre vitrail de dons",
+    "creationPreheader": "Votre accès à {brand}, en bêta sur invitation.",
+    "creationTitre": "Créez votre vitrail",
+    "creationCorps": "Studio Existence vous invite à créer le vitrail de dons de votre organisme sur {brand}. L’inscription prend quelques minutes : votre accès, le nom et l’adresse du vitrail, puis les conditions.",
+    "creationMot": "Le mot de Studio Existence : « {message} »",
+    "creationBouton": "Créer mon vitrail",
+    "creationNote": "Ce lien est personnel et vaut 14 jours. Vous pourrez vous inscrire avec une autre adresse courriel si vous le souhaitez.",
+    "codeObjet": "Votre code de confirmation : {code}",
+    "codePreheader": "Il vaut 15 minutes.",
+    "codeTitre": "Confirmez votre adresse",
+    "codeCorps": "Saisissez ce code pour confirmer l’adresse de votre accès à {brand}. Il vaut 15 minutes.",
+    "codeIgnorer": "Vous n’avez rien demandé ? Ignorez ce courriel."
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",
@@ -586,7 +600,9 @@
       "derniersDons": "Derniers dons",
       "toutVoir": "Tout voir",
       "aucunDon": "Aucun don pour l’instant. Partagez le lien ou affichez l’écran pour recevoir les premiers.",
-      "anonyme": "Anonyme"
+      "anonyme": "Anonyme",
+      "etatEntrainement": "Entraînement",
+      "etatBrouillon": "Pas encore en ligne"
     },
     "dons": {
       "ajouterComptant": "Ajouter un don comptant",
@@ -749,7 +765,12 @@
       "purgeAide": "Avant l’ouverture : supprime tous les dons faits en mode démo, et les morceaux qui n’ont plus aucun don.",
       "purge": "Supprimer les dons de démo",
       "purgeConfirmer": "Supprimer tous les dons de démonstration ? C’est définitif.",
-      "purgeOk": "Dons de démonstration supprimés."
+      "purgeOk": "Dons de démonstration supprimés.",
+      "viderTitre": "Repartir à neuf",
+      "viderAide": "Efface tous les dons de l’entraînement, et les morceaux qui n’ont plus aucun don.",
+      "vider": "Vider l’entraînement",
+      "viderConfirmer": "Effacer tous les dons de l’entraînement ?",
+      "viderOk": "Entraînement vidé."
     },
     "equipe": {
       "titre": "Équipe",
@@ -764,6 +785,234 @@
       "role": "Rôle",
       "inviter": "Inviter",
       "envoyee": "Invitation envoyée à {email}."
+    },
+    "entrainement": {
+      "bandeau": "Entraînement.",
+      "bandeauAide": "Dons fictifs, aucun vrai paiement. Rien de ce que vous faites ici ne touche votre vrai vitrail.",
+      "quitter": "Revenir au vrai vitrail",
+      "ouvrir": "Entraînement"
+    },
+    "demarrage": {
+      "titre": "Pour démarrer",
+      "brouillon": "Pas encore en ligne",
+      "stripe": "Connecter Stripe",
+      "stripeAide": "Pour recevoir les dons dans le compte de votre organisme. Une dizaine de questions, guidées par Stripe.",
+      "stripePret": "Votre compte Stripe est prêt.",
+      "stripeConnecter": "Connecter Stripe",
+      "stripeTerminer": "Terminer l’inscription Stripe",
+      "sExercer": "Vous exercer",
+      "sExercerAide": "Faites des dons fictifs, projetez l’écran, modérez : l’entraînement reste à votre disposition, même après la mise en ligne.",
+      "ouvrirEntrainement": "Ouvrir l’entraînement",
+      "enLigne": "Mettre en ligne",
+      "enLigneAide": "Votre vitrail accepte alors de vrais dons.",
+      "enLigneAttente": "Possible dès que Stripe est prêt.",
+      "enLigneConfirmer": "Mettre votre vitrail en ligne ? Il acceptera de vrais dons dès maintenant.",
+      "mettreEnLigne": "Mettre en ligne",
+      "erreur": "Une erreur est survenue."
+    }
+  },
+  "plateforme": {
+    "metaTitre": "{brand} — chaque don devient un morceau du vitrail",
+    "metaDescription": "La collecte de fonds de votre organisme devient une œuvre collective : chaque donateur choisit sa couleur, laisse un mot, et son morceau s’ajoute au vitrail, en ligne et sur grand écran.",
+    "nav": {
+      "comment": "Comment ça marche",
+      "tarifs": "Tarifs",
+      "questions": "Questions",
+      "connexion": "Se connecter",
+      "demander": "Demander une invitation",
+      "principale": "Navigation principale"
+    },
+    "hero": {
+      "beta": "Bêta · sur invitation",
+      "titre": "Chaque don devient un morceau du vitrail.",
+      "texte": "{brand} transforme la collecte de fonds de votre organisme en œuvre collective. Chaque donateur choisit sa couleur, laisse un mot, et son morceau s’ajoute au vitrail, en ligne et en direct sur grand écran pendant vos événements.",
+      "demander": "Demander une invitation",
+      "voir": "Voir comment ça marche",
+      "pour": "Pour les organismes à but non lucratif, écoles, lieux culturels et causes du Québec. En français et en anglais.",
+      "illustration": "Un vitrail fait de morceaux de couleur ; un nouveau morceau s’ajoute toutes les quelques secondes",
+      "direct": "Chaque nouveau don, un nouveau morceau"
+    },
+    "comment": {
+      "titre": "Comment ça marche",
+      "e1Titre": "Créez votre vitrail",
+      "e1": "Votre nom, votre logo, vos couleurs et une adresse à vous. Connectez votre compte Stripe pour recevoir les dons : aucune compétence technique requise.",
+      "e2Titre": "Invitez à donner",
+      "e2": "Partagez le lien, imprimez des codes QR pour vos lieux et projetez le vitrail sur grand écran pendant votre événement.",
+      "e3Titre": "Regardez-le grandir",
+      "e3": "Chaque don apparaît en direct. Le donateur reçoit son reçu et un lien pour modifier son morceau quand il le veut."
+    },
+    "donateurs": {
+      "titre": "Pour vos donateurs",
+      "intro": "Donner devient un geste visible, qu’on a envie de montrer.",
+      "l1": "Une couleur choisie parmi les verres de votre vitrail",
+      "l2": "Son nom affiché, ou l’anonymat",
+      "l3": "Un témoignage et une photo, s’il le souhaite",
+      "l4": "Son morceau grandit s’il donne à nouveau",
+      "l5": "Il modifie ou retire son contenu à tout moment"
+    },
+    "equipe": {
+      "titre": "Pour votre équipe",
+      "intro": "Une console pensée pour le téléphone, le soir de l’événement.",
+      "l1": "Le total et les dons en direct",
+      "l2": "Photos et témoignages approuvés avant d’apparaître à l’écran",
+      "l3": "Les dons en argent comptant ajoutés au vitrail",
+      "l4": "D’où viennent les dons : quel code QR, quel lien",
+      "l5": "Une équipe de bénévoles avec des accès limités",
+      "l6": "Un vitrail d’entraînement pour former l’équipe sans risque",
+      "l7": "La liste des donateurs qui acceptent vos nouvelles"
+    },
+    "tarifs": {
+      "titre": "Tarifs",
+      "intro": "Aucun abonnement, aucuns frais fixes. Vous ne payez que lorsque vous recevez un don.",
+      "commission": "Commission {brand}",
+      "taux": "{taux}",
+      "deChaque": "de chaque don",
+      "palier": "<b>{taux}</b> une fois {seuil} de commissions versées, soit environ {dons} de dons reçus. Pour toujours.",
+      "stripeTitre": "Frais de traitement des cartes",
+      "stripe": "Payés directement à Stripe par votre organisme : {pct} + {fixe} par carte canadienne.",
+      "couvrir": "Le donateur peut choisir de les couvrir en donnant un peu plus.",
+      "exemple": "Exemple : un don de {montant}",
+      "exCommission": "Commission {brand}",
+      "exStripe": "Frais Stripe",
+      "exRecu": "Reçu par votre organisme",
+      "direct": "L’argent va directement dans votre compte Stripe : il ne passe jamais par {brand}.",
+      "rembourse": "En cas de remboursement, notre commission vous est rendue au prorata."
+    },
+    "garanties": {
+      "quebecTitre": "Fait au Québec",
+      "quebec": "Conçu et exploité par Studio Existence, à Sutton, dans les Cantons-de-l’Est.",
+      "loiTitre": "Respect de la Loi 25",
+      "loi": "Le donateur décide de ce qui est affiché et peut retirer son nom, son mot ou sa photo à tout moment.",
+      "stripeTitre": "Paiements sécurisés",
+      "stripe": "Les cartes sont traitées par Stripe. {brand} ne voit ni ne conserve aucun numéro de carte.",
+      "languesTitre": "Français et anglais",
+      "langues": "Le vitrail, les courriels et l’écran de projection, dans les deux langues."
+    },
+    "faq": {
+      "titre": "Questions",
+      "q1": "Faut-il déjà avoir un compte Stripe ?",
+      "r1": "Non. Vous le créez depuis votre console en quelques étapes guidées par Stripe. En attendant, vous pouvez vous exercer sur votre vitrail d’entraînement.",
+      "q2": "Faut-il organiser un événement ?",
+      "r2": "Non. Le vitrail est en ligne en tout temps. L’écran de projection est un plus pour vos soirées et vos expositions.",
+      "q3": "Qui décide de ce qui s’affiche ?",
+      "r3": "Vous. Vous pouvez approuver chaque photo et chaque témoignage avant qu’ils apparaissent, et masquer un morceau en un geste.",
+      "q4": "Et les reçus officiels pour l’impôt ?",
+      "r4": "Le donateur reçoit un reçu de paiement par courriel. Les reçus officiels aux fins de l’impôt restent émis par votre organisme, s’il est un organisme de bienfaisance enregistré.",
+      "q5": "Pourquoi sur invitation ?",
+      "r5": "{brand} est en bêta. Nous accompagnons personnellement les premiers organismes avant d’ouvrir l’inscription à tous."
+    },
+    "demande": {
+      "titre": "Votre organisme veut son vitrail ?",
+      "intro": "Dites-nous qui vous êtes. Nous vous répondons personnellement, avec votre invitation.",
+      "deja": "Déjà invité ? Suivez le lien reçu par courriel.",
+      "organisme": "Organisme",
+      "nom": "Votre nom",
+      "courriel": "Courriel",
+      "message": "Votre projet, en quelques mots (facultatif)",
+      "envoyer": "Demander une invitation",
+      "envoi": "Envoi…",
+      "confidentialite": "Vos coordonnées servent uniquement à vous répondre.",
+      "merci": "Merci ! Votre demande est bien arrivée. Nous vous écrivons très bientôt.",
+      "erreurs": {
+        "organisme": "Indiquez le nom de votre organisme.",
+        "nom": "Indiquez votre nom.",
+        "courriel": "Cette adresse courriel semble incomplète.",
+        "trop": "Trop de demandes depuis cet appareil. Réessayez plus tard.",
+        "serveur": "La demande n’a pas pu être enregistrée. Réessayez dans un moment."
+      }
+    },
+    "pied": {
+      "projet": "{brand} est un projet de {studio}, Sutton (Québec).",
+      "conditions": "Conditions d’utilisation",
+      "confidentialite": "Confidentialité",
+      "ecrire": "Nous écrire",
+      "juridiques": "Liens juridiques"
+    },
+    "provisoire": "Texte provisoire, en cours de révision juridique.",
+    "legal": {
+      "conditionsTitre": "Conditions d’utilisation pour les organismes",
+      "conditionsIntro": "Ces conditions encadrent l’utilisation de {brand} par les organismes. En voici l’essentiel, en attendant la version complète.",
+      "conditionsContact": "Questions : {email}.",
+      "confTitre": "Politique de confidentialité de la plateforme",
+      "confIntro": "Cette politique couvre la vitrine de {brand}, les demandes d’invitation et les comptes des équipes. Chaque organisme a sa propre politique pour ses donateurs.",
+      "confCollecte": "Ce que nous recueillons : pour une demande d’invitation, le nom de l’organisme, votre nom, votre courriel et votre message ; pour un compte d’équipe, votre nom, votre courriel et l’empreinte de votre mot de passe.",
+      "confUsage": "À quoi ça sert : vous répondre, vous inviter et vous donner accès à la console. Rien n’est vendu ni utilisé pour de la publicité.",
+      "confDroits": "Vos droits : consulter, corriger ou faire supprimer vos renseignements, en écrivant à {email}.",
+      "confResponsable": "Responsable de la protection des renseignements personnels : {studio}, {address}."
+    }
+  },
+  "inscription": {
+    "metaTitre": "Créer mon vitrail — {brand}",
+    "etape": "Étape {n} sur 3",
+    "retour": "Retour",
+    "invalide": "Cette invitation a expiré ou a déjà servi.",
+    "invalideAide": "Écrivez-nous et nous vous en enverrons une nouvelle.",
+    "chargement": "Chargement…",
+    "compte": {
+      "titre": "Bienvenue !",
+      "intro": "Studio Existence vous invite à créer le vitrail de {org}. Commençons par votre accès.",
+      "introSansNom": "Studio Existence vous invite à créer le vitrail de votre organisme. Commençons par votre accès.",
+      "mot": "Le mot de Studio Existence : « {message} »",
+      "nom": "Votre nom",
+      "courriel": "Courriel",
+      "courrielAide": "C’est l’adresse qui a reçu l’invitation. Vous pouvez en utiliser une autre : nous vous enverrons un code pour la confirmer.",
+      "motdepasse": "Mot de passe",
+      "motdepasseAide": "10 caractères ou plus.",
+      "dejaCompte": "Vous avez déjà un accès ? Utilisez la même adresse et le même mot de passe."
+    },
+    "code": {
+      "titre": "Confirmez votre adresse",
+      "intro": "Nous venons d’envoyer un code à 6 chiffres à <b>{email}</b>. Il vaut 15 minutes.",
+      "champ": "Code reçu",
+      "renvoyer": "Renvoyer un code",
+      "corriger": "Corriger l’adresse",
+      "aide": "Rien reçu ? Regardez dans les indésirables.",
+      "confirmer": "Confirmer",
+      "renvoye": "Nouveau code envoyé."
+    },
+    "organisme": {
+      "titre": "Votre organisme",
+      "intro": "Le logo, les couleurs et les textes viendront ensuite, dans votre console.",
+      "nom": "Nom de l’organisme",
+      "nomAide": "Tel qu’il s’affichera sur le vitrail et dans les courriels.",
+      "adresse": "Adresse du vitrail",
+      "adresseAide": "Lettres minuscules et chiffres, tirets permis. C’est l’adresse imprimée sur vos codes QR : choisissez-la avec soin.",
+      "verification": "Vérification…",
+      "disponible": "Disponible",
+      "pris": "Déjà prise",
+      "reserve": "Réservée : choisissez-en une autre",
+      "forme": "De 3 à 33 caractères : lettres, chiffres, un tiret à la fois"
+    },
+    "conditions": {
+      "titre": "Les conditions, en bref",
+      "l1": "<b>{taux} par don</b>, puis {palier} après {seuil} de commissions. Aucuns frais fixes.",
+      "l2": "Les <b>frais de Stripe</b> (et d’éventuels litiges) sont à la charge de votre organisme, même en cas de remboursement.",
+      "l3": "Votre organisme est <b>responsable des renseignements</b> de ses donateurs (Loi 25) ; Studio Existence les héberge et les traite pour vous.",
+      "l4": "Vous modérez ce qui s’affiche sur votre vitrail.",
+      "lire": "Lire les conditions d’utilisation complètes",
+      "accepte": "J’ai lu et j’accepte les conditions d’utilisation au nom de {org}, et je suis autorisé à le faire.",
+      "creer": "Créer mon vitrail",
+      "creation": "Création…",
+      "note": "Votre vitrail ouvrira quand vous le mettrez en ligne. D’ici là, exercez-vous sur votre vitrail d’entraînement."
+    },
+    "continuer": "Continuer",
+    "erreurs": {
+      "invitation": "Cette invitation a expiré ou a déjà servi.",
+      "nom": "Indiquez votre nom.",
+      "courriel": "Confirmez d’abord cette adresse avec le code reçu.",
+      "meme": "C’est déjà l’adresse de l’invitation.",
+      "motdepasse": "Mot de passe trop faible.",
+      "compte": "Un accès existe déjà pour cette adresse : entrez son mot de passe.",
+      "organisme": "Indiquez le nom de l’organisme.",
+      "adresse": "Cette adresse n’a pas la bonne forme.",
+      "adresseReservee": "Cette adresse est réservée.",
+      "adressePrise": "Cette adresse vient d’être prise : choisissez-en une autre.",
+      "conditions": "Acceptez les conditions pour continuer.",
+      "code": "Ce code ne correspond pas.",
+      "expire": "Ce code a expiré : demandez-en un nouveau.",
+      "trop": "Trop d’essais. Patientez un peu, puis demandez un nouveau code.",
+      "reseau": "Pas de connexion. Réessayez.",
+      "inconnue": "Une erreur est survenue."
     }
   }
 }

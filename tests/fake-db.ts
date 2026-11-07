@@ -71,6 +71,7 @@ const UNIQUE: Record<string, string[]> = {
   memberships: ['account_id+organization_id'],
   sessions: ['token_hash'],
   invitations: ['token_hash'],
+  organization_slugs: ['slug'],
 }
 export const fakeDb = {
   from(table: string) {

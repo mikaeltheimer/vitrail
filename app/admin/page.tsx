@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { currentAccount, organizationsOf, roleIn } from '@/lib/auth'
+import { accessRole, currentAccount, organizationsOf } from '@/lib/auth'
 import { resolveTenant } from '@/lib/tenant'
 import AdminLogin from './AdminLogin'
 import Console from '@/components/console/Console'
@@ -17,7 +17,7 @@ export default async function AdminPage() {
   if (!('tenant' in r)) notFound()
   const account = await currentAccount()
   if (!account) return <AdminLogin orgName={r.tenant.org.name} />
-  const role = await roleIn(account.id, r.tenant.org.id)
+  const role = await accessRole(account.id, r.tenant.org)
   if (!role) return <NoAccess orgName={r.tenant.org.name} email={account.email} orgs={await organizationsOf(account.id)} />
   return <Console />
 }

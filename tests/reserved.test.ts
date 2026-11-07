@@ -2,7 +2,7 @@ import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import './helpers'
 import { check, done } from './helpers'
-import { RESERVED_CAMPAIGN_SLUGS, orgSlugFromHost, CAMPAIGN_SLUG_RE } from '../lib/tenant'
+import { RESERVED_CAMPAIGN_SLUGS, orgSlugFromHost } from '../lib/tenant'
 
 console.log('Routes et adresses')
 const appDir = path.resolve(__dirname, '../app')

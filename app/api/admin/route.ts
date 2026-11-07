@@ -6,7 +6,8 @@ import { requireAdmin, createInvitation, normalizeEmail, organizationsOf, remove
 import { sendInvitation, sendMagicLink } from '@/lib/email'
 import { createToken } from '@/lib/donations'
 import { fetchWhere, recordDonation } from '@/lib/donations'
-import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getVitrail, orgBaseUrl } from '@/lib/tenant'
+import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getOrg, getVitrail, orgBaseUrl, orgUrl } from '@/lib/tenant'
+import { goLive, practiceOf } from '@/lib/signup'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
 import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
 
   const [team, orgs, mailingRows, logRows] = await Promise.all([
     t.role === 'owner' ? teamOf(orgId) : Promise.resolve(null),
-    organizationsOf(t.account.id),
+    organizationsOf(t.account.id, request),
     fetchWhere<{ id: string; mailing_consent_at: string | null; mailing_withdrawn_at: string | null }>('donors', 'id,mailing_consent_at,mailing_withdrawn_at', 'organization_id', orgId, 'id').catch(() => []),
     (await hasEmailLog())
       ? db.from('email_log').select('donor_id,to_email,status,kind,created_at').eq('organization_id', orgId).in('kind', ['receipt', 'magic_link', 'reminder']).order('created_at', { ascending: false }).limit(2000)
@@ -106,7 +107,9 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    org: { name: t.tenant.org.name, slug: t.tenant.org.slug, status: t.tenant.org.status },
+    org: { name: t.tenant.org.name, slug: t.tenant.org.slug, status: t.tenant.org.status, practice: !!t.tenant.org.practiceOf },
+    // Bascule entre l'organisme réel et son entraînement (même équipe)
+    switchUrl: await switchUrl(t.tenant.org, request),
     summary: {
       totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
       donations: summaryDonations,
@@ -154,8 +157,20 @@ export async function GET(request: NextRequest) {
 // masquer les boutons dans la console ne protège rien.
 const OWNER_ONLY = new Set([
   'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
-  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail',
+  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail', 'goLive',
 ])
+// Ce qui n'a pas de sens dans l'entraînement : l'argent réel, Stripe, l'équipe (c'est celle de l'organisme réel)
+const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive'])
+
+/** L'adresse de la console de l'autre côté : l'entraînement depuis l'organisme réel, et inversement. */
+async function switchUrl(org: { id: string; practiceOf: string | null }, request: NextRequest): Promise<string | null> {
+  if (org.practiceOf) {
+    const parent = await getOrg(org.practiceOf)
+    return parent ? orgUrl(parent.slug, '/admin', request) : null
+  }
+  const p = await practiceOf(org.id)
+  return p ? orgUrl(p.slug, '/admin', request) : null
+}
 
 export async function POST(request: NextRequest) {
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
@@ -163,6 +178,7 @@ export async function POST(request: NextRequest) {
   if ('response' in a) return a.response
   const t = a.ctx
   const orgId = t.tenant.org.id
+  if (t.tenant.org.practiceOf && NOT_IN_PRACTICE.has(String(b.action))) return fail("Pas dans l'entraînement : passez à la console de l'organisme.")
   const db = getDb()
   const str = (v: unknown) => (typeof v === 'string' ? v : '')
   // Avis au donateur après une décision de modération (sauf si l'équipe décoche « Prévenir le donateur »).
@@ -433,7 +449,7 @@ export async function POST(request: NextRequest) {
       const org = t.tenant.org
       after(async () => {
         try {
-          await sendInvitation({ to: e.value, token: inv.token, locale: 'fr', orgName: org.name, organizationId: org.id, role, inviterName: t.account.name || null, baseUrl: orgBaseUrl(org.slug) })
+          await sendInvitation({ to: e.value, token: inv.token, locale: 'fr', orgName: org.name, organizationId: org.id, role, inviterName: t.account.name || null, baseUrl: orgUrl(org.slug, '', request) })
         } catch (err) {
           console.error('Invitation non envoyée :', err)
         }
@@ -456,8 +472,17 @@ export async function POST(request: NextRequest) {
       return fail("Le vitrail permanent est toujours celui de l'organisme ; chaque campagne a sa propre adresse.")
 
     // Avant l'événement : retirer tout ce qui a été créé en mode démo (de CET organisme)
+    // Mettre en ligne : brouillon → en ligne, quand le compte Stripe est prêt (l'entraînement reste tel quel)
+    case 'goLive': {
+      const r = await goLive(orgId)
+      if (!r.ok) return fail(r.error === 'stripe' ? "Le compte Stripe n'est pas encore prêt." : r.error === 'deja' ? 'Ce vitrail est déjà en ligne.' : 'Impossible ici.')
+      return NextResponse.json({ ok: true })
+    }
+
+    // Dons de démo ; dans l'entraînement : TOUS ses dons (comptants compris), pour repartir à neuf
     case 'purgeDemo': {
-      const del = await db.from('donations').delete().eq('organization_id', orgId).eq('source', 'demo')
+      const purge = db.from('donations').delete().eq('organization_id', orgId)
+      const del = await (t.tenant.org.practiceOf ? purge : purge.eq('source', 'demo'))
       if (del.error) return fail(del.error.message, 500)
       // Les donateurs restés sans aucun don (un don remboursé reste un don : son donateur n'est pas supprimé)
       const [donors, withDonations] = await Promise.all([

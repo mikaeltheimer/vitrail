@@ -7,11 +7,19 @@ import { parseFeeSchedule, type FeeSchedule } from './platform-fee'
 //   <slug>.PLATFORM_DOMAIN            → l'organisme <slug>, vitrail permanent
 //   <slug>.PLATFORM_DOMAIN/<campagne> → son vitrail de campagne (la route le passe en `vitrailSlug`)
 //
-// Toute adresse inconnue (vitrail.studioexistence.com, *.vercel.app, localhost…) retombe sur DEFAULT_ORG_SLUG : c'est
-// aussi le sélecteur des déploiements de prévisualisation. Aucun paramètre ni cookie ne choisit l'organisme : les
-// réponses publiques sont mises en cache (s-maxage), un choix par cookie pourrait fuir d'un visiteur à l'autre.
+//   PLATFORM_DOMAIN, www.PLATFORM_DOMAIN → le site de la plateforme (vitrine, inscription, Studio) : proxy.ts
+//   <slug>--essai.PLATFORM_DOMAIN    → l'organisme d'ENTRAÎNEMENT de <slug> (dons fictifs, jamais Stripe)
+//   <slug>.ANCIEN_DOMAINE            → redirection permanente vers <slug>.PLATFORM_DOMAIN (LEGACY_PLATFORM_DOMAINS)
+//
+// Toute autre adresse (vitrail.studioexistence.com, *.vercel.app, localhost…) retombe sur DEFAULT_ORG_SLUG. En
+// PRÉVISUALISATION et en développement seulement, ?org=<slug> choisit l'organisme (témoin PREVIEW_ORG_COOKIE posé par
+// proxy.ts) ; les réponses publiques y sont alors non mises en cache. Jamais en production : un choix par témoin
+// pourrait fuir d'un visiteur à l'autre par le cache.
 
-export const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/
+
+import { PREVIEW_ORG_COOKIE, SLUG_RE, isPlatformHost, isPreviewEnv, platformDomain } from './hosts'
+export * from './hosts'
+
 export const CAMPAIGN_SLUG_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/
 
 /**
@@ -21,12 +29,15 @@ export const CAMPAIGN_SLUG_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/
 export const RESERVED_CAMPAIGN_SLUGS = [
   'admin', 'affiche', 'api', 'conditions', 'confidentialite', 'don', 'ecran', 'm', 'merci', 'screen', 'vitrail', 'privacy', 'en', 'fr',
   'login', 'auth', 'console', 'static', 'assets', '_next', 'favicon', 'robots', 'sitemap',
+  'plateforme', 'inscription', 'studio', 'connexion', 'entrainement',
 ] as const
 
 export interface OrgRow {
   id: string
   slug: string
   status: 'draft' | 'live' | 'suspended'
+  /** Organisme d'entraînement : l'identifiant de l'organisme réel ; null pour un organisme réel. */
+  practiceOf: string | null
   name: string
   nameEn: string | null
   photoModeration: 'live' | 'moderation'
@@ -56,7 +67,14 @@ export interface Tenant {
 export type TenantResult = { tenant: Tenant } | { redirect: string } | { notFound: true }
 
 const defaultSlug = () => (process.env.DEFAULT_ORG_SLUG || 'ecoleartsutton').trim().toLowerCase()
-export const platformDomain = () => (process.env.PLATFORM_DOMAIN || '').trim().toLowerCase().replace(/^\.+/, '')
+
+/** Organisme choisi par ?org= en prévisualisation (lu dans le témoin de la requête), sinon null. */
+export function previewOrgSlug(request: Request): string | null {
+  if (!isPreviewEnv()) return null
+  const m = (request.headers.get('cookie') ?? '').match(new RegExp(`(?:^|;\\s*)${PREVIEW_ORG_COOKIE}=([^;]+)`))
+  const v = m ? decodeURIComponent(m[1]).toLowerCase() : null
+  return v && SLUG_RE.test(v) ? v : null
+}
 
 /** L'identifiant d'organisme lu dans l'adresse, ou null (domaine inconnu, domaine nu, sous-sous-domaine). */
 export function orgSlugFromHost(hostHeader: string | null | undefined): string | null {
@@ -78,13 +96,35 @@ export function orgBaseUrl(slug: string | null | undefined): string {
 
 /** Adresse de base d'après la requête elle-même (le visiteur revient là où il a commencé). */
 export function baseUrlOf(request: Request): string {
-  const slug = orgSlugFromHost(request.headers.get('x-forwarded-host') || request.headers.get('host'))
-  if (slug) {
-    const proto = request.headers.get('x-forwarded-proto') || (platformDomain() === 'localhost' ? 'http' : 'https')
-    const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim()
-    return `${proto}://${host}`
+  const raw = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  if (orgSlugFromHost(raw) || isPreviewEnv()) {
+    const host = (raw || '').split(',')[0].trim()
+    if (host) {
+      const proto = request.headers.get('x-forwarded-proto') || (/^(localhost|127\.)/.test(host) || platformDomain() === 'localhost' ? 'http' : 'https')
+      return `${proto}://${host}`
+    }
   }
   return siteUrl()
+}
+
+/**
+ * Adresse d'une page d'un organisme, vue depuis la requête en cours : son sous-domaine quand la plateforme a son domaine ;
+ * en prévisualisation, l'adresse de la requête avec ?org=<slug> (pas de sous-domaines sur *.vercel.app).
+ */
+export function orgUrl(slug: string, path: string, request?: Request): string {
+  const host = request ? (request.headers.get('x-forwarded-host') || request.headers.get('host')) : null
+  if (request && isPreviewEnv() && !orgSlugFromHost(host) && !isPlatformHost(host)) {
+    const sep = path.includes('?') ? '&' : '?'
+    return `${baseUrlOf(request)}${path}${sep}org=${encodeURIComponent(slug)}`
+  }
+  return `${orgBaseUrl(slug)}${path}`
+}
+
+/** Adresse du site de la plateforme (vitrine, inscription, Studio) : le domaine nu, sinon l'adresse de la requête. */
+export function platformUrl(request?: Request): string {
+  const d = platformDomain()
+  if (d && d !== 'localhost') return `https://${d}`
+  return request ? baseUrlOf(request) : siteUrl()
 }
 
 /** Chemin public d'un vitrail : /vitrail pour le permanent, /<campagne> sinon. */
@@ -93,6 +133,7 @@ export const vitrailPath = (v: Pick<VitrailRow, 'kind' | 'slug'>): string => (v.
 interface OrgDbRow {
   id: string
   status: OrgRow['status']
+  practice_of: string | null
   name_fr: string
   texts: { en?: { name?: string } } | null
   photo_moderation: OrgRow['photoModeration']
@@ -107,6 +148,7 @@ const toOrg = (r: OrgDbRow, slug: string): OrgRow => ({
   id: r.id,
   slug,
   status: r.status,
+  practiceOf: r.practice_of ?? null,
   name: r.name_fr,
   nameEn: r.texts?.en?.name ?? null,
   photoModeration: r.photo_moderation,
@@ -158,7 +200,7 @@ export async function getOrg(orgId: string): Promise<OrgRow | null> {
   return remember(`org:${orgId}`, async () => {
     const db = getDb()
     const [orgRes, slugRes] = await Promise.all([
-      db.from('organizations').select('id,status,name_fr,texts,photo_moderation,sender_name,reply_to,stripe_account_id,stripe_ready,fee_schedule').eq('id', orgId).maybeSingle(),
+      db.from('organizations').select('id,status,practice_of,name_fr,texts,photo_moderation,sender_name,reply_to,stripe_account_id,stripe_ready,fee_schedule').eq('id', orgId).maybeSingle(),
       db.from('organization_slugs').select('slug').eq('organization_id', orgId).eq('is_current', true).maybeSingle(),
     ])
     if (orgRes.error) throw orgRes.error
@@ -211,7 +253,7 @@ export async function getCampaignBySlug(orgId: string, slug: string): Promise<Vi
  */
 export async function resolveTenant(request: Request, opts: { vitrailSlug?: string | null } = {}): Promise<TenantResult> {
   const hostSlug = orgSlugFromHost(request.headers.get('x-forwarded-host') || request.headers.get('host'))
-  const slug = hostSlug ?? defaultSlug()
+  const slug = hostSlug ?? previewOrgSlug(request) ?? defaultSlug()
 
   const found = await lookupSlug(slug)
   if (!found) return { notFound: true }

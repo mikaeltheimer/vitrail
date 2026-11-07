@@ -42,14 +42,15 @@ export function paymentMode(): PaymentMode {
 
 /**
  * Mode de paiement d'UN organisme. Le réglage global est l'interrupteur maître de Studio Existence :
+ * - un organisme d'ENTRAÎNEMENT est toujours en démo (jamais Stripe), sauf si tout est fermé ;
  * - global « off » ou « demo » : s'applique à tous (tant que PAYMENT_MODE=demo, aucun vrai paiement nulle part) ;
- * - global « stripe » : un organisme en brouillon reste en démo ; un organisme en ligne paie par Stripe seulement
- *   si son compte est prêt (identifié, paiements activés), sinon les dons sont fermés.
+ * - global « stripe » : un organisme en brouillon a ses dons fermés (« ouvrira bientôt » : on s'exerce sur l'entraînement) ;
+ *   un organisme en ligne paie par Stripe seulement si son compte est prêt, sinon les dons sont fermés.
  */
-export function paymentModeFor(org: { status: string; stripeReady: boolean }): PaymentMode {
+export function paymentModeFor(org: { status: string; stripeReady: boolean; practiceOf?: string | null }): PaymentMode {
   const global = paymentMode()
+  if (org.practiceOf) return global === 'off' ? 'off' : 'demo'
   if (global !== 'stripe') return global
-  if (org.status === 'draft') return 'demo'
   return org.status === 'live' && org.stripeReady ? 'stripe' : 'off'
 }
 
