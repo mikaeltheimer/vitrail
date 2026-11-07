@@ -1,5 +1,5 @@
 import { headers } from 'next/headers'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { accessRole, currentAccount, organizationsOf } from '@/lib/auth'
 import { resolveTenant } from '@/lib/tenant'
 import AdminLogin from './AdminLogin'
@@ -13,11 +13,17 @@ export const metadata = { title: 'Console — Donivers', robots: { index: false 
 export default async function AdminPage() {
   const h = await headers()
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost'
-  const r = await resolveTenant(new Request(`https://${host}/admin`, { headers: h }))
+  const req = new Request(`https://${host}/admin`, { headers: h })
+  const r = await resolveTenant(req)
   if (!('tenant' in r)) notFound()
   const account = await currentAccount()
   if (!account) return <AdminLogin orgName={r.tenant.org.name} />
   const role = await accessRole(account.id, r.tenant.org)
-  if (!role) return <NoAccess orgName={r.tenant.org.name} email={account.email} orgs={await organizationsOf(account.id)} />
+  if (!role) {
+    // Liens vers SES organismes, vus depuis cette adresse (en prévisualisation : ?org=). Un seul : on l'y emmène directement.
+    const orgs = await organizationsOf(account.id, req)
+    if (orgs.length === 1) redirect(orgs[0].url)
+    return <NoAccess orgName={r.tenant.org.name} email={account.email} orgs={orgs} />
+  }
   return <Console />
 }
