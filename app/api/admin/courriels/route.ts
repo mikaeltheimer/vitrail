@@ -4,7 +4,9 @@ import { escapeHtml, renderEmail } from '@/lib/emailTemplate'
 import { siteUrl } from '@/lib/env'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { currentAccount, roleIn } from '@/lib/auth'
-import { requireTenant } from '@/lib/tenant'
+import { requireTenant, type OrgRow } from '@/lib/tenant'
+import { emailIdentity } from '@/lib/email'
+import { getIdentity, type OrgTexts } from '@/lib/identity'
 import { validateEmail } from '@/lib/validate'
 import { isLocale, type Locale } from '@/i18n/config'
 
@@ -18,9 +20,9 @@ export const dynamic = 'force-dynamic'
 // Les liens des exemples portent un jeton bidon : ils mènent à « ce lien a expiré ». Rien n'est lu ni écrit chez les donateurs.
 
 const TYPES = {
-  recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale): Built => buildReceipt({ amountCents: 2500, token: 'EXEMPLE', locale, baseUrl: siteUrl() }) },
-  lien: { label: 'Lien personnel (« Retrouver mon morceau »)', kind: 'magic_link' as EmailKind, build: (locale: Locale): Built => buildMagicLink({ token: 'EXEMPLE', locale, baseUrl: siteUrl() }) },
-  rappel: { label: 'Rappel du lendemain (témoignage)', kind: 'reminder' as EmailKind, build: (locale: Locale): Built => buildReminder({ token: 'EXEMPLE', locale, baseUrl: siteUrl() }) },
+  recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReceipt({ amountCents: 2500, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
+  lien: { label: 'Lien personnel (« Retrouver mon morceau »)', kind: 'magic_link' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildMagicLink({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
+  rappel: { label: 'Rappel du lendemain (témoignage)', kind: 'reminder' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReminder({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
   ...(Object.fromEntries(
     (
       [
@@ -32,9 +34,9 @@ const TYPES = {
       ] as [string, string, ModerationEvent][]
     ).map(([key, label, event]) => [
       key,
-      { label, kind: 'moderation' as EmailKind, build: (locale: Locale): Built => buildModeration({ event, locale, baseUrl: siteUrl() }) },
+      { label, kind: 'moderation' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildModeration({ event, locale, baseUrl: siteUrl(), org }) },
     ]),
-  ) as Record<string, { label: string; kind: EmailKind; build: (locale: Locale) => Built }>),
+  ) as Record<string, { label: string; kind: EmailKind; build: (locale: Locale, org: OrgTexts) => Built }>),
 }
 type TypeKey = keyof typeof TYPES
 const isType = (v: unknown): v is TypeKey => typeof v === 'string' && v in TYPES
@@ -46,11 +48,19 @@ const SECURITY = {
 }
 
 /** Propriétaire de l'organisme de l'adresse (les exemples ne lisent aucune donnée, mais l'envoi d'essai part à une adresse libre). */
-async function isOwner(request: NextRequest): Promise<boolean> {
+async function ownerOrg(request: NextRequest): Promise<OrgRow | null> {
   const t = await requireTenant(request)
-  if ('response' in t) return false
+  if ('response' in t) return null
   const me = await currentAccount()
-  return !!me && (await roleIn(me.id, t.tenant.org.id)) === 'owner'
+  return me && (await roleIn(me.id, t.tenant.org.id)) === 'owner' ? t.tenant.org : null
+}
+
+/** Le courriel de l'exemple, avec l'identité de l'organisme (langue limitée aux siennes). */
+async function sample(org: OrgRow, type: TypeKey, lang: Locale) {
+  const identity = await getIdentity(org)
+  if (!identity) return null
+  const e = emailIdentity(identity, lang)
+  return { locale: e.locale, from: e.from, ...TYPES[type].build(e.locale, e.build.org) }
 }
 
 const page = (body: string, status = 200) =>
@@ -62,14 +72,16 @@ form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}input
   )
 
 export async function GET(request: NextRequest) {
-  if (!(await isOwner(request))) return page('<p>Connectez-vous d\'abord à la <a href="/admin">console</a> comme propriétaire, puis rouvrez cette adresse.</p>', 403)
+  const org = await ownerOrg(request)
+  if (!org) return page('<p>Connectez-vous d\'abord à la <a href="/admin">console</a> comme propriétaire, puis rouvrez cette adresse.</p>', 403)
   const params = request.nextUrl.searchParams
   const type = params.get('type')
   const lang = params.get('lang')
 
-  if (isType(type) && isLocale(lang)) {
-    const { subject, content } = TYPES[type].build(lang)
-    const { html, text } = renderEmail(content, lang)
+  const built = isType(type) && isLocale(lang) ? await sample(org, type, lang) : null
+  if (built) {
+    const { subject, content } = built
+    const { html, text } = renderEmail(content, built.locale)
     if (params.get('format') === 'text') {
       return new NextResponse(`Objet : ${subject}\n\n${text}\n`, { headers: { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY } })
     }
@@ -96,7 +108,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await isOwner(request))) return page('<p>Non autorisé.</p>', 403)
+  const org = await ownerOrg(request)
+  if (!org) return page('<p>Non autorisé.</p>', 403)
   if (!rateLimit(clientKey(request, 'admin-courriels'), 10, 10 * 60_000)) return page('<p>Trop d\'essais. Réessayez dans quelques minutes.</p>', 429)
   const form = await request.formData().catch(() => null)
   const type = form?.get('type')
@@ -105,7 +118,8 @@ export async function POST(request: NextRequest) {
   const back = (qs: string) => NextResponse.redirect(new URL(`/api/admin/courriels?${qs}`, request.url), 303)
   if (!isType(type) || !isLocale(lang) || !to.ok) return back(`erreur=${encodeURIComponent('Adresse ou choix invalide.')}`)
 
-  const { subject, content } = TYPES[type].build(lang)
-  const ok = await sendEmail({ kind: TYPES[type].kind, to: to.value, locale: lang, donorId: null, subject: `[ESSAI] ${subject}`, content })
+  const built = await sample(org, type, lang)
+  if (!built) return back(`erreur=${encodeURIComponent('Organisme introuvable.')}`)
+  const ok = await sendEmail({ kind: TYPES[type].kind, to: to.value, locale: built.locale, donorId: null, organizationId: org.id, ...built.from, subject: `[ESSAI] ${built.subject}`, content: built.content })
   return back(ok ? `envoye=${encodeURIComponent(to.value)}` : `erreur=${encodeURIComponent('Le courriel n\'est pas parti (clé Resend absente ou refusée : voir les journaux Vercel).')}`)
 }

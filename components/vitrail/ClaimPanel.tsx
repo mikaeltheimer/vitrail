@@ -20,6 +20,7 @@ import { CONFIG, GLASS_COLORS } from "@/lib/config";
 import { feeFor } from "@/lib/fees";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
+import { OrgMark } from '@/components/OrgBrand';
 
 const GOLD = "#F0B24A";
 
@@ -418,12 +419,7 @@ export default function ClaimPanel({
           background: "rgba(240,178,74,0.06)",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/ecole-mark.png"
-          alt=""
-          style={{ height: 30, width: "auto", flexShrink: 0 }}
-        />
+        <OrgMark size={30} />
         <span
           style={{
             fontSize: "13px",

@@ -30,6 +30,7 @@ import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from 
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
+import { OrgMark } from '@/components/OrgBrand'
 
 const HEADER_HEIGHT = 56
 const MONO = "'DM Sans', sans-serif"
@@ -1336,8 +1337,7 @@ function Header({
   // L'organisme d'abord : son emblème et son nom ; Donivers, discret, dessous
   const brand = (
     <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#F4EFE6', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/ecole-mark.png" alt="" style={{ height: 32, width: 'auto', flexShrink: 0 }} />
+      <OrgMark size={32} />
       <span style={{ display: 'grid', minWidth: 0, lineHeight: 1.1 }}>
         <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</span>
         <span style={{ fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.brand.name}</span>
@@ -1397,9 +1397,11 @@ function Header({
               <button onClick={onAbout} style={{ ...menuLink, background: 'none', border: 0, borderBottom: menuLink.borderBottom, textAlign: 'left' }}>
                 {t('apropos')}
               </button>
-              <a href={org.url} target="_blank" rel="noreferrer" style={menuLink}>
-                {t('siteWeb')}
-              </a>
+              {org.url && (
+                <a href={org.url} target="_blank" rel="noreferrer" style={menuLink}>
+                  {t('siteWeb')}
+                </a>
+              )}
               <Link href="/don?src=vitrail" style={menuLink}>
                 {t('pageDon')}
               </Link>
@@ -1471,9 +1473,11 @@ function Header({
         <button onClick={onAbout} style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', background: 'none', border: 0, cursor: 'pointer', marginRight: 16 }}>
           {t('apropos')}
         </button>
-        <a href={org.url} target="_blank" rel="noreferrer" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
-          {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
-        </a>
+        {org.url && (
+          <a href={org.url} target="_blank" rel="noreferrer" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+            {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
+          </a>
+        )}
         <LanguageSwitch style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginLeft: 16 }} />
         {claimLabel && (
           <button

@@ -1,4 +1,5 @@
-import { CONFIG, brandFor, orgFor } from './config'
+import { CONFIG, brandFor } from './config'
+import { clampLocale, identityOrNeutral, type Identity, type OrgTexts } from './identity'
 import { getDb } from './db'
 import { siteUrl } from './env'
 import { renderEmail, type EmailContent } from './emailTemplate'
@@ -22,18 +23,13 @@ export const STATUS_RANK: Record<EmailStatus, number> = { queued: 0, skipped: 0,
 const SEND_TIMEOUT_MS = 8000
 
 /**
- * Expéditeur : le nom de l'organisme, sur l'adresse d'envoi de la plateforme (domaine vérifié chez Resend).
- * EMAIL_FROM (« Nom <adresse> ») prend le dessus ; sinon EMAIL_FROM_ADDRESS ; sinon l'adresse d'essai de Resend.
+ * Expéditeur : un nom (l'organisme, ou la plateforme pour ses propres courriels) sur l'adresse d'envoi de la plateforme
+ * (domaine vérifié chez Resend). EMAIL_FROM (« Nom <adresse> ») prend le dessus ; sinon EMAIL_FROM_ADDRESS ; sinon l'adresse d'essai de Resend.
  */
-export function fromFor(locale: Locale): string {
+export function fromFor(name: string = CONFIG.brand.name): string {
   if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM
   const address = process.env.EMAIL_FROM_ADDRESS || 'onboarding@resend.dev'
-  return `"${orgFor(locale).name.replace(/"/g, '')}" <${address}>`
-}
-
-/** Adresse à laquelle répondent les donateurs : celle de l'organisme, à défaut celle de la plateforme. */
-export function replyToFor(): string {
-  return CONFIG.legal.officerEmail || CONFIG.brand.studioLegal.email
+  return `"${name.replace(/["\r\n]/g, '')}" <${address}>`
 }
 
 interface Outgoing {
@@ -45,6 +41,10 @@ interface Outgoing {
   organizationId?: string | null
   subject: string
   content: EmailContent
+  /** Nom de l'expéditeur ; par défaut, la plateforme. */
+  fromName?: string
+  /** Adresse de réponse ; par défaut, celle de la plateforme. */
+  replyTo?: string | null
 }
 
 /** Écrit une ligne du journal ; renvoie son identifiant, ou null (journal absent ou en erreur). Ne lève jamais d'erreur. */
@@ -124,9 +124,9 @@ export async function sendEmail(o: Outgoing): Promise<boolean> {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: fromFor(o.locale),
+        from: fromFor(o.fromName),
         to: o.to,
-        reply_to: replyToFor(),
+        reply_to: o.replyTo || CONFIG.brand.studioLegal.email,
         subject: o.subject,
         html,
         text,
@@ -159,14 +159,24 @@ export function manageLink(token: string, locale: Locale, baseUrl: string = site
 }
 
 /** Pied commun : pourquoi ce courriel, comment répondre, qui propulse la plateforme. */
-function footerFor(locale: Locale): string[] {
+function footerFor(locale: Locale, orgName: string): string[] {
   const t = translatorFor(locale)
   const brand = brandFor(locale)
   return [
-    t('courriel.piedExpediteur', { brand: CONFIG.brand.name, org: orgFor(locale).name }),
+    t('courriel.piedExpediteur', { brand: CONFIG.brand.name, org: orgName }),
     t('courriel.piedRepondre'),
     `${brand.poweredBy} · ${CONFIG.brand.studioLegal.name}`,
   ]
+}
+
+/** Pour un courriel à un donateur : la langue (limitée à celles de l'organisme), ses textes et son expéditeur. */
+export function emailIdentity(identity: Identity, locale: Locale) {
+  const l = clampLocale(identity.locales, locale)
+  return { locale: l, build: { locale: l, org: identity.texts[l] }, from: { fromName: identity.senderName, replyTo: identity.replyTo } }
+}
+
+async function orgEmail(organizationId: string | null | undefined, locale: Locale) {
+  return emailIdentity(await identityOrNeutral(organizationId), locale)
 }
 
 export interface Built {
@@ -186,9 +196,9 @@ export interface ReceiptInput {
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
 // Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
-export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'locale' | 'baseUrl'>): Built {
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
   const t = translatorFor(i.locale)
-  const org = orgFor(i.locale)
+  const org = i.org
   return {
     subject: t('courriel.recuObjet', { org: org.name }),
     content: {
@@ -201,13 +211,14 @@ export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'lo
       button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
       note: t('courriel.recuLienNote'),
       linkHelp: t('courriel.lienAlt'),
-      footer: [t('courriel.recuPied'), ...footerFor(i.locale)],
+      footer: [t('courriel.recuPied'), ...footerFor(i.locale, i.org.name)],
     },
   }
 }
 
 export async function sendReceipt(i: ReceiptInput): Promise<boolean> {
-  return sendEmail({ kind: 'receipt', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildReceipt(i) })
+  const o = await orgEmail(i.organizationId, i.locale)
+  return sendEmail({ kind: 'receipt', to: i.to, locale: o.locale, donorId: i.donorId, organizationId: i.organizationId, ...o.from, ...buildReceipt({ ...i, ...o.build }) })
 }
 
 export interface MagicLinkInput {
@@ -219,23 +230,24 @@ export interface MagicLinkInput {
   baseUrl?: string
 }
 
-export function buildMagicLink(i: Pick<MagicLinkInput, 'token' | 'locale' | 'baseUrl'>): Built {
+export function buildMagicLink(i: Pick<MagicLinkInput, 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
   const t = translatorFor(i.locale)
   return {
-    subject: t('courriel.lienObjet', { org: orgFor(i.locale).name }),
+    subject: t('courriel.lienObjet', { org: i.org.name }),
     content: {
       preheader: t('courriel.lienPreheader'),
       heading: t('courriel.lienTitre'),
       paragraphs: [t('courriel.lienCorps'), t('courriel.lienIgnorer')],
       button: { label: t('courriel.lienBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
       linkHelp: t('courriel.lienAlt'),
-      footer: footerFor(i.locale),
+      footer: footerFor(i.locale, i.org.name),
     },
   }
 }
 
 export async function sendMagicLink(i: MagicLinkInput): Promise<boolean> {
-  return sendEmail({ kind: 'magic_link', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildMagicLink(i) })
+  const o = await orgEmail(i.organizationId, i.locale)
+  return sendEmail({ kind: 'magic_link', to: i.to, locale: o.locale, donorId: i.donorId, organizationId: i.organizationId, ...o.from, ...buildMagicLink({ ...i, ...o.build }) })
 }
 
 export interface ReminderInput {
@@ -248,9 +260,9 @@ export interface ReminderInput {
 }
 
 /** Rappel unique, le lendemain d'un don : invite à ajouter un témoignage (voir lib/reminders.ts). */
-export function buildReminder(i: Pick<ReminderInput, 'token' | 'locale' | 'baseUrl'>): Built {
+export function buildReminder(i: Pick<ReminderInput, 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
   const t = translatorFor(i.locale)
-  const org = orgFor(i.locale)
+  const org = i.org
   return {
     subject: t('courriel.rappelObjet', { org: org.name }),
     content: {
@@ -260,13 +272,14 @@ export function buildReminder(i: Pick<ReminderInput, 'token' | 'locale' | 'baseU
       button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
       note: t('courriel.recuLienNote'),
       linkHelp: t('courriel.lienAlt'),
-      footer: [t('courriel.rappelPied'), ...footerFor(i.locale)],
+      footer: [t('courriel.rappelPied'), ...footerFor(i.locale, i.org.name)],
     },
   }
 }
 
 export async function sendReminder(i: ReminderInput): Promise<boolean> {
-  return sendEmail({ kind: 'reminder', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildReminder(i) })
+  const o = await orgEmail(i.organizationId, i.locale)
+  return sendEmail({ kind: 'reminder', to: i.to, locale: o.locale, donorId: i.donorId, organizationId: i.organizationId, ...o.from, ...buildReminder({ ...i, ...o.build }) })
 }
 
 /** Ce que l'équipe a fait : publier ou retirer le témoignage ou la photo, ou effacer le nom, le témoignage et la photo d'un coup. */
@@ -290,13 +303,13 @@ const MODERATION_KEYS: Record<ModerationEvent, string> = {
 }
 
 /** Avis de modération : publié (bouton vers le vitrail) ou retiré parce qu'il enfreint les règles (bouton vers les conditions, et la voie pour répondre). */
-export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'baseUrl'>): Built {
+export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
   const t = translatorFor(i.locale) as unknown as (key: string, values?: Record<string, unknown>) => string // clés composées : courriel.mod…
   const k = MODERATION_KEYS[i.event]
   const approved = i.event === 'message_approved' || i.event === 'photo_approved'
   const base = (i.baseUrl ?? siteUrl()).replace(/\/$/, '')
   return {
-    subject: t('courriel.modObjet', { org: orgFor(i.locale).name }),
+    subject: t('courriel.modObjet', { org: i.org.name }),
     content: {
       preheader: t(`courriel.${k}Preheader`),
       heading: t(`courriel.${k}Titre`),
@@ -304,13 +317,14 @@ export function buildModeration(i: Pick<ModerationInput, 'event' | 'locale' | 'b
       button: approved
         ? { label: t('courriel.modBouton'), url: `${base}/vitrail?lang=${i.locale}` }
         : { label: t('courriel.modBoutonRegles'), url: `${base}/conditions?lang=${i.locale}` },
-      footer: footerFor(i.locale),
+      footer: footerFor(i.locale, i.org.name),
     },
   }
 }
 
 export async function sendModeration(i: ModerationInput): Promise<boolean> {
-  return sendEmail({ kind: 'moderation', to: i.to, locale: i.locale, donorId: i.donorId, organizationId: i.organizationId, ...buildModeration(i) })
+  const o = await orgEmail(i.organizationId, i.locale)
+  return sendEmail({ kind: 'moderation', to: i.to, locale: o.locale, donorId: i.donorId, organizationId: i.organizationId, ...o.from, ...buildModeration({ ...i, ...o.build }) })
 }
 
 // ── Comptes de la console (administrateurs) ────────────────────────────────────
@@ -356,7 +370,7 @@ export function buildInvitation(i: Omit<InvitationEmailInput, 'to' | 'organizati
 }
 
 export async function sendInvitation(i: InvitationEmailInput): Promise<boolean> {
-  return sendEmail({ kind: 'invitation', to: i.to, locale: i.locale, organizationId: i.organizationId, ...buildInvitation(i) })
+  return sendEmail({ kind: 'invitation', to: i.to, locale: i.locale, organizationId: i.organizationId, fromName: i.orgName, ...buildInvitation(i) })
 }
 
 export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: string }): Built {

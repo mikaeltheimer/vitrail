@@ -10,6 +10,7 @@ import ClaimPanel, { type ClaimDraft, type KnownDonor } from '@/components/vitra
 import DonationPreview from '@/components/DonationPreview'
 import type { Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
+import { OrgLogo } from '@/components/OrgBrand'
 
 // Formulaire de don sur téléphone (affiches à code QR) : le même panneau que « Ajouter mon morceau » sur le vitrail,
 // en pleine page, avec l'aperçu du morceau au-dessus. Avec un lien magique (?t=…), le donateur agrandit son morceau.
@@ -109,8 +110,7 @@ function DonForm() {
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-6">
       <header className="mb-5 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ecole-logo.png" alt={org.name} className="mx-auto mb-4" style={{ width: 180, height: 'auto' }} />
+        <OrgLogo className="mx-auto mb-4" style={{ width: 180 }} nameStyle={{ fontSize: 22 }} />
         <h1 className="mt-1 text-3xl">{org.vitrailTitle}</h1>
         <p className="muted mt-2 text-[0.95rem]">{t('intro')}</p>
         {donorsCount > 0 && (

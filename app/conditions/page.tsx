@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
-import { useLocale, useTranslations } from 'next-intl'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { CONFIG } from '@/lib/config'
 import type { Locale } from '@/i18n/config'
 import { formatMoney } from '@/lib/format'
-import { useOrg } from '@/lib/useOrg'
+import { requestIdentity } from '@/lib/identity'
+import { clampLocale, type LegalInfo } from '@/lib/identity-shared'
 import BrandFooter from '@/components/BrandFooter'
 import { Items, Section, legalTags } from '@/components/Legal'
 
-// Conditions d'utilisation. Les passages [À COMPLÉTER] viennent de CONFIG.legal ou sont à confirmer par l'organisme.
+// Conditions d'utilisation. Les passages [À COMPLÉTER] sont les coordonnées que l'organisme n'a pas encore remplies (Mon vitrail) ou sont à confirmer par l'organisme.
 // Point de départ, pas un avis juridique : à faire revoir par un avocat avant l'ouverture à d'autres organismes.
 // Textes : messages/fr.json et en.json, espace « conditions ».
 
@@ -26,12 +26,14 @@ const studioVars = {
   studioEmail: CONFIG.brand.studioLegal.email,
 }
 
-export default function ConditionsPage() {
-  const t = useTranslations('conditions')
-  const tc = useTranslations('commun')
-  const locale = useLocale() as Locale
-  const org = useOrg()
-  const tags = legalTags(tc('aCompleter'))
+export default async function ConditionsPage() {
+  const t = await getTranslations('conditions')
+  const tc = await getTranslations('commun')
+  const { identity } = await requestIdentity()
+  const locale = (identity ? clampLocale(identity.locales, (await getLocale()) as Locale) : await getLocale()) as Locale
+  const org = { name: identity ? identity.texts[locale].name : CONFIG.brand.name }
+  const legal: LegalInfo = identity?.legal ?? { entity: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
+  const tags = legalTags(tc('aCompleter'), legal)
   const v = {
     org: org.name,
     brand: CONFIG.brand.name,

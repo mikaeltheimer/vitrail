@@ -1,3 +1,4 @@
+import { missingForLaunch, type LegalInfo } from './identity-shared'
 import { createHash, randomInt } from 'node:crypto'
 import { getDb } from './db'
 import {
@@ -184,14 +185,14 @@ export async function signup(i: SignupInput): Promise<SignupResult> {
     const terms = { terms_version: TERMS_VERSION, terms_accepted_at: now, terms_accepted_by: account.id }
     const { data: org, error: orgErr } = await db
       .from('organizations')
-      .insert({ name_fr: orgName, status: 'draft', locales: ['fr'], created_at: now, ...terms })
+      .insert({ name_fr: orgName, status: 'draft', locales: [i.locale === 'en' ? 'en' : 'fr'], texts: { [i.locale === 'en' ? 'en' : 'fr']: { name: orgName } }, created_at: now, ...terms })
       .select('id')
       .single()
     if (orgErr) throw orgErr
     created.orgs.push(org.id as string)
     const { data: practice, error: prErr } = await db
       .from('organizations')
-      .insert({ name_fr: orgName, status: 'draft', locales: ['fr'], practice_of: org.id, created_at: now })
+      .insert({ name_fr: orgName, status: 'draft', locales: [i.locale === 'en' ? 'en' : 'fr'], practice_of: org.id, created_at: now })
       .select('id')
       .single()
     if (prErr) throw prErr
@@ -243,13 +244,15 @@ async function undo(orgIds: string[], accountId: string | null): Promise<void> {
 }
 
 /** Mettre en ligne (propriétaire) : seulement un organisme réel en brouillon dont le compte Stripe est prêt. */
-export async function goLive(orgId: string): Promise<{ ok: true } | { ok: false; error: 'entrainement' | 'deja' | 'stripe' }> {
+export async function goLive(orgId: string): Promise<{ ok: true } | { ok: false; error: 'entrainement' | 'deja' | 'stripe' | 'juridique' }> {
   const db = getDb()
-  const { data: org, error } = await db.from('organizations').select('id,status,practice_of,stripe_ready').eq('id', orgId).maybeSingle()
+  const { data: org, error } = await db.from('organizations').select('id,status,practice_of,stripe_ready,legal').eq('id', orgId).maybeSingle()
   if (error) throw error
   if (!org || org.practice_of) return { ok: false, error: 'entrainement' }
   if (org.status !== 'draft') return { ok: false, error: 'deja' }
   if (!org.stripe_ready) return { ok: false, error: 'stripe' }
+  // Loi 25 : les coordonnées juridiques (dont le responsable des renseignements personnels) avant d'ouvrir au public
+  if (missingForLaunch((org.legal ?? {}) as Partial<LegalInfo>).length) return { ok: false, error: 'juridique' }
   const { error: upErr } = await db.from('organizations').update({ status: 'live', went_live_at: new Date().toISOString() }).eq('id', orgId).eq('status', 'draft')
   if (upErr) throw upErr
   forgetTenantCache()

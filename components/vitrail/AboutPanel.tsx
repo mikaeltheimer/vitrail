@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { useBrand, useOrg } from '@/lib/useOrg'
 import { useMoney } from '@/lib/useI18n'
+import { OrgLogo } from '@/components/OrgBrand'
 
 const MONO = "'DM Sans', sans-serif"
 const GOLD = '#F0B24A'
@@ -71,8 +72,7 @@ export default function AboutPanel({
       </div>
 
       <div style={{ padding: '24px', display: 'grid', gap: 22, paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ecole-logo.png" alt={org.name} style={{ width: 240, maxWidth: '100%', height: 'auto' }} />
+        <OrgLogo style={{ width: 240, maxWidth: '100%' }} nameStyle={{ fontSize: 22 }} />
 
         <div>
           <h2 className="font-display" style={{ fontSize: 24, lineHeight: 1.2, margin: 0 }}>{t('nomPlateforme', { org: org.name })}</h2>
@@ -102,13 +102,17 @@ export default function AboutPanel({
           <p style={{ fontSize: 15, lineHeight: 1.6, color: '#F4EFE6', fontWeight: 500 }}>{org.why}</p>
         </div>
 
-        <div>
-          <h3 style={sectionTitle}>{org.name}</h3>
-          <p style={{ fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.75)' }}>{org.about}</p>
-          <a href={org.url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 14, color: GOLD, textDecoration: 'none' }}>
-            {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
-          </a>
-        </div>
+        {(org.about || org.url) && (
+          <div>
+            <h3 style={sectionTitle}>{org.name}</h3>
+            {org.about && <p style={{ fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.75)', whiteSpace: 'pre-line' }}>{org.about}</p>}
+            {org.url && (
+              <a href={org.url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 14, color: GOLD, textDecoration: 'none' }}>
+                {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
+              </a>
+            )}
+          </div>
+        )}
 
         <div>
           <h3 style={sectionTitle}>{t('commentCaMarche')}</h3>

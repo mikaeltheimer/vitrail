@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { getLocale } from 'next-intl/server'
 import { INTL_TAG, type Locale } from '@/i18n/config'
-import { orgFor } from '@/lib/config'
+import { CONFIG } from '@/lib/config'
+import { requestIdentity } from '@/lib/identity'
 import { translatorFor } from '@/lib/i18n'
 
 // Métadonnées de partage : la mosaïque se promeut aussi en ligne (réseaux sociaux, infolettre), sans présence sur place.
@@ -9,7 +10,8 @@ import { translatorFor } from '@/lib/i18n'
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await getLocale()) as Locale
   const t = translatorFor(locale)
-  const org = orgFor(locale).name
+  const { identity } = await requestIdentity()
+  const org = identity ? identity.texts[locale].name : CONFIG.brand.name
   const title = t('meta.vitrailTitre', { org })
   const description = t('meta.vitrailDescription')
   return {

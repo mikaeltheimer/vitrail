@@ -1,10 +1,10 @@
 // Briques des pages juridiques (/confidentialite, /conditions) : mise en page, passages à compléter et balises des messages.
-// Les textes viennent de messages/*.json (espaces confidentialite et conditions) ; les coordonnées de l'organisme, de CONFIG.legal.
+// Les textes viennent de messages/*.json (espaces confidentialite et conditions) ; les coordonnées de l'organisme, de la base (Mon vitrail).
 
 /* eslint-disable react/display-name -- fonctions de rendu de balises next-intl, pas des composants */
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { CONFIG } from '@/lib/config'
+import type { LegalInfo } from '@/lib/identity-shared'
 
 /** Passage à remplir par l'organisme : surligné, avec son intitulé. */
 export function Todo({ children, label }: { children: ReactNode; label: string }) {
@@ -20,12 +20,12 @@ type Chunks = ReactNode
 /**
  * Balises utilisables dans les messages juridiques (t.rich) :
  * <b>, <todo> (passage à compléter), <terms> / <privacy> (liens vers l'autre texte),
- * et une balise par coordonnée de CONFIG.legal (<entity>, <address>, <officerName>, <officerEmail>, <officerPhone>,
+ * et une balise par coordonnée juridique de l'organisme (<entity>, <address>, <officerName>, <officerEmail>, <officerPhone>,
  * <updated>, <retention>) : elle affiche la valeur si elle est renseignée, sinon le passage à compléter décrit entre les balises.
  * `todoLabel` : « À COMPLÉTER » / « TO COMPLETE ».
  */
-export function legalTags(todoLabel: string) {
-  const field = (key: keyof typeof CONFIG.legal) => (chunks: Chunks) => (CONFIG.legal[key] ? CONFIG.legal[key] : <Todo label={todoLabel}>{chunks}</Todo>)
+export function legalTags(todoLabel: string, legal: LegalInfo) {
+  const field = (key: keyof LegalInfo) => (chunks: Chunks) => (legal[key] ? <span style={{ whiteSpace: 'pre-line' }}>{legal[key]}</span> : <Todo label={todoLabel}>{chunks}</Todo>)
   return {
     b: (chunks: Chunks) => <b>{chunks}</b>,
     todo: (chunks: Chunks) => <Todo label={todoLabel}>{chunks}</Todo>,
@@ -43,7 +43,7 @@ export function legalTags(todoLabel: string) {
     address: field('address'),
     officerName: field('officerName'),
     officerEmail: (chunks: Chunks) =>
-      CONFIG.legal.officerEmail ? <a href={`mailto:${CONFIG.legal.officerEmail}`} className="underline">{CONFIG.legal.officerEmail}</a> : <Todo label={todoLabel}>{chunks}</Todo>,
+      legal.officerEmail ? <a href={`mailto:${legal.officerEmail}`} className="underline">{legal.officerEmail}</a> : <Todo label={todoLabel}>{chunks}</Todo>,
     officerPhone: field('officerPhone'),
     updated: field('updated'),
     retention: field('retention'),

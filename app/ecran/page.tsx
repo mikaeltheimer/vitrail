@@ -23,6 +23,7 @@ import { drawScene, paintInitials, pieceMap, tilePieces, UNIVERSE_RADIUS, type P
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
+import { OrgLogo } from '@/components/OrgBrand'
 
 const CACHE_KEY = 'vitrail:last-snapshot'
 const RELOAD_MS = 6 * 60 * 60 * 1000
@@ -647,8 +648,7 @@ export default function Ecran() {
       {/* École et collecte, en haut à gauche */}
       {/* Pendant une mise en scène, l'en-tête s'efface : le morceau peut passer dessous */}
       <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ecole-logo.png" alt={org.name} style={{ width: '12em', height: 'auto', display: 'block' }} />
+        <OrgLogo style={{ width: '12em', display: 'block' }} nameStyle={{ fontSize: '1.6em' }} />
         <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{org.vitrailTitle}</div>
         <div style={{ marginTop: '0.9em', fontFamily: MONO }}>
           <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{money(raised)}</span>

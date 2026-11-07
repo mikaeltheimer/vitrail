@@ -4,6 +4,7 @@ import { publicLink } from '@/lib/links'
 import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { CONFIG } from '@/lib/config'
+import { useOrg } from '@/lib/useOrg'
 
 // Affiches à imprimer : chacune a son propre code QR (?src=…) pour savoir, dans la console (onglet Provenance),
 // quels emplacements font donner. Format lettre, portrait ; tout ce qui n'est pas l'affiche disparaît à l'impression.
@@ -24,6 +25,7 @@ function slugify(text: string): string {
 }
 
 export default function AffichePage() {
+  const org = useOrg()
   const [place, setPlace] = useState('Accueil')
   const [origin, setOrigin] = useState('')
   const [qr, setQr] = useState<string | null>(null)
@@ -110,7 +112,7 @@ export default function AffichePage() {
           containerType: 'inline-size',
         }}
       >
-        <div style={{ fontSize: '2.4cqi', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500, color: '#6b6475' }}>{CONFIG.orgName}</div>
+        <div style={{ fontSize: '2.4cqi', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500, color: '#6b6475' }}>{org.name}</div>
         <div style={{ fontSize: '3cqi', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, color: '#B07A1F', marginTop: '4cqi' }}>
           Faites partie du vitrail
         </div>

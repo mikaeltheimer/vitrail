@@ -47,6 +47,8 @@ export interface ConsoleData {
   switchUrl: string | null
   /** Adresse publique du vitrail principal de cet organisme. */
   vitrailUrl: string
+  /** Coordonnées juridiques qui manquent avant la mise en ligne. */
+  identityMissing: string[]
   summary: { totalCents: number; donations: number; donors: number; goalCents: number | null }
   me: { name: string; email: string; role: Role; accountId: string }
   orgs: { id: string; name: string; url: string }[]

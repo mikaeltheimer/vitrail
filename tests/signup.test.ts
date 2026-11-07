@@ -94,6 +94,7 @@ async function main() {
   check('créé', r.ok)
   const org = tables.organizations.find(o => o.name_fr === 'Théâtre du Lac' && !o.practice_of)!
   const practice = tables.organizations.find(o => o.practice_of === org.id)!
+  check('langue de l\'inscription, nom dans ses textes', JSON.stringify(org.locales) === '["fr"]' && (org.texts as { fr?: { name?: string } }).fr?.name === 'Théâtre du Lac')
   check('organisme en brouillon, conditions enregistrées', org.status === 'draft' && org.terms_version === su.TERMS_VERSION && !!org.terms_accepted_by)
   check('son entraînement existe, à l\'adresse --essai', !!practice && tables.organization_slugs.some(s => s.slug === 'theatredulac--essai' && s.organization_id === practice.id))
   check('un vitrail permanent chacun', tables.vitraux.filter(v => v.organization_id === org.id || v.organization_id === practice.id).length === 2)
@@ -111,7 +112,10 @@ async function main() {
   check('mise en ligne refusée sans Stripe', !(await su.goLive(org.id as string)).ok)
   check('mise en ligne refusée pour l\'entraînement', (await su.goLive(practice.id as string)).ok === false)
   org.stripe_ready = true
-  check('mise en ligne avec Stripe prêt', (await su.goLive(org.id as string)).ok && org.status === 'live' && !!org.went_live_at)
+  const jur = await su.goLive(org.id as string)
+  check('mise en ligne refusée sans coordonnées juridiques (Loi 25)', !jur.ok && jur.error === 'juridique')
+  org.legal = { entity: 'Théâtre du Lac inc.', address: '1 rue du Lac', officerName: 'Julie, directrice', officerEmail: 'julie@x.ca', officerPhone: '450 555-0000', retention: '7 ans' }
+  check('mise en ligne avec Stripe prêt et coordonnées complètes', (await su.goLive(org.id as string)).ok && org.status === 'live' && !!org.went_live_at)
   check('pas deux fois', !(await su.goLive(org.id as string)).ok)
   check('l\'entraînement reste en brouillon', practice.status === 'draft')
 

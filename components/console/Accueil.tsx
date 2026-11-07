@@ -103,7 +103,7 @@ export default function Accueil({
 
   return (
     <div className="space-y-6">
-      {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} />}
+      {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} setTab={setTab} />}
       <section aria-label={t('collecte')} className="card space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="muted">{t('vitrailPrincipal')}</span>
@@ -207,10 +207,11 @@ export default function Accueil({
 }
 
 /** Organisme en brouillon : les étapes avant la mise en ligne (le propriétaire seul peut connecter Stripe et mettre en ligne). */
-function Demarrage({ data, open }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void> }) {
+function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void>; setTab: (t: Tab) => void }) {
   const t = useTranslations('console.demarrage')
   const owner = data.me.role === 'owner'
   const ready = data.stripe.ready
+  const missing = data.identityMissing.length
   const [busy, setBusy] = useState(false)
   const step = (done: boolean, n: number) => (
     <span
@@ -233,7 +234,21 @@ function Demarrage({ data, open }: { data: ConsoleData; open: (action: string, s
       </div>
       <ol className="space-y-3 text-sm">
         <li className="flex gap-3">
-          {step(ready, 1)}
+          {step(missing === 0, 1)}
+          <span className="flex-1 space-y-2">
+            <span className="block">
+              <b>{t('monVitrail')}</b>
+              <span className="muted block text-[13px]">{missing === 0 ? t('monVitrailOk') : t('monVitrailAide', { count: missing })}</span>
+            </span>
+            {owner && (
+              <button className="btn btn-ghost" onClick={() => setTab('plus')}>
+                {t('ouvrirMonVitrail')}
+              </button>
+            )}
+          </span>
+        </li>
+        <li className="flex gap-3">
+          {step(ready, 2)}
           <span className="flex-1 space-y-2">
             <span className="block">
               <b>{t('stripe')}</b>
@@ -247,7 +262,7 @@ function Demarrage({ data, open }: { data: ConsoleData; open: (action: string, s
           </span>
         </li>
         <li className="flex gap-3">
-          {step(false, 2)}
+          {step(false, 3)}
           <span className="flex-1 space-y-2">
             <span className="block">
               <b>{t('sExercer')}</b>
@@ -261,16 +276,16 @@ function Demarrage({ data, open }: { data: ConsoleData; open: (action: string, s
           </span>
         </li>
         <li className="flex gap-3">
-          {step(false, 3)}
+          {step(false, 4)}
           <span className="flex-1 space-y-2">
             <span className="block">
               <b>{t('enLigne')}</b>
-              <span className="muted block text-[13px]">{ready ? t('enLigneAide') : t('enLigneAttente')}</span>
+              <span className="muted block text-[13px]">{ready && missing === 0 ? t('enLigneAide') : t('enLigneAttente')}</span>
             </span>
             {owner && (
               <button
                 className="btn"
-                disabled={!ready || busy}
+                disabled={!ready || missing > 0 || busy}
                 onClick={async () => {
                   if (!confirm(t('enLigneConfirmer'))) return
                   setBusy(true)

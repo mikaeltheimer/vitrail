@@ -50,3 +50,19 @@ export function legacyRedirect(hostHeader: string | null | undefined, pathAndSea
   return null
 }
 
+
+/**
+ * En-tête interne écrit par proxy.ts (jamais repris du client) : quelle sorte de page.
+ * - platform : vitrine, inscription, Studio, connexion (aucun organisme) ;
+ * - console  : /admin (l'équipe garde sa langue, même si l'organisme n'en offre qu'une) ;
+ * - org      : les pages publiques d'un organisme (langue limitée à celles qu'il offre).
+ */
+export const SURFACE_HEADER = 'x-donivers-surface'
+export type Surface = 'platform' | 'console' | 'org'
+const PLATFORM_PATHS = ['/plateforme', '/inscription', '/studio', '/connexion']
+
+export function surfaceOf(host: string | null | undefined, path: string): Surface {
+  if (isPlatformHost(host) || PLATFORM_PATHS.some(p => path === p || path.startsWith(`${p}/`)) || path.startsWith('/api/plateforme') || path.startsWith('/api/inscription') || path.startsWith('/api/studio')) return 'platform'
+  if (path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/admin')) return 'console'
+  return 'org'
+}

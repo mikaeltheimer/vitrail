@@ -1,11 +1,9 @@
-// Réglages du Donivers de l'organisme (ici, l'École d'art de Sutton). Tout ce qui se discute avec l'organisme est ici.
+// Réglages de la plateforme, communs à tous les organismes. L'identité de chaque organisme est en base (lib/identity.ts).
 
 import { DEFAULT_GLASSES } from './theme'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config'
 
 export const CONFIG = {
-  orgName: "École d'art de Sutton",
-  orgUrl: 'https://ecoleartsutton.ca/',
   appName: 'Donivers',
   /** Police des noms des donateurs : 'sans' (DM Sans) ou 'serif' (Fraunces, comme le nom Donivers). Essai : ?noms=fraunces. */
   donorNameFont: 'sans' as 'sans' | 'serif',
@@ -23,25 +21,6 @@ export const CONFIG = {
       email: 'mikael@studioexistence.com',
     },
   },
-  /**
-   * Coordonnées juridiques de l'organisme, reprises par la politique de confidentialité et les conditions d'utilisation.
-   * Un champ vide s'affiche « [À COMPLÉTER : …] » (surligné) : à remplir avant la mise en ligne publique.
-   * Fixes pour toutes les langues ; à l'étape 3, ils passent en base avec le reste des réglages de l'organisme.
-   */
-  legal: {
-    /** Raison sociale exacte et numéro d'entreprise du Québec (NEQ). */
-    entity: '',
-    /** Adresse postale. */
-    address: '',
-    /** Responsable de la protection des renseignements personnels : nom et titre, courriel, téléphone. */
-    officerName: '',
-    officerEmail: '',
-    officerPhone: '',
-    /** Date de la dernière mise à jour des textes juridiques (AAAA-MM-JJ). */
-    updated: '',
-    /** Durée de conservation des renseignements, rédigée par l'organisme. */
-    retention: '',
-  } as Record<'entity' | 'address' | 'officerName' | 'officerEmail' | 'officerPhone' | 'updated' | 'retention', string>,
   currency: 'cad',
 
   /** Montants en cents. Le minimum protège le don net contre les frais fixes du fournisseur de paiement. */
@@ -97,21 +76,8 @@ export const CONFIG = {
   ctaMs: 9000,
 } as const
 
-// ── Textes par langue ─────────────────────────────────────────────────────
-// Le français (langue source) et l'anglais vivent ici, côte à côte ; CONFIG ne garde que le nom, l'adresse du site et le slogan (lus aussi par /affiche).
-// Les écrans lisent ces textes par orgFor(locale) / brandFor(locale), ou par useOrg() / useBrand() (lib/useOrg.ts).
-// À l'étape 3, ils passent en base, éditables par l'organisme (anglais facultatif, avec repli sur le français).
-
-/** Ce que l'organisme rédige lui-même : nom, présentation, pourquoi donner, invitation à témoigner. */
-export interface OrgTexts {
-  name: string
-  url: string
-  about: string
-  why: string
-  whyShort: string
-  vitrailTitle: string
-  testimonial: { question: string; cta: string; placeholder: string; lead: string; consent: string }
-}
+// ── Textes de la marque ─────────────────────────────────────────────────────
+// Ce que rédige l'organisme (nom, présentation, témoignage, coordonnées juridiques) est en base : lib/identity.ts.
 
 /** La marque de la plateforme, la même pour tous les organismes. */
 export interface BrandTexts {
@@ -120,52 +86,11 @@ export interface BrandTexts {
   poweredBy: string
 }
 
-export const ORG: Record<Locale, OrgTexts> = {
-  fr: {
-    name: CONFIG.orgName,
-    url: CONFIG.orgUrl,
-    about:
-      "L'École d'art de Sutton est un organisme à but non lucratif voué à l'éveil artistique des enfants, petits et grands, par des expériences de création. Depuis 2016, c'est aussi un centre d'art pluridisciplinaire qui fait se rencontrer artistes et enfants : explorations libres, expositions, projections, performances et résidences d'artistes en recherche-création.",
-    why:
-      "L'École avance sans subvention gouvernementale : c'est sa communauté qui la fait vivre. Chaque don rend possibles ses ateliers, ses expositions et ses résidences d'artistes.",
-    whyShort: "C'est la communauté qui fait vivre l'École",
-    vitrailTitle: 'Le vitrail de la communauté',
-    /**
-     * Invitation à témoigner, propre à l'organisme : une seule question, simple, et des pistes dans le champ pour
-     * inspirer. L'objectif est d'avoir le plus de témoignages possible.
-     */
-    testimonial: {
-      question: "Pourquoi soutenez-vous l'École d'art\u00a0?",
-      cta: 'Ajoutez votre témoignage.',
-      placeholder: "Une anecdote, un événement qui vous a marqué, ce que l'École a changé pour vous.",
-      lead: 'Votre témoignage accompagne votre morceau, ici et sur le grand écran.',
-      consent: "L'École peut citer mon témoignage dans ses communications (site, réseaux, rapport annuel).",
-    },
-  },
-  en: {
-    name: 'Sutton School of Art',
-    url: CONFIG.orgUrl,
-    about:
-      'Sutton School of Art is a non-profit organization devoted to awakening the artistic curiosity of children, young and old, through creative experiences. Since 2016, it has also been a multidisciplinary art centre where artists and children meet: free exploration, exhibitions, screenings, performances and artist residencies in research-creation.',
-    why: 'The School runs without government funding: its community is what keeps it alive. Every donation makes its workshops, exhibitions and artist residencies possible.',
-    whyShort: 'The community keeps the School alive',
-    vitrailTitle: "The community's stained glass",
-    testimonial: {
-      question: 'Why do you support Sutton School of Art?',
-      cta: 'Add your testimonial.',
-      placeholder: 'A story, an event that stayed with you, what the School has changed for you.',
-      lead: 'Your testimonial goes with your piece, here and on the big screen.',
-      consent: 'The School may quote my testimonial in its communications (website, social media, annual report).',
-    },
-  },
-}
-
 export const BRAND: Record<Locale, BrandTexts> = {
   fr: { descriptor: 'La plateforme de dons de votre communauté', slogan: CONFIG.brand.slogan, poweredBy: 'Propulsé par Donivers' },
   en: { descriptor: "Your community's giving platform", slogan: 'Every donation, a piece of the universe.', poweredBy: 'Powered by Donivers' },
 }
 
-export const orgFor = (locale: Locale = DEFAULT_LOCALE): OrgTexts => ORG[locale]
 export const brandFor = (locale: Locale = DEFAULT_LOCALE): BrandTexts => BRAND[locale]
 
 /** Verres disponibles : les cinq de la palette (plus tard, ceux choisis par l'organisme). */

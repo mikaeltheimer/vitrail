@@ -12,7 +12,9 @@ import './globals.css'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
 import { INTL_TAG, type Locale } from '@/i18n/config'
-import { brandFor, orgFor } from '@/lib/config'
+import { brandFor, CONFIG } from '@/lib/config'
+import { requestIdentity } from '@/lib/identity'
+import { OrgIdentityProvider } from '@/components/OrgIdentity'
 import { siteUrl } from '@/lib/env'
 import { translatorFor } from '@/lib/i18n'
 
@@ -20,7 +22,8 @@ import { translatorFor } from '@/lib/i18n'
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await getLocale()) as Locale
   const t = translatorFor(locale)
-  const org = orgFor(locale).name
+  const { identity } = await requestIdentity()
+  const org = identity ? identity.texts[locale].name : CONFIG.brand.name
   const title = t('meta.titre', { org })
   return {
     metadataBase: new URL(siteUrl()),
@@ -39,10 +42,15 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale
+  const { identity, surface } = await requestIdentity()
   return (
     <html lang={INTL_TAG[locale]}>
       <body>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <OrgIdentityProvider identity={identity} surface={surface}>
+            {children}
+          </OrgIdentityProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

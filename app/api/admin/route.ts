@@ -8,6 +8,7 @@ import { createToken } from '@/lib/donations'
 import { fetchWhere, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getOrg, getVitrail, orgBaseUrl, orgUrl } from '@/lib/tenant'
 import { goLive, practiceOf } from '@/lib/signup'
+import { getIdentity, missingForLaunch } from '@/lib/identity'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
 import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
@@ -112,6 +113,8 @@ export async function GET(request: NextRequest) {
     switchUrl: await switchUrl(t.tenant.org, request),
     // Le vitrail public de cet organisme (en prévisualisation : avec ?org=)
     vitrailUrl: orgUrl(t.tenant.org.slug, '/vitrail', request),
+    // Coordonnées juridiques manquantes (exigées avant la mise en ligne) ; rien pour l'entraînement
+    identityMissing: t.tenant.org.practiceOf ? [] : missingForLaunch((await getIdentity(t.tenant.org))?.legal ?? {}),
     summary: {
       totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
       donations: summaryDonations,
@@ -477,7 +480,7 @@ export async function POST(request: NextRequest) {
     // Mettre en ligne : brouillon → en ligne, quand le compte Stripe est prêt (l'entraînement reste tel quel)
     case 'goLive': {
       const r = await goLive(orgId)
-      if (!r.ok) return fail(r.error === 'stripe' ? "Le compte Stripe n'est pas encore prêt." : r.error === 'deja' ? 'Ce vitrail est déjà en ligne.' : 'Impossible ici.')
+      if (!r.ok) return fail(r.error === 'stripe' ? "Le compte Stripe n'est pas encore prêt." : r.error === 'juridique' ? 'Complétez d’abord les coordonnées juridiques dans Mon vitrail.' : r.error === 'deja' ? 'Ce vitrail est déjà en ligne.' : 'Impossible ici.')
       return NextResponse.json({ ok: true })
     }
 

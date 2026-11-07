@@ -4,16 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import type { Act, ConsoleData, Role } from './types'
 import { GREEN, RED, Section, useDay, useTime } from './ui'
+import MonVitrail from './MonVitrail'
 
-// « Plus » (propriétaire seulement) : Mon vitrail (étape suivante), puis les réglages : paiements, équipe, courriels, données.
+// « Plus » (propriétaire seulement) : Mon vitrail, puis les réglages : paiements, équipe, courriels, données.
 export default function Plus({ data, act, open }: { data: ConsoleData; act: Act; open: (action: string, sameTab?: boolean) => Promise<void> }) {
   const t = useTranslations('console.plus')
   const ready = data.stripe.ready
   return (
     <div className="space-y-6">
-      <Section title={t('monVitrail')}>
-        <p className="card muted text-sm">{t('monVitrailBientot')}</p>
-      </Section>
+      <MonVitrail switchUrl={data.switchUrl} />
 
       {!data.org.practice && <Section title={t('paiements')}>
         <div className="card space-y-3 text-sm">
