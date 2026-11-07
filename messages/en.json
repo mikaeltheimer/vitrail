@@ -143,6 +143,8 @@
     "trouver": "Find my piece",
     "touchez": "Tap again to open",
     "vide": "The stained glass is waiting for its first piece.",
+    "bientot": "This stained glass opens soon",
+    "bientotTexte": "Donations are not open yet. Come back soon!",
     "intro": {
       "compteur": "{count, plural, =0 {0 pieces} one {# piece} other {# pieces}}",
       "ligne": "{org} · {count, plural, =0 {0 pieces} one {# piece} other {# pieces}}",
@@ -602,7 +604,9 @@
       "aucunDon": "No donations yet. Share the link or show the screen to receive the first ones.",
       "anonyme": "Anonymous",
       "etatEntrainement": "Practice",
-      "etatBrouillon": "Not live yet"
+      "etatBrouillon": "Not live yet",
+      "voirVitrail": "View my stained glass",
+      "voirEntrainement": "View the practice stained glass"
     },
     "dons": {
       "ajouterComptant": "Add a cash donation",

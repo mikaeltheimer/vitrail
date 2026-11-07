@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import QRCode from 'qrcode'
+import { publicLink } from '@/lib/links'
 import { useMoney } from '@/lib/useI18n'
 import type { ConsoleData } from './types'
 import { GREEN, Icon, Section } from './ui'
@@ -31,9 +32,9 @@ export default function Diffuser({ data }: { data: ConsoleData }) {
     const id = requestAnimationFrame(() => setOrigin(window.location.origin))
     return () => cancelAnimationFrame(id)
   }, [])
-  const link = origin ? `${origin}/vitrail?src=partage` : ''
+  const link = origin ? publicLink('/vitrail?src=partage') : ''
   const placeSlug = slug(place)
-  const qrLink = origin ? `${origin}/vitrail?don&src=${placeSlug || 'qr'}` : ''
+  const qrLink = origin ? publicLink(`/vitrail?don&src=${placeSlug || 'qr'}`) : ''
 
   useEffect(() => {
     if (!qrLink) return

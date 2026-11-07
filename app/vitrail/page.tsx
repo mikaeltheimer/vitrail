@@ -965,6 +965,7 @@ function Vitrail() {
   const totalCents = snap?.totalCents ?? 0
   const count = ranked.length
   const claimLabel = t('ajouter')
+  const closed = snap?.mode === 'off'
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -988,7 +989,7 @@ function Vitrail() {
           setMenuOpen(false)
           api.current.select(null)
         }}
-        claimLabel={claimLabel}
+        claimLabel={closed ? '' : claimLabel}
         onClaim={() => {
           setAboutOpen(false)
           api.current.openClaim()
@@ -1027,7 +1028,7 @@ function Vitrail() {
               {t('touchez')}
             </div>
           )}
-          {!claimOpen && intro === 'off' && count > 0 && (
+          {!claimOpen && !closed && intro === 'off' && count > 0 && (
             <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, position: 'fixed', top: `${HEADER_HEIGHT + 16}px`, right: '16px', zIndex: 120 }}>
               {claimLabel}
             </button>
@@ -1149,14 +1150,22 @@ function Vitrail() {
         </div>
       )}
 
-      {snap && count === 0 && (
-        <div style={{ position: 'fixed', inset: `${HEADER_HEIGHT}px 0 0 0`, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24, zIndex: 100 }}>
-          <div>
-            <div style={introTitleStyle}>{t('vide')}</div>
-            <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, marginTop: 20 }}>
-              {claimLabel}
-            </button>
-          </div>
+      {/* Vitrail vide : invitation au premier don ; fermé (brouillon) : « ouvrira bientôt », sans bouton. Caché pendant un don */}
+      {snap && count === 0 && !claimOpen && (
+        <div style={{ position: 'fixed', inset: `${HEADER_HEIGHT}px 0 0 0`, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24, zIndex: 100, pointerEvents: 'none' }}>
+          {closed ? (
+            <div>
+              <div style={introTitleStyle}>{t('bientot')}</div>
+              <div style={{ marginTop: 12, color: 'rgba(244,239,230,0.75)', fontSize: 15 }}>{t('bientotTexte')}</div>
+            </div>
+          ) : (
+            <div>
+              <div style={introTitleStyle}>{t('vide')}</div>
+              <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, marginTop: 20, pointerEvents: 'auto' }}>
+                {claimLabel}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1466,13 +1475,15 @@ function Header({
           {org.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
         </a>
         <LanguageSwitch style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginLeft: 16 }} />
-        <button
-          type="button"
-          onClick={onClaim}
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 18px', marginLeft: '12px', background: GOLD, color: '#1A1208', border: 0, borderRadius: '999px', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(240,178,74,0.22)' }}
-        >
-          {claimLabel}
-        </button>
+        {claimLabel && (
+          <button
+            type="button"
+            onClick={onClaim}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 18px', marginLeft: '12px', background: GOLD, color: '#1A1208', border: 0, borderRadius: '999px', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(240,178,74,0.22)' }}
+          >
+            {claimLabel}
+          </button>
+        )}
       </nav>
     </header>
   )

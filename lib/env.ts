@@ -14,14 +14,6 @@ export function siteUrl(): string {
   return 'http://localhost:3000'
 }
 
-/** Côté navigateur : l'adresse configurée, sauf si elle pointe vers localhost alors que la page est en ligne. */
-export function browserOrigin(): string {
-  const configured = (process.env.NEXT_PUBLIC_SITE_URL || '').trim()
-  const here = window.location.origin
-  if (!configured || (isLocal(configured) && !isLocal(here))) return here
-  return configured.replace(/\/$/, '')
-}
-
 export type PaymentMode = 'stripe' | 'demo' | 'off'
 
 /**

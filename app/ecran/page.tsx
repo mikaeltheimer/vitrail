@@ -7,7 +7,7 @@
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
 
-import { browserOrigin } from '@/lib/env'
+import { publicLink } from '@/lib/links'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { useLocale, useTranslations } from 'next-intl'
@@ -582,8 +582,9 @@ export default function Ecran() {
 
   // ── Code QR : le don sur place, dans le vitrail, provenance « ecran » ──
   useEffect(() => {
-    const base = (new URLSearchParams(window.location.search).get('url') || browserOrigin()).replace(/\/$/, '')
-    const url = `${base}/vitrail?don&src=ecran`
+    // ?url= force une autre adresse (rare) ; sinon celle de l'organisme affiché
+    const base = (new URLSearchParams(window.location.search).get('url') || window.location.origin).replace(/\/$/, '')
+    const url = publicLink('/vitrail?don&src=ecran', new URLSearchParams(window.location.search).get('url'))
     QRCode.toDataURL(url, { margin: 1, width: 640, errorCorrectionLevel: 'M', color: { dark: '#0b0a10', light: '#ffffff' } })
       .then(d => {
         setQr(d)

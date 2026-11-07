@@ -110,6 +110,8 @@ export async function GET(request: NextRequest) {
     org: { name: t.tenant.org.name, slug: t.tenant.org.slug, status: t.tenant.org.status, practice: !!t.tenant.org.practiceOf },
     // Bascule entre l'organisme réel et son entraînement (même équipe)
     switchUrl: await switchUrl(t.tenant.org, request),
+    // Le vitrail public de cet organisme (en prévisualisation : avec ?org=)
+    vitrailUrl: orgUrl(t.tenant.org.slug, '/vitrail', request),
     summary: {
       totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
       donations: summaryDonations,

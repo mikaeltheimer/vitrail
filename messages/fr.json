@@ -143,6 +143,8 @@
     "trouver": "Trouver mon morceau",
     "touchez": "Touchez encore pour afficher",
     "vide": "Le vitrail attend sa première pièce.",
+    "bientot": "Ce vitrail ouvrira bientôt",
+    "bientotTexte": "Les dons ne sont pas encore ouverts. Revenez bientôt !",
     "intro": {
       "compteur": "{count, plural, =0 {0 morceaux} one {# morceau} other {# morceaux}}",
       "ligne": "{org} · {count, plural, =0 {0 morceaux} one {# morceau} other {# morceaux}}",
@@ -602,7 +604,9 @@
       "aucunDon": "Aucun don pour l’instant. Partagez le lien ou affichez l’écran pour recevoir les premiers.",
       "anonyme": "Anonyme",
       "etatEntrainement": "Entraînement",
-      "etatBrouillon": "Pas encore en ligne"
+      "etatBrouillon": "Pas encore en ligne",
+      "voirVitrail": "Voir mon vitrail",
+      "voirEntrainement": "Voir le vitrail d’entraînement"
     },
     "dons": {
       "ajouterComptant": "Ajouter un don comptant",

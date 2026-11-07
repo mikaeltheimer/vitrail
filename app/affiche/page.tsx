@@ -1,6 +1,6 @@
 'use client'
 
-import { browserOrigin } from '@/lib/env'
+import { publicLink } from '@/lib/links'
 import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { CONFIG } from '@/lib/config'
@@ -30,11 +30,11 @@ export default function AffichePage() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    Promise.resolve().then(() => setOrigin(browserOrigin()))
+    Promise.resolve().then(() => setOrigin(window.location.origin))
   }, [])
 
   const slug = slugify(place)
-  const link = origin ? `${origin}/don?src=${slug}` : ''
+  const link = origin ? publicLink(`/don?src=${slug}`) : ''
   const shortHost = useMemo(() => origin.replace(/^https?:\/\//, ''), [origin])
 
   useEffect(() => {

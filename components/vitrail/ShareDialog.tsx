@@ -3,7 +3,7 @@
 // Partager un morceau : lien direct vers lui dans le vitrail en ligne (/vitrail?d=…), par le menu de partage du
 // téléphone, en copiant le lien, ou vers Facebook et le courriel.
 
-import { browserOrigin } from '@/lib/env'
+import { publicLink } from '@/lib/links'
 import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
@@ -16,9 +16,8 @@ export function ShareDialog({ id, name, own, onClose }: { id: string; name: stri
   const org = useOrg()
   const [copied, setCopied] = useState(false)
   const locale = useLocale()
-  const origin = typeof window !== 'undefined' ? browserOrigin() : ''
   // La langue de celui qui partage : l'aperçu du lien (titre, image) est dans cette langue
-  const link = `${origin}/vitrail?d=${id}&src=partage&lang=${locale}`
+  const link = typeof window !== 'undefined' ? publicLink(`/vitrail?d=${id}&src=partage&lang=${locale}`) : ''
   const text = own ? t('texteMien', { org: org.name }) : name ? t('texteNom', { nom: name, org: org.name }) : t('texteAnonyme', { org: org.name })
   const canNative = typeof navigator !== 'undefined' && !!navigator.share
 

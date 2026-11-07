@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import MiniGlass from '@/components/MiniGlass'
+import type { Piece } from '@/lib/types'
 import { useTranslations } from 'next-intl'
 import { useMoney } from '@/lib/useI18n'
 import type { ConsoleData } from './types'
@@ -126,6 +128,7 @@ export default function Accueil({
           <span>{t('donateurs', { count: s.donors })}</span>
         </p>
         {data.mode === 'demo' && owner && !data.org.practice && <p className="text-xs" style={{ color: 'var(--accent)' }}>{t('demoExplication')}</p>}
+        <Apercu url={data.vitrailUrl} version={s.donations} label={data.org.practice ? t('voirEntrainement') : t('voirVitrail')} />
       </section>
 
       <Section
@@ -286,5 +289,33 @@ function Demarrage({ data, open }: { data: ConsoleData; open: (action: string, s
         </li>
       </ol>
     </section>
+  )
+}
+
+// Aperçu du vitrail public (le même instantané que les visiteurs) et lien pour l'ouvrir dans un nouvel onglet.
+function Apercu({ url, version, label }: { url: string; version: number; label: string }) {
+  const [pieces, setPieces] = useState<Piece[] | null>(null)
+  useEffect(() => {
+    let live = true
+    fetch('/api/vitrail', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then((s: { pieces?: Piece[] } | null) => live && s?.pieces && setPieces(s.pieces))
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [version])
+  return (
+    <a href={url} target="_blank" rel="noopener" className="console-row -mx-2 flex items-center gap-4 rounded-xl p-2 !text-[var(--text)]">
+      <span className="shrink-0 overflow-hidden rounded-full" style={{ width: 96, height: 96, background: '#0B0A12' }} aria-hidden>
+        {pieces && <MiniGlass pieces={pieces} size={96} />}
+      </span>
+      <span className="flex-1 text-sm">
+        <span className="block font-semibold" style={{ color: 'var(--accent)' }}>
+          {label} ↗
+        </span>
+        <span className="muted block break-all text-xs">{url.replace(/^https?:\/\//, '').replace(/\?org=.*$/, '')}</span>
+      </span>
+    </a>
   )
 }
