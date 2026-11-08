@@ -972,6 +972,23 @@ function Vitrail() {
   const atelier = useAtelier()
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
+  // Bas du titre du vitrail (en haut à gauche) : les dons récents se rangent juste dessous
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const hasSnap = snap !== null
+  const [titleBottom, setTitleBottom] = useState(HEADER_HEIGHT + 60)
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const measure = () => setTitleBottom(Math.round(el.getBoundingClientRect().bottom))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [hasSnap, mobile, atelierBar])
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -1111,7 +1128,7 @@ function Vitrail() {
           </button>
         </div>
       )}
-      <Ticker recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
+      <Ticker top={titleBottom + 12} recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
 
       {/* ── À propos de la collecte ── */}
       {aboutOpen && (
@@ -1161,6 +1178,7 @@ function Vitrail() {
         <>
           <div aria-hidden style={{ position: 'fixed', left: 0, top: HEADER_HEIGHT, width: mobile ? '75vw' : '38em', height: mobile ? '9em' : '14em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.85) 0%, rgba(11,10,18,0.55) 45%, rgba(11,10,18,0) 72%)', pointerEvents: 'none', zIndex: 105 }} />
           <h1
+            ref={titleRef}
             className="font-display"
             style={{
               position: 'fixed',

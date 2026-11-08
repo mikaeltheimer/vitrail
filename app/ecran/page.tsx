@@ -112,6 +112,9 @@ export default function Ecran() {
     const fresh = new Set<string>() // morceaux d'un don tout neuf (annonce « vient de donner »)
     let deck: string[] = []
     let hops = 0
+    // Les morceaux déjà montrés depuis la dernière pause d'appel : jamais deux fois le même dans un cycle
+    // (avec moins de CTA_EVERY morceaux, le cycle est simplement plus court)
+    const cycleSeen = new Set<string>()
     let anim = 0
     let timer: ReturnType<typeof setTimeout> | undefined
     let prevAmounts = new Map<string, number>()
@@ -224,8 +227,8 @@ export default function Ecran() {
           return id
         }
       }
-      deck = deck.filter(id => tiles.has(id))
-      if (!deck.length) deck = newDeck()
+      deck = deck.filter(id => tiles.has(id) && !cycleSeen.has(id))
+      if (!deck.length) deck = newDeck().filter(id => !cycleSeen.has(id))
       // Le prochain qui n'a pas été vu récemment (le début d'un nouveau tour peut retomber sur la fin du précédent)
       for (let i = deck.length - 1; i >= 0; i--) {
         if (!recent.includes(deck[i])) {
@@ -257,9 +260,12 @@ export default function Ecran() {
       spot = null
       stage = null
       needs = true
-      // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant)
-      if (hops >= CTA_EVERY && !priority.length) {
+      // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant). Elle vient après CTA_EVERY morceaux,
+      // ou plus tôt quand tous les morceaux ont déjà été montrés dans ce cycle (petit vitrail)
+      const unseen = [...tiles.keys()].some(id => !cycleSeen.has(id))
+      if ((hops >= CTA_EVERY || (hops > 0 && !unseen)) && !priority.some(id => tiles.has(id))) {
         hops = 0
+        cycleSeen.clear()
         flyTo(homeCam(), FLY_MS, 0, () => {
           setCta(true)
           timer = setTimeout(() => {
@@ -276,6 +282,7 @@ export default function Ecran() {
         return
       }
       hops++
+      cycleSeen.add(id)
       const isFresh = fresh.has(id)
       fresh.delete(id)
       const p = list.find(x => x.id === id)

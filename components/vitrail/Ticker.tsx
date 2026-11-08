@@ -21,7 +21,8 @@ function ago(iso: string, t: Ago): string {
   return t('jours', { n: Math.round(s / 86400) })
 }
 
-export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }: { recent: RecentDonation[]; totalCents: number; isMobile: boolean; hidden: boolean; onVisit: (donorId: string) => void }) {
+/** `top` : position verticale (sous le titre du vitrail, qui est en haut à gauche). */
+export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit, top = 72 }: { recent: RecentDonation[]; totalCents: number; isMobile: boolean; hidden: boolean; onVisit: (donorId: string) => void; top?: number }) {
   const t = useTranslations('vitrail.ticker')
   const ta = useTranslations('vitrail.ticker.ago')
   const tc = useTranslations('commun')
@@ -49,7 +50,7 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
           position: 'fixed',
           zIndex: 120,
           left: isMobile ? 16 : 24,
-          top: 72,
+          top,
           height: 44,
           display: 'flex',
           alignItems: 'center',
@@ -123,7 +124,7 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit }
   return (
     <section
       aria-label={t('titre')}
-      style={{ position: 'fixed', left: 24, top: 72, zIndex: 120, width: 340, maxHeight: 'calc(100dvh - 72px - 24px)', overflowY: 'auto', boxSizing: 'border-box', background: 'rgba(12,10,18,0.94)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 16, backdropFilter: 'blur(10px)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
+      style={{ position: 'fixed', left: 24, top, zIndex: 120, width: 340, maxHeight: `calc(100dvh - ${top}px - 24px)`, overflowY: 'auto', boxSizing: 'border-box', background: 'rgba(12,10,18,0.94)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 16, backdropFilter: 'blur(10px)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
     >
       {list}
     </section>
