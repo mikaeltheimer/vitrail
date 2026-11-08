@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { hasEmailLog } from '@/lib/schema'
+import { internalError } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     db.from('email_log').select('id,created_at,to_email,kind,status,error,subject').eq('organization_id', orgId).order('created_at', { ascending: false }).limit(100),
     db.from('email_log').select('status').eq('organization_id', orgId).order('created_at', { ascending: false }).limit(2000),
   ])
-  if (rowsRes.error || statusRes.error) return NextResponse.json({ error: (rowsRes.error ?? statusRes.error)!.message }, { status: 500 })
+  if (rowsRes.error || statusRes.error) return internalError(request, 'Journal des courriels', rowsRes.error ?? statusRes.error)
   const counts: Record<string, number> = {}
   for (const r of statusRes.data ?? []) counts[r.status as string] = (counts[r.status as string] ?? 0) + 1
   return NextResponse.json({ available: true, counts, rows: rowsRes.data ?? [] })

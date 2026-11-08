@@ -5,6 +5,7 @@ import { assetUrl } from '@/lib/identity'
 import { discardDraft, loadDraft, publishDraft, saveDraft, validateLocales, validateTexts } from '@/lib/atelier'
 import type { Locale } from '@/i18n/config'
 import type { StoredTexts } from '@/lib/identity-shared'
+import { failer } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,13 +15,12 @@ export const dynamic = 'force-dynamic'
 //   POST { action: 'save', locales?, texts? } | { action: 'publish' } | { action: 'discard' }
 // Messages d'erreur en français seulement (comme le reste de l'API de la console).
 
-const fail = (error: string, status = 400) => NextResponse.json({ error }, { status })
 
 async function guard(request: NextRequest) {
   const a = await requireAdmin(request, 'owner')
   if ('response' in a) return { response: a.response }
   const org = a.ctx.tenant.org
-  if (!org.practiceOf) return { response: fail("La personnalisation se fait dans l'atelier.", 404) }
+  if (!org.practiceOf) return { response: failer(request)('dansAtelier', 404) }
   return { orgId: org.practiceOf, atelierId: org.id }
 }
 
@@ -58,12 +58,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const g = await guard(request)
   if ('response' in g) return g.response
+  const fail = failer(request)
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
   if (b.action === 'save') {
     const patch: { locales?: Locale[]; texts?: StoredTexts } = {}
     if (b.locales !== undefined) {
       const l = validateLocales(b.locales)
-      if (!l) return fail('Choisissez une ou deux langues.')
+      if (!l) return fail('languesChoisir')
       patch.locales = l
     }
     if (b.texts !== undefined) {
@@ -77,14 +78,14 @@ export async function POST(request: NextRequest) {
   if (b.action === 'publish') {
     const { draft, fallbackName } = await loadDraft(g.orgId)
     const name = (draft.texts[draft.locales[0]]?.name || fallbackName || '').trim()
-    if (name.length < 2) return fail("Le nom de l'organisme est obligatoire dans la langue principale.")
+    if (name.length < 2) return fail('nomOrganismeRequis')
     const r = await publishDraft(g.orgId)
-    if (!r.ok) return fail('Rien à publier.')
+    if (!r.ok) return fail('rienAPublier')
     return NextResponse.json(await state(g.orgId, g.atelierId))
   }
   if (b.action === 'discard') {
     await discardDraft(g.orgId)
     return NextResponse.json(await state(g.orgId, g.atelierId))
   }
-  return fail('Action inconnue.')
+  return fail('actionInconnue')
 }

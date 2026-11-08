@@ -4,6 +4,7 @@ import { forgetIdentity } from './identity'
 import { forgetTenantCache } from './tenant'
 import { TEXT_FIELDS, TEXT_MAX, parseLocales, type StoredTexts, type TextField } from './identity-shared'
 import { isLocale, type Locale } from '@/i18n/config'
+import { err, type AppError } from './errors'
 
 // L'ATELIER : le vitrail d'entraînement sert aussi à personnaliser le vitrail. On y modifie un BROUILLON de l'identité
 // (langues, textes, logo, icône), visible seulement dans l'atelier ; « Publier » le fait passer sur le vrai vitrail.
@@ -69,19 +70,19 @@ export function validateLocales(v: unknown): Locale[] | null {
   return out.length && out.length === v.length && out.length <= 2 ? out : null
 }
 
-/** Textes envoyés par l'atelier : champs connus, nettoyés, bornés. Erreur en français (console). */
-export function validateTexts(v: unknown): { ok: true; texts: StoredTexts } | { ok: false; error: string } {
-  if (!v || typeof v !== 'object') return { ok: false, error: 'Textes invalides.' }
+/** Textes envoyés par l'atelier : champs connus, nettoyés, bornés. Erreur : clé de messages/*.json (traduite par la route). */
+export function validateTexts(v: unknown): { ok: true; texts: StoredTexts } | { ok: false; error: AppError } {
+  if (!v || typeof v !== 'object') return { ok: false, error: err('textesInvalides') }
   const texts: StoredTexts = {}
   for (const [l, fields] of Object.entries(v as Record<string, unknown>)) {
-    if (!isLocale(l) || !fields || typeof fields !== 'object') return { ok: false, error: 'Langue inconnue.' }
+    if (!isLocale(l) || !fields || typeof fields !== 'object') return { ok: false, error: err('langueInconnue') }
     const out: Partial<Record<TextField, string>> = {}
     for (const f of TEXT_FIELDS) {
       const raw = (fields as Record<string, unknown>)[f]
       if (raw == null || raw === '') continue
-      if (typeof raw !== 'string') return { ok: false, error: 'Texte invalide.' }
+      if (typeof raw !== 'string') return { ok: false, error: err('texteInvalide') }
       const s = raw.replace(/\r\n/g, '\n').trim()
-      if (s.length > TEXT_MAX[f]) return { ok: false, error: `Texte trop long : ${TEXT_MAX[f]} caractères au plus.` }
+      if (s.length > TEXT_MAX[f]) return { ok: false, error: err('texteLong', { max: TEXT_MAX[f] }) }
       if (s) out[f] = s
     }
     texts[l] = out

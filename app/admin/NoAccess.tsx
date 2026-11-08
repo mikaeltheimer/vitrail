@@ -1,19 +1,20 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import LanguageSwitch from '@/components/LanguageSwitch'
 
 // Connecté, mais pas membre de l'organisme de cette adresse : on le dit, et on propose les siens.
 export default function NoAccess({ orgName, email, orgs }: { orgName: string; email: string; orgs: { id: string; name: string; url: string }[] }) {
   const router = useRouter()
+  const t = useTranslations('acces.pasAcces')
   return (
     <main className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold">Pas d&apos;accès ici</h1>
-      <p className="muted mt-2 text-sm">
-        Vous êtes connecté avec {email}, qui ne fait pas partie de l&apos;équipe de {orgName}. Pour y accéder, demandez une invitation au propriétaire.
-      </p>
+      <h1 className="text-2xl font-bold">{t('titre')}</h1>
+      <p className="muted mt-2 text-sm">{t('texte', { email, org: orgName })}</p>
       {orgs.length > 0 && (
         <div className="mt-6 space-y-2">
-          <p className="text-sm">Vos organismes :</p>
+          <p className="text-sm">{t('vosOrganismes')}</p>
           {orgs.map(o => (
             <a key={o.id} className="btn btn-ghost block" href={o.url}>
               {o.name}
@@ -28,8 +29,11 @@ export default function NoAccess({ orgName, email, orgs }: { orgName: string; em
           router.refresh()
         }}
       >
-        Me déconnecter
+        {t('deconnexion')}
       </button>
+      <p className="muted mt-10 text-xs">
+        <LanguageSwitch style={{ textDecoration: 'underline' }} />
+      </p>
     </main>
   )
 }

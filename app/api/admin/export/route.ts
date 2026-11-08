@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { fetchWhere } from '@/lib/donations'
+import { failer } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
     ])
     name = `dons-${org.slug}-${day}.csv`
   } else {
-    return NextResponse.json({ error: 'Export inconnu.' }, { status: 400 })
+    return failer(request)('exportInconnu')
   }
   return new NextResponse(body, {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${name}"`, 'Cache-Control': 'no-store' },

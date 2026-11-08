@@ -9,6 +9,7 @@ import Dons from './Dons'
 import Moderation from './Moderation'
 import Diffuser from './Diffuser'
 import Plus from './Plus'
+import LanguageSwitch from '@/components/LanguageSwitch'
 
 export type Tab = 'accueil' | 'dons' | 'moderation' | 'diffuser' | 'plus'
 const TABS: Tab[] = ['accueil', 'dons', 'moderation', 'diffuser', 'plus']
@@ -174,6 +175,9 @@ function Account({ data }: { data: NonNullable<ReturnType<typeof useConsole>['da
               ))}
             </div>
           )}
+          <p>
+            <LanguageSwitch style={{ textDecoration: 'underline' }} />
+          </p>
           <button
             className="btn btn-ghost w-full"
             onClick={async () => {

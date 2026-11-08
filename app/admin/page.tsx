@@ -1,3 +1,6 @@
+import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
+import { CONFIG } from '@/lib/config'
 import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { accessRole, currentAccount, organizationsOf } from '@/lib/auth'
@@ -7,7 +10,10 @@ import Console from '@/components/console/Console'
 import NoAccess from './NoAccess'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Console — Donivers', robots: { index: false } }
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('acces')
+  return { title: t('metaConsole', { brand: CONFIG.brand.name }), robots: { index: false } }
+}
 
 // La console de l'organisme de l'adresse : il faut être connecté ET membre de CET organisme.
 export default async function AdminPage() {

@@ -33,7 +33,7 @@ export async function eraseDonor(orgId: string, donorId: string): Promise<EraseR
     .eq('organization_id', orgId)
     .maybeSingle()
   if (readError) return { ok: false, status: 500, error: readError.message }
-  if (!before) return { ok: false, status: 404, error: 'Donateur introuvable.' } // i18n-ok : traduit par la console
+  if (!before) return { ok: false, status: 404, error: 'not_found' }
   // Copiés AVANT la mise à jour : ce sont les valeurs à effacer ailleurs (journal, fichier)
   const oldEmail = String((before as { email: string }).email)
   const oldPhotoUrl = (before as { photo_url: string | null }).photo_url

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, destroySession, login, sessionCookieOptions } from '@/lib/auth'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
+import { failer } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 
@@ -10,15 +11,12 @@ const hostOf = (r: NextRequest) => r.headers.get('x-forwarded-host') || r.header
 // est vérifié ensuite, à chaque requête (lib/auth.ts, requireAdmin). Deux freins : par adresse IP (mémoire de l'instance)
 // et par courriel (en base : 10 échecs en 15 minutes bloquent ce courriel).
 export async function POST(request: NextRequest) {
-  if (!rateLimit(clientKey(request, 'admin-login'), 20, 10 * 60_000)) {
-    return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' }, { status: 429 })
-  }
+  const fail = failer(request)
+  if (!rateLimit(clientKey(request, 'admin-login'), 20, 10 * 60_000)) return fail('tropDeTentativesMinutes', 429)
   const { email, password } = (await request.json().catch(() => ({}))) as { email?: unknown; password?: unknown }
   const r = await login(email, password, request.headers.get('user-agent'))
   if (!r.ok) {
-    return r.reason === 'locked'
-      ? NextResponse.json({ error: 'Trop de tentatives pour ce compte. Réessayez dans 15 minutes, ou choisissez un nouveau mot de passe.' }, { status: 429 })
-      : NextResponse.json({ error: 'Courriel ou mot de passe incorrect.' }, { status: 401 })
+    return r.reason === 'locked' ? fail('compteBloque', 429) : fail('identifiantsIncorrects', 401)
   }
   const res = NextResponse.json({ ok: true })
   res.cookies.set(SESSION_COOKIE, r.token, sessionCookieOptions(hostOf(request)))

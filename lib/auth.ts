@@ -3,6 +3,8 @@ import { promisify } from 'node:util'
 import { cookies } from 'next/headers'
 import { getDb } from './db'
 import { getOrg, orgUrl, platformDomain, requireTenant, type Tenant } from './tenant'
+import { err, errorResponse, type AppError, type ErrorKey } from './errors'
+import { PASSWORD_MAX, PASSWORD_MIN } from './password-rules'
 
 // Comptes des administrateurs : courriel + mot de passe, membres d'un ou plusieurs organismes (propriétaire ou bénévole).
 //
@@ -61,13 +63,16 @@ const COMMON = new Set([
 ])
 
 /** Raison du refus d'un mot de passe, ou null s'il est acceptable. */
-export function passwordProblem(password: unknown, email: string): string | null {
-  if (typeof password !== 'string' || password.length < 10) return 'Le mot de passe doit compter au moins 10 caractères.'
-  if (password.length > 200) return 'Le mot de passe est trop long (200 caractères au plus).'
+export { PASSWORD_MIN, PASSWORD_MAX }
+
+/** Ce qui ne va pas dans un mot de passe (clé de messages/*.json, traduite par la route), ou null. */
+export function passwordProblem(password: unknown, email: string): AppError | null {
+  if (typeof password !== 'string' || password.length < PASSWORD_MIN) return err('motDePasseCourt', { min: PASSWORD_MIN })
+  if (password.length > PASSWORD_MAX) return err('motDePasseLong', { max: PASSWORD_MAX })
   const p = password.toLowerCase()
-  if (COMMON.has(p) || /^(.)\1+$/.test(p)) return 'Ce mot de passe est trop courant. Choisissez-en un autre.'
+  if (COMMON.has(p) || /^(.)\1+$/.test(p)) return err('motDePasseCourant')
   const local = email.split('@')[0]
-  if (local.length >= 4 && p.includes(local)) return 'Le mot de passe ne doit pas contenir votre adresse courriel.'
+  if (local.length >= 4 && p.includes(local)) return err('motDePasseCourriel')
   return null
 }
 
@@ -213,7 +218,7 @@ export type AdminContext = { tenant: Tenant; account: Account; role: Role }
  * Une requête qui modifie quelque chose doit venir de la même adresse (en-tête Origin) : pas de formulaire d'un autre site.
  */
 export async function requireAdmin(request: Request, minRole: Role = 'volunteer'): Promise<{ ctx: AdminContext } | { response: Response }> {
-  const deny = (status: number, error: string) => ({ response: Response.json({ error }, { status }) })
+  const deny = (status: number, key: ErrorKey) => ({ response: errorResponse(request, err(key), status) as Response })
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     const origin = request.headers.get('origin')
     const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim().toLowerCase()
@@ -224,16 +229,16 @@ export async function requireAdmin(request: Request, minRole: Role = 'volunteer'
       } catch {
         // origine illisible : refusée plus bas
       }
-      if (originHost !== host) return deny(403, 'Requête refusée (autre origine).')
+      if (originHost !== host) return deny(403, 'autreOrigine')
     }
   }
   const t = await requireTenant(request)
   if ('response' in t) return t
   const account = await currentAccount()
-  if (!account) return deny(401, 'Connectez-vous.')
+  if (!account) return deny(401, 'connectezVous')
   const role = await accessRole(account.id, t.tenant.org)
-  if (!role) return deny(403, "Vous n'avez pas accès à cet organisme.")
-  if (RANK[role] < RANK[minRole]) return deny(403, 'Réservé au propriétaire de l\'organisme.')
+  if (!role) return deny(403, 'pasAcces')
+  if (RANK[role] < RANK[minRole]) return deny(403, 'reserveProprietaire')
   return { ctx: { tenant: t.tenant, account, role } }
 }
 
@@ -245,6 +250,8 @@ export interface InvitationInfo {
   role: Role
   organizationId: string | null
   orgName: string | null
+  /** Nom anglais de l'organisme, s'il en a un (page d'acceptation en anglais). */
+  orgNameEn: string | null
   orgSlug: string | null
   accountExists: boolean
 }
@@ -307,12 +314,13 @@ export async function invitationInfo(token: string): Promise<InvitationInfo | nu
     role: inv.role as Role,
     organizationId: (inv.organization_id as string | null) ?? null,
     orgName: org?.name ?? null,
+    orgNameEn: org?.nameEn ?? null,
     orgSlug: org?.slug ?? null,
     accountExists: !!acc?.password_hash,
   }
 }
 
-export type AcceptResult = { ok: true; account: Account; organizationId: string | null; token?: string } | { ok: false; error: string }
+export type AcceptResult = { ok: true; account: Account; organizationId: string | null; token?: string } | { ok: false; error: AppError }
 
 /**
  * Accepter une invitation. Nouvelle personne : nom + mot de passe (le lien reçu prouve l'adresse). Personne qui a déjà un
@@ -323,8 +331,8 @@ export async function acceptInvitation(
   input: { name?: unknown; password?: unknown; signedIn?: Account | null; userAgent?: string | null },
 ): Promise<AcceptResult> {
   const inv = await pendingInvitationByToken(token)
-  if (!inv) return { ok: false, error: 'Cette invitation a expiré ou a déjà servi. Demandez-en une nouvelle.' }
-  if (!inv.organization_id) return { ok: false, error: 'Cette invitation sert à créer un organisme : ouvrez le lien reçu par courriel.' }
+  if (!inv) return { ok: false, error: err('invitationExpiree') }
+  if (!inv.organization_id) return { ok: false, error: err('invitationCreation') }
   const db = getDb()
   const email = inv.email as string
   const { data: existing, error } = await db.from('accounts').select('id,email,name,is_studio,password_hash').eq('email', email).maybeSingle()
@@ -333,11 +341,11 @@ export async function acceptInvitation(
   let account: Account
   let newSession: string | undefined
   if (existing?.password_hash) {
-    if (!input.signedIn || input.signedIn.id !== existing.id) return { ok: false, error: `Connectez-vous d'abord avec le compte ${email} pour accepter cette invitation.` }
+    if (!input.signedIn || input.signedIn.id !== existing.id) return { ok: false, error: err('invitationAutreCompte', { email }) }
     account = input.signedIn
   } else {
     const name = typeof input.name === 'string' ? input.name.trim().slice(0, 80) : ''
-    if (name.length < 2) return { ok: false, error: 'Indiquez votre nom.' }
+    if (name.length < 2) return { ok: false, error: err('nomRequis') }
     const problem = passwordProblem(input.password, email)
     if (problem) return { ok: false, error: problem }
     const password_hash = await hashPassword(input.password as string)
@@ -410,14 +418,14 @@ export async function linksForEmail(emailIn: unknown): Promise<LinkToSend[]> {
 }
 
 /** Nouveau mot de passe depuis un lien « mot de passe oublié » : toutes les autres sessions sont fermées. */
-export async function resetPassword(token: string, password: unknown, userAgent?: string | null): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
-  if (!token || token.length > 100) return { ok: false, error: 'Ce lien a expiré. Demandez-en un nouveau.' }
+export async function resetPassword(token: string, password: unknown, userAgent?: string | null): Promise<{ ok: true; token: string } | { ok: false; error: AppError }> {
+  if (!token || token.length > 100) return { ok: false, error: err('lienExpire') }
   const db = getDb()
   const { data: r, error } = await db.from('password_resets').select('token_hash,account_id,expires_at,used_at').eq('token_hash', tokenHash(token)).maybeSingle()
   if (error) throw error
-  if (!r || r.used_at || new Date(r.expires_at as string).getTime() <= Date.now()) return { ok: false, error: 'Ce lien a expiré. Demandez-en un nouveau.' }
+  if (!r || r.used_at || new Date(r.expires_at as string).getTime() <= Date.now()) return { ok: false, error: err('lienExpire') }
   const { data: acc } = await db.from('accounts').select('id,email').eq('id', r.account_id).maybeSingle()
-  if (!acc) return { ok: false, error: 'Ce lien a expiré. Demandez-en un nouveau.' }
+  if (!acc) return { ok: false, error: err('lienExpire') }
   const problem = passwordProblem(password, acc.email as string)
   if (problem) return { ok: false, error: problem }
   const now = new Date().toISOString()
@@ -449,16 +457,20 @@ export async function teamOf(orgId: string): Promise<{ members: { accountId: str
 }
 
 /** Retirer quelqu'un de l'équipe : ses sessions restent valides ailleurs, mais il perd tout accès à cet organisme. Jamais le dernier propriétaire. */
-export async function removeMember(orgId: string, accountId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function removeMember(orgId: string, accountId: string): Promise<{ ok: true } | { ok: false; error: AppError }> {
   const db = getDb()
   const role = await roleIn(accountId, orgId)
-  if (!role) return { ok: false, error: "Cette personne ne fait pas partie de l'équipe." }
+  if (!role) return { ok: false, error: err('pasDansEquipe') }
   if (role === 'owner') {
     const { data: owners } = await db.from('memberships').select('account_id').eq('organization_id', orgId).eq('role', 'owner')
-    if ((owners ?? []).length <= 1) return { ok: false, error: 'Impossible de retirer le dernier propriétaire.' }
+    if ((owners ?? []).length <= 1) return { ok: false, error: err('dernierProprietaire') }
   }
   const { error } = await db.from('memberships').delete().eq('account_id', accountId).eq('organization_id', orgId)
-  return error ? { ok: false, error: error.message } : { ok: true }
+  if (error) {
+    console.error('Retrait d’un membre :', error.message)
+    return { ok: false, error: err('erreurInterne') }
+  }
+  return { ok: true }
 }
 
 export async function revokeInvitation(orgId: string, invitationId: string): Promise<void> {

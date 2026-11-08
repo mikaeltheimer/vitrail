@@ -11,6 +11,7 @@ import {
   type Account,
 } from './auth'
 import { PRACTICE_SUFFIX, forgetTenantCache, orgSlugProblem } from './tenant'
+import type { AppError } from './errors'
 
 // Inscription d'un organisme sur invitation de Studio Existence (bêta).
 //
@@ -132,7 +133,7 @@ export interface SignupInput {
 }
 
 export type SignupError = 'invitation' | 'nom' | 'courriel' | 'motdepasse' | 'compte' | 'organisme' | 'adresse' | 'adresseReservee' | 'adressePrise' | 'conditions'
-export type SignupResult = { ok: true; slug: string; sessionToken: string; account: Account } | { ok: false; error: SignupError; detail?: string }
+export type SignupResult = { ok: true; slug: string; sessionToken: string; account: Account } | { ok: false; error: SignupError; detail?: AppError }
 
 /**
  * Crée le compte (ou reprend un compte existant, avec son mot de passe), l'organisme en brouillon, son entraînement,

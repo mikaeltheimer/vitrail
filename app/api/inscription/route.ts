@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth'
 import { sendSignupCode } from '@/lib/email'
 import { localeOf } from '@/lib/i18n'
+import { errorMessage } from '@/lib/errors'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { checkOrgSlug, newSignupCode, signup, signupInvitation, suggestSlug, verifySignupCode } from '@/lib/signup'
 import { orgUrl } from '@/lib/tenant'
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
       locale: localeOf(request),
       userAgent: request.headers.get('user-agent'),
     })
-    if (!r.ok) return fail(r.error, 400, r.detail)
+    if (!r.ok) return fail(r.error, 400, r.detail ? errorMessage(localeOf(request), r.detail) : undefined)
     const res = NextResponse.json({ ok: true, console: orgUrl(r.slug, '/admin', request) })
     res.cookies.set(SESSION_COOKIE, r.sessionToken, sessionCookieOptions(request.headers.get('x-forwarded-host') || request.headers.get('host')))
     return res

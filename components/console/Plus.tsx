@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import type { Act, ConsoleData, Role } from './types'
 import { GREEN, RED, Section, useDay, useTime } from './ui'
 import MonVitrail from './MonVitrail'
@@ -65,9 +65,12 @@ export default function Plus({ data, act, open }: { data: ConsoleData; act: Act;
 function Team({ team, meId, act }: { team: NonNullable<ConsoleData['team']>; meId: string; act: Act }) {
   const t = useTranslations('console.equipe')
   const tr = useTranslations('console.roles')
+  const tl = useTranslations('commun.langue')
   const day = useDay()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('volunteer')
+  // Langue du courriel d'invitation et de la page d'acceptation (par défaut, celle de la console)
+  const [lang, setLang] = useState<'fr' | 'en'>(useLocale() === 'en' ? 'en' : 'fr')
   return (
     <Section title={t('titre')}>
       <div className="card space-y-3 text-sm">
@@ -109,13 +112,17 @@ function Team({ team, meId, act }: { team: NonNullable<ConsoleData['team']>; meI
           className="flex flex-wrap items-center gap-2"
           onSubmit={async e => {
             e.preventDefault()
-            if (await act({ action: 'inviteMember', email, role }, t('envoyee', { email }))) setEmail('')
+            if (await act({ action: 'inviteMember', email, role, locale: lang }, t('envoyee', { email }))) setEmail('')
           }}
         >
           <input className="field min-w-0 flex-1" type="email" placeholder={t('courriel')} value={email} onChange={e => setEmail(e.target.value)} required aria-label={t('courriel')} />
           <select className="field !w-auto" value={role} onChange={e => setRole(e.target.value as Role)} aria-label={t('role')}>
             <option value="volunteer">{tr('volunteer')}</option>
             <option value="owner">{tr('owner')}</option>
+          </select>
+          <select className="field !w-auto" value={lang} onChange={e => setLang(e.target.value === 'en' ? 'en' : 'fr')} aria-label={t('langue')}>
+            <option value="fr" lang="fr">{tl('fr')}</option>
+            <option value="en" lang="en">{tl('en')}</option>
           </select>
           <button className="btn">{t('inviter')}</button>
         </form>

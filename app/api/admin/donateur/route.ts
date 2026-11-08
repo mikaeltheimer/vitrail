@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { getDb } from '@/lib/db'
 import { hasEmailLog } from '@/lib/schema'
+import { failer, internalError } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id') ?? ''
   const db = getDb()
   const { data: donor, error } = await db.from('donors').select('*').eq('id', id).eq('organization_id', orgId).maybeSingle()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!donor) return NextResponse.json({ error: 'Donateur introuvable.' }, { status: 404 })
+  if (error) return internalError(request, 'Fiche donateur', error)
+  if (!donor) return failer(request)('donateurInconnu', 404)
   const [donations, emails] = await Promise.all([
     db
       .from('donations')
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       ? db.from('email_log').select('id,created_at,kind,status,to_email,error').eq('organization_id', orgId).eq('donor_id', id).order('created_at', { ascending: false }).limit(50)
       : Promise.resolve({ data: [], error: null }),
   ])
-  if (donations.error) return NextResponse.json({ error: donations.error.message }, { status: 500 })
+  if (donations.error) return internalError(request, 'Fiche donateur', donations.error)
   const d = donor as Record<string, unknown>
   return NextResponse.json({
     donor: {

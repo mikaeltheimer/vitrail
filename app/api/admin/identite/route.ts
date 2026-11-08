@@ -6,6 +6,7 @@ import { practiceOf } from '@/lib/signup'
 import { IDENTITY_COLUMNS, forgetIdentity, type IdentityRow } from '@/lib/identity'
 import { LEGAL_KEYS, LEGAL_MAX, formatPhone, missingForLaunch, type LegalInfo } from '@/lib/identity-shared'
 import { validateEmail } from '@/lib/validate'
+import { err, failer } from '@/lib/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,6 @@ export const dynamic = 'force-dynamic'
 // Ce qui se voit (langues, textes, logo, icône) se personnalise dans l'atelier, en contexte, puis se publie.
 // Messages d'erreur en français seulement (comme le reste de l'API de la console).
 
-const fail = (error: string, status = 400) => NextResponse.json({ error }, { status })
 
 export async function GET(request: NextRequest) {
   const a = await requireAdmin(request, 'owner')
@@ -70,26 +70,27 @@ function cleanUrl(v: unknown): string | null | false {
 // Coordonnées administratives seulement (site web, juridique, courriels) : publiées tout de suite, sans brouillon.
 // Langues, textes, logo et icône se modifient dans l'atelier (app/api/atelier).
 export async function POST(request: NextRequest) {
+  const fail = failer(request)
   const a = await requireAdmin(request, 'owner')
   if ('response' in a) return a.response
   const org = a.ctx.tenant.org
-  if (org.practiceOf) return fail("Les coordonnées se modifient depuis la console de l'organisme.")
+  if (org.practiceOf) return fail('coordonneesDansConsole')
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
 
   const website = cleanUrl(b.websiteUrl)
-  if (website === false) return fail('Adresse du site web invalide (ex. : https://monorganisme.org).')
+  if (website === false) return fail('siteInvalide')
 
   const inLegal = (b.legal ?? {}) as Record<string, unknown>
   const legal: Partial<LegalInfo> = {}
   for (const k of LEGAL_KEYS) {
     const v = clean(inLegal[k], LEGAL_MAX[k])
-    if (v === null) return fail(`Coordonnée trop longue : ${LEGAL_MAX[k]} caractères au plus.`)
+    if (v === null) return fail(err('coordonneeLongue', { max: LEGAL_MAX[k] }))
     if (v) legal[k] = v
   }
   if (legal.officerPhone) legal.officerPhone = formatPhone(legal.officerPhone)
   if (legal.officerEmail) {
     const e = validateEmail(legal.officerEmail)
-    if (!e.ok) return fail('Courriel du responsable des renseignements personnels invalide.')
+    if (!e.ok) return fail('courrielResponsableInvalide')
     legal.officerEmail = e.value
   }
   const { data: cur, error: curErr } = await getDb().from('organizations').select('legal').eq('id', org.id).single()
@@ -100,11 +101,11 @@ export async function POST(request: NextRequest) {
   legal.updated = changed || !before.updated ? new Date().toISOString().slice(0, 10) : before.updated
 
   const senderName = clean(b.senderName, 80)
-  if (senderName === null) return fail("Nom d'expéditeur trop long (80 caractères au plus).")
+  if (senderName === null) return fail(err('expediteurLong', { max: 80 }))
   let replyTo: string | null = null
   if (b.replyTo) {
     const e = validateEmail(b.replyTo)
-    if (!e.ok) return fail('Adresse de réponse invalide.')
+    if (!e.ok) return fail('reponseInvalide')
     replyTo = e.value
   }
 

@@ -358,7 +358,7 @@ export interface InvitationEmailInput {
 
 export function buildInvitation(i: Omit<InvitationEmailInput, 'to' | 'organizationId'>): Built {
   const t = translatorFor(i.locale)
-  const url = linkTo(i.baseUrl, `/admin/invitation?jeton=${encodeURIComponent(i.token)}`)
+  const url = linkTo(i.baseUrl, `/admin/invitation?jeton=${encodeURIComponent(i.token)}&lang=${i.locale}`)
   const role = i.role === 'owner' ? t('courriel.roleProprietaire') : t('courriel.roleBenevole')
   return {
     subject: t('courriel.invitationObjet', { org: i.orgName }),
@@ -380,7 +380,7 @@ export async function sendInvitation(i: InvitationEmailInput): Promise<boolean> 
 
 export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: string }): Built {
   const t = translatorFor(i.locale)
-  const url = linkTo(i.baseUrl, `/admin/reinitialiser?jeton=${encodeURIComponent(i.token)}`)
+  const url = linkTo(i.baseUrl, `/admin/reinitialiser?jeton=${encodeURIComponent(i.token)}&lang=${i.locale}`)
   return {
     subject: t('courriel.reinitObjet'),
     content: {
@@ -403,7 +403,7 @@ export async function sendPasswordReset(i: { to: string; token: string; locale: 
 /** Invitation de Studio à CRÉER un organisme : le lien mène à /inscription sur le site de la plateforme. */
 export function buildOrgInvitation(i: { token: string; locale: Locale; orgName?: string | null; message?: string | null; baseUrl: string }): Built {
   const t = translatorFor(i.locale)
-  const url = linkTo(i.baseUrl, `/inscription?jeton=${encodeURIComponent(i.token)}`)
+  const url = linkTo(i.baseUrl, `/inscription?jeton=${encodeURIComponent(i.token)}&lang=${i.locale}`)
   const brand = CONFIG.brand.name
   return {
     subject: i.orgName ? t('courriel.creationObjet', { org: i.orgName }) : t('courriel.creationObjetSansNom'),
