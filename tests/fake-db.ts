@@ -24,6 +24,12 @@ class Query {
   eq(c: string, v: unknown) { return this.f(c, v, x => x === v) }
   is(c: string, v: null) { return this.f(c, v, x => x === v || x === undefined) }
   in(c: string, v: unknown[]) { return this.f(c, v, x => v.includes(x)) }
+  /** « a.eq.x,b.eq.y » : au moins une des conditions (seulement eq). */
+  or(expr: string) {
+    const parts = expr.split(',').map(p => p.split('.')).map(([c, , v]) => [c, v] as const)
+    this.filters.push(r => parts.some(([c, v]) => String(r[c]) === v))
+    return this
+  }
   gt(c: string, v: number) { return this.f(c, v, x => Number(x) > v) }
   gte(c: string, v: string) { return this.f(c, v, x => String(x) >= v) }
   lte(c: string, v: string) { return this.f(c, v, x => String(x) <= v) }
