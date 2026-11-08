@@ -77,6 +77,7 @@ export function identityFromRow(r: IdentityRow): Identity {
     iconUrl: assetUrl(r.icon_path),
     legal: {
       entity: legal.entity ?? '',
+      neq: legal.neq ?? '',
       address: legal.address ?? '',
       officerName: legal.officerName ?? '',
       officerEmail: legal.officerEmail ?? '',

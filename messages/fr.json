@@ -442,7 +442,8 @@
     "modifications": {
       "titre": "Modifications",
       "texte": "Nous publierons ici toute modification de cette politique, avec sa date de mise à jour."
-    }
+    },
+    "retentionDefaut": "Les renseignements liés aux dons (nom, courriel, montant, date, témoignage et photo) sont conservés tant que le vitrail de {org} est en ligne, pour l'afficher et pour la tenue de ses registres. Après la fermeture du vitrail, ils sont retirés de l'affichage et conservés seulement le temps exigé par les lois fiscales et comptables (en général 6 ans), puis détruits ou anonymisés. Vous pouvez en tout temps demander que votre nom, votre témoignage ou votre photo soient retirés de l'affichage, ou que vos renseignements soient supprimés, sous réserve de ces obligations."
   },
   "conditions": {
     "retour": "← Retour au vitrail",
@@ -832,15 +833,14 @@
       "repondreAide": "Vide : le courriel du responsable des renseignements personnels.",
       "juridique": "Coordonnées juridiques",
       "juridiqueAide": "Reprises par vos pages Confidentialité et Conditions. La Loi 25 exige un responsable des renseignements personnels joignable : ces champs sont obligatoires avant la mise en ligne.",
-      "entity": "Raison sociale et numéro d’entreprise (NEQ)",
-      "entityExemple": "Ex. : Les Amis du parc inc., NEQ 1234567890",
+      "entity": "Raison sociale",
+      "entityExemple": "Ex. : Les Amis du parc inc.",
       "address": "Adresse postale",
       "officerName": "Responsable des renseignements personnels : nom et titre",
       "officerNameExemple": "Ex. : Marie Tremblay, directrice générale",
       "officerEmail": "Courriel du responsable",
       "officerPhone": "Téléphone du responsable",
       "retention": "Durée de conservation des renseignements",
-      "retentionExemple": "Ex. : Les renseignements liés aux dons sont conservés 7 ans pour la comptabilité. Les noms, témoignages et photos sont retirés de l’affichage à votre demande.",
       "voirConfidentialite": "Voir la page Confidentialité",
       "enregistrer": "Enregistrer",
       "enregistre": "Enregistré.",
@@ -852,7 +852,15 @@
       "brouillonEnAttente": "Des changements attendent d’être publiés dans l’atelier.",
       "publieLe": "Dernière publication : {date}.",
       "jamaisPublie": "Rien n’a encore été publié : votre vitrail affiche votre nom et des textes neutres.",
-      "ouvrirAtelier": "Personnaliser dans l’atelier"
+      "ouvrirAtelier": "Personnaliser dans l’atelier",
+      "neq": "NEQ ou numéro d’organisme de bienfaisance",
+      "neqExemple": "Ex. : 1234567890, ou 123456789 RR 0001",
+      "neqAide": "Facultatif, mais recommandé : il identifie l’organisme sans ambiguïté.",
+      "officerPhoneExemple": "+1 514 555 0123",
+      "retentionDefautTitre": "Phrase par défaut (convient à la plupart des organismes) :",
+      "retentionModifier": "Modifier cette phrase",
+      "retentionRetablir": "Revenir à la phrase par défaut",
+      "retentionAide": "À modifier seulement si votre organisme a une règle de conservation différente."
     }
   },
   "plateforme": {

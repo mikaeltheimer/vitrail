@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { LEGAL_KEYS, LEGAL_MAX, type LegalKey } from '@/lib/identity-shared'
+import { LEGAL_KEYS, LEGAL_MAX, LEGAL_REQUIRED, formatPhone, type LegalKey } from '@/lib/identity-shared'
 import { RED, Section, useDay } from './ui'
 
 // Mon vitrail (propriétaire) : ce qui ne se voit pas sur le vitrail — site web, coordonnées juridiques, courriels.
@@ -25,6 +25,8 @@ type Form = Pick<Loaded, 'websiteUrl' | 'legal' | 'senderName' | 'replyTo'>
 
 export default function MonVitrail({ switchUrl }: { switchUrl: string | null }) {
   const t = useTranslations('console.monVitrail')
+  const tl = useTranslations('confidentialite')
+  const [customRetention, setCustomRetention] = useState(false)
   const day = useDay()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Form | null>(null)
@@ -36,7 +38,10 @@ export default function MonVitrail({ switchUrl }: { switchUrl: string | null }) 
     if (!res.ok) return
     const d = (await res.json()) as Loaded
     setLoaded(d)
-    if (!d.practice) setForm({ websiteUrl: d.websiteUrl, legal: d.legal, senderName: d.senderName, replyTo: d.replyTo })
+    if (!d.practice) {
+      setForm({ websiteUrl: d.websiteUrl, legal: d.legal, senderName: d.senderName, replyTo: d.replyTo })
+      setCustomRetention(!!d.legal.retention?.trim())
+    }
   }, [])
 
   useEffect(() => {
@@ -101,29 +106,71 @@ export default function MonVitrail({ switchUrl }: { switchUrl: string | null }) 
         <div className="card space-y-3 text-sm">
           <p className="font-semibold">{t('juridique')}</p>
           <p className="muted text-xs">{t('juridiqueAide')}</p>
-          {LEGAL_KEYS.map(k => {
+          {LEGAL_KEYS.filter(k => k !== 'retention').map(k => {
+            const required = LEGAL_REQUIRED.includes(k)
             const missing = loaded.missing.includes(k) && !form.legal[k]?.trim()
-            const example = k === 'entity' ? t('entityExemple') : k === 'officerName' ? t('officerNameExemple') : k === 'retention' ? t('retentionExemple') : undefined
+            const example = k === 'entity' ? t('entityExemple') : k === 'neq' ? t('neqExemple') : k === 'officerName' ? t('officerNameExemple') : k === 'officerPhone' ? t('officerPhoneExemple') : undefined
             return (
               <label key={k} className="block space-y-1">
                 <span className="block">
-                  {t(k)} <span style={{ color: missing ? RED : 'var(--muted)' }}>*</span>
+                  {t(k)} {required && <span style={{ color: missing ? RED : 'var(--muted)' }}>*</span>}
                 </span>
-                {k === 'retention' || k === 'address' ? (
-                  <textarea className="field min-h-[72px]" maxLength={LEGAL_MAX[k]} placeholder={example} value={form.legal[k] ?? ''} onChange={e => setLegal(k, e.target.value)} />
+                {k === 'address' ? (
+                  <textarea className="field min-h-[72px]" maxLength={LEGAL_MAX[k]} value={form.legal[k] ?? ''} onChange={e => setLegal(k, e.target.value)} />
                 ) : (
                   <input
                     className="field"
                     type={k === 'officerEmail' ? 'email' : k === 'officerPhone' ? 'tel' : 'text'}
+                    inputMode={k === 'officerPhone' ? 'tel' : undefined}
+                    autoComplete={k === 'officerPhone' ? 'tel' : undefined}
                     maxLength={LEGAL_MAX[k]}
                     placeholder={example}
                     value={form.legal[k] ?? ''}
                     onChange={e => setLegal(k, e.target.value)}
+                    // Le téléphone se met en forme quand on quitte la case : +1 514 666 7766
+                    onBlur={k === 'officerPhone' ? e => setLegal(k, formatPhone(e.target.value)) : undefined}
                   />
                 )}
+                {k === 'neq' && <span className="muted block text-xs">{t('neqAide')}</span>}
               </label>
             )
           })}
+          <div className="space-y-2">
+            <span className="block">{t('retention')}</span>
+            {customRetention ? (
+              <>
+                <textarea className="field min-h-[120px]" maxLength={LEGAL_MAX.retention} value={form.legal.retention ?? ''} onChange={e => setLegal('retention', e.target.value)} />
+                <span className="muted block text-xs">{t('retentionAide')}</span>
+                <button
+                  type="button"
+                  className="text-xs underline"
+                  onClick={() => {
+                    setLegal('retention', '')
+                    setCustomRetention(false)
+                  }}
+                >
+                  {t('retentionRetablir')}
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="muted block text-xs">{t('retentionDefautTitre')}</span>
+                <p className="rounded-xl p-3 text-[13px] leading-relaxed" style={{ background: 'var(--bg)', border: '1px solid var(--line)' }}>
+                  {tl('retentionDefaut', { org: loaded.orgName })}
+                </p>
+                <button
+                  type="button"
+                  className="text-xs underline"
+                  onClick={() => {
+                    setLegal('retention', tl('retentionDefaut', { org: loaded.orgName }))
+                    setCustomRetention(true)
+                  }}
+                >
+                  {t('retentionModifier')}
+                </button>
+              </>
+            )}
+          </div>
           <a className="text-xs underline" href="/confidentialite" target="_blank" rel="noopener">
             {t('voirConfidentialite')} ↗
           </a>

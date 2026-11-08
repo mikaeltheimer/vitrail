@@ -15,7 +15,7 @@ export interface OrgTexts {
   testimonial: { question: string; cta: string; placeholder: string; lead: string; consent: string }
 }
 
-export const LEGAL_KEYS = ['entity', 'address', 'officerName', 'officerEmail', 'officerPhone', 'retention'] as const
+export const LEGAL_KEYS = ['entity', 'neq', 'address', 'officerName', 'officerEmail', 'officerPhone', 'retention'] as const
 export type LegalKey = (typeof LEGAL_KEYS)[number]
 /** Coordonnées juridiques (pages /confidentialite et /conditions). `updated` : date du dernier enregistrement (AAAA-MM-JJ). */
 export type LegalInfo = Record<LegalKey | 'updated', string>
@@ -43,7 +43,7 @@ export type StoredTexts = Partial<Record<Locale, Partial<Record<TextField, strin
 
 /** Longueurs maximales (caractères). */
 export const TEXT_MAX: Record<TextField, number> = { name: 80, about: 1200, why: 400, vitrailTitle: 60, question: 120, placeholder: 160 }
-export const LEGAL_MAX: Record<LegalKey, number> = { entity: 200, address: 200, officerName: 120, officerEmail: 120, officerPhone: 40, retention: 1500 }
+export const LEGAL_MAX: Record<LegalKey, number> = { entity: 200, neq: 40, address: 200, officerName: 120, officerEmail: 120, officerPhone: 40, retention: 1500 }
 
 /** Une langue que l'organisme offre : celle demandée si elle l'est, sinon sa langue principale. */
 export function clampLocale(locales: readonly Locale[], locale: Locale): Locale {
@@ -81,7 +81,27 @@ export function resolveTexts(stored: StoredTexts, locales: Locale[], fallbackNam
   }
 }
 
-/** Ce qui manque avant « Mettre en ligne » : toutes les coordonnées juridiques (le nom existe dès l'inscription). */
+/**
+ * Exigées avant « Mettre en ligne » (Loi 25 : un responsable joignable). Facultatives : le NEQ ou numéro d'organisme de
+ * bienfaisance, et la durée de conservation (vide : la phrase par défaut de la plateforme, voir confidentialite.retentionDefaut).
+ */
+export const LEGAL_REQUIRED: readonly LegalKey[] = ['entity', 'address', 'officerName', 'officerEmail', 'officerPhone']
+
+/** Ce qui manque avant « Mettre en ligne » (le nom existe dès l'inscription). */
 export function missingForLaunch(legal: Partial<LegalInfo>): LegalKey[] {
-  return LEGAL_KEYS.filter(k => !legal[k]?.trim())
+  return LEGAL_REQUIRED.filter(k => !legal[k]?.trim())
+}
+
+/**
+ * Téléphone nord-américain mis en forme : « 5146667766 », « 514-666-7766 », « 1 514 666 7766 » → « +1 514 666 7766 ».
+ * Un numéro d'ailleurs (ou incomplet) est laissé tel quel, espaces superflus retirés.
+ */
+export function formatPhone(raw: string): string {
+  const s = raw.trim()
+  const digits = s.replace(/\D/g, '')
+  const ext = s.match(/(?:poste|ext\.?|x)\s*(\d+)\s*$/i)
+  const main = ext ? s.slice(0, ext.index).replace(/\D/g, '') : digits
+  const nanp = main.length === 10 ? main : main.length === 11 && main.startsWith('1') ? main.slice(1) : null
+  if (!nanp || (s.startsWith('+') && !s.startsWith('+1'))) return s.replace(/\s+/g, ' ')
+  return `+1 ${nanp.slice(0, 3)} ${nanp.slice(3, 6)} ${nanp.slice(6)}${ext ? ` poste ${ext[1]}` : ''}`
 }

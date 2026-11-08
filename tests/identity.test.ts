@@ -69,8 +69,12 @@ async function main() {
   check('reçu : nom et question de l\'organisme', r.subject.includes('Lake Theatre') && JSON.stringify(r.content).includes('Why do you support Lake Theatre?'))
 
   console.log('Mise en ligne')
-  check('tout manque', shared.missingForLaunch({}).length === 6)
-  check('espaces = vide', shared.missingForLaunch({ entity: '  ', address: 'a', officerName: 'b', officerEmail: 'c', officerPhone: 'd', retention: 'e' }).join() === 'entity')
+  check('tout manque (NEQ et conservation facultatifs)', shared.missingForLaunch({}).length === 5)
+  check('espaces = vide', shared.missingForLaunch({ entity: '  ', address: 'a', officerName: 'b', officerEmail: 'c', officerPhone: 'd' }).join() === 'entity')
+  check('téléphone : 10 chiffres', shared.formatPhone('514-666-7766') === '+1 514 666 7766' && shared.formatPhone('(514) 666 7766') === '+1 514 666 7766')
+  check('téléphone : avec le 1', shared.formatPhone('1 514 666 7766') === '+1 514 666 7766' && shared.formatPhone('+15146667766') === '+1 514 666 7766')
+  check('téléphone : poste', shared.formatPhone('514 666 7766 poste 12') === '+1 514 666 7766 poste 12')
+  check('téléphone : étranger ou incomplet laissé tel quel', shared.formatPhone('+33 1 23 45 67 89') === '+33 1 23 45 67 89' && shared.formatPhone('666 77') === '666 77')
 
   console.log('Mon vitrail (console) : coordonnées seulement')
   seed()
@@ -84,7 +88,7 @@ async function main() {
   check('enregistré, site complété en https', res.status === 200 && row.website_url === 'https://lactheatre.org/')
   check('coordonnées nettoyées, date posée', (row.legal as { entity: string }).entity === 'Lake Theatre Inc.' && (row.legal as { officerEmail: string }).officerEmail === 'dpo@lac.org' && /^\d{4}-\d{2}-\d{2}$/.test((row.legal as { updated: string }).updated))
   check('les textes n\'y passent plus (atelier)', (row.texts as { en: { name: string } }).en.name === 'Lake Theatre')
-  check('manque renvoyé', ((await res.json()) as { missing: string[] }).missing.length === 4)
+  check('manque renvoyé', ((await res.json()) as { missing: string[] }).missing.length === 3)
   res = await post({ ...ok, websiteUrl: 'javascript:alert(1)' })
   check('site web : pas de javascript:', res.status === 400)
   res = await post({ ...ok, legal: { officerEmail: 'pas-un-courriel' } })

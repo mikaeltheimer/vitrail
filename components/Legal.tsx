@@ -24,7 +24,7 @@ type Chunks = ReactNode
  * <updated>, <retention>) : elle affiche la valeur si elle est renseignée, sinon le passage à compléter décrit entre les balises.
  * `todoLabel` : « À COMPLÉTER » / « TO COMPLETE ».
  */
-export function legalTags(todoLabel: string, legal: LegalInfo) {
+export function legalTags(todoLabel: string, legal: LegalInfo, retentionDefault: string) {
   const field = (key: keyof LegalInfo) => (chunks: Chunks) => (legal[key] ? <span style={{ whiteSpace: 'pre-line' }}>{legal[key]}</span> : <Todo label={todoLabel}>{chunks}</Todo>)
   return {
     b: (chunks: Chunks) => <b>{chunks}</b>,
@@ -39,14 +39,16 @@ export function legalTags(todoLabel: string, legal: LegalInfo) {
         {chunks}
       </Link>
     ),
-    entity: field('entity'),
+    // Raison sociale, suivie du NEQ ou du numéro d'organisme de bienfaisance s'il est donné
+    entity: (chunks: Chunks) => (legal.entity ? <span>{legal.neq ? `${legal.entity}, ${legal.neq}` : legal.entity}</span> : <Todo label={todoLabel}>{chunks}</Todo>),
     address: field('address'),
     officerName: field('officerName'),
     officerEmail: (chunks: Chunks) =>
       legal.officerEmail ? <a href={`mailto:${legal.officerEmail}`} className="underline">{legal.officerEmail}</a> : <Todo label={todoLabel}>{chunks}</Todo>,
     officerPhone: field('officerPhone'),
     updated: field('updated'),
-    retention: field('retention'),
+    // Vide : la phrase par défaut de la plateforme
+    retention: () => <span style={{ whiteSpace: 'pre-line' }}>{legal.retention || retentionDefault}</span>,
   }
 }
 

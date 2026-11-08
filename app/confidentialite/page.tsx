@@ -31,8 +31,8 @@ export default async function ConfidentialitePage() {
   const { identity } = await requestIdentity()
   const locale = (identity ? clampLocale(identity.locales, (await getLocale()) as Locale) : await getLocale()) as Locale
   const org = { name: identity ? identity.texts[locale].name : CONFIG.brand.name }
-  const legal: LegalInfo = identity?.legal ?? { entity: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
-  const tags = legalTags(tc('aCompleter'), legal)
+  const legal: LegalInfo = identity?.legal ?? { entity: '', neq: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
+  const tags = legalTags(tc('aCompleter'), legal, (await getTranslations('confidentialite'))('retentionDefaut', { org: org.name }))
   const v = { org: org.name, brand: CONFIG.brand.name, studio: CONFIG.brand.studio, ...studioVars }
   const tr = t.rich as unknown as (key: string, values: Record<string, unknown>) => ReactNode
   const rich = (key: string) => tr(key, { ...v, ...tags })

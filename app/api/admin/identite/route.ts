@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db'
 import { forgetTenantCache, orgUrl } from '@/lib/tenant'
 import { practiceOf } from '@/lib/signup'
 import { IDENTITY_COLUMNS, forgetIdentity, type IdentityRow } from '@/lib/identity'
-import { LEGAL_KEYS, LEGAL_MAX, missingForLaunch, type LegalInfo } from '@/lib/identity-shared'
+import { LEGAL_KEYS, LEGAL_MAX, formatPhone, missingForLaunch, type LegalInfo } from '@/lib/identity-shared'
 import { validateEmail } from '@/lib/validate'
 
 export const runtime = 'nodejs'
@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
     if (v === null) return fail(`Coordonnée trop longue : ${LEGAL_MAX[k]} caractères au plus.`)
     if (v) legal[k] = v
   }
+  if (legal.officerPhone) legal.officerPhone = formatPhone(legal.officerPhone)
   if (legal.officerEmail) {
     const e = validateEmail(legal.officerEmail)
     if (!e.ok) return fail('Courriel du responsable des renseignements personnels invalide.')

@@ -442,7 +442,8 @@
     "modifications": {
       "titre": "Changes",
       "texte": "We will post any change to this policy here, with its update date."
-    }
+    },
+    "retentionDefaut": "Information related to donations (name, email, amount, date, testimonial and photo) is kept as long as {org}'s stained glass is online, to display it and to keep its records. After the stained glass closes, it is removed from display and kept only as long as tax and accounting laws require (usually 6 years), then destroyed or anonymized. You may at any time ask that your name, testimonial or photo be removed from display, or that your information be deleted, subject to these obligations."
   },
   "conditions": {
     "retour": "← Back to the stained glass",
@@ -832,15 +833,14 @@
       "repondreAide": "Empty: the privacy officer’s email.",
       "juridique": "Legal details",
       "juridiqueAide": "Used by your Privacy and Terms pages. Quebec’s Law 25 requires a reachable privacy officer: these fields are required before going live.",
-      "entity": "Legal name and business number (NEQ)",
-      "entityExemple": "E.g.: Friends of the Park Inc., NEQ 1234567890",
+      "entity": "Legal name",
+      "entityExemple": "E.g.: Friends of the Park Inc.",
       "address": "Mailing address",
       "officerName": "Privacy officer: name and title",
       "officerNameExemple": "E.g.: Marie Tremblay, Executive Director",
       "officerEmail": "Privacy officer’s email",
       "officerPhone": "Privacy officer’s phone",
       "retention": "How long information is kept",
-      "retentionExemple": "E.g.: Donation records are kept 7 years for accounting. Names, testimonials and photos are removed from display on request.",
       "voirConfidentialite": "View the Privacy page",
       "enregistrer": "Save",
       "enregistre": "Saved.",
@@ -852,7 +852,15 @@
       "brouillonEnAttente": "Changes are waiting to be published in the workshop.",
       "publieLe": "Last published: {date}.",
       "jamaisPublie": "Nothing published yet: your stained glass shows your name and neutral texts.",
-      "ouvrirAtelier": "Customize in the workshop"
+      "ouvrirAtelier": "Customize in the workshop",
+      "neq": "NEQ or charity registration number",
+      "neqExemple": "E.g.: 1234567890, or 123456789 RR 0001",
+      "neqAide": "Optional, but recommended: it identifies the organization unambiguously.",
+      "officerPhoneExemple": "+1 514 555 0123",
+      "retentionDefautTitre": "Default sentence (suits most organizations):",
+      "retentionModifier": "Edit this sentence",
+      "retentionRetablir": "Back to the default sentence",
+      "retentionAide": "Change it only if your organization has a different retention rule."
     }
   },
   "plateforme": {
