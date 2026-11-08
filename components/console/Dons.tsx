@@ -82,7 +82,7 @@ export default function Dons({
                       {d.display_name || t('anonyme')} {d.hidden && <span style={{ color: RED }}>· {t('masque')}</span>}
                     </span>
                     <span className="muted truncate text-xs">
-                      {noEmail(d.email) ? t('sansCourriel') : d.email}
+                      {d.erased_at ? t('supprime') : noEmail(d.email) ? t('sansCourriel') : d.email}
                       {d.lastDonationAt ? ` · ${time(d.lastDonationAt)}` : ''}
                     </span>
                   </span>
@@ -116,6 +116,7 @@ interface Detail {
     locale: string
     created_at: string
     mailing_consent_at: string | null
+    erased_at: string | null
   }
   donations: {
     id: string
@@ -143,6 +144,7 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
   const [editEmail, setEditEmail] = useState<string | null>(null)
   const [merge, setMerge] = useState(false)
   const [mergeSearch, setMergeSearch] = useState('')
+  const [erasing, setErasing] = useState(false)
   const [rev, setRev] = useState(0)
 
   useEffect(() => {
@@ -168,6 +170,7 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
   }, [data.donors, id, mergeSearch])
 
   const donor = d?.donor
+  const erased = !!donor?.erased_at
   const total = d ? d.donations.reduce((s, n) => s + n.amount_cents - n.refunded_cents, 0) : 0
   return (
     <Sheet title={donor?.display_name || t('titre')} onClose={onClose} closeLabel={tc('fermer')}>
@@ -179,10 +182,12 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
             <span className="h-10 w-7 flex-none rounded" style={{ background: donor.color, opacity: donor.hidden ? 0.35 : 1 }} />
             <div className="min-w-0 flex-1">
               <p className="text-lg font-semibold">{money(total)}</p>
-              <p className="muted truncate">{noEmail(donor.email) ? t('sansCourriel') : donor.email}</p>
-              <p className="muted text-xs">
-                {donor.show_name ? t('nomAffiche') : t('nomCache')} · {donor.mailing_consent_at ? t('inscritListe') : t('pasInscritListe')}
-              </p>
+              <p className="muted truncate">{erased ? t('supprime', { date: time(donor.erased_at!) }) : noEmail(donor.email) ? t('sansCourriel') : donor.email}</p>
+              {!erased && (
+                <p className="muted text-xs">
+                  {donor.show_name ? t('nomAffiche') : t('nomCache')} · {donor.mailing_consent_at ? t('inscritListe') : t('pasInscritListe')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -206,15 +211,17 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
             <button className="chip !px-3" onClick={() => void run({ action: 'hideDonor', donorId: id, hidden: !donor.hidden }, donor.hidden ? t('reaffiche') : t('masqueOk'))}>
               {donor.hidden ? t('reafficher') : t('masquer')}
             </button>
-            <button
-              className="chip !px-3"
-              onClick={() => {
-                if (confirm(t('effacerConfirmer'))) void run({ action: 'scrubDonor', donorId: id }, t('efface'))
-              }}
-            >
-              {t('effacer')}
-            </button>
-            {owner && (
+            {!erased && (
+              <button
+                className="chip !px-3"
+                onClick={() => {
+                  if (confirm(t('effacerConfirmer'))) void run({ action: 'scrubDonor', donorId: id }, t('efface'))
+                }}
+              >
+                {t('effacer')}
+              </button>
+            )}
+            {owner && !erased && (
               <button className="chip !px-3" aria-expanded={merge} onClick={() => setMerge(!merge)}>
                 {t('fusionner')}
               </button>
@@ -318,6 +325,36 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
               </ul>
             )}
           </Section>
+
+          {owner && !erased && (
+            <div className="space-y-2 border-t pt-4" style={{ borderColor: 'var(--line)' }}>
+              {!erasing ? (
+                <button className="chip !px-3" style={{ color: RED }} onClick={() => setErasing(true)}>
+                  {t('supprimer')}
+                </button>
+              ) : (
+                <div className="card space-y-3" style={{ borderColor: RED }}>
+                  <p className="font-semibold">{t('supprimerTitre')}</p>
+                  <p>{t('supprimerAide')}</p>
+                  <p className="muted text-xs">{t('supprimerStripe')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="btn"
+                      style={{ background: RED, color: '#140d14' }}
+                      onClick={async () => {
+                        if (await run({ action: 'eraseDonor', donorId: id }, t('supprimerOk'))) setErasing(false)
+                      }}
+                    >
+                      {t('supprimerConfirmer')}
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setErasing(false)}>
+                      {tc('annuler')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </Sheet>

@@ -4,6 +4,7 @@ import { sendReminder } from './email'
 import { hasEmailLog, hasLocaleColumn } from './schema'
 import { isLocale, type Locale } from '@/i18n/config'
 import { getOrg, orgBaseUrl } from './tenant'
+import { isErasedEmail } from './erase'
 
 // Rappel du lendemain : un seul courriel par donateur, qui l'invite à ajouter un témoignage.
 // Lancé chaque jour par Vercel Cron (vercel.json → /api/cron/reminders).
@@ -105,6 +106,7 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
   for (const id of ids) {
     const d = donors.get(id)
     if (!d) skip('fiche absente')
+    else if (isErasedEmail(d.email)) skip('renseignements supprimés') // i18n-ok : console admin (FR)
     else if (!paid.has(id)) skip('aucun don payé') // i18n-ok : console admin (FR)
     else if (!baseUrls.get(d.organization_id)) skip('organisme non actif') // i18n-ok : console admin (FR)
     else if (d.hidden) skip('morceau masqué') // i18n-ok : console admin (FR)

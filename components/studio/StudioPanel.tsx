@@ -207,9 +207,68 @@ export default function StudioPanel() {
             )}
           </section>
 
+          <PhotoMaintenance />
+
           <p className="muted text-[13px]">Cette section ne montre jamais de donateurs ni de dons : l’accès à la console d’un organisme se fait seulement sur son invitation.</p>
         </div>
       </div>
     </main>
+  )
+}
+
+interface PhotoReport { apply: boolean; legacyDonors: number; moved: number; missing: number; orphans: number; orphansOld: number; removed: number; errors: string[] }
+
+/** Entretien : ranger les anciennes photos u/ dans le dossier de leur organisme (étape A). Seulement des nombres. */
+function PhotoMaintenance() {
+  const [r, setR] = useState<PhotoReport | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const call = useCallback(async (init?: RequestInit) => {
+    setBusy(true)
+    const res = await fetch('/api/studio/photos', { cache: 'no-store', ...init })
+    const b = (await res.json().catch(() => ({}))) as PhotoReport & { error?: string }
+    if (res.ok) { setR(b); setError(null) } else setError(b.error || 'Erreur.')
+    setBusy(false)
+  }, [])
+  useEffect(() => {
+    const id = setTimeout(() => void call(), 0)
+    return () => clearTimeout(id)
+  }, [call])
+  if (!r && !error) return null
+  const todo = !!r && (r.legacyDonors > 0 || r.orphansOld > 0)
+  return (
+    <section className="space-y-2.5">
+      <h2 className="text-lg font-bold">Photos des donateurs</h2>
+      <div className="card space-y-3 text-sm">
+        {error && <p style={{ color: '#F58FA3' }}>{error}</p>}
+        {r && (
+          <>
+            <p>
+              {r.apply ? 'Passage terminé : ' : ''}
+              {r.apply ? `${r.moved} fiche(s) rangée(s), ${r.removed} ancien(s) fichier(s) effacé(s).` : todo ? `${r.legacyDonors} fiche(s) à ranger dans le dossier de leur organisme ; ${r.orphans} ancien(s) fichier(s) cité(s) par aucune fiche, dont ${r.orphansOld} de plus de 24 h.` : 'Tout est rangé par organisme.'}
+            </p>
+            {r.missing > 0 && <p style={{ color: '#F58FA3' }}>{r.missing} fiche(s) citent un fichier absent : laissées telles quelles.</p>}
+            {r.errors.length > 0 && (
+              <ul className="muted list-disc pl-5 text-xs">
+                {r.errors.slice(0, 20).map(e => <li key={e}>{e}</li>)}
+              </ul>
+            )}
+            {todo && !r.apply && (
+              <div className="flex flex-wrap gap-2">
+                <button className="btn !w-auto" disabled={busy} onClick={() => confirm('Ranger les photos ? Les fichiers sont copiés dans le dossier de leur organisme, puis les anciens effacés.') && void call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purgeOrphans: false }) })}>
+                  Ranger les photos
+                </button>
+                {r.orphansOld > 0 && (
+                  <button className="btn btn-ghost !w-auto" disabled={busy} onClick={() => confirm(`Ranger les photos ET effacer ${r.orphansOld} photo(s) envoyée(s) sans don ? C’est définitif.`) && void call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purgeOrphans: true }) })}>
+                    Ranger et effacer les photos sans don
+                  </button>
+                )}
+              </div>
+            )}
+            {r.apply && <button className="btn btn-ghost !w-auto" disabled={busy} onClick={() => void call()}>Vérifier de nouveau</button>}
+          </>
+        )}
+      </div>
+    </section>
   )
 }

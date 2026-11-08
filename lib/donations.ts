@@ -180,7 +180,7 @@ export async function updateDonorProfile(
   const { error } = await getDb().from('donors').update(patch).eq('id', donorId).eq('organization_id', orgId)
   if (error) throw error
   // L'ancienne photo, remplacée ou retirée, quitte le stockage (après la mise à jour, jamais avant)
-  if (previousPhotoUrl && previousPhotoUrl !== profile.photoUrl) await removePhotoFile(previousPhotoUrl)
+  if (previousPhotoUrl && previousPhotoUrl !== profile.photoUrl) await removePhotoFile(previousPhotoUrl, orgId)
 }
 
 // ── Liens magiques ─────────────────────────────────────────────────────────────

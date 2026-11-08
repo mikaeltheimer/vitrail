@@ -11,6 +11,7 @@ import { goLive, practiceOf } from '@/lib/signup'
 import { getIdentity, missingForLaunch } from '@/lib/identity'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
+import { eraseDonor } from '@/lib/erase'
 import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
 import { getStripe } from '@/lib/payments'
 import { refundDonationFromConsole } from '@/lib/refunds'
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
   const orgId = t.tenant.org.id
   const perm = t.tenant.vitrail
   const db = getDb()
-  const donorCols: string = `id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at${(await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''}`
+  const donorCols: string = `id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at,erased_at${(await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''}`
 
   const [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes, moderation, allDonations, visitRows, reportsRes, disputesRes] = await Promise.all([
     db.from('donors').select(donorCols).eq('organization_id', orgId).order('created_at', { ascending: false }).limit(1000),
@@ -165,7 +166,7 @@ export async function GET(request: NextRequest) {
 // masquer les boutons dans la console ne protège rien.
 const OWNER_ONLY = new Set([
   'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
-  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail', 'goLive',
+  'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail', 'goLive', 'eraseDonor',
 ])
 // Ce qui n'a pas de sens dans l'entraînement : l'argent réel, Stripe, l'équipe (c'est celle de l'organisme réel)
 const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive'])
@@ -221,10 +222,17 @@ export async function POST(request: NextRequest) {
         .eq('id', str(b.donorId))
         .eq('organization_id', orgId)
       if (!error) {
-        await removePhotoFile(prev.photo_url)
+        await removePhotoFile(prev.photo_url, orgId)
         if (prev.message?.trim() || prev.photo_url || (prev.show_name && prev.display_name && prev.display_name !== 'Anonyme')) tell(str(b.donorId), 'content_removed')
       }
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
+    }
+
+    // Supprimer les renseignements du donateur (Loi 25) : courriel, nom, témoignage, photo, consentement, journal.
+    // Ses dons restent (comptabilité), rattachés à une fiche vide. Irréversible : la console demande confirmation.
+    case 'eraseDonor': {
+      const r = await eraseDonor(orgId, str(b.donorId))
+      return r.ok ? NextResponse.json({ ok: true }) : fail(r.error, r.status)
     }
 
     // Mode de publication des photos : « live » (tout de suite) ou « moderation » (après approbation)
@@ -268,7 +276,7 @@ export async function POST(request: NextRequest) {
       const prev = await before('photo_url')
       const { error } = await db.from('donors').update({ photo_url: null, photo_status: 'approved', updated_at: new Date().toISOString() }).eq('id', str(b.donorId)).eq('organization_id', orgId)
       if (!error) {
-        await removePhotoFile(prev.photo_url)
+        await removePhotoFile(prev.photo_url, orgId)
         if (prev.photo_url) tell(str(b.donorId), 'photo_removed')
       }
       return error ? fail(error.message, 500) : NextResponse.json({ ok: true })
@@ -315,9 +323,11 @@ export async function POST(request: NextRequest) {
       const from = str(b.fromId)
       const into = str(b.intoId)
       if (!from || !into || from === into) return fail('Choisissez deux morceaux différents.')
-      const { data: both, error: findError } = await db.from('donors').select('id').eq('organization_id', orgId).in('id', [from, into])
+      const { data: both, error: findError } = await db.from('donors').select('id,erased_at').eq('organization_id', orgId).in('id', [from, into])
       if (findError) return fail(findError.message, 500)
       if ((both ?? []).length !== 2) return fail('Morceau inconnu.')
+      // Une fiche supprimée ne se rattache plus à personne (ce serait la réidentifier)
+      if ((both ?? []).some(d => d.erased_at)) return fail('Les renseignements de ce donateur ont été supprimés : impossible de fusionner.')
       const moved = await db.from('donations').update({ donor_id: into }).eq('organization_id', orgId).eq('donor_id', from)
       if (moved.error) return fail(moved.error.message, 500)
       const removed = await db.from('donors').delete().eq('id', from).eq('organization_id', orgId)
@@ -446,6 +456,8 @@ export async function POST(request: NextRequest) {
     case 'changeDonorEmail': {
       const e = validateEmail(normalizeEmail(b.email))
       if (!e.ok) return fail(errorMessage('fr', e.error))
+      const { data: target } = await db.from('donors').select('erased_at').eq('id', str(b.donorId)).eq('organization_id', orgId).maybeSingle()
+      if (target?.erased_at) return fail('Les renseignements de ce donateur ont été supprimés : impossible de lui redonner une adresse.')
       const { data: other } = await db.from('donors').select('id').eq('organization_id', orgId).eq('email', e.value).maybeSingle()
       if (other && other.id !== str(b.donorId)) return fail('Cette adresse a déjà son propre morceau : fusionnez les deux morceaux plutôt.')
       const { error } = await db.from('donors').update({ email: e.value, updated_at: new Date().toISOString() }).eq('id', str(b.donorId)).eq('organization_id', orgId)

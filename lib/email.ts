@@ -1,6 +1,7 @@
 import { CONFIG, brandFor } from './config'
 import { clampLocale, identityOrNeutral, type Identity, type OrgTexts } from './identity'
 import { getDb } from './db'
+import { isErasedEmail } from './erase'
 import { siteUrl } from './env'
 import { renderEmail, type EmailContent } from './emailTemplate'
 import { formatMoney } from './format'
@@ -60,7 +61,9 @@ async function logCreate(o: Outgoing): Promise<string | null> {
     }
     const { data, error } = await db
       .from('email_log')
-      .insert({ ...(organizationId ? { organization_id: organizationId } : {}), donor_id: o.donorId ?? null, to_email: o.to, kind: o.kind, locale: o.locale, subject: o.subject })
+      // Toujours explicite : null = courriel de la plateforme (invitation à créer un organisme, demande d'accès, code
+      // d'inscription…), qui n'apparaît dans le journal d'AUCUN organisme
+      .insert({ organization_id: organizationId, donor_id: o.donorId ?? null, to_email: o.to, kind: o.kind, locale: o.locale, subject: o.subject })
       .select('id')
       .single()
     if (error) throw error
@@ -107,6 +110,8 @@ async function practiceBlocked(o: Outgoing): Promise<boolean> {
 }
 
 export async function sendEmail(o: Outgoing): Promise<boolean> {
+  // Fiche supprimée (Loi 25) : rien ne part, et rien n'est consigné (le journal garderait une trace de la personne)
+  if (isErasedEmail(o.to)) return false
   const logId = await logCreate(o)
   try {
     if (await practiceBlocked(o)) {

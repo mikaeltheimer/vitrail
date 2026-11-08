@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       locale: d.locale ?? 'fr',
       created_at: d.created_at,
       mailing_consent_at: d.mailing_consent_at ?? null,
+      erased_at: d.erased_at ?? null,
     },
     donations: donations.data ?? [],
     emails: (emails as { data: unknown[] | null }).data ?? [],

@@ -5,7 +5,7 @@ import { recordDonation, createToken } from '@/lib/donations'
 import { sendReceipt } from '@/lib/email'
 import { cleanChannel, defaultColorFor, validateColor } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
-import { pathFromPublicUrl } from '@/lib/photos'
+import { isOrgPhotoUrl } from '@/lib/photos'
 import { isLocale } from '@/i18n/config'
 import { getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { applyRefund, reconcileCharge, recordDispute, refundPlatformFee } from '@/lib/refunds'
@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
           name: m.name || ANON_LABEL,
           message: m.message || null,
           quoteConsent: m.quote === '1' && !!m.message,
-          photoUrl: pathFromPublicUrl(m.photo) ? m.photo : null,
+          // Seulement une photo rangée chez CET organisme (jamais celle d'un autre)
+          photoUrl: isOrgPhotoUrl(m.photo, org.id) ? m.photo : null,
         },
         color: color.ok ? color.value : defaultColorFor(email),
         amountCents: session.amount_total - feeCents,

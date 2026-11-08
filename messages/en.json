@@ -623,6 +623,7 @@
       "anonyme": "Anonymous",
       "masque": "hidden",
       "sansCourriel": "no email",
+      "supprime": "Information deleted",
       "limite": "Only the 200 most recent are shown: search to find the others."
     },
     "fiche": {
@@ -662,7 +663,14 @@
       "rembourser": "Refund…",
       "rembourseOk": "Refund sent to Stripe. The money returns to the donor’s card within 5 to 10 days.",
       "sesCourriels": "Their emails",
-      "aucunCourriel": "No email sent to this donor."
+      "aucunCourriel": "No email sent to this donor.",
+      "supprime": "Information deleted on {date}",
+      "supprimer": "Delete their information…",
+      "supprimerTitre": "Delete this donor’s information",
+      "supprimerAide": "Do this when the donor asks you to. Their email, name, testimonial, photo, mailing list sign-up and email history are erased. Their donations stay in your records, without a name, for your accounting, and their piece stays on the stained glass, anonymous. They will no longer be able to receive their personal link.",
+      "supprimerStripe": "Stripe keeps the email tied to the payment on its side, in your Stripe account.",
+      "supprimerConfirmer": "Delete permanently",
+      "supprimerOk": "Information deleted."
     },
     "remboursement": {
       "paiement": "Payment: {montant}",

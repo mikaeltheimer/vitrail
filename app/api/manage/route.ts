@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   if (!donor) return errorResponse(request, err('lienExpire'), 401)
 
   if (body.action === 'update') {
-    const profile = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent })
+    const profile = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent }, orgId)
     if (!profile.ok) return errorResponse(request, profile.error)
     // photoPath absent = on garde la photo actuelle ; vide = on la retire ; un chemin = nouvelle photo
     if (body.photoPath === undefined) profile.value.photoUrl = donor.photoUrl

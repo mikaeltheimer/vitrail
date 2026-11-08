@@ -15,6 +15,8 @@ export interface DonorRow {
   color: string
   hidden: boolean
   created_at: string
+  /** Renseignements supprimés à la demande du donateur (Loi 25) */
+  erased_at?: string | null
   totalCents: number
   lastDonationAt: string | null
 }

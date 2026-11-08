@@ -74,8 +74,11 @@ export interface DonorProfileInput {
   quoteConsent: boolean
 }
 
-/** Nom, message et photo d'un profil. Le nom est facultatif (« Anonyme ») ; message et photo restent possibles sans nom. */
-export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown; quoteConsent?: unknown }): Result<DonorProfileInput> {
+/**
+ * Nom, message et photo d'un profil. Le nom est facultatif (« Anonyme ») ; message et photo restent possibles sans nom.
+ * La photo doit être rangée chez l'organisme `orgId` (sans organisme : pas de photo acceptée).
+ */
+export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown; quoteConsent?: unknown }, orgId?: string): Result<DonorProfileInput> {
   const showName = raw.showName === true
   let name: Result<string> = { ok: true, value: ANON_LABEL }
   if (showName) {
@@ -84,7 +87,7 @@ export function validateProfile(raw: { showName?: unknown; name?: unknown; messa
   }
   const message = validateMessage(raw.message)
   if (!message.ok) return message
-  const photo = validatePhotoPath(raw.photoPath)
+  const photo = orgId ? validatePhotoPath(raw.photoPath, orgId) : raw.photoPath == null || raw.photoPath === '' ? { ok: true as const, value: null } : { ok: false as const, error: err('photoInvalide') }
   if (!photo.ok) return photo
   return { ok: true, value: { showName, name: name.value, message: message.value, photoUrl: photo.value, quoteConsent: raw.quoteConsent === true && !!message.value } }
 }

@@ -623,6 +623,7 @@
       "anonyme": "Anonyme",
       "masque": "masqué",
       "sansCourriel": "sans courriel",
+      "supprime": "Renseignements supprimés",
       "limite": "Seuls les 200 plus récents sont affichés : cherchez pour trouver les autres."
     },
     "fiche": {
@@ -662,7 +663,14 @@
       "rembourser": "Rembourser…",
       "rembourseOk": "Remboursement envoyé à Stripe. L’argent revient sur la carte du donateur en 5 à 10 jours.",
       "sesCourriels": "Ses courriels",
-      "aucunCourriel": "Aucun courriel envoyé à ce donateur."
+      "aucunCourriel": "Aucun courriel envoyé à ce donateur.",
+      "supprime": "Renseignements supprimés le {date}",
+      "supprimer": "Supprimer ses renseignements…",
+      "supprimerTitre": "Supprimer les renseignements de ce donateur",
+      "supprimerAide": "À faire quand le donateur vous le demande. Son courriel, son nom, son témoignage, sa photo, son inscription à la liste d’envoi et l’historique de ses courriels sont effacés. Ses dons restent dans vos registres, sans nom, pour votre comptabilité, et son morceau reste sur le vitrail, anonyme. Il ne pourra plus recevoir son lien personnel.",
+      "supprimerStripe": "Stripe garde de son côté le courriel lié au paiement, dans votre compte Stripe.",
+      "supprimerConfirmer": "Supprimer définitivement",
+      "supprimerOk": "Renseignements supprimés."
     },
     "remboursement": {
       "paiement": "Paiement : {montant}",

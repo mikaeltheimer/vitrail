@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     } else {
       email = null
     }
-    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent })
+    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent }, tenant.org.id)
     if (!p.ok) return errorResponse(request, p.error)
     profile = p.value
     const c = validateColor(body.color)
