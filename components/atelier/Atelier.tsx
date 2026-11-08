@@ -38,7 +38,6 @@ function useDefaults(): Defaults {
     (_l: Locale, org: string) => ({
       about: '',
       why: t('why', { org }),
-      whyShort: t('whyShort'),
       vitrailTitle: t('vitrailTitle'),
       testimonial: { question: t('question', { org }), cta: t('cta'), placeholder: t('placeholder', { org }), lead: t('lead'), consent: t('consent', { org }) },
     }),

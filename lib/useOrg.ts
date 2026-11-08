@@ -12,7 +12,6 @@ const EMPTY: OrgTexts = {
   url: '',
   about: '',
   why: '',
-  whyShort: '',
   vitrailTitle: '',
   testimonial: { question: '', cta: '', placeholder: '', lead: '', consent: '' },
 }

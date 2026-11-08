@@ -11,7 +11,6 @@ export interface OrgTexts {
   /** Présentation ; '' si l'organisme ne l'a pas écrite (la section est alors masquée). */
   about: string
   why: string
-  whyShort: string
   vitrailTitle: string
   testimonial: { question: string; cta: string; placeholder: string; lead: string; consent: string }
 }
@@ -38,12 +37,12 @@ export interface Identity {
 }
 
 /** Champs que l'organisme rédige, par langue. */
-export const TEXT_FIELDS = ['name', 'about', 'why', 'whyShort', 'vitrailTitle', 'question', 'placeholder'] as const
+export const TEXT_FIELDS = ['name', 'about', 'why', 'vitrailTitle', 'question', 'placeholder'] as const
 export type TextField = (typeof TEXT_FIELDS)[number]
 export type StoredTexts = Partial<Record<Locale, Partial<Record<TextField, string>>>>
 
 /** Longueurs maximales (caractères). */
-export const TEXT_MAX: Record<TextField, number> = { name: 80, about: 1200, why: 400, whyShort: 60, vitrailTitle: 60, question: 120, placeholder: 160 }
+export const TEXT_MAX: Record<TextField, number> = { name: 80, about: 1200, why: 400, vitrailTitle: 60, question: 120, placeholder: 160 }
 export const LEGAL_MAX: Record<LegalKey, number> = { entity: 200, address: 200, officerName: 120, officerEmail: 120, officerPhone: 40, retention: 1500 }
 
 /** Une langue que l'organisme offre : celle demandée si elle l'est, sinon sa langue principale. */
@@ -77,7 +76,6 @@ export function resolveTexts(stored: StoredTexts, locales: Locale[], fallbackNam
     url: websiteUrl ?? '',
     about: pick('about'),
     why: pick('why') || d.why,
-    whyShort: pick('whyShort') || d.whyShort,
     vitrailTitle: pick('vitrailTitle') || d.vitrailTitle,
     testimonial: { ...d.testimonial, question: pick('question') || d.testimonial.question, placeholder: pick('placeholder') || d.testimonial.placeholder },
   }

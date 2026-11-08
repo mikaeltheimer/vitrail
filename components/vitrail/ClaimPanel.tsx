@@ -570,7 +570,26 @@ export default function ClaimPanel({
 
       {!agrandir && (
         <>
-          {/* ---------- Témoignage : bien en vue, tout de suite sous le montant (c'est ce qui rend le vitrail vivant) ---------- */}
+          {/* ---------- Nom affiché : avant le témoignage (en dernier, on l'oubliait) ---------- */}
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={labelStyle}>{t("nomAffiche")}</span>
+            <input
+              type="text"
+              value={name}
+              maxLength={CONFIG.nameMax}
+              placeholder={t("nomPlaceholder")}
+              onChange={(e) => setName(e.target.value)}
+              style={inputStyle}
+              autoComplete="nickname"
+            />
+            {name.trim().length === 1 && (
+              <span style={{ fontSize: "12px", color: "#f87171" }}>
+                {t("nomCourt")}
+              </span>
+            )}
+          </label>
+
+          {/* ---------- Témoignage : bien en vue, sous le nom (c'est ce qui rend le vitrail vivant) ---------- */}
           <div
             style={{
               display: "grid",
@@ -636,23 +655,6 @@ export default function ClaimPanel({
             </div>
           </div>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={labelStyle}>{t("nomAffiche")}</span>
-            <input
-              type="text"
-              value={name}
-              maxLength={CONFIG.nameMax}
-              placeholder={t("nomPlaceholder")}
-              onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
-              autoComplete="nickname"
-            />
-            {name.trim().length === 1 && (
-              <span style={{ fontSize: "12px", color: "#f87171" }}>
-                {t("nomCourt")}
-              </span>
-            )}
-          </label>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {photo.src && (

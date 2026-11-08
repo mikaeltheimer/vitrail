@@ -711,9 +711,9 @@ export default function Ecran() {
           <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 0 4em rgba(240,178,74,0.15)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('ctaSurtitre')}</div>
             <div className="font-display" style={{ fontSize: '2.5em', lineHeight: 1.1, marginTop: '0.35em' }}>{t('ctaTitre')}</div>
-            <div style={{ fontSize: '1.2em', lineHeight: 1.4, marginTop: '0.6em', color: 'rgba(255,255,255,0.8)' }}>
-              {t('ctaTexte', { pourquoi: org.whyShort })}
-            </div>
+            <div style={{ fontSize: '1.2em', lineHeight: 1.4, marginTop: '0.6em', color: 'rgba(255,255,255,0.8)' }}>{t('ctaTexte')}</div>
+            {/* Le « pourquoi donner » de l'organisme (le même que sur le vitrail), trois lignes au plus à l'écran */}
+            <div style={{ fontSize: '1.1em', lineHeight: 1.4, marginTop: '0.4em', color: 'rgba(255,255,255,0.7)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{org.why}</div>
             <div style={{ fontSize: '1.3em', fontWeight: 600, marginTop: '0.7em', color: GOLD }}>{t('ctaScan')}</div>
           </div>
         </div>

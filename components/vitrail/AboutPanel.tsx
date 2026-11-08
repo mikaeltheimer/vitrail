@@ -81,7 +81,10 @@ export default function AboutPanel({
         </Editable>
 
         <div>
-          <h2 className="font-display" style={{ fontSize: 24, lineHeight: 1.2, margin: 0 }}>{t('nomPlateforme', { org: org.name })}</h2>
+          <h2 className="font-display" style={{ fontSize: 24, lineHeight: 1.2, margin: 0 }}>
+            <Editable field="vitrailTitle">{org.vitrailTitle}</Editable>
+          </h2>
+          <p style={{ marginTop: 4, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{t('nomPlateforme', { org: org.name })}</p>
           <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
             {t('chaque')}
           </p>

@@ -38,7 +38,6 @@ export const neutralDefaults: Defaults = (locale, org) => {
   return {
     about: '',
     why: t('identite.why', { org }),
-    whyShort: t('identite.whyShort'),
     vitrailTitle: t('identite.vitrailTitle'),
     testimonial: {
       question: t('identite.question', { org }),
