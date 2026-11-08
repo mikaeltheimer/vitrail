@@ -115,7 +115,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
     saveTimer.current = setTimeout(() => void post({ action: 'save', texts }), 700)
   }
 
-  if (!draft || surface !== 'org') return <>{children}</>
+  if (!draft || surface !== 'org') return <Ctx.Provider value={null}>{children}</Ctx.Provider>
   const hiddenHere = HIDDEN_ON.some(p => pathname?.startsWith(p))
   const pageLocale = clampLocale(draft.locales, locale)
 
@@ -152,7 +152,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
           <div
             role="region"
             aria-label={t('titre')}
-            className="fixed inset-x-2 top-[62px] z-[1200] flex items-center gap-1.5 overflow-x-auto whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] md:inset-x-auto md:left-4"
+            className="fixed inset-x-2 top-[62px] z-[1200] flex items-center gap-1.5 overflow-x-auto whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] md:inset-x-auto md:left-1/2 md:-translate-x-1/2"
             style={{ background: 'rgba(20,18,29,0.96)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)', color: '#F4EFE6' }}
           >
             <span className="px-1.5 font-semibold" style={{ color: '#F0B24A' }}>

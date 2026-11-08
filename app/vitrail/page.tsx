@@ -32,6 +32,7 @@ import type { Piece, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgMark } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
+import { useAtelier } from '@/components/atelier/Atelier'
 
 const HEADER_HEIGHT = 56
 const MONO = "'DM Sans', sans-serif"
@@ -968,6 +969,9 @@ function Vitrail() {
   const count = ranked.length
   const claimLabel = t('ajouter')
   const closed = snap?.mode === 'off'
+  const atelier = useAtelier()
+  const atelierBar = !!atelier
+  const atelierEditing = !!atelier?.editing
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -1150,6 +1154,31 @@ function Vitrail() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Titre du vitrail, en haut à gauche comme sur le grand écran (sous la barre de l'atelier sur téléphone) */}
+      {snap && (
+        <>
+          <div aria-hidden style={{ position: 'fixed', left: 0, top: HEADER_HEIGHT, width: mobile ? '75vw' : '38em', height: mobile ? '9em' : '14em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.85) 0%, rgba(11,10,18,0.55) 45%, rgba(11,10,18,0) 72%)', pointerEvents: 'none', zIndex: 105 }} />
+          <h1
+            className="font-display"
+            style={{
+              position: 'fixed',
+              left: mobile ? 16 : 24,
+              top: HEADER_HEIGHT + (mobile ? (atelierBar ? 58 : 14) : 20),
+              maxWidth: mobile ? 'calc(100% - 32px)' : 'min(30em, 40vw)',
+              margin: 0,
+              fontSize: mobile ? '20px' : 'clamp(24px, 2.4vw, 34px)',
+              lineHeight: 1.1,
+              color: '#F4EFE6',
+              textShadow: '0 1px 12px rgba(0,0,0,0.8)',
+              zIndex: 110,
+              pointerEvents: atelierEditing ? 'auto' : 'none',
+            }}
+          >
+            <Editable field="vitrailTitle">{org.vitrailTitle}</Editable>
+          </h1>
+        </>
       )}
 
       {/* Vitrail vide : invitation au premier don ; fermé (brouillon) : « ouvrira bientôt », sans bouton. Caché pendant un don */}
