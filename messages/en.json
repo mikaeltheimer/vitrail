@@ -194,7 +194,9 @@
       "copie": "Copied",
       "copier": "Copy",
       "ouvrir": "Open my edit page",
-      "erreur": "The testimonial couldn't be saved."
+      "erreur": "The testimonial couldn't be saved.",
+      "attenteTout": "Your photo and testimonial will appear as soon as the {org} team has approved them.",
+      "attenteTemoignage": "Your testimonial will appear as soon as the {org} team has approved it."
     },
     "ticker": {
       "titre": "Latest donations",
@@ -1139,6 +1141,10 @@
       "icon": "Stained glass header and donation panel. Without an icon: your initials."
     },
     "textes": "Texts",
-    "annulerCourt": "Discard"
+    "annulerCourt": "Discard",
+    "moderationTitre": "In the workshop, you are the team.",
+    "moderationTexte": "Moderation is on: this donation awaits your approval before it appears. Approve it in the console; the stained glass will update by itself.",
+    "modererMaintenant": "Moderate now",
+    "aModerer": "{count, plural, one {# to moderate} other {# to moderate}}"
   }
 }

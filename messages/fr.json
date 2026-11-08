@@ -194,7 +194,9 @@
       "copie": "Copié",
       "copier": "Copier",
       "ouvrir": "Ouvrir ma page de modification",
-      "erreur": "Le témoignage n'a pas pu être enregistré."
+      "erreur": "Le témoignage n'a pas pu être enregistré.",
+      "attenteTout": "Votre photo et votre témoignage apparaîtront dès que l’équipe de {org} les aura approuvés.",
+      "attenteTemoignage": "Votre témoignage apparaîtra dès que l’équipe de {org} l’aura approuvé."
     },
     "ticker": {
       "titre": "Derniers dons",
@@ -1139,6 +1141,10 @@
       "icon": "En-tête du vitrail et panneau de don. Sans icône : vos initiales."
     },
     "textes": "Textes",
-    "annulerCourt": "Annuler"
+    "annulerCourt": "Annuler",
+    "moderationTitre": "Dans l’atelier, l’équipe, c’est vous.",
+    "moderationTexte": "La modération est activée : ce don attend votre approbation avant d’apparaître. Approuvez-le dans la console, le vitrail se mettra à jour tout seul.",
+    "modererMaintenant": "Modérer maintenant",
+    "aModerer": "{count, plural, one {# à modérer} other {# à modérer}}"
   }
 }

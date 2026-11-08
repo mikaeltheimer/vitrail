@@ -23,6 +23,8 @@ const Ctx = createContext<AtelierState | null>(null)
 export const useAtelier = () => useContext(Ctx)
 
 interface Draft {
+  /** Photos et témoignages de l'atelier en attente d'approbation. */
+  toModerate?: number
   pending: boolean
   fallbackName: string
   locales: Locale[]
@@ -80,6 +82,18 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
     }, 0)
     return () => clearTimeout(id)
   }, [load])
+
+  // La pastille « à modérer » suit les dons fictifs qu'on vient de faire (seulement le compte, le brouillon n'est pas touché)
+  useEffect(() => {
+    if (!draft) return
+    const id = setInterval(async () => {
+      const res = await fetch('/api/atelier', { cache: 'no-store' }).catch(() => null)
+      if (!res?.ok) return
+      const d = (await res.json()) as Draft
+      setDraft(cur => (cur ? { ...cur, toModerate: d.toModerate } : cur))
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [draft !== null]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!note) return
@@ -170,6 +184,11 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
                   {t('langues')}
                 </button>
               </>
+            )}
+            {!!draft.toModerate && (
+              <a href="/admin#moderation" target="_blank" rel="noopener" className="chip !px-2.5 !py-1 text-[12px]" style={{ borderColor: '#F0B24A', color: '#F0B24A' }}>
+                {t('aModerer', { count: draft.toModerate })} ↗
+              </a>
             )}
             {draft.pending ? (
               <>

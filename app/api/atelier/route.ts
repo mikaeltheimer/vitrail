@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
+import { getDb } from '@/lib/db'
 import { assetUrl } from '@/lib/identity'
 import { discardDraft, loadDraft, publishDraft, saveDraft, validateLocales, validateTexts } from '@/lib/atelier'
 import type { Locale } from '@/i18n/config'
@@ -20,12 +21,25 @@ async function guard(request: NextRequest) {
   if ('response' in a) return { response: a.response }
   const org = a.ctx.tenant.org
   if (!org.practiceOf) return { response: fail("La personnalisation se fait dans l'atelier.", 404) }
-  return { orgId: org.practiceOf }
+  return { orgId: org.practiceOf, atelierId: org.id }
 }
 
-async function state(orgId: string) {
+/** Photos et témoignages de l'atelier qui attendent l'approbation (pastille de la barre de l'atelier). */
+async function toModerate(atelierId: string): Promise<number> {
+  const { count, error } = await getDb()
+    .from('donors')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', atelierId)
+    .eq('hidden', false)
+    .or('photo_status.eq.pending,message_status.eq.pending')
+  if (error) return 0
+  return count ?? 0
+}
+
+async function state(orgId: string, atelierId: string) {
   const { draft, pending, fallbackName } = await loadDraft(orgId)
   return {
+    toModerate: await toModerate(atelierId),
     pending,
     fallbackName,
     locales: draft.locales,
@@ -38,7 +52,7 @@ async function state(orgId: string) {
 export async function GET(request: NextRequest) {
   const g = await guard(request)
   if ('response' in g) return g.response
-  return NextResponse.json(await state(g.orgId), { headers: { 'Cache-Control': 'no-store' } })
+  return NextResponse.json(await state(g.orgId, g.atelierId), { headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function POST(request: NextRequest) {
@@ -58,7 +72,7 @@ export async function POST(request: NextRequest) {
       patch.texts = t.texts
     }
     await saveDraft(g.orgId, patch)
-    return NextResponse.json(await state(g.orgId))
+    return NextResponse.json(await state(g.orgId, g.atelierId))
   }
   if (b.action === 'publish') {
     const { draft, fallbackName } = await loadDraft(g.orgId)
@@ -66,11 +80,11 @@ export async function POST(request: NextRequest) {
     if (name.length < 2) return fail("Le nom de l'organisme est obligatoire dans la langue principale.")
     const r = await publishDraft(g.orgId)
     if (!r.ok) return fail('Rien à publier.')
-    return NextResponse.json(await state(g.orgId))
+    return NextResponse.json(await state(g.orgId, g.atelierId))
   }
   if (b.action === 'discard') {
     await discardDraft(g.orgId)
-    return NextResponse.json(await state(g.orgId))
+    return NextResponse.json(await state(g.orgId, g.atelierId))
   }
   return fail('Action inconnue.')
 }

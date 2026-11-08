@@ -928,7 +928,7 @@ function Vitrail() {
             localStorage.setItem('vitrail:me', data.donorId)
           } catch {}
           setMyId(data.donorId)
-          setWelcome({ state: 'ok', donorId: data.donorId, name: data.name ?? null, token: data.token, photoPending: !!data.photoPending, hasMessage: !!data.hasMessage })
+          setWelcome({ state: 'ok', donorId: data.donorId, name: data.name ?? null, token: data.token, photoPending: !!data.photoPending, hasMessage: !!data.hasMessage, messagePending: !!data.messagePending })
           void showPiece(data.donorId)
           return
         }
@@ -1225,7 +1225,7 @@ function Vitrail() {
 type Welcome =
   | { state: 'wait' }
   | { state: 'lost' }
-  | { state: 'ok'; donorId: string; name: string | null; token: string; photoPending: boolean; hasMessage: boolean }
+  | { state: 'ok'; donorId: string; name: string | null; token: string; photoPending: boolean; hasMessage: boolean; messagePending: boolean }
 
 /**
  * Bienvenue après le paiement, en haut du vitrail (le morceau s'ouvre dans sa fiche habituelle). C'est le moment
@@ -1235,6 +1235,8 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
   const t = useTranslations('vitrail.bienvenue')
   const tm = useTranslations('merci')
   const tc = useTranslations('commun')
+  const ta = useTranslations('atelier')
+  const atelier = useAtelier()
   const org = useOrg()
   const [step, setStep] = useState<'ask' | 'later' | 'done'>('ask')
   const [text, setText] = useState('')
@@ -1289,7 +1291,23 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
         {welcome.state === 'ok' && (
           <>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>{t('fait')}</p>
-            {welcome.photoPending && <p style={welcomeMuted}>{tm('photoAttente')}</p>}
+            {/* Modération : ce qui attend l'approbation de l'équipe (photo, témoignage envoyé avec le don) */}
+            {(welcome.photoPending || welcome.messagePending) && (
+              <p style={welcomeMuted}>
+                {welcome.photoPending && welcome.messagePending ? t('attenteTout', { org: org.name }) : welcome.photoPending ? tm('photoAttente') : t('attenteTemoignage', { org: org.name })}
+              </p>
+            )}
+            {/* Dans l'atelier, c'est le propriétaire qui modère : on l'envoie à la console, le vitrail se mettra à jour seul */}
+            {atelier && (welcome.photoPending || welcome.messagePending) && (
+              <div style={{ display: 'grid', gap: 8, padding: 12, borderRadius: 12, background: 'rgba(240,178,74,0.1)', border: '1px solid rgba(240,178,74,0.55)' }}>
+                <p style={{ ...welcomeText, color: '#F4EFE6' }}>
+                  <b style={{ color: GOLD }}>{ta('moderationTitre')}</b> {ta('moderationTexte')}
+                </p>
+                <a href="/admin#moderation" target="_blank" rel="noopener" style={{ ...goldButtonStyle, textAlign: 'center', textDecoration: 'none' }}>
+                  {ta('modererMaintenant')} ↗
+                </a>
+              </div>
+            )}
 
             {asking && (
               <>
