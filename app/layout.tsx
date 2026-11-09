@@ -64,7 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { identity, surface, atelier, missing, redirect } = await requestIdentity()
   // Ancien identifiant de l'organisme : même page à son adresse actuelle (les QR imprimés ne cassent pas)
   if (redirect) permanentRedirect(redirect)
-  const page = missing ? <OrgMissingPage platformHref={platformUrl()} /> : atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children
+  const page = missing ? <OrgMissingPage platformHref={platformUrl(new Request('https://x/', { headers: await headers() }))} /> : atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children
   return (
     <html lang={INTL_TAG[locale]}>
       <body>
