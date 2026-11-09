@@ -63,6 +63,7 @@ export default async function PlateformePage() {
         // Les derniers dons, du plus ancien au plus récent, un seul par donateur
         replay: [...new Set([...demo.snapshot.recent].reverse().map(d => d.donorId))].slice(-10),
         url: demo.links.vitrail,
+        screenUrl: locale === 'en' ? demo.links.screen : demo.links.ecran,
         name: demoName,
       }
     : null

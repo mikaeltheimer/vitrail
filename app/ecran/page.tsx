@@ -6,9 +6,12 @@
 // Un nouveau don passe en premier ; toutes les quelques visites, retour au vitrail entier avec un appel à donner.
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
+// ?embed (la démo dans la vitrine) : le même cycle dans un cadre, sans encart d'appel, sans QR ni en-tête, texte agrandi
+// pour un petit cadre, interrogation lente, rien en mémoire locale ni plein écran.
 
 import { publicLink } from '@/lib/links'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import QRCode from 'qrcode'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
@@ -46,6 +49,11 @@ const OUT_MS = 1900
 const HOME_PAUSE_MS = 700
 const IN_MS = 2600
 const MAX_ZOOM = 40
+// Mode intégré : texte agrandi (le cadre est petit), interrogation espacée (rien ne change dans une démo)
+const EMBED_SCALE = 1.6
+const EMBED_POLL_MS = 60_000
+/** Lu une fois côté navigateur, pour le moteur (hors rendu React). */
+const isEmbed = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed')
 const GOLD = '#F0B24A'
 const MONO = "'DM Sans', sans-serif"
 
@@ -64,6 +72,7 @@ interface Card {
 }
 
 export default function Ecran() {
+  const embed = useSearchParams().has('embed')
   const t = useTranslations('ecran')
   const tc = useTranslations('commun')
   const org = useOrg()
@@ -184,9 +193,10 @@ export default function Ecran() {
      * la légende porte les mots : rien n'est montré deux fois.
      */
     const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number; center: number } => {
-      const em = Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
+      const embedded = isEmbed()
+      const em = Math.min(W * 0.011, H * 0.0195) * (embedded ? EMBED_SCALE : 1) // taille de police de l'écran (classe .tv)
       const qrLeft = W - em * (2.4 + 14)
-      const cardRight = qrLeft - em * 1.5
+      const cardRight = embedded ? W - em * 1.6 : qrLeft - em * 1.5
       const cardLeft = cardRight - em * (wide ? CARD_WIDE_EM : CARD_EM)
       const regionL = em * 2.4
       const regionR = cardLeft - em * 4.5 // la place du fil
@@ -274,7 +284,11 @@ export default function Ecran() {
       // ou plus tôt quand tous les morceaux ont déjà été montrés dans ce cycle (petit vitrail)
       const unseen = [...tiles.keys()].some(id => !cycleSeen.has(id))
       const due = performance.now() - lastCtaAt >= CTA_EVERY_MS
-      if ((due || (hops > 0 && !unseen)) && !priority.some(id => tiles.has(id))) {
+      // Intégré : jamais d'encart d'appel ; quand tout a été vu, un nouveau tour commence simplement
+      if (isEmbed() && hops > 0 && !unseen) {
+        hops = 0
+        cycleSeen.clear()
+      } else if (!isEmbed() && (due || (hops > 0 && !unseen)) && !priority.some(id => tiles.has(id))) {
         hops = 0
         cycleSeen.clear()
         flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
@@ -370,7 +384,7 @@ export default function Ecran() {
           timer = setTimeout(next, 3000)
         }
         try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(s))
+          if (!isEmbed()) localStorage.setItem(CACHE_KEY, JSON.stringify(s))
         } catch {}
       } finally {
         busy = false
@@ -572,12 +586,14 @@ export default function Ecran() {
     let timer: ReturnType<typeof setTimeout>
     let failures = 0
     try {
-      const cached = localStorage.getItem(CACHE_KEY)
+      const cached = isEmbed() ? null : localStorage.getItem(CACHE_KEY)
       if (cached) engine.current.apply(JSON.parse(cached) as Snapshot)
     } catch {}
     const tick = async () => {
       try {
-        const res = await fetch('/api/vitrail', { cache: 'no-store' })
+        // Intégré en prévisualisation : l'organisme vient de l'adresse du cadre (?org), sans toucher au témoin du visiteur
+        const org = new URLSearchParams(window.location.search).get('org')
+        const res = await fetch(isEmbed() && org ? `/api/vitrail?org=${encodeURIComponent(org)}&embed` : '/api/vitrail', { cache: 'no-store' })
         if (!res.ok) throw new Error(String(res.status))
         const s = (await res.json()) as Snapshot
         failures = 0
@@ -589,7 +605,8 @@ export default function Ecran() {
         failures++
         if (!stopped) setOnline(false)
       }
-      if (!stopped) timer = setTimeout(tick, failures ? Math.min(30_000, CONFIG.pollMs * 2 ** failures) : CONFIG.pollMs)
+      const every = isEmbed() ? EMBED_POLL_MS : CONFIG.pollMs
+      if (!stopped) timer = setTimeout(tick, failures ? Math.min(Math.max(30_000, every), every * 2 ** failures) : every)
     }
     void tick()
     const onOnline = () => {
@@ -598,7 +615,7 @@ export default function Ecran() {
       void tick()
     }
     window.addEventListener('online', onOnline)
-    const reload = setTimeout(() => window.location.reload(), RELOAD_MS)
+    const reload = isEmbed() ? undefined : setTimeout(() => window.location.reload(), RELOAD_MS)
     return () => {
       stopped = true
       clearTimeout(timer)
@@ -653,6 +670,7 @@ export default function Ecran() {
   }, [])
 
   function toggleFullscreen() {
+    if (embed) return
     if (document.fullscreenElement) void document.exitFullscreen()
     else void document.documentElement.requestFullscreen().catch(() => {})
   }
@@ -665,10 +683,16 @@ export default function Ecran() {
   const staged = !!card && !cta && !cardOut
 
   return (
-    <main className={`tv fixed inset-0 overflow-hidden ${idle ? 'tv-hide-cursor' : ''}`} onClick={toggleFullscreen} style={{ background: '#0B0A12' }}>
+    <main
+      className={`tv fixed inset-0 overflow-hidden ${idle && !embed ? 'tv-hide-cursor' : ''}`}
+      onClick={toggleFullscreen}
+      style={{ background: '#0B0A12', ...(embed ? { fontSize: `min(${1.1 * EMBED_SCALE}vw, ${1.95 * EMBED_SCALE}vh)` } : {}) }}
+    >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
-      {/* Voile sombre derrière l'en-tête : il reste lisible même quand le verre clair passe dessous */}
+      {!embed && (
+        <>
+{/* Voile sombre derrière l'en-tête : il reste lisible même quand le verre clair passe dessous */}
       <div className="pointer-events-none absolute left-0 top-0" style={{ opacity: staged ? 0.35 : 1, transition: 'opacity 1.2s ease', width: '40em', height: '24em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.92) 0%, rgba(11,10,18,0.75) 40%, rgba(11,10,18,0) 72%)' }} />
 
       {/* École et collecte, en haut à gauche */}
@@ -694,6 +718,8 @@ export default function Ecran() {
       <div className="absolute" style={{ left: '50%', bottom: '0.9em', transform: 'translateX(-50%)', fontSize: '0.85em', color: 'rgba(244,239,230,0.45)', whiteSpace: 'nowrap' }}>
         {CONFIG.brand.name} · <span className="slogan">{brand.slogan}</span>
       </div>
+        </>
+      )}
 
       {/* La légende du morceau en scène : nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
       {card && !cta && (
@@ -729,7 +755,11 @@ export default function Ecran() {
         </div>
       )}
 
-      <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
+      {!embed && (
+        <>
+<ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
+        </>
+      )}
 
       {/* Pause : appel à donner, au centre, le vitrail entier derrière */}
       {cta && (
@@ -744,7 +774,9 @@ export default function Ecran() {
         </div>
       )}
 
-      {/* Code QR, en bas à droite */}
+      {!embed && (
+        <>
+{/* Code QR, en bas à droite */}
       <div className="absolute text-center" style={{ right: '2.4em', bottom: '2.4em', width: '14em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em', boxShadow: cta ? '0 0 0 0.4em rgba(240,178,74,0.6)' : 'none', transition: 'box-shadow 0.6s' }}>
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -762,6 +794,8 @@ export default function Ecran() {
         {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>{t('demo')}</div>}
         {!online && <div className="muted" style={{ marginTop: '0.5em' }}>{t('horsLigne')}</div>}
       </div>
+        </>
+      )}
 
       {snap && count === 0 && (
         <div className="absolute text-center" style={{ left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '24em' }}>

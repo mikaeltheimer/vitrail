@@ -971,7 +971,8 @@
       "essayer": "Try the demo",
       "demoLegende": "{org} · demonstration stained glass",
       "demoExplorer": "Explore the demo →",
-      "demoOuvrir": "Open the {org} demonstration stained glass"
+      "demoOuvrir": "Open the {org} demonstration stained glass",
+      "demoEcran": "{org} demonstration projection screen"
     },
     "essai": {
       "titre": "Try it",

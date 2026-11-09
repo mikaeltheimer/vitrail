@@ -8,7 +8,9 @@ const ORG_PAGES = new Set(['/vitrail', '/don', '/ecran', '/screen', '/admin', '/
 
 // 1. Ancien domaine de la plateforme → redirection permanente vers le domaine actuel (les codes QR imprimés restent bons).
 // 2. Domaine nu de la plateforme : « / » est la vitrine (/plateforme). Sur un organisme : « / » est son vitrail.
-// 3. Prévisualisation et développement seulement : ?org=<slug> choisit l'organisme (témoin), ?org= vide l'oublie.
+// 3. Prévisualisation et développement seulement : ?org=<slug> choisit l'organisme (témoin), ?org= vide l'oublie. Sans
+//    ?org, « / » y est la vitrine, comme sur le domaine nu. Avec ?embed (écran intégré dans la vitrine), le choix vaut
+//    pour la requête seulement : le témoin du visiteur n'est pas touché.
 // 4. Langue de chaque requête (pages et API), transmise au rendu par un en-tête interne.
 export function proxy(request: NextRequest) {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
@@ -20,7 +22,9 @@ export function proxy(request: NextRequest) {
   const platform = isPlatformHost(host)
   if (platform && ORG_PAGES.has(path)) return NextResponse.redirect(new URL('/', request.url))
 
-  if (path === '/' && !platform) {
+  // En prévisualisation, « / » sans ?org est la vitrine (comme le domaine nu en production) ; avec ?org, le vitrail
+  const previewHome = path === '/' && !platform && isPreviewEnv() && !request.nextUrl.searchParams.has('org')
+  if (path === '/' && !platform && !previewHome) {
     // L'accueil d'un organisme est son vitrail ; les anciens liens (?t= lien magique, ?annule= retour d'annulation) vont sur /don
     const url = request.nextUrl.clone()
     const sp = request.nextUrl.searchParams
@@ -43,7 +47,7 @@ export function proxy(request: NextRequest) {
   // L'en-tête est toujours réécrit ici : une valeur envoyée par le client n'arrive jamais jusqu'au rendu.
   const headers = new Headers(request.headers)
   headers.set(LOCALE_HEADER, locale)
-  headers.set(SURFACE_HEADER, surfaceOf(host, path))
+  headers.set(SURFACE_HEADER, previewHome ? 'platform' : surfaceOf(host, path))
   const orgParam = isPreviewEnv() ? request.nextUrl.searchParams.get('org') : null
   if (orgParam !== null) {
     // Le rendu de CETTE requête voit déjà le nouveau choix
@@ -52,7 +56,7 @@ export function proxy(request: NextRequest) {
     headers.set('cookie', others.join('; '))
   }
   const response =
-    platform && path === '/'
+    (platform || previewHome) && path === '/'
       ? NextResponse.rewrite(new URL(`/plateforme${request.nextUrl.search}`, request.url), { request: { headers } })
       : NextResponse.next({ request: { headers } })
 
@@ -60,7 +64,7 @@ export function proxy(request: NextRequest) {
   if (!fixed && isLocale(param) && locale === param && cookie !== param) {
     response.cookies.set(LOCALE_COOKIE, param, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
   }
-  if (orgParam !== null) {
+  if (orgParam !== null && !request.nextUrl.searchParams.has('embed')) {
     if (SLUG_RE.test(orgParam)) response.cookies.set(PREVIEW_ORG_COOKIE, orgParam, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 })
     else response.cookies.delete(PREVIEW_ORG_COOKIE)
   }

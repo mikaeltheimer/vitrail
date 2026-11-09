@@ -971,7 +971,8 @@
       "essayer": "Essayer la démo",
       "demoLegende": "{org} · vitrail de démonstration",
       "demoExplorer": "Explorer la démo →",
-      "demoOuvrir": "Ouvrir le vitrail de démonstration de {org}"
+      "demoOuvrir": "Ouvrir le vitrail de démonstration de {org}",
+      "demoEcran": "Écran de projection de démonstration de {org}"
     },
     "essai": {
       "titre": "Essayez-le",
