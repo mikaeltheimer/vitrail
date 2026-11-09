@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
   const built = isType(type) && isLocale(lang) ? await sample(org, type, lang) : null
   if (built) {
     const { subject, content } = built
-    const { html, text } = renderEmail(content, built.locale)
+    const { html, text } = renderEmail(content, built.locale, built.from.header)
     if (params.get('format') === 'text') {
       return new NextResponse(`Objet : ${subject}\n\n${text}\n`, { headers: { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY } })
     }

@@ -3,7 +3,7 @@ import { clampLocale, identityOrNeutral, type Identity, type OrgTexts } from './
 import { getDb } from './db'
 import { isErasedEmail } from './erase'
 import { siteUrl } from './env'
-import { renderEmail, type EmailContent } from './emailTemplate'
+import { renderEmail, type EmailContent, type EmailHeader } from './emailTemplate'
 import { formatMoney } from './format'
 import { translatorFor } from './i18n'
 import { hasEmailLog } from './schema'
@@ -46,6 +46,8 @@ interface Outgoing {
   fromName?: string
   /** Adresse de réponse ; par défaut, celle de la plateforme. */
   replyTo?: string | null
+  /** En-tête de l'organisme (logo ou nom) ; absent : courriel de la plateforme. */
+  header?: EmailHeader | null
 }
 
 /** Écrit une ligne du journal ; renvoie son identifiant, ou null (journal absent ou en erreur). Ne lève jamais d'erreur. */
@@ -118,7 +120,7 @@ export async function sendEmail(o: Outgoing): Promise<boolean> {
       await logUpdate(logId, { status: 'skipped', error: 'Entraînement : envoyé seulement aux membres de l’équipe.' }) // i18n-ok : journal (FR)
       return false
     }
-    const { html, text } = renderEmail(o.content, o.locale)
+    const { html, text } = renderEmail(o.content, o.locale, o.header)
     const key = process.env.RESEND_API_KEY
     if (!key) {
       console.log(`\n[courriel non envoyé — pas de RESEND_API_KEY]\nÀ : ${o.to}\nObjet : ${o.subject}\n\n${text}\n`)
@@ -177,7 +179,16 @@ function footerFor(locale: Locale, orgName: string): string[] {
 /** Pour un courriel à un donateur : la langue (limitée à celles de l'organisme), ses textes et son expéditeur. */
 export function emailIdentity(identity: Identity, locale: Locale) {
   const l = clampLocale(identity.locales, locale)
-  return { locale: l, build: { locale: l, org: identity.texts[l] }, from: { fromName: identity.senderName, replyTo: identity.replyTo } }
+  return { locale: l, build: { locale: l, org: identity.texts[l] }, from: { fromName: identity.senderName, replyTo: identity.replyTo, header: emailHeader(identity, l) } }
+}
+
+/** En-tête des courriels d'un organisme ; null pour l'identité neutre (organisme inconnu : courriel de la plateforme). */
+export function emailHeader(identity: Identity, locale: Locale): EmailHeader | null {
+  if (!identity.orgId) return null
+  const logo = identity.logoUrl
+  // Un logo en chemin relatif (fichier du site) doit devenir une adresse complète : un courriel n'a pas d'adresse de base
+  const logoUrl = !logo ? null : logo.startsWith('/') ? `${siteUrl().replace(/\/+$/, '')}${logo}` : logo
+  return { name: identity.texts[locale]?.name || identity.texts[identity.locales[0]].name, logoUrl, logoSize: identity.logoSize }
 }
 
 async function orgEmail(organizationId: string | null | undefined, locale: Locale) {
