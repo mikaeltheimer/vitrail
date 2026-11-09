@@ -131,6 +131,21 @@ export default function Accueil({
         <Apercu url={data.vitrailUrl} version={s.donations} label={data.org.practice ? t('voirEntrainement') : t('voirVitrail')} />
       </section>
 
+      {/* L'atelier, toujours à portée sur l'accueil (avant : seulement dans la carte de démarrage, qui disparaît à la mise en ligne, et dans Plus) */}
+      {owner && data.atelierUrl && !(data.org.status === 'draft' && !data.org.practice) && (
+        <section className="card flex flex-wrap items-center gap-3 text-sm" style={{ borderColor: 'rgba(240,178,74,0.45)' }} aria-labelledby="atelier-accueil">
+          <span className="min-w-[200px] flex-1">
+            <b id="atelier-accueil" className="block">
+              {t('atelierTitre')}
+            </b>
+            <span className="muted block text-[13px]">{t('atelierAide')}</span>
+          </span>
+          <a className="btn !w-auto" href={data.atelierUrl}>
+            {tc('monVitrail.ouvrirAtelier')}
+          </a>
+        </section>
+      )}
+
       <Section
         title={t('aFaire')}
         aside={todos.length > 0 ? <span className="rounded-full px-2 text-xs font-bold" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>{todos.length}</span> : undefined}

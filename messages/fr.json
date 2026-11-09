@@ -683,7 +683,9 @@
       "etatEntrainement": "Atelier",
       "etatBrouillon": "Pas encore en ligne",
       "voirVitrail": "Voir mon vitrail",
-      "voirEntrainement": "Ouvrir l’atelier"
+      "voirEntrainement": "Ouvrir l’atelier",
+      "atelierTitre": "Personnaliser mon vitrail",
+      "atelierAide": "Nom, textes, logo et langues : vous les modifiez dans l’atelier, à l’endroit où ils apparaissent, puis vous publiez."
     },
     "dons": {
       "ajouterComptant": "Ajouter un don comptant",

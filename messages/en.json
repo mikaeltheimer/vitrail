@@ -683,7 +683,9 @@
       "etatEntrainement": "Workshop",
       "etatBrouillon": "Not live yet",
       "voirVitrail": "View my stained glass",
-      "voirEntrainement": "Open the workshop"
+      "voirEntrainement": "Open the workshop",
+      "atelierTitre": "Customize my stained glass",
+      "atelierAide": "Name, texts, logo and languages: edit them in the workshop, right where they appear, then publish."
     },
     "dons": {
       "ajouterComptant": "Add a cash donation",

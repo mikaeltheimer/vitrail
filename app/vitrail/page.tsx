@@ -974,6 +974,10 @@ function Vitrail() {
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
   const atelierBarHeight = atelier?.barHeight ?? 0
+  // Téléphone, atelier : la barre de l'atelier (fixe, 62 px du haut) occupe le haut de l'écran ; tout ce qui s'ancre
+  // sous l'en-tête (annonce d'un don, carte de bienvenue) descend d'autant, et le bouton d'ajout passe sous le titre
+  // (qu'il ne doit pas couvrir : on le modifie d'un toucher).
+  const barOffset = mobile && atelierBar && atelierBarHeight ? 62 + atelierBarHeight + 6 - HEADER_HEIGHT : 0
   // Bas du titre du vitrail (en haut à gauche) : les dons récents se rangent juste dessous
   const titleRef = useRef<HTMLHeadingElement>(null)
   const hasSnap = snap !== null
@@ -1054,7 +1058,7 @@ function Vitrail() {
             </div>
           )}
           {!claimOpen && !closed && intro === 'off' && count > 0 && (
-            <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, position: 'fixed', top: `${HEADER_HEIGHT + 16}px`, right: '16px', zIndex: 120 }}>
+            <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, position: 'fixed', top: `${barOffset ? titleBottom + 10 : HEADER_HEIGHT + 16}px`, right: '16px', zIndex: 120 }}>
               {claimLabel}
             </button>
           )}
@@ -1155,11 +1159,11 @@ function Vitrail() {
       <ScaleBadge style={{ left: '50%', bottom: 16, transform: 'translateX(-50%)' }} />
 
       {/* ── Retour de paiement ── */}
-      {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} onClose={() => setWelcome(null)} onPublished={() => void reloadRef.current()} />}
+      {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} topOffset={barOffset} onClose={() => setWelcome(null)} onPublished={() => void reloadRef.current()} />}
 
       {/* ── Nouveau don pendant la visite ── */}
       {toast && !claimOpen && !welcome && (
-        <div style={{ position: 'fixed', left: '50%', top: HEADER_HEIGHT + 72, transform: 'translateX(-50%)', zIndex: 400, width: 'min(92vw, 420px)' }}>
+        <div style={{ position: 'fixed', left: '50%', top: HEADER_HEIGHT + 72 + barOffset, transform: 'translateX(-50%)', zIndex: 400, width: 'min(92vw, 420px)' }}>
           <div className="tv-banner-in" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(20,18,29,0.95)', border: '1px solid rgba(240,178,74,0.45)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
             <span style={{ flex: 1, fontSize: 13 }}>{toast.text}</span>
             <button
@@ -1239,7 +1243,7 @@ type Welcome =
  * Bienvenue après le paiement, en haut du vitrail (le morceau s'ouvre dans sa fiche habituelle). C'est le moment
  * d'inviter au témoignage : le don est fait, on regarde son morceau. « Plus tard » donne le lien pour y revenir.
  */
-function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Welcome; isMobile: boolean; onClose: () => void; onPublished: () => void }) {
+function WelcomeCard({ welcome, isMobile, topOffset = 0, onClose, onPublished }: { welcome: Welcome; isMobile: boolean; topOffset?: number; onClose: () => void; onPublished: () => void }) {
   const t = useTranslations('vitrail.bienvenue')
   const tm = useTranslations('merci')
   const tc = useTranslations('commun')
@@ -1282,7 +1286,7 @@ function WelcomeCard({ welcome, isMobile, onClose, onPublished }: { welcome: Wel
   const asking = welcome.state === 'ok' && !welcome.hasMessage && step === 'ask'
 
   return (
-    <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 480px)' }}>
+    <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14 + topOffset, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 480px)' }}>
       <div
         className="tv-banner-in"
         style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(20,18,29,0.97)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 0 40px rgba(240,178,74,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'DM Sans', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - 120px)', overflowY: 'auto' }}
@@ -1469,8 +1473,9 @@ function Header({
         </header>
         {menuOpen && (
           <>
-            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
-            <nav style={{ position: 'fixed', top: HEADER_HEIGHT, right: 0, left: 0, zIndex: 999, background: 'rgba(6,6,10,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 16px 16px', display: 'grid', gap: 4 }}>
+            {/* au-dessus de la barre de l'atelier (z 1200) tant que le menu est ouvert */}
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1290 }} />
+            <nav style={{ position: 'fixed', top: HEADER_HEIGHT, right: 0, left: 0, zIndex: 1300, background: 'rgba(6,6,10,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 16px 16px', display: 'grid', gap: 4 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{org.name}</span>
               <button onClick={onAbout} style={{ ...menuLink, background: 'none', border: 0, borderBottom: menuLink.borderBottom, textAlign: 'left' }}>
                 {t('apropos')}
@@ -1494,7 +1499,7 @@ function Header({
           </>
         )}
         {searchOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(6,6,10,0.97)', padding: 16 }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1300, background: 'rgba(6,6,10,0.97)', padding: 16 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder={t('chercher')} style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: '#0B0A12', color: '#F4EFE6', fontSize: 16, fontFamily: MONO }} />
               <button
