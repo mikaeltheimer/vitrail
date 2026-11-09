@@ -6,6 +6,7 @@ import { publicPhotoUrl } from './photos'
 import { LOCALES, type Locale } from '@/i18n/config'
 import { parseLocales, resolveTexts, type Defaults, type Identity, type LegalInfo, type OrgTexts, type StoredTexts } from './identity-shared'
 import { SURFACE_HEADER, getOrg, resolveTenant, type OrgRow, type Surface } from './tenant'
+import { PATH_HEADER } from './hosts'
 export * from './identity-shared'
 
 // Identité d'un organisme (nom, textes, logo, coordonnées juridiques), lue en base. L'entraînement prend celle de son
@@ -128,13 +129,28 @@ const NEUTRAL = (): Identity =>
  * Pour le rendu d'une page : l'identité de l'organisme de l'adresse, et la sorte de page (en-tête posé par proxy.ts).
  * Aucune identité sur les pages de la plateforme (vitrine, inscription, Studio).
  */
-export async function requestIdentity(): Promise<{ identity: Identity | null; surface: Surface; atelier: boolean }> {
+export interface RequestIdentity {
+  identity: Identity | null
+  surface: Surface
+  atelier: boolean
+  /** L'adresse ne mène à aucun organisme (identifiant inconnu, organisme suspendu) : page « vitrail introuvable ». */
+  missing: boolean
+  /** Ancien identifiant de l'organisme : adresse actuelle, même chemin (redirection permanente, les QR imprimés restent bons). */
+  redirect: string | null
+}
+
+export async function requestIdentity(): Promise<RequestIdentity> {
   const h = await headers()
   const raw = h.get(SURFACE_HEADER)
   const surface: Surface = raw === 'platform' || raw === 'console' ? raw : 'org'
-  if (surface === 'platform') return { identity: null, surface, atelier: false }
+  const none = { identity: null, surface, atelier: false, missing: false, redirect: null }
+  if (surface === 'platform') return none
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost'
-  const r = await resolveTenant(new Request(`https://${host}/`, { headers: h })).catch(() => null)
-  if (!r || !('tenant' in r)) return { identity: null, surface, atelier: false }
-  return { identity: await getIdentity(r.tenant.org).catch(() => null), surface, atelier: !!r.tenant.org.practiceOf }
+  const path = h.get(PATH_HEADER) || '/'
+  // Une panne de la base n'est PAS un organisme introuvable : on rend alors la page sans identité, sans rien affirmer
+  const r = await resolveTenant(new Request(`https://${host}${path.startsWith('/') ? path : '/'}`, { headers: h })).catch(() => null)
+  if (!r) return none
+  if ('redirect' in r) return { ...none, redirect: r.redirect }
+  if ('notFound' in r) return { ...none, missing: true }
+  return { ...none, identity: await getIdentity(r.tenant.org).catch(() => null), atelier: !!r.tenant.org.practiceOf }
 }

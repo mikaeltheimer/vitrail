@@ -1568,5 +1568,16 @@
       "enUneMinute": "In one minute: card, Apple Pay or Google Pay",
       "qrAlt": "QR code to donate to {org}"
     }
+  },
+  "erreurPage": {
+    "introuvableTitre": "Page not found",
+    "introuvableTexte": "This address doesn’t lead to any page. Check that it’s spelled correctly.",
+    "vitrailIntrouvableTitre": "This stained glass doesn’t exist",
+    "vitrailIntrouvableTexte": "No organization uses this address. Check that it’s spelled correctly, or ask the organization for the right link.",
+    "erreurTitre": "Something went wrong",
+    "erreurTexte": "The page couldn’t be displayed. Please try again in a moment.",
+    "reessayer": "Try again",
+    "code": "Error code: {digest}",
+    "decouvrir": "Discover {brand}"
   }
 }

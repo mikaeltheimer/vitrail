@@ -1568,5 +1568,16 @@
       "enUneMinute": "En une minute : carte, Apple Pay ou Google Pay",
       "qrAlt": "Code QR pour donner à {org}"
     }
+  },
+  "erreurPage": {
+    "introuvableTitre": "Page introuvable",
+    "introuvableTexte": "Cette adresse ne mène à aucune page. Vérifiez qu’elle est bien écrite.",
+    "vitrailIntrouvableTitre": "Ce vitrail n’existe pas",
+    "vitrailIntrouvableTexte": "Aucun organisme n’utilise cette adresse. Vérifiez qu’elle est bien écrite, ou demandez le bon lien à l’organisme.",
+    "erreurTitre": "Une erreur est survenue",
+    "erreurTexte": "La page n’a pas pu s’afficher. Réessayez dans un instant.",
+    "reessayer": "Réessayer",
+    "code": "Code de l’erreur : {digest}",
+    "decouvrir": "Découvrir {brand}"
   }
 }

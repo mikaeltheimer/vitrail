@@ -12,11 +12,14 @@ import './globals.css'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
 import { headers } from 'next/headers'
+import { permanentRedirect } from 'next/navigation'
 import { INTL_TAG, type Locale } from '@/i18n/config'
 import { brandFor, CONFIG } from '@/lib/config'
 import { requestIdentity } from '@/lib/identity'
 import { OrgIdentityProvider } from '@/components/OrgIdentity'
 import Atelier from '@/components/atelier/Atelier'
+import { OrgMissingPage } from '@/components/ErrorPages'
+import { platformUrl } from '@/lib/tenant'
 import { siteUrl } from '@/lib/env'
 import { translatorFor } from '@/lib/i18n'
 
@@ -58,13 +61,16 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale
-  const { identity, surface, atelier } = await requestIdentity()
+  const { identity, surface, atelier, missing, redirect } = await requestIdentity()
+  // Ancien identifiant de l'organisme : même page à son adresse actuelle (les QR imprimés ne cassent pas)
+  if (redirect) permanentRedirect(redirect)
+  const page = missing ? <OrgMissingPage platformHref={platformUrl()} /> : atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children
   return (
     <html lang={INTL_TAG[locale]}>
       <body>
         <NextIntlClientProvider>
           <OrgIdentityProvider identity={identity} surface={surface}>
-            {atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children}
+            {page}
           </OrgIdentityProvider>
         </NextIntlClientProvider>
       </body>

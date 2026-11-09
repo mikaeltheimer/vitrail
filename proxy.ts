@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { FIXED_LOCALE_PATHS, LOCALE_COOKIE, LOCALE_HEADER, englishEnabled, isLocale, resolveLocale } from '@/i18n/config'
-import { PREVIEW_ORG_COOKIE, SLUG_RE, SURFACE_HEADER, isPlatformHost, isPreviewEnv, legacyRedirect, surfaceOf } from '@/lib/hosts'
+import { PATH_HEADER, PREVIEW_ORG_COOKIE, SLUG_RE, SURFACE_HEADER, isPlatformHost, isPreviewEnv, legacyRedirect, surfaceOf } from '@/lib/hosts'
 
 // Pages d'un organisme : sur le domaine nu de la plateforme, elles renvoient à la vitrine
 const ORG_PAGES = new Set(['/vitrail', '/don', '/ecran', '/screen', '/admin', '/merci', '/affiche'])
@@ -48,6 +48,7 @@ export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)
   headers.set(LOCALE_HEADER, locale)
   headers.set(SURFACE_HEADER, previewHome ? 'platform' : surfaceOf(host, path))
+  headers.set(PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`)
   const orgParam = isPreviewEnv() ? request.nextUrl.searchParams.get('org') : null
   if (orgParam !== null) {
     // Le rendu de CETTE requête voit déjà le nouveau choix

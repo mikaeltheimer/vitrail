@@ -15,9 +15,10 @@ const strict = process.argv.includes('--strict')
 // Lignes ignorées : journaux pour l'exploitant (console.*), erreurs internes (new Error), et toute ligne marquée « i18n-ok » (avec la raison).
 // app/studio, components/studio, app/api/studio, lib/photo-migration.ts : section interne de Studio Existence, en français seulement.
 // lib/demo-data.ts : contenu de l'organisme fictif de démonstration (textes FR et EN côte à côte, comme lib/config.ts).
+// app/global-error.tsx : erreur du gabarit racine, sans traductions disponibles : page autonome écrite dans les deux langues.
 // app/api/admin/courriels : aperçu brut des gabarits de courriels (outil d'essai), en français seulement.
 // La console, la connexion, l'invitation, le mot de passe et l'atelier sont DANS le périmètre depuis l'étape B.
-const EXCLUDED = ['lib/demo-data.ts', 'app/api/admin/courriels/', 'app/studio/', 'components/studio/', 'app/api/studio/', 'lib/photo-migration.ts', 'lib/config.ts', 'lib/profanity.ts', 'components/ScaleBadge.tsx', 'messages/', 'scripts/', 'node_modules/', '.next/']
+const EXCLUDED = ['lib/demo-data.ts', 'app/global-error.tsx', 'app/api/admin/courriels/', 'app/studio/', 'components/studio/', 'app/api/studio/', 'lib/photo-migration.ts', 'lib/config.ts', 'lib/profanity.ts', 'components/ScaleBadge.tsx', 'messages/', 'scripts/', 'node_modules/', '.next/']
 
 let failed = false
 const fail = msg => {

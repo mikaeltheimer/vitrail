@@ -58,6 +58,8 @@ export function legacyRedirect(hostHeader: string | null | undefined, pathAndSea
  * - org      : les pages publiques d'un organisme (langue limitée à celles qu'il offre).
  */
 export const SURFACE_HEADER = 'x-donivers-surface'
+/** Chemin et paramètres de la page demandée, posés par proxy.ts (le rendu en a besoin pour rediriger un ancien identifiant). */
+export const PATH_HEADER = 'x-donivers-path'
 export type Surface = 'platform' | 'console' | 'org'
 const PLATFORM_PATHS = ['/plateforme', '/inscription', '/studio', '/connexion']
 
