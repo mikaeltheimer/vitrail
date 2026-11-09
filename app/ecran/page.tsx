@@ -670,7 +670,7 @@ export default function Ecran() {
   }, [])
 
   function toggleFullscreen() {
-    if (embed) return
+    if (isEmbed()) return
     if (document.fullscreenElement) void document.exitFullscreen()
     else void document.documentElement.requestFullscreen().catch(() => {})
   }
