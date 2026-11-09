@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import AuthFrame from '@/components/AuthFrame'
 import { PASSWORD_MIN } from '@/lib/password-rules'
 
 // Nouveau mot de passe depuis le lien reçu par courriel. Les autres appareils sont déconnectés.
@@ -30,8 +30,8 @@ export default function Reset() {
   }
 
   return (
-    <main className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold">{t('reinitialiser.titre')}</h1>
+    <AuthFrame>
+      <h1 className="m-0 text-2xl font-bold">{t('reinitialiser.titre')}</h1>
       <p className="muted mt-1 text-sm">{t('reinitialiser.aide', { min: PASSWORD_MIN })}</p>
       <form onSubmit={submit} className="mt-6 space-y-3">
         <input className="field" type="password" autoComplete="new-password" placeholder={t('reinitialiser.nouveau')} aria-label={t('reinitialiser.nouveau')} value={password} onChange={e => setPassword(e.target.value)} autoFocus required />
@@ -45,9 +45,6 @@ export default function Reset() {
           {t('reinitialiser.enregistrer')}
         </button>
       </form>
-      <p className="muted mt-10 text-xs">
-        <LanguageSwitch style={{ textDecoration: 'underline' }} />
-      </p>
-    </main>
+    </AuthFrame>
   )
 }

@@ -10,26 +10,27 @@ export default async function PlatformShell({ children, nav = true }: { children
   const studio = CONFIG.brand.studioLegal
   return (
     <div className="min-h-dvh text-[17px] leading-relaxed">
-      <header className="mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-4 px-6 py-5">
+      {/* Sur téléphone, une seule ligne : logo, langue, connexion (le bouton d'invitation est juste dessous, dans le héros) */}
+      <header className="mx-auto flex max-w-[1160px] items-center justify-between gap-4 px-4 py-4 sm:flex-wrap sm:px-6 sm:py-5">
         <Link href="/plateforme" className="!text-[var(--text)] no-underline">
           <Mark />
         </Link>
         {nav && (
-          <nav aria-label={t('nav.principale')} className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[15px]">
-            <a href="/plateforme#comment" className="!text-[var(--text)] no-underline hover:underline">
+          <nav aria-label={t('nav.principale')} className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[15px] sm:gap-x-6">
+            <a href="/plateforme#comment" className="hidden !text-[var(--text)] no-underline hover:underline md:inline">
               {t('nav.comment')}
             </a>
-            <a href="/plateforme#tarifs" className="!text-[var(--text)] no-underline hover:underline">
+            <a href="/plateforme#tarifs" className="hidden !text-[var(--text)] no-underline hover:underline md:inline">
               {t('nav.tarifs')}
             </a>
-            <a href="/plateforme#questions" className="!text-[var(--text)] no-underline hover:underline">
+            <a href="/plateforme#questions" className="hidden !text-[var(--text)] no-underline hover:underline md:inline">
               {t('nav.questions')}
             </a>
             <LanguageSwitch className="muted hover:underline" />
             <Link href="/connexion" className="!text-[var(--text)] no-underline hover:underline">
               {t('nav.connexion')}
             </Link>
-            <a href="/plateforme#invitation" className="btn !w-auto !rounded-full !px-5 !py-2.5 !text-[15px] no-underline">
+            <a href="/plateforme#invitation" className="btn !hidden !w-auto !rounded-full !px-5 !py-2.5 !text-[15px] no-underline sm:!inline-flex">
               {t('nav.demander')}
             </a>
           </nav>

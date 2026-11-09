@@ -967,7 +967,22 @@
       "voir": "Voir comment ça marche",
       "pour": "Pour les organismes à but non lucratif, écoles, lieux culturels et causes du Québec. En français et en anglais.",
       "illustration": "Un vitrail fait de morceaux de couleur ; un nouveau morceau s’ajoute toutes les quelques secondes",
-      "direct": "Chaque nouveau don, un nouveau morceau"
+      "direct": "Chaque nouveau don, un nouveau morceau",
+      "essayer": "Essayer la démo",
+      "demoLegende": "{org} · vitrail de démonstration",
+      "demoExplorer": "Explorer la démo →",
+      "demoOuvrir": "Ouvrir le vitrail de démonstration de {org}"
+    },
+    "essai": {
+      "titre": "Essayez-le",
+      "intro": "{org} est un organisme fictif : 200 donateurs inventés, leurs mots et leurs morceaux de verre. Tout y fonctionne comme chez vous, sauf qu’on ne peut pas y donner.",
+      "vitrailTitre": "Le vitrail",
+      "vitrailTexte": "Ce que voient vos donateurs sur leur téléphone : touchez un morceau pour lire son témoignage, cherchez un nom, découvrez la collecte.",
+      "vitrailBouton": "Ouvrir le vitrail",
+      "ecranTitre": "L’écran de projection",
+      "ecranTexte": "Ce qui passe sur grand écran pendant vos événements : les morceaux défilent un à un, avec le code QR pour donner sur place. Plein écran : touche F.",
+      "ecranFr": "Écran en français",
+      "ecranEn": "Écran en anglais"
     },
     "comment": {
       "titre": "Comment ça marche",
@@ -1076,7 +1091,8 @@
       "confUsage": "À quoi ça sert : vous répondre, vous inviter et vous donner accès à la console. Rien n’est vendu ni utilisé pour de la publicité.",
       "confDroits": "Vos droits : consulter, corriger ou faire supprimer vos renseignements, en écrivant à {email}.",
       "confResponsable": "Responsable de la protection des renseignements personnels : {studio}, {address}."
-    }
+    },
+    "ogSousTitre": "Créez le vitrail de votre organisme"
   },
   "inscription": {
     "metaTitre": "Créer mon vitrail — {brand}",
@@ -1236,6 +1252,8 @@
     "metaInvitation": "Invitation — {brand}",
     "metaReinitialiser": "Nouveau mot de passe — {brand}",
     "erreur": "Une erreur est survenue. Réessayez.",
+    "retourVitrail": "← Retour au vitrail",
+    "retourAccueil": "← Retour à l’accueil",
     "connexion": {
       "titre": "Console",
       "reserve": "{org} — réservé à l’équipe.",

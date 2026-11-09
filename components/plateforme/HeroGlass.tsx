@@ -6,11 +6,21 @@ import MiniGlass from '@/components/MiniGlass'
 import { GLASS_COLORS } from '@/lib/config'
 import type { Piece } from '@/lib/types'
 
-// Le vrai rendu du vitrail (le même que sur la page d'un organisme), avec des morceaux fictifs et anonymes :
-// un nouveau morceau s'ajoute toutes les quelques secondes. Le vitrail de démonstration complet (noms, témoignages,
-// photos) le remplacera plus tard.
+// Le vitrail de l'accueil : le rendu réel (le même que sur la page d'un organisme).
+// Avec la démo (Fondation Pleine Lumière) : ses vrais morceaux fictifs, dont les derniers dons sont rejoués un par un,
+// puis le tout recommence ; un clic ouvre la démo. Sans démo (base neuve) : des morceaux anonymes générés ici.
+
+export interface HeroDemo {
+  pieces: Piece[]
+  /** Donateurs des derniers dons, du plus ancien au plus récent : ce sont eux qu'on rejoue. */
+  replay: string[]
+  url: string
+  name: string
+}
 
 const AMOUNTS = [1000, 1500, 2000, 2500, 2500, 3000, 4000, 5000, 5000, 7500, 10000, 15000, 25000, 50000]
+const STEP_MS = 3200
+const REST_MS = 9000
 
 /** Suite pseudo-aléatoire fixe : le même vitrail à chaque visite (et au rendu serveur). */
 function seeded(seed: number) {
@@ -33,36 +43,86 @@ function makePieces(n: number, start = 0): Piece[] {
   }))
 }
 
-const START = 48
-const MAX = 120
+/** Les morceaux visibles après `shown` dons rejoués (les autres morceaux à rejouer sont retirés). */
+function demoFrame(demo: HeroDemo, shown: number): Piece[] {
+  const hidden = new Set(demo.replay.slice(shown))
+  return demo.pieces.filter(p => !hidden.has(p.id))
+}
 
-export default function HeroGlass() {
+export default function HeroGlass({ demo }: { demo?: HeroDemo | null }) {
   const t = useTranslations('plateforme.hero')
-  const [pieces, setPieces] = useState<Piece[]>(() => makePieces(START))
+  const total = demo ? demo.replay.length : 0
+  // Premier rendu : la démo sans ses derniers dons, qui s'ajoutent ensuite un par un
+  const [pieces, setPieces] = useState<Piece[]>(() => (demo ? demoFrame(demo, 0) : makePieces(48)))
   const [size, setSize] = useState(420)
 
   useEffect(() => {
     const fit = () => setSize(Math.max(260, Math.min(460, window.innerWidth - 48)))
     fit()
     window.addEventListener('resize', fit)
-    // Respecter « réduire les animations » : le vitrail reste fixe
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return () => window.removeEventListener('resize', fit)
-    const id = setInterval(() => {
-      if (document.hidden) return
-      setPieces(p => (p.length >= MAX ? makePieces(START) : [...p, ...makePieces(1, p.length)]))
-    }, 3200)
+    // Respecter « réduire les animations » : le vitrail reste fixe et complet
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const full = setTimeout(() => demo && setPieces(demo.pieces), 0)
+      return () => {
+        clearTimeout(full)
+        window.removeEventListener('resize', fit)
+      }
+    }
+    let shown = 0
+    let timer: ReturnType<typeof setTimeout>
+    const tick = () => {
+      if (document.hidden) {
+        timer = setTimeout(tick, STEP_MS)
+        return
+      }
+      if (demo) {
+        if (shown >= total) {
+          // Tout est rejoué : un temps de repos, puis on recommence
+          shown = 0
+          timer = setTimeout(() => {
+            setPieces(demoFrame(demo, 0))
+            timer = setTimeout(tick, STEP_MS)
+          }, REST_MS)
+          return
+        }
+        shown++
+        setPieces(demoFrame(demo, shown))
+      } else {
+        setPieces(p => (p.length >= 120 ? makePieces(48) : [...p, ...makePieces(1, p.length)]))
+      }
+      timer = setTimeout(tick, STEP_MS)
+    }
+    timer = setTimeout(tick, STEP_MS)
     return () => {
-      clearInterval(id)
+      clearTimeout(timer)
       window.removeEventListener('resize', fit)
     }
-  }, [])
+  }, [demo, total])
 
+  if (!demo) {
+    return (
+      <figure className="m-0 flex flex-col items-center gap-3" aria-label={t('illustration')}>
+        <MiniGlass pieces={pieces} size={size} />
+        <figcaption className="muted inline-flex items-center gap-2 text-sm">
+          <span className="h-2 w-2 rounded-full" style={{ background: '#3DB5A6' }} aria-hidden="true" />
+          {t('direct')}
+        </figcaption>
+      </figure>
+    )
+  }
   return (
-    <figure className="m-0 flex flex-col items-center gap-3" aria-label={t('illustration')}>
-      <MiniGlass pieces={pieces} size={size} />
-      <figcaption className="muted inline-flex items-center gap-2 text-sm">
-        <span className="h-2 w-2 rounded-full" style={{ background: '#3DB5A6' }} aria-hidden="true" />
-        {t('direct')}
+    <figure className="m-0 flex flex-col items-center gap-3">
+      <a href={demo.url} target="_blank" rel="noreferrer" className="block rounded-full no-underline transition-transform hover:scale-[1.015]" aria-label={t('demoOuvrir', { org: demo.name })}>
+        <MiniGlass pieces={pieces} size={size} />
+      </a>
+      <figcaption className="flex flex-col items-center gap-1 text-center text-sm">
+        <span className="muted">
+          <span className="mr-2 inline-block h-2 w-2 rounded-full align-middle" style={{ background: '#3DB5A6' }} aria-hidden="true" />
+          {t('demoLegende', { org: demo.name })}
+        </span>
+        <a href={demo.url} target="_blank" rel="noreferrer" className="font-semibold" style={{ color: '#F0B24A' }}>
+          {t('demoExplorer')}
+        </a>
       </figcaption>
     </figure>
   )

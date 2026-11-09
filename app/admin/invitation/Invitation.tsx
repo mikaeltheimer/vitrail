@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import AuthFrame from '@/components/AuthFrame'
 import { PASSWORD_MIN } from '@/lib/password-rules'
 
 interface Info {
@@ -45,8 +45,8 @@ export default function Invitation({ token }: { token: string }) {
   const role = t(`invitation.role.${info?.role === 'owner' ? 'owner' : 'volunteer'}`)
   const sameAccount = info?.accountExists && info.signedInAs === info.email
   return (
-    <main className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold">{t('invitation.titre')}</h1>
+    <AuthFrame>
+      <h1 className="m-0 text-2xl font-bold">{t('invitation.titre')}</h1>
       {!info && !error && <p className="muted mt-4">{t('invitation.chargement')}</p>}
       {info && <p className="mt-2 text-sm">{t.rich('invitation.rejoindre', { org: info.orgName ?? '—', role, email: info.email, b: c => <b>{c}</b> })}</p>}
       {info && info.accountExists && !sameAccount && (
@@ -89,9 +89,6 @@ export default function Invitation({ token }: { token: string }) {
           {error}
         </p>
       )}
-      <p className="muted mt-10 text-xs">
-        <LanguageSwitch style={{ textDecoration: 'underline' }} />
-      </p>
-    </main>
+    </AuthFrame>
   )
 }

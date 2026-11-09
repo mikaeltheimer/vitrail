@@ -17,10 +17,12 @@ export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   let locale = resolveLocale({ param: request.nextUrl.searchParams.get('lang') })
+  // La vitrine de la plateforme : un message pour les organismes (pas l'appel au don d'un organisme)
+  const platform = request.nextUrl.searchParams.has('plateforme')
   let name: string = CONFIG.brand.name
   let logo: { src: string; w: number; h: number } | null = null
   let total = ''
-  try {
+  if (!platform) try {
     const tenant = await requireTenant(request)
     if ('response' in tenant) throw new Error('organisme introuvable')
     const identity = await getIdentity(tenant.tenant.org)
@@ -42,11 +44,11 @@ export async function GET(request: NextRequest) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {logo ? <img src={logo.src} width={logo.w} height={logo.h} alt="" /> : <div style={{ fontSize: 44, fontWeight: 700, maxWidth: 620 }}>{name}</div>}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: 28, color: '#F0B24A', letterSpacing: 4, textTransform: 'uppercase' }}>{t('ecran.ctaSurtitre')}</div>
-            <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.05, marginTop: 12, maxWidth: 620 }}>{t('ecran.ctaTitre')}</div>
+            <div style={{ fontSize: 28, color: '#F0B24A', letterSpacing: 4, textTransform: 'uppercase' }}>{platform ? t('plateforme.hero.beta') : t('ecran.ctaSurtitre')}</div>
+            <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.05, marginTop: 12, maxWidth: 620 }}>{platform ? t('plateforme.hero.titre') : t('ecran.ctaTitre')}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: 30, color: 'rgba(244,239,230,0.75)' }}>{total || name}</div>
+            <div style={{ fontSize: 30, color: 'rgba(244,239,230,0.75)' }}>{platform ? t('plateforme.ogSousTitre') : total || name}</div>
             <div style={{ fontSize: 22, color: 'rgba(244,239,230,0.5)', marginTop: 10 }}>{`${CONFIG.brand.name} · ${brand.slogan}`}</div>
           </div>
         </div>

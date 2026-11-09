@@ -2,15 +2,15 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import AuthFrame from '@/components/AuthFrame'
 
 // Connecté, mais pas membre de l'organisme de cette adresse : on le dit, et on propose les siens.
 export default function NoAccess({ orgName, email, orgs }: { orgName: string; email: string; orgs: { id: string; name: string; url: string }[] }) {
   const router = useRouter()
   const t = useTranslations('acces.pasAcces')
   return (
-    <main className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold">{t('titre')}</h1>
+    <AuthFrame>
+      <h1 className="m-0 text-2xl font-bold">{t('titre')}</h1>
       <p className="muted mt-2 text-sm">{t('texte', { email, org: orgName })}</p>
       {orgs.length > 0 && (
         <div className="mt-6 space-y-2">
@@ -31,9 +31,6 @@ export default function NoAccess({ orgName, email, orgs }: { orgName: string; em
       >
         {t('deconnexion')}
       </button>
-      <p className="muted mt-10 text-xs">
-        <LanguageSwitch style={{ textDecoration: 'underline' }} />
-      </p>
-    </main>
+    </AuthFrame>
   )
 }

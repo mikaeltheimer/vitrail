@@ -967,7 +967,22 @@
       "voir": "See how it works",
       "pour": "For non-profits, schools, cultural venues and causes in Québec. In French and English.",
       "illustration": "A stained glass made of coloured pieces; a new piece joins every few seconds",
-      "direct": "Each new donation, a new piece"
+      "direct": "Each new donation, a new piece",
+      "essayer": "Try the demo",
+      "demoLegende": "{org} · demonstration stained glass",
+      "demoExplorer": "Explore the demo →",
+      "demoOuvrir": "Open the {org} demonstration stained glass"
+    },
+    "essai": {
+      "titre": "Try it",
+      "intro": "{org} is a fictional organization: 200 made-up donors, their words and their pieces of glass. Everything works just as it will for you, except that you can’t donate.",
+      "vitrailTitre": "The stained glass",
+      "vitrailTexte": "What your donors see on their phones: tap a piece to read its testimonial, look for a name, discover the campaign.",
+      "vitrailBouton": "Open the stained glass",
+      "ecranTitre": "The projection screen",
+      "ecranTexte": "What plays on the big screen during your events: pieces come up one by one, with the QR code to give on the spot. Full screen: press F.",
+      "ecranFr": "French screen",
+      "ecranEn": "English screen"
     },
     "comment": {
       "titre": "How it works",
@@ -1076,7 +1091,8 @@
       "confUsage": "What it is for: answering you, inviting you and giving you access to the console. Nothing is sold or used for advertising.",
       "confDroits": "Your rights: access, correct or have your information deleted by writing to {email}.",
       "confResponsable": "Person in charge of protecting personal information: {studio}, {address}."
-    }
+    },
+    "ogSousTitre": "Create your organization’s stained glass"
   },
   "inscription": {
     "metaTitre": "Create my stained glass — {brand}",
@@ -1236,6 +1252,8 @@
     "metaInvitation": "Invitation — {brand}",
     "metaReinitialiser": "New password — {brand}",
     "erreur": "Something went wrong. Please try again.",
+    "retourVitrail": "← Back to the stained glass",
+    "retourAccueil": "← Back to home",
     "connexion": {
       "titre": "Console",
       "reserve": "{org} — team members only.",

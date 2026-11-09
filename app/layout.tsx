@@ -23,7 +23,7 @@ import { translatorFor } from '@/lib/i18n'
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await getLocale()) as Locale
   const t = translatorFor(locale)
-  const { identity } = await requestIdentity()
+  const { identity, surface } = await requestIdentity()
   const org = identity ? identity.texts[locale].name : CONFIG.brand.name
   const title = t('meta.titre', { org })
   return {
@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description: t('meta.description', { org, slogan: brandFor(locale).slogan }),
     robots: { index: false },
-    openGraph: { title, type: 'website', locale: INTL_TAG[locale].replace('-', '_'), images: [{ url: `/api/og?lang=${locale}`, width: 1200, height: 630, alt: title }] },
+    openGraph: { title, type: 'website', locale: INTL_TAG[locale].replace('-', '_'), images: [{ url: surface === 'platform' ? `/api/og?plateforme&lang=${locale}` : `/api/og?lang=${locale}`, width: 1200, height: 630, alt: title }] },
   }
 }
 

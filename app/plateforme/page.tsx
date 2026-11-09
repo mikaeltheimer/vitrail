@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import { getLocale, getTranslations } from 'next-intl/server'
 import PlatformShell from '@/components/plateforme/PlatformShell'
-import HeroGlass from '@/components/plateforme/HeroGlass'
+import { headers } from 'next/headers'
+import HeroGlass, { type HeroDemo } from '@/components/plateforme/HeroGlass'
+import { demoForVitrine } from '@/lib/demo'
+import { DEMO_TEXTS } from '@/lib/demo-data'
 import RequestForm from '@/components/plateforme/RequestForm'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
@@ -12,7 +15,16 @@ import type { Locale } from '@/i18n/config'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('plateforme')
-  return { title: t('metaTitre', { brand: CONFIG.brand.name }), description: t('metaDescription'), robots: { index: true } }
+  const locale = (await getLocale()) as Locale
+  const title = t('metaTitre', { brand: CONFIG.brand.name })
+  const description = t('metaDescription')
+  return {
+    title,
+    description,
+    robots: { index: true },
+    // Aperçu des liens : celui de la plateforme, pas l'appel au don d'un organisme
+    openGraph: { title, description, type: 'website', images: [{ url: `/api/og?plateforme&lang=${locale}`, width: 1200, height: 630, alt: title }] },
+  }
 }
 
 function H2({ children }: { children: React.ReactNode }) {
@@ -40,6 +52,21 @@ export default async function PlateformePage() {
   const band = 'border-y'
   const bandStyle = { background: '#110F19', borderColor: 'rgba(244,239,230,0.08)' }
 
+  // La démo (Fondation Pleine Lumière), si elle existe sur cette base : vitrail de l'accueil et section « Essayez-le »
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || 'localhost'
+  const demo = await demoForVitrine(new Request(`https://${host}/plateforme`, { headers: h }))
+  const demoName = DEMO_TEXTS[locale]?.name ?? DEMO_TEXTS.fr!.name!
+  const heroDemo: HeroDemo | null = demo
+    ? {
+        pieces: demo.snapshot.pieces,
+        // Les derniers dons, du plus ancien au plus récent, un seul par donateur
+        replay: [...new Set([...demo.snapshot.recent].reverse().map(d => d.donorId))].slice(-10),
+        url: demo.links.vitrail,
+        name: demoName,
+      }
+    : null
+
   return (
     <PlatformShell>
       <main>
@@ -58,16 +85,48 @@ export default async function PlateformePage() {
               <a href="#invitation" className="btn !w-auto !rounded-full !px-6 no-underline">
                 {t('hero.demander')}
               </a>
-              <a href="#comment" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
-                {t('hero.voir')}
+              <a href={demo ? '#essai' : '#comment'} className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                {demo ? t('hero.essayer') : t('hero.voir')}
               </a>
             </div>
             <p className="muted m-0 text-sm">{t('hero.pour')}</p>
           </div>
           <div className="flex min-w-0 flex-[1_1_380px] justify-center">
-            <HeroGlass />
+            <HeroGlass demo={heroDemo} />
           </div>
         </section>
+
+        {demo && (
+          <section id="essai" className="mx-auto flex max-w-[1160px] flex-col gap-8 px-6 pb-20">
+            <div className="flex max-w-[720px] flex-col gap-3">
+              <H2>{t('essai.titre')}</H2>
+              <p className="m-0 text-[19px]" style={{ color: '#D9D3E3' }}>
+                {t('essai.intro', { org: demoName })}
+              </p>
+            </div>
+            <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+              <article className="card flex flex-col gap-3 !rounded-[20px] !p-7" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
+                <h3 className="m-0 text-[22px]">{t('essai.vitrailTitre')}</h3>
+                <p className="muted m-0 flex-1">{t('essai.vitrailTexte')}</p>
+                <a href={demo.links.vitrail} target="_blank" rel="noreferrer" className="btn !w-auto self-start !rounded-full !px-6 no-underline">
+                  {t('essai.vitrailBouton')}
+                </a>
+              </article>
+              <article className="card flex flex-col gap-3 !rounded-[20px] !p-7">
+                <h3 className="m-0 text-[22px]">{t('essai.ecranTitre')}</h3>
+                <p className="muted m-0 flex-1">{t('essai.ecranTexte')}</p>
+                <div className="flex flex-wrap gap-2">
+                  <a href={demo.links.ecran} target="_blank" rel="noreferrer" lang="fr" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                    {t('essai.ecranFr')}
+                  </a>
+                  <a href={demo.links.screen} target="_blank" rel="noreferrer" lang="en" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                    {t('essai.ecranEn')}
+                  </a>
+                </div>
+              </article>
+            </div>
+          </section>
+        )}
 
         <section id="comment" className={band} style={bandStyle}>
           <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 py-20">

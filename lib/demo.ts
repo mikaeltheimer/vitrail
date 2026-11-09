@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { getDb } from './db'
 import { ANON_LABEL, VALID_COLORS } from './config'
 import { PHOTO_BUCKET, donorPhotoDir, orgOfPhotoPath, pathFromPublicUrl, publicPhotoUrl } from './photos'
-import { forgetTenantCache } from './tenant'
+import { forgetTenantCache, getOrg, getPermanentVitrail, orgUrl } from './tenant'
+import { getSnapshot } from './donations'
+import type { Snapshot } from './types'
 import { forgetIdentity } from './identity'
 import {
   DEMO_NAME, DEMO_SLUG, DEMO_TEXTS, FIRST_NAMES_EN, FIRST_NAMES_FR, LAST_NAMES_EN, LAST_NAMES_FR, TESTIMONIALS_EN, TESTIMONIALS_FR,
@@ -259,4 +261,26 @@ export async function removeDemoPhotos(): Promise<number> {
   if (error) throw error
   for (let i = 0; i < paths.length; i += 100) await db.storage.from(PHOTO_BUCKET).remove(paths.slice(i, i + 100))
   return paths.length
+}
+
+/**
+ * La démo telle que la vitrine la montre : son instantané (le même que /api/vitrail) et ses adresses. null si la démo
+ * n'existe pas encore sur cette base, ou en cas d'erreur : la vitrine garde alors son vitrail fictif. Jamais d'exception.
+ */
+export async function demoForVitrine(request?: Request): Promise<{ snapshot: Snapshot; links: { vitrail: string; ecran: string; screen: string } } | null> {
+  try {
+    const orgId = await demoOrgId()
+    if (!orgId) return null
+    const [org, vitrail] = await Promise.all([getOrg(orgId), getPermanentVitrail(orgId)])
+    if (!org || !vitrail) return null
+    const snapshot = await getSnapshot({ org, vitrail })
+    if (!snapshot.pieces.length) return null
+    return {
+      snapshot,
+      links: { vitrail: orgUrl(DEMO_SLUG, '/vitrail', request), ecran: orgUrl(DEMO_SLUG, '/ecran', request), screen: orgUrl(DEMO_SLUG, '/screen', request) },
+    }
+  } catch (e) {
+    console.error('Démo pour la vitrine :', e)
+    return null
+  }
 }

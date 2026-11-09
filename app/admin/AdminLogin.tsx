@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import AuthFrame from '@/components/AuthFrame'
 
 // Connexion : courriel + mot de passe. « Mot de passe oublié ou première connexion » envoie un lien par courriel
 // (réinitialisation, ou nouvelle invitation pour une personne invitée qui n'a pas encore créé son accès).
@@ -36,8 +36,8 @@ export default function AdminLogin({ orgName }: { orgName: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold">{t('connexion.titre')}</h1>
+    <AuthFrame>
+      <h1 className="m-0 text-2xl font-bold">{t('connexion.titre')}</h1>
       <p className="muted mt-1 text-sm">{t('connexion.reserve', { org: orgName })}</p>
 
       {mode === 'sent' ? (
@@ -74,9 +74,6 @@ export default function AdminLogin({ orgName }: { orgName: string }) {
           </p>
         </form>
       )}
-      <p className="muted mt-10 text-xs">
-        <LanguageSwitch style={{ textDecoration: 'underline' }} />
-      </p>
-    </main>
+    </AuthFrame>
   )
 }
