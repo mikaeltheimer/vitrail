@@ -12,6 +12,16 @@ import { useOrg } from '@/lib/useOrg'
 import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Piece, Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
+import { OrgLogo } from '@/components/OrgBrand'
+
+/** En-tête de la page : le logo de l'organisme (sinon son nom), qui ramène au vitrail. */
+function OrgHeader() {
+  return (
+    <Link href="/vitrail" className="mx-auto mb-6 flex justify-center" style={{ color: 'inherit', textDecoration: 'none' }}>
+      <OrgLogo style={{ maxWidth: 220, maxHeight: 72 }} nameStyle={{ fontSize: 20, textAlign: 'center' }} />
+    </Link>
+  )
+}
 
 // Lien magique : on ajoute son témoignage, on modifie le nom, la photo et la couleur de son morceau, ou on l'agrandit. Pas de compte.
 
@@ -89,11 +99,18 @@ export default function ManagePage() {
     }
   }
 
-  if (loaded === 'wait') return <main className="mx-auto max-w-md px-4 py-10 text-center muted">{t('chargement')}</main>
+  if (loaded === 'wait')
+    return (
+      <main className="mx-auto max-w-md px-4 py-10 text-center">
+        <OrgHeader />
+        <p className="muted">{t('chargement')}</p>
+      </main>
+    )
 
   if (loaded === 'expired') {
     return (
       <main className="mx-auto max-w-md px-4 py-10 text-center">
+        <OrgHeader />
         <h1 className="text-2xl font-bold">{t('expireTitre')}</h1>
         <p className="muted mt-2">{t('expireTexte')}</p>
         <Link href="/vitrail" className="btn mt-6">
@@ -105,6 +122,7 @@ export default function ManagePage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-8">
+      <OrgHeader />
       <h1 className="text-center text-2xl font-bold">{t('titre')}</h1>
       <p className="muted mt-1 text-center text-sm">
         {t('sousTitre', { org: org.name, montant: money(totalCents) })}

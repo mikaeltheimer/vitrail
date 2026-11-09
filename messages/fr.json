@@ -815,6 +815,7 @@
       "emplacementAide": "Un code par emplacement : « D’où viennent les dons » vous dira lequel fait donner.",
       "qrAlt": "Code QR « {emplacement} »",
       "telecharger": "Télécharger l’image",
+      "affiche": "Affiche à imprimer",
       "ecrans": "Écrans de projection",
       "ecransAide": "Ouvrez l’écran sur l’ordinateur relié au projecteur, en plein écran. Deux langues, deux écrans possibles.",
       "ecranFr": "Écran en français",
@@ -1540,6 +1541,32 @@
           ]
         }
       ]
+    }
+  },
+  "affiche": {
+    "titrePage": "Affiche à imprimer",
+    "aide": "Une affiche par emplacement : chacune a son propre code QR, et « D’où viennent les dons » (onglet Diffuser de la console) montre combien de visites et de dons elle amène.",
+    "emplacement": "Emplacement",
+    "suggestions": {
+      "accueil": "Accueil",
+      "cafe": "Café",
+      "ateliers": "Ateliers",
+      "exposition": "Exposition",
+      "caisse": "Caisse"
+    },
+    "langue": "Langue de l’affiche",
+    "langueBilingue": "Bilingue",
+    "copier": "Copier le lien",
+    "copie": "Copié",
+    "imprimer": "Imprimer",
+    "imprimerAide": "Format lettre, portrait. Dans la fenêtre d’impression, choisissez « Marges : aucune » et cochez « Graphiques d’arrière-plan ».",
+    "poster": {
+      "invitation": "Faites partie du vitrail",
+      "titre": "Chaque don devient un morceau de verre",
+      "explication": "Plus votre don est grand, plus votre morceau l’est. Ajoutez votre nom, un mot, une photo : ils apparaissent sur le vitrail.",
+      "scannez": "Scannez pour donner",
+      "enUneMinute": "En une minute : carte, Apple Pay ou Google Pay",
+      "qrAlt": "Code QR pour donner à {org}"
     }
   }
 }

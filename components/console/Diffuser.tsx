@@ -83,9 +83,14 @@ export default function Diffuser({ data }: { data: ConsoleData }) {
             <div className="flex flex-wrap items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qr} alt={t('qrAlt', { emplacement: placeSlug || 'qr' })} className="h-40 w-40 rounded-lg bg-white" />
-              <a className="btn btn-ghost" href={qr} download={`qr-${data.org.slug}-${placeSlug || 'qr'}.png`}>
-                {t('telecharger')}
-              </a>
+              <div className="flex flex-col gap-2">
+                <a className="btn btn-ghost" href={qr} download={`qr-${data.org.slug}-${placeSlug || 'qr'}.png`}>
+                  {t('telecharger')}
+                </a>
+                <a className="btn btn-ghost" href={`/affiche${place.trim() ? `?lieu=${encodeURIComponent(place.trim())}` : ''}`} target="_blank" rel="noopener">
+                  {t('affiche')}
+                </a>
+              </div>
             </div>
           )}
         </div>

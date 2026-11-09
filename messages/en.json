@@ -815,6 +815,7 @@
       "emplacementAide": "One code per location: “Where donations come from” will tell you which one works.",
       "qrAlt": "QR code “{emplacement}”",
       "telecharger": "Download the image",
+      "affiche": "Printable poster",
       "ecrans": "Projection screens",
       "ecransAide": "Open the screen on the computer connected to the projector, in full screen. Two languages, two screens if you like.",
       "ecranFr": "Screen in French",
@@ -1540,6 +1541,32 @@
           ]
         }
       ]
+    }
+  },
+  "affiche": {
+    "titrePage": "Printable poster",
+    "aide": "One poster per location: each has its own QR code, and “Where donations come from” (Share tab of the console) shows how many visits and donations it brings.",
+    "emplacement": "Location",
+    "suggestions": {
+      "accueil": "Front desk",
+      "cafe": "Café",
+      "ateliers": "Workshops",
+      "exposition": "Exhibition",
+      "caisse": "Checkout"
+    },
+    "langue": "Poster language",
+    "langueBilingue": "Bilingual",
+    "copier": "Copy link",
+    "copie": "Copied",
+    "imprimer": "Print",
+    "imprimerAide": "Letter size, portrait. In the print dialog, choose “Margins: none” and check “Background graphics”.",
+    "poster": {
+      "invitation": "Be part of the stained glass",
+      "titre": "Every donation becomes a piece of glass",
+      "explication": "The bigger your gift, the bigger your piece. Add your name, a few words, a photo: they appear on the stained glass.",
+      "scannez": "Scan to give",
+      "enUneMinute": "In one minute: card, Apple Pay or Google Pay",
+      "qrAlt": "QR code to donate to {org}"
     }
   }
 }
