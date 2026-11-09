@@ -1,33 +1,21 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import PlatformShell from '@/components/plateforme/PlatformShell'
-import { CONFIG } from '@/lib/config'
+import LegalDoc from '@/components/plateforme/LegalDoc'
 
-// Confidentialité de la PLATEFORME (vitrine, demandes d'invitation, comptes d'équipe). Version provisoire (avocat).
+// Confidentialité de la PLATEFORME (vitrine, demandes d'invitation, comptes d'équipe ; rôle de Studio pour les donateurs).
+// Texte : messages, legalPlateforme.confidentialite. Provisoire : à faire relire par un avocat.
+// Les durées de conservation annoncées sont appliquées par lib/retention.ts : changer l'un, c'est changer l'autre.
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('plateforme.legal')
-  return { title: t('confTitre') }
+  const t = await getTranslations('legalPlateforme.confidentialite')
+  return { title: t('titre') }
 }
 
-export default async function ConfidentialitePlateforme() {
-  const t = await getTranslations('plateforme')
-  const s = CONFIG.brand.studioLegal
+export default function ConfidentialitePlateforme() {
   return (
     <PlatformShell>
-      <main className="mx-auto max-w-[760px] space-y-5 px-6 pb-20 pt-6">
-        <h1 className="m-0 text-[36px] leading-tight" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-          {t('legal.confTitre')}
-        </h1>
-        <p className="card text-sm" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
-          {t('provisoire')}
-        </p>
-        <p>{t('legal.confIntro', { brand: CONFIG.brand.name })}</p>
-        <p>{t('legal.confCollecte')}</p>
-        <p>{t('legal.confUsage')}</p>
-        <p>{t('legal.confDroits', { email: s.email })}</p>
-        <p className="muted">{t('legal.confResponsable', { studio: s.name, address: s.address })}</p>
-      </main>
+      <LegalDoc doc="confidentialite" />
     </PlatformShell>
   )
 }

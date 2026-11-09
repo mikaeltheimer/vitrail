@@ -477,6 +477,7 @@
       "don": "<b>The amount and date of your donation</b>: to keep the fundraiser's accounts and to size your piece of glass.",
       "facultatif": "<b>Only if you provide them</b>: the name you choose, your testimonial and your photo, shown on the organization's screen and on the stained glass's public page. The name is optional: without it, your piece appears as “Anonymous”, with your testimonial and photo if you added them.",
       "consentement": "<b>Your consent to be quoted</b>, if you tick the box: the organization may then reuse your testimonial in its communications (website, social media, annual report). Without it, your testimonial stays on the stained glass only. You can withdraw this consent at any time with your edit link.",
+      "listeEnvoi": "<b>Your agreement to receive news from {org}</b>, only if you tick the box provided (never ticked in advance): the date and the text you accepted are kept as proof. You can unsubscribe at any time with your personal link.",
       "paiement": "<b>Your payment information</b> is entered directly with our payment provider, Stripe. We never see your card number.",
       "langue": "<b>Your language</b> (French or English): so we can write to you in the language you chose.",
       "provenance": "<b>Where your visit came from</b> (for example: the café poster), with no data that identifies you, to know which placements spread the word about the fundraiser."
@@ -493,7 +494,7 @@
       "supabase": "Supabase (hosting of the database and photos);",
       "vercel": "Vercel (website hosting);",
       "resend": "Resend (sending emails).",
-      "horsQuebec": "Some of these providers may keep information outside Québec. <todo>hosting regions chosen, and confirmation of the privacy impact assessment required by Québec's Law 25 for a transfer outside Québec</todo>"
+      "horsQuebec": "These providers keep information outside Québec, in the United States (Stripe: in Canada and the United States), where it may be subject to the laws of those countries. Before communicating it there, the privacy-related factors were assessed and contracts ensure adequate protection, as required by section 17 of the Act."
     },
     "conservation": {
       "titre": "How long we keep it",
@@ -509,11 +510,11 @@
     },
     "securite": {
       "titre": "Security",
-      "texte": "Exchanges with the site are encrypted. Access to information is limited to the fundraiser team and protected by a code. Submitted photos may be reviewed by the team before they are displayed."
+      "texte": "Exchanges with the site are encrypted. Only the members of the fundraising team have access, each with their own password-protected account; the {studioName} team has no access without the organization's invitation. Submitted photos may be reviewed by the team before they are displayed."
     },
     "recus": {
       "titre": "Tax receipts",
-      "texte": "{org} is not yet a registered charity: no tax receipt is issued for now. <todo>to update if this changes</todo>"
+      "texte": "Official receipts for income tax purposes are handled by {org}: to find out whether your donation qualifies, write to the person in charge (above)."
     },
     "modifications": {
       "titre": "Changes",
@@ -535,8 +536,8 @@
       "titre": "Donations",
       "paiement": "Donations are made in Canadian dollars, by card, through Stripe. The minimum donation is {min} and the maximum is {max}.",
       "frais": "You may choose to cover the transaction fees: this share is optional and added to your donation.",
-      "definitif": "A donation is voluntary. If there is an error or an unauthorized payment, write to us (see “Contact us”). <todo>refund policy to be confirmed by the organization</todo>",
-      "recus": "No tax receipt is issued for now. <todo>to update if this changes</todo>",
+      "definitif": "A donation is voluntary and, as a rule, final. If there is an error (amount, double payment) or an unauthorized payment, write to us within 30 days: we will refund you. Any other refund request is at the discretion of {org}.",
+      "recus": "Official receipts for income tax purposes are handled by {org}: write to us to find out whether your donation qualifies.",
       "taille": "The size of a piece reflects the amount of donations. Its size and position may change as the stained glass grows."
     },
     "contenu": {
@@ -569,7 +570,7 @@
     },
     "droit": {
       "titre": "Governing law and language",
-      "texte": "These terms are governed by the laws of Québec and the federal laws of Canada that apply there. The courts of the <todo>judicial district</todo> have jurisdiction, subject to your consumer rights. The parties have expressly required that these terms be drawn up in French; the English version is provided for convenience."
+      "texte": "These terms are governed by the laws of Québec and the federal laws of Canada that apply there. Any dispute falls under the courts of Québec; if you are a consumer, you keep the right to go to the court of your place of residence. The parties have expressly required that these terms be drawn up in French; the English version is provided for convenience."
     },
     "contact": {
       "titre": "Contact us",
@@ -1301,5 +1302,244 @@
     "titre": "A demonstration stained glass",
     "texte": "{org} is a fictional organization. This stained glass shows what {brand} looks like: its donors, testimonials and donations are made up, you can’t donate here, and it collects no personal information. No privacy policy or terms of use apply to it.",
     "contact": "{brand} is designed and operated by {studio}. Questions: <courriel>{email}</courriel>."
+  },
+  "legalPlateforme": {
+    "confidentialite": {
+      "titre": "Platform privacy policy",
+      "maj": "Effective {date}",
+      "sections": [
+        {
+          "titre": "1. Who this policy covers",
+          "blocs": [
+            "This policy explains how {studio} (“we”), which designs and operates {brand}, handles the personal information it collects on its own behalf: on this website, through invitation requests, and for the accounts of organizations’ teams. It follows Québec’s Act respecting the protection of personal information in the private sector.",
+            "Donors’ information is covered by a different policy. Each organization is responsible for the information it collects through its stained glass and publishes its own policy, linked at the bottom of its stained glass. We only process that information on its behalf (see section 11)."
+          ]
+        },
+        {
+          "titre": "2. Who is responsible",
+          "blocs": [
+            "{studio} (NEQ {neq}), {address}.",
+            "The president of {studio} is the person in charge of the protection of personal information. Contact: {email}."
+          ]
+        },
+        {
+          "titre": "3. What we collect",
+          "blocs": [
+            "• Invitation request: the organization’s name, your name, your email, your message if any, the page language and the date.",
+            "• Team account: your name, your email, a hash of your password (never the password itself), the organizations you belong to and your role, the date of your last sign-in; for the person who signs up an organization, the version and date of acceptance of the terms of use.",
+            "• Access security: for each open session, an encrypted identifier and the browser type; the email entered in a failed sign-in attempt; single-use links and codes (forgotten password, address confirmation, invitation).",
+            "• Emails: a log of the emails we send you (recipient, type, date, delivery status), to make sure they arrive.",
+            "We collect no payment information: an organization connects its Stripe account directly on Stripe’s website."
+          ]
+        },
+        {
+          "titre": "4. Why",
+          "blocs": [
+            "• To answer your request and invite you.",
+            "• To create and protect your access to the console, and to write to you about your account (sign-in links, invitations, important service notices).",
+            "• To prevent abuse and intrusion attempts.",
+            "• To establish and prove acceptance of the terms of use.",
+            "We do not use your information for advertising, we do not sell it, and we share it only with the providers named in section 7. No decision about you is based exclusively on automated processing."
+          ]
+        },
+        {
+          "titre": "5. Consent",
+          "blocs": [
+            "By writing to us or creating an account, you consent to these uses. You may withdraw your consent at any time by writing to us; we will then have to close your access to the console."
+          ]
+        },
+        {
+          "titre": "6. Cookies",
+          "blocs": [
+            "• donivers_session: keeps you signed in to the console. Strictly necessary; expires 30 days after your last visit, or when you sign out.",
+            "• donivers_lang: remembers the language you chose, for one year.",
+            "No advertising cookies, no audience measurement tools, no third-party trackers."
+          ]
+        },
+        {
+          "titre": "7. Providers and hosting outside Québec",
+          "blocs": [
+            "We entrust some processing to providers bound by contract, who use the information only to provide their service to us:",
+            "• Vercel Inc.: website hosting (United States);",
+            "• Supabase Inc.: database and files (United States);",
+            "• Resend: email delivery (United States);",
+            "• Stripe: payments received by organizations (Canada and United States), under its own terms and policy.",
+            "This information is therefore stored outside Québec, where it may be subject to the laws of those countries. Before communicating it there, we assess the privacy-related factors and ensure by contract that it receives adequate protection, as required by section 17 of the Act."
+          ]
+        },
+        {
+          "titre": "8. How long we keep it",
+          "blocs": [
+            "• Invitation request: two years after the request or after our last exchange.",
+            "• Team account: as long as it is active; deleted at your request or when the organization stops using the platform, subject to our legal obligations.",
+            "• Sessions: until they expire.",
+            "• Failed sign-in attempts: 24 hours.",
+            "• Single-use links and codes: 30 days.",
+            "• Invitations: one year after they are accepted, cancelled or expire.",
+            "• Platform email log: one year.",
+            "• Acceptance of the terms of use: as long as the organization uses the platform, then for the applicable limitation periods.",
+            "After these periods, the information is destroyed."
+          ]
+        },
+        {
+          "titre": "9. Security",
+          "blocs": [
+            "Exchanges with the site are encrypted. Passwords are stored as hashes. Each team only has access to its own organization’s information, according to its role; the {studio} team has no access to an organization’s console without its invitation. Access is limited to the people who need it.",
+            "We keep a register of confidentiality incidents. If an incident presents a risk of serious injury, we promptly notify the Commission d’accès à l’information and the people concerned."
+          ]
+        },
+        {
+          "titre": "10. Your rights",
+          "blocs": [
+            "You may ask to access the information we hold about you, to correct or delete it, withdraw your consent, and receive your information in a structured, commonly used technological format.",
+            "Write to {email}. We answer within 30 days. If you are not satisfied with our answer, you may contact Québec’s Commission d’accès à l’information (cai.gouv.qc.ca)."
+          ]
+        },
+        {
+          "titre": "11. If you are a donor",
+          "blocs": [
+            "If you gave through a {brand} stained glass, the organization behind it is responsible for your information and its policy applies; it is linked at the bottom of its stained glass. {studio} processes the information on its behalf, under a contract that requires it to use the information only to run the stained glass, to protect it, and to destroy or return it when the service ends.",
+            "You may also write to us at {email}: we will forward your request to the organization."
+          ]
+        },
+        {
+          "titre": "12. Demonstration stained glass",
+          "blocs": [
+            "The demonstration stained glass shown on this website is fictional: its names, testimonials and donations are made up, and it collects no information."
+          ]
+        },
+        {
+          "titre": "13. Minors",
+          "blocs": [
+            "This website and the console are intended for organizations and their teams. We do not knowingly collect information about anyone under 14."
+          ]
+        },
+        {
+          "titre": "14. Changes",
+          "blocs": [
+            "We will publish any change to this policy here, with its effective date. If the change is significant, we will notify account holders by email."
+          ]
+        }
+      ]
+    },
+    "conditions": {
+      "titre": "Terms of use for organizations",
+      "maj": "Version {version} · effective {date}",
+      "sections": [
+        {
+          "titre": "1. The parties and acceptance",
+          "blocs": [
+            "These terms form the contract between {studio} (NEQ {neq}), {address} (“we”), which operates the {brand} platform, and the organization that signs up to it (“the organization”).",
+            "The person who signs up the organization represents that they have the authority to bind it. Acceptance is recorded with the version of these terms and its date."
+          ]
+        },
+        {
+          "titre": "2. The service",
+          "blocs": [
+            "{brand} lets the organization receive donations online, each becoming a piece of a stained glass shown on a public page and on a projection screen, and manage its campaign from a console.",
+            "The service is a beta, offered by invitation. It evolves: we may add, change or remove features. We give the organization advance notice of any change that significantly reduces what it uses."
+          ]
+        },
+        {
+          "titre": "3. Accounts and team",
+          "blocs": [
+            "The organization designates at least one owner, who may invite volunteers. Each member uses their own account and keeps their password confidential. The organization is responsible for what its team members do in the console, and tells us without delay of any unauthorized access.",
+            "The information provided (name, legal details, stained glass address) must be accurate and kept up to date."
+          ]
+        },
+        {
+          "titre": "4. Payments",
+          "blocs": [
+            "Donations are paid by card through Stripe, directly into the organization’s Stripe account. The money never passes through us. The organization opens and manages its Stripe account and accepts Stripe’s terms, which apply between it and Stripe.",
+            "Stripe’s processing fees, refunds, disputes (payment chargebacks) and related fees are borne by the organization. Until the Stripe account is ready, the stained glass accepts no real donations."
+          ]
+        },
+        {
+          "titre": "5. Our commission",
+          "blocs": [
+            "For each donation received, we take a commission of {taux} of the donation amount, excluding any processing fees covered by the donor. Once the total commissions paid by the organization reach {seuil}, the commission drops to {palier} for all later donations.",
+            "The commission is collected automatically by Stripe at the time of payment. If a donation is refunded or a dispute is lost, the corresponding share of the commission is returned. Applicable taxes are added, if any.",
+            "There is no subscription and no fixed fee. We may change the commission by giving the organization at least 30 days’ notice; the change applies only to donations received after it takes effect."
+          ]
+        },
+        {
+          "titre": "6. The organization’s obligations",
+          "blocs": [
+            "• Comply with the laws that apply to its fundraising and communications.",
+            "• Describe its cause and the use of donations honestly.",
+            "• Enter its legal details and its person in charge of the protection of personal information before going live, and keep them up to date: they feed its privacy policy and terms, which it is responsible for having reviewed.",
+            "• Issue official receipts for income tax purposes itself, where applicable: the platform does not issue them.",
+            "• Moderate its donors’ names, testimonials and photos, and promptly remove any unlawful or inappropriate content reported to it.",
+            "• Send donors promotional messages only if they consented (mailing list box), in accordance with Canada’s anti-spam legislation."
+          ]
+        },
+        {
+          "titre": "7. Prohibited uses",
+          "blocs": [
+            "The organization may not use the platform for illegal, fraudulent or misleading activity, to publish hateful or harassing content or content that infringes others’ rights, to circumvent security measures, or to collect information beyond what the platform provides for."
+          ]
+        },
+        {
+          "titre": "8. Donors’ personal information",
+          "blocs": [
+            "The organization is the person responsible, within the meaning of the Act respecting the protection of personal information in the private sector, for its donors’ information. We process it only on its behalf and according to its instructions, which are those given through the console. These terms serve as the written agreement required by the Act. Accordingly, we undertake to:",
+            "• use this information only to provide the service to the organization, never for our own purposes, and never sell it;",
+            "• protect it with reasonable security measures, limit access to the people who need it, and not access the organization’s console without its invitation;",
+            "• use only the providers named in our privacy policy (including hosting in the United States), bound by equivalent obligations; the organization is informed of this communication outside Québec;",
+            "• notify the organization without delay of any confidentiality incident affecting its donors, and help it respond;",
+            "• help it answer its donors’ requests (access, correction, removal, deletion), which it can handle itself from the console;",
+            "• when the service ends, return its data on request and then destroy it, subject to what the law requires us to keep."
+          ]
+        },
+        {
+          "titre": "9. Content and intellectual property",
+          "blocs": [
+            "The organization keeps ownership of its name, logo and texts. It grants us the right to host, reproduce and display them as needed to provide the service. We present the organization as a {brand} client only with its consent.",
+            "Donors’ names, testimonials and photos belong to them; they are displayed according to their consent and can be removed at any time.",
+            "The platform, its code, its look and the {brand} brand belong to {studio}, which retains all rights in them. The organization obtains only a right of use, for the term of the contract."
+          ]
+        },
+        {
+          "titre": "10. Availability",
+          "blocs": [
+            "We make reasonable efforts to keep the platform available and secure, especially during the organization’s events. During the beta, no level of availability is guaranteed; maintenance interruptions may occur, announced in advance when possible."
+          ]
+        },
+        {
+          "titre": "11. Limitation of liability",
+          "blocs": [
+            "To the extent permitted by law, our total liability to the organization, for any cause, is limited to the commissions it paid us during the 12 months before the event in question. We are not liable for indirect losses (donations not received, loss of reputation), nor for the acts of Stripe or our other providers to the extent they are beyond our control.",
+            "Nothing in these terms excludes liability that cannot be excluded by law, including for intentional or gross fault."
+          ]
+        },
+        {
+          "titre": "12. Term, suspension and termination",
+          "blocs": [
+            "The contract lasts as long as the organization uses the platform. The organization may end it at any time by writing to us. We may end it by giving at least 30 days’ notice.",
+            "We may suspend, without notice, the access of an organization that seriously breaches these terms or whose use endangers the platform, its donors or third parties; we inform it and tell it how to remedy the situation.",
+            "When the contract ends, the organization may export its data for 30 days. Its stained glass then stops being public, and its data is destroyed in accordance with section 8. Commissions already collected remain ours, except for the returns provided in section 5."
+          ]
+        },
+        {
+          "titre": "13. Changes to these terms",
+          "blocs": [
+            "We may change these terms. We notify the organization’s owner by email at least 30 days before a significant change takes effect. If the organization keeps using the platform after that date, it accepts the new version; otherwise, it may end the contract at no cost."
+          ]
+        },
+        {
+          "titre": "14. Governing law and language",
+          "blocs": [
+            "These terms are governed by the laws of Québec and the federal laws of Canada that apply there. Any dispute falls under the courts of the judicial district of Bedford.",
+            "The French version of these terms prevails. This English translation is provided for the reader’s convenience."
+          ]
+        },
+        {
+          "titre": "15. Contact us",
+          "blocs": [
+            "{studio}, {address} · {email}"
+          ]
+        }
+      ]
+    }
   }
 }

@@ -477,6 +477,7 @@
       "don": "<b>Le montant et la date de votre don</b> : pour tenir les comptes de la collecte et dimensionner votre morceau de verre.",
       "facultatif": "<b>Seulement si vous les fournissez</b> : le nom que vous choisissez, votre témoignage et votre photo, affichés sur l'écran de l'organisme et sur la page publique du vitrail. Le nom est facultatif : sans lui, votre morceau apparaît comme « Anonyme », avec votre témoignage et votre photo si vous en avez ajouté.",
       "consentement": "<b>Votre consentement à être cité</b>, si vous cochez la case prévue : l'organisme peut alors reprendre votre témoignage dans ses communications (site, réseaux sociaux, rapport annuel). Sans cette case, il reste uniquement sur le vitrail. Vous pouvez retirer ce consentement en tout temps avec votre lien de modification.",
+      "listeEnvoi": "<b>Votre accord pour recevoir les nouvelles de {org}</b>, seulement si vous cochez la case prévue (jamais cochée d'avance) : la date et le texte accepté sont gardés comme preuve. Vous pouvez vous désinscrire en tout temps avec votre lien personnel.",
       "paiement": "<b>Vos informations de paiement</b> sont saisies directement chez notre fournisseur de paiement, Stripe. Nous ne voyons jamais votre numéro de carte.",
       "langue": "<b>Votre langue</b> (français ou anglais) : pour vous écrire dans la langue de votre choix.",
       "provenance": "<b>La provenance de votre visite</b> (par exemple : l'affiche du café), sans aucune donnée qui vous identifie, pour savoir quels emplacements font connaître la collecte."
@@ -493,7 +494,7 @@
       "supabase": "Supabase (hébergement de la base de données et des photos) ;",
       "vercel": "Vercel (hébergement du site) ;",
       "resend": "Resend (envoi des courriels).",
-      "horsQuebec": "Certains de ces fournisseurs peuvent conserver des renseignements à l'extérieur du Québec. <todo>régions d'hébergement retenues et confirmation de l'évaluation des facteurs relatifs à la vie privée exigée par la Loi 25 pour une communication hors Québec</todo>"
+      "horsQuebec": "Ces fournisseurs conservent les renseignements à l'extérieur du Québec, aux États-Unis (Stripe : au Canada et aux États-Unis), où ils peuvent être soumis aux lois de ces pays. Avant de les y communiquer, les facteurs relatifs à la vie privée ont été évalués et des contrats en assurent une protection adéquate, comme l'exige l'article 17 de la Loi."
     },
     "conservation": {
       "titre": "Combien de temps nous les gardons",
@@ -509,11 +510,11 @@
     },
     "securite": {
       "titre": "Sécurité",
-      "texte": "Les échanges avec le site sont chiffrés. L'accès aux renseignements est limité à l'équipe de la collecte et protégé par un code. Les photos proposées peuvent être vérifiées par l'équipe avant leur affichage."
+      "texte": "Les échanges avec le site sont chiffrés. Seules les personnes de l'équipe de la collecte y ont accès, chacune avec son propre compte protégé par un mot de passe ; l'équipe de {studioName} n'y accède pas sans l'invitation de l'organisme. Les photos proposées peuvent être vérifiées par l'équipe avant leur affichage."
     },
     "recus": {
       "titre": "Reçus fiscaux",
-      "texte": "{org} n'est pas encore un organisme de bienfaisance enregistré : aucun reçu fiscal n'est émis pour le moment. <todo>à mettre à jour si la situation change</todo>"
+      "texte": "Les reçus officiels pour fins d'impôt relèvent de {org} : pour savoir si votre don y donne droit, écrivez à la personne responsable (ci-dessus)."
     },
     "modifications": {
       "titre": "Modifications",
@@ -535,8 +536,8 @@
       "titre": "Les dons",
       "paiement": "Les dons se font en dollars canadiens, par carte, par l'intermédiaire de Stripe. Le don minimal est de {min} et le don maximal, de {max}.",
       "frais": "Vous pouvez choisir de couvrir les frais de transaction : cette part est facultative et s'ajoute à votre don.",
-      "definitif": "Un don est volontaire. En cas d'erreur ou de paiement non autorisé, écrivez-nous (voir « Nous joindre »). <todo>politique de remboursement à confirmer par l'organisme</todo>",
-      "recus": "Aucun reçu fiscal n'est émis pour le moment. <todo>à mettre à jour si la situation change</todo>",
+      "definitif": "Un don est volontaire et, en principe, définitif. En cas d'erreur (montant, paiement en double) ou de paiement non autorisé, écrivez-nous dans les 30 jours : nous vous rembourserons. Toute autre demande de remboursement est laissée à la discrétion de {org}.",
+      "recus": "Les reçus officiels pour fins d'impôt relèvent de {org} : écrivez-nous pour savoir si votre don y donne droit.",
       "taille": "La taille d'un morceau reflète le montant des dons. Elle et son emplacement peuvent changer à mesure que le vitrail grandit."
     },
     "contenu": {
@@ -569,7 +570,7 @@
     },
     "droit": {
       "titre": "Droit applicable et langue",
-      "texte": "Ces conditions sont régies par les lois du Québec et les lois fédérales du Canada qui s'y appliquent. Les tribunaux du <todo>district judiciaire</todo> sont compétents, sous réserve de vos droits de consommateur. Les parties ont expressément exigé que ces conditions soient rédigées en français ; la version anglaise est fournie par commodité."
+      "texte": "Ces conditions sont régies par les lois du Québec et les lois fédérales du Canada qui s'y appliquent. Tout litige relève des tribunaux du Québec ; si vous êtes un consommateur, vous gardez le droit de vous adresser au tribunal de votre domicile. Les parties ont expressément exigé que ces conditions soient rédigées en français ; la version anglaise est fournie par commodité."
     },
     "contact": {
       "titre": "Nous joindre",
@@ -1301,5 +1302,244 @@
     "titre": "Un vitrail de démonstration",
     "texte": "{org} est un organisme fictif. Ce vitrail sert à montrer {brand} : ses donateurs, ses témoignages et ses dons sont inventés, on ne peut pas y donner, et il ne recueille aucun renseignement personnel. Aucune politique de confidentialité ni condition d’utilisation ne s’y applique donc.",
     "contact": "{brand} est conçu et exploité par {studio}. Pour toute question : <courriel>{email}</courriel>."
+  },
+  "legalPlateforme": {
+    "confidentialite": {
+      "titre": "Politique de confidentialité de la plateforme",
+      "maj": "En vigueur le {date}",
+      "sections": [
+        {
+          "titre": "1. À qui s’applique cette politique",
+          "blocs": [
+            "Cette politique explique comment {studio} (« nous »), qui conçoit et exploite {brand}, traite les renseignements personnels qu’elle recueille pour son propre compte : sur cette vitrine, lors d’une demande d’invitation, et pour les comptes des équipes des organismes. Elle est rédigée selon la Loi sur la protection des renseignements personnels dans le secteur privé du Québec.",
+            "Les renseignements des donateurs relèvent d’une autre politique. Chaque organisme est responsable de ceux qu’il recueille par son vitrail et publie sa propre politique, accessible au bas de son vitrail. Nous les traitons seulement pour son compte (voir la section 11)."
+          ]
+        },
+        {
+          "titre": "2. Responsable",
+          "blocs": [
+            "{studio} (NEQ {neq}), {address}.",
+            "Le président de {studio} est la personne responsable de la protection des renseignements personnels. Pour la joindre : {email}."
+          ]
+        },
+        {
+          "titre": "3. Les renseignements que nous recueillons",
+          "blocs": [
+            "• Demande d’invitation : le nom de l’organisme, votre nom, votre courriel, votre message s’il y a lieu, la langue de la page et la date.",
+            "• Compte d’équipe : votre nom, votre courriel, une empreinte de votre mot de passe (jamais le mot de passe lui-même), les organismes dont vous faites partie et votre rôle, la date de votre dernière connexion ; pour la personne qui inscrit un organisme, la version et la date d’acceptation des conditions d’utilisation.",
+            "• Sécurité de l’accès : pour chaque session ouverte, un identifiant chiffré et le type de navigateur ; le courriel saisi lors d’une tentative de connexion échouée ; les liens et codes à usage unique (mot de passe oublié, confirmation d’adresse, invitation).",
+            "• Courriels : un journal des courriels que nous vous envoyons (destinataire, type, date, statut de remise), pour vérifier qu’ils arrivent.",
+            "Nous ne recueillons aucun renseignement de paiement : un organisme connecte son compte Stripe directement sur le site de Stripe."
+          ]
+        },
+        {
+          "titre": "4. Pourquoi",
+          "blocs": [
+            "• Répondre à votre demande et vous inviter.",
+            "• Créer et protéger votre accès à la console, et vous écrire au sujet de votre compte (liens de connexion, invitations, avis importants sur le service).",
+            "• Prévenir les abus et les tentatives d’intrusion.",
+            "• Établir et prouver l’acceptation des conditions d’utilisation.",
+            "Nous n’utilisons pas vos renseignements à des fins publicitaires, nous ne les vendons pas et nous ne les communiquons qu’aux fournisseurs nommés à la section 7. Aucune décision vous concernant n’est fondée exclusivement sur un traitement automatisé."
+          ]
+        },
+        {
+          "titre": "5. Consentement",
+          "blocs": [
+            "En nous écrivant ou en créant un compte, vous consentez à ces usages. Vous pouvez retirer votre consentement en tout temps en nous écrivant ; nous devrons alors fermer votre accès à la console."
+          ]
+        },
+        {
+          "titre": "6. Témoins",
+          "blocs": [
+            "• donivers_session : garde votre session ouverte dans la console. Strictement nécessaire ; expire 30 jours après votre dernière visite, ou à la déconnexion.",
+            "• donivers_lang : retient la langue que vous avez choisie, pendant un an.",
+            "Aucun témoin publicitaire, aucun outil de mesure d’audience, aucun traceur de tiers."
+          ]
+        },
+        {
+          "titre": "7. Fournisseurs et hébergement à l’extérieur du Québec",
+          "blocs": [
+            "Nous confions certains traitements à des fournisseurs liés par contrat, qui n’utilisent les renseignements que pour nous rendre leur service :",
+            "• Vercel Inc. : hébergement du site (États-Unis) ;",
+            "• Supabase Inc. : base de données et fichiers (États-Unis) ;",
+            "• Resend : envoi des courriels (États-Unis) ;",
+            "• Stripe : paiements reçus par les organismes (Canada et États-Unis), selon ses propres conditions et sa propre politique.",
+            "Ces renseignements sont donc conservés à l’extérieur du Québec, où ils peuvent être soumis aux lois de ces pays. Avant de les y communiquer, nous évaluons les facteurs relatifs à la vie privée et nous nous assurons, par contrat, qu’ils y bénéficient d’une protection adéquate, comme l’exige l’article 17 de la Loi."
+          ]
+        },
+        {
+          "titre": "8. Combien de temps nous les gardons",
+          "blocs": [
+            "• Demande d’invitation : deux ans après la demande ou après notre dernier échange.",
+            "• Compte d’équipe : tant qu’il est actif ; supprimé à votre demande ou à la fin de l’utilisation de la plateforme par l’organisme, sous réserve de nos obligations légales.",
+            "• Sessions : jusqu’à leur expiration.",
+            "• Tentatives de connexion échouées : 24 heures.",
+            "• Liens et codes à usage unique : 30 jours.",
+            "• Invitations : un an après leur acceptation, leur annulation ou leur expiration.",
+            "• Journal des courriels de la plateforme : un an.",
+            "• Acceptation des conditions d’utilisation : tant que l’organisme utilise la plateforme, puis le temps des délais de prescription applicables.",
+            "Ces délais écoulés, les renseignements sont détruits."
+          ]
+        },
+        {
+          "titre": "9. Sécurité",
+          "blocs": [
+            "Les échanges avec le site sont chiffrés. Les mots de passe sont conservés sous forme d’empreinte. Chaque équipe n’a accès qu’aux renseignements de son organisme, selon son rôle ; l’équipe de {studio} n’a pas accès à la console d’un organisme sans son invitation. Les accès sont limités aux personnes qui en ont besoin.",
+            "Nous tenons un registre des incidents de confidentialité. Si un incident présente un risque de préjudice sérieux, nous avisons avec diligence la Commission d’accès à l’information et les personnes concernées."
+          ]
+        },
+        {
+          "titre": "10. Vos droits",
+          "blocs": [
+            "Vous pouvez demander l’accès aux renseignements que nous détenons sur vous, leur rectification ou leur suppression, retirer votre consentement, et recevoir vos renseignements dans un format technologique structuré et couramment utilisé.",
+            "Écrivez à {email}. Nous répondons dans les 30 jours. Si notre réponse ne vous satisfait pas, vous pouvez vous adresser à la Commission d’accès à l’information du Québec (cai.gouv.qc.ca)."
+          ]
+        },
+        {
+          "titre": "11. Si vous êtes donateur",
+          "blocs": [
+            "Si vous avez donné par un vitrail {brand}, l’organisme de ce vitrail est responsable de vos renseignements et sa politique s’applique ; elle est accessible au bas de son vitrail. {studio} les traite pour son compte, en vertu d’un contrat qui l’oblige à ne les utiliser que pour faire fonctionner le vitrail, à les protéger, et à les détruire ou les remettre à la fin du service.",
+            "Vous pouvez aussi nous écrire à {email} : nous transmettrons votre demande à l’organisme."
+          ]
+        },
+        {
+          "titre": "12. Vitrail de démonstration",
+          "blocs": [
+            "Le vitrail de démonstration présenté sur cette vitrine est fictif : ses noms, ses témoignages et ses dons sont inventés, et il ne recueille aucun renseignement."
+          ]
+        },
+        {
+          "titre": "13. Personnes mineures",
+          "blocs": [
+            "La vitrine et la console s’adressent aux organismes et à leurs équipes. Nous ne recueillons pas sciemment de renseignements sur une personne de moins de 14 ans."
+          ]
+        },
+        {
+          "titre": "14. Modifications",
+          "blocs": [
+            "Nous publierons ici toute modification de cette politique, avec sa date d’entrée en vigueur. Si elle est importante, nous en avertirons par courriel les titulaires d’un compte."
+          ]
+        }
+      ]
+    },
+    "conditions": {
+      "titre": "Conditions d’utilisation pour les organismes",
+      "maj": "Version {version} · en vigueur le {date}",
+      "sections": [
+        {
+          "titre": "1. Les parties et l’acceptation",
+          "blocs": [
+            "Ces conditions forment le contrat entre {studio} (NEQ {neq}), {address} (« nous »), qui exploite la plateforme {brand}, et l’organisme qui s’y inscrit (« l’organisme »).",
+            "La personne qui inscrit l’organisme déclare avoir l’autorité de l’engager. L’acceptation est enregistrée avec la version de ces conditions et sa date."
+          ]
+        },
+        {
+          "titre": "2. Le service",
+          "blocs": [
+            "{brand} permet à l’organisme de recevoir des dons en ligne, chacun devenant un morceau d’un vitrail affiché sur une page publique et sur un écran de projection, et de gérer sa collecte depuis une console.",
+            "Le service est en version bêta, offert sur invitation. Il évolue : nous pouvons ajouter, modifier ou retirer des fonctions. Nous avertissons l’organisme à l’avance de tout changement qui réduit de façon importante ce qu’il utilise."
+          ]
+        },
+        {
+          "titre": "3. Comptes et équipe",
+          "blocs": [
+            "L’organisme désigne au moins un propriétaire, qui peut inviter des bénévoles. Chaque membre utilise son propre compte et garde son mot de passe confidentiel. L’organisme est responsable de ce que font les membres de son équipe dans la console, et nous avise sans délai de tout accès non autorisé.",
+            "Les renseignements fournis (nom, coordonnées juridiques, adresse du vitrail) doivent être exacts et tenus à jour."
+          ]
+        },
+        {
+          "titre": "4. Paiements",
+          "blocs": [
+            "Les dons sont payés par carte au moyen de Stripe, directement sur le compte Stripe de l’organisme. L’argent ne transite jamais par nous. L’organisme ouvre et gère son compte Stripe et accepte les conditions de Stripe, qui s’appliquent entre lui et Stripe.",
+            "Les frais de traitement de Stripe, les remboursements, les litiges (contestations de paiement) et les frais qui s’y rattachent sont à la charge de l’organisme. Tant que le compte Stripe n’est pas prêt, le vitrail n’accepte aucun don réel."
+          ]
+        },
+        {
+          "titre": "5. Notre commission",
+          "blocs": [
+            "Pour chaque don reçu, nous prélevons une commission de {taux} du montant du don, frais de traitement couverts par le donateur exclus. Lorsque le total des commissions versées par l’organisme atteint {seuil}, la commission passe à {palier} pour tous les dons suivants.",
+            "La commission est prélevée automatiquement par Stripe au moment du paiement. En cas de remboursement ou de litige perdu, la part correspondante de la commission est rendue. Les taxes applicables s’ajoutent, s’il y a lieu.",
+            "Il n’y a ni abonnement ni frais fixes. Nous pouvons modifier la commission en avisant l’organisme au moins 30 jours à l’avance ; la modification ne vise que les dons reçus après son entrée en vigueur."
+          ]
+        },
+        {
+          "titre": "6. Les obligations de l’organisme",
+          "blocs": [
+            "• Respecter les lois qui s’appliquent à sa collecte de fonds et à ses communications.",
+            "• Décrire honnêtement sa cause et l’usage des dons.",
+            "• Renseigner ses coordonnées juridiques et sa personne responsable de la protection des renseignements personnels avant la mise en ligne, et les garder à jour : elles alimentent sa politique de confidentialité et ses conditions, qu’il lui revient de faire valider.",
+            "• Émettre lui-même, s’il y a lieu, les reçus officiels pour fins d’impôt : la plateforme n’en émet pas.",
+            "• Modérer les noms, témoignages et photos de ses donateurs et retirer sans délai tout contenu illicite ou inapproprié qui lui est signalé.",
+            "• N’écrire aux donateurs à des fins promotionnelles que s’ils y ont consenti (case de la liste d’envoi), conformément à la loi canadienne anti-pourriel."
+          ]
+        },
+        {
+          "titre": "7. Usages interdits",
+          "blocs": [
+            "L’organisme ne peut pas utiliser la plateforme pour une activité illégale, frauduleuse ou trompeuse, pour diffuser du contenu haineux, harcelant ou portant atteinte aux droits d’autrui, pour contourner les mesures de sécurité, ni pour recueillir des renseignements au-delà de ce que la plateforme prévoit."
+          ]
+        },
+        {
+          "titre": "8. Renseignements personnels des donateurs",
+          "blocs": [
+            "L’organisme est responsable, au sens de la Loi sur la protection des renseignements personnels dans le secteur privé, des renseignements de ses donateurs. Nous les traitons uniquement pour son compte et selon ses instructions, qui sont celles de la console. Ces conditions tiennent lieu de l’entente écrite prévue par la Loi. À ce titre, nous nous engageons à :",
+            "• n’utiliser ces renseignements que pour fournir le service à l’organisme, jamais à nos propres fins, et ne jamais les vendre ;",
+            "• les protéger par des mesures de sécurité raisonnables, en limiter l’accès aux personnes qui en ont besoin, et ne pas accéder à la console de l’organisme sans son invitation ;",
+            "• ne recourir qu’aux fournisseurs nommés dans notre politique de confidentialité (hébergement aux États-Unis, notamment), liés par des obligations équivalentes ; l’organisme est informé de cette communication à l’extérieur du Québec ;",
+            "• aviser l’organisme sans délai de tout incident de confidentialité touchant ses donateurs, et l’aider à y répondre ;",
+            "• l’aider à répondre aux demandes de ses donateurs (accès, rectification, retrait, suppression), qu’il peut traiter lui-même depuis la console ;",
+            "• à la fin du service, lui remettre ses données sur demande, puis les détruire, sous réserve de ce que la loi nous oblige à conserver."
+          ]
+        },
+        {
+          "titre": "9. Contenu et propriété intellectuelle",
+          "blocs": [
+            "L’organisme reste propriétaire de son nom, de son logo et de ses textes. Il nous accorde le droit de les héberger, de les reproduire et de les afficher dans la mesure nécessaire pour fournir le service. Nous ne présentons l’organisme comme client de {brand} qu’avec son accord.",
+            "Les noms, témoignages et photos des donateurs leur appartiennent ; ils sont affichés selon leur consentement et peuvent être retirés à tout moment.",
+            "La plateforme, son code, son apparence et la marque {brand} appartiennent à {studio}, qui en garde tous les droits. L’organisme n’obtient qu’un droit d’utilisation, pour la durée du contrat."
+          ]
+        },
+        {
+          "titre": "10. Disponibilité",
+          "blocs": [
+            "Nous faisons des efforts raisonnables pour que la plateforme soit disponible et sûre, notamment pendant les événements de l’organisme. Pendant la bêta, aucun niveau de disponibilité n’est garanti ; des interruptions pour entretien peuvent survenir, annoncées à l’avance lorsque c’est possible."
+          ]
+        },
+        {
+          "titre": "11. Limitation de responsabilité",
+          "blocs": [
+            "Dans la mesure permise par la loi, notre responsabilité totale envers l’organisme, pour toute cause, est limitée au montant des commissions qu’il nous a versées au cours des 12 mois précédant l’événement en cause. Nous ne sommes pas responsables des pertes indirectes (dons non reçus, perte de réputation), ni des actes de Stripe ou de nos autres fournisseurs dans la mesure où ils échappent à notre contrôle.",
+            "Rien dans ces conditions n’exclut une responsabilité qui ne peut l’être en vertu de la loi, notamment pour une faute intentionnelle ou lourde."
+          ]
+        },
+        {
+          "titre": "12. Durée, suspension et fin",
+          "blocs": [
+            "Le contrat dure tant que l’organisme utilise la plateforme. L’organisme peut y mettre fin en tout temps en nous écrivant. Nous pouvons y mettre fin en l’avisant au moins 30 jours à l’avance.",
+            "Nous pouvons suspendre sans préavis l’accès d’un organisme qui enfreint ces conditions de façon grave ou dont l’usage met en danger la plateforme, ses donateurs ou des tiers ; nous l’en informons et lui indiquons comment y remédier.",
+            "À la fin du contrat, l’organisme peut exporter ses données pendant 30 jours. Son vitrail cesse ensuite d’être public, et ses données sont détruites selon la section 8. Les commissions déjà prélevées restent acquises, sauf remboursement prévu à la section 5."
+          ]
+        },
+        {
+          "titre": "13. Modifications de ces conditions",
+          "blocs": [
+            "Nous pouvons modifier ces conditions. Nous avisons le propriétaire de l’organisme par courriel au moins 30 jours avant l’entrée en vigueur d’une modification importante. Si l’organisme continue d’utiliser la plateforme après cette date, il accepte la nouvelle version ; sinon, il peut mettre fin au contrat sans frais."
+          ]
+        },
+        {
+          "titre": "14. Droit applicable et langue",
+          "blocs": [
+            "Ces conditions sont régies par les lois du Québec et les lois du Canada qui s’y appliquent. Tout litige relève des tribunaux du district judiciaire de Bedford.",
+            "La version française de ces conditions fait foi. Une traduction anglaise est offerte pour la commodité du lecteur."
+          ]
+        },
+        {
+          "titre": "15. Nous joindre",
+          "blocs": [
+            "{studio}, {address} · {email}"
+          ]
+        }
+      ]
+    }
   }
 }

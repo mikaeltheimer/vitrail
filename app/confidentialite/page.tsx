@@ -63,7 +63,7 @@ export default async function ConfidentialitePage() {
 
       <Section title={t('collecte.titre')}>
         <Items>
-          {(['courriel', 'don', 'facultatif', 'consentement', 'paiement', 'langue', 'provenance'] as const).map(k => (
+          {(['courriel', 'don', 'facultatif', 'consentement', 'listeEnvoi', 'paiement', 'langue', 'provenance'] as const).map(k => (
             <li key={k}>{rich(`collecte.${k}`)}</li>
           ))}
         </Items>
