@@ -51,6 +51,8 @@ class Query {
       for (const p of list) {
         for (const key of UNIQUE[this.table] ?? []) {
           const cols = key.split('+')
+          // Comme Postgres : une valeur nulle n'entre jamais en conflit
+          if (cols.some(c => p[c] == null)) continue
           if (rows.some(r => cols.every(c => r[c] === p[c]))) return { data: null, error: { code: '23505', message: `duplicate ${key}` } }
         }
       }

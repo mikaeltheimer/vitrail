@@ -8,6 +8,7 @@ import { formatMoney } from '@/lib/format'
 import { requestIdentity } from '@/lib/identity'
 import { clampLocale, type LegalInfo } from '@/lib/identity-shared'
 import BrandFooter from '@/components/BrandFooter'
+import ShowcaseLegal from '@/components/ShowcaseLegal'
 import { Items, Section, legalTags } from '@/components/Legal'
 
 // Conditions d'utilisation. Les passages [À COMPLÉTER] sont les coordonnées que l'organisme n'a pas encore remplies (Mon vitrail) ou sont à confirmer par l'organisme.
@@ -32,6 +33,7 @@ export default async function ConditionsPage() {
   const { identity } = await requestIdentity()
   const locale = (identity ? clampLocale(identity.locales, (await getLocale()) as Locale) : await getLocale()) as Locale
   const org = { name: identity ? identity.texts[locale].name : CONFIG.brand.name }
+  if (identity?.showcase) return <ShowcaseLegal org={org.name} />
   const legal: LegalInfo = identity?.legal ?? { entity: '', neq: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
   const tags = legalTags(tc('aCompleter'), legal, (await getTranslations('confidentialite'))('retentionDefaut', { org: org.name }))
   const v = {

@@ -34,6 +34,8 @@ export interface Identity {
   senderName: string
   /** Adresse de réponse des courriels (à défaut, celle du responsable des renseignements personnels). */
   replyTo: string | null
+  /** Vitrail de démonstration (organisme fictif, lecture seule). */
+  showcase: boolean
 }
 
 /** Champs que l'organisme rédige, par langue. */

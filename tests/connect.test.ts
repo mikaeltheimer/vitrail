@@ -300,7 +300,7 @@ async function main() {
   console.log('Paiement direct')
   const { startCheckout } = await import('../lib/payments')
   const base = { email: 'ana@x.ca', amountCents: 10000, feeCents: 0, returnTo: 'vitrail' as const, profile: { showName: true, name: 'Ana', message: null, photoUrl: null, quoteConsent: false }, color: '#fff', channel: null, locale: 'fr' as const, baseUrl: 'https://ecoleartsutton.donivers.test' }
-  const orgRow = { id: 'orgA', slug: 'ecoleartsutton', status: 'live' as const, practiceOf: null, name: 'École A', nameEn: null, photoModeration: 'live' as const, senderName: null, replyTo: null, stripeAccountId: 'acct_A', stripeReady: true, feeSchedule: S }
+  const orgRow = { id: 'orgA', slug: 'ecoleartsutton', status: 'live' as const, practiceOf: null, showcase: false, name: 'École A', nameEn: null, photoModeration: 'live' as const, senderName: null, replyTo: null, stripeAccountId: 'acct_A', stripeReady: true, feeSchedule: S }
   const vit = { id: 'permA', organizationId: 'orgA', kind: 'permanent' as const, slug: null, name: 'A', state: 'active' as const, inMain: true, goalCents: 0 }
   seed()
   tables.organization_fee_totals = [{ organization_id: 'orgA', fees_cents: 0 }]

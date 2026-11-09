@@ -120,7 +120,8 @@
     "typeImageInconnu": "Unknown image type.",
     "imageLourde": "Image too large ({max} KB at most).",
     "imageIllisible": "Unreadable image: please send a PNG, JPEG or SVG.",
-    "imageDimensions": "Invalid image dimensions."
+    "imageDimensions": "Invalid image dimensions.",
+    "demoLectureSeule": "This is a demonstration stained glass: nothing is saved here."
   },
   "photo": {
     "alt": "Your photo",
@@ -324,7 +325,9 @@
       "recu": "This organization is not yet a registered charity, so no tax receipt is issued at this time. Secure payment by Stripe.",
       "creation": "Created by <lien>{studio}</lien>."
     },
-    "ferme": "This stained glass opens soon: donations are not open yet."
+    "ferme": "This stained glass opens soon: donations are not open yet.",
+    "demoBadge": "Demonstration: fictional donors and donations",
+    "demoNotice": "This stained glass is a demonstration: the names, testimonials and donations are fictional, and you can’t donate here."
   },
   "claim": {
     "titre": "Add my piece",
@@ -363,6 +366,8 @@
     "qrAlt": "QR code to donate",
     "qrLegende": "Add your piece",
     "demo": "DEMO MODE — no real payments",
+    "demonstration": "DEMONSTRATION — fictional donors and donations",
+    "qrLegendeDemo": "Explore this stained glass",
     "horsLigne": "Connection lost — showing the last known state, resuming automatically",
     "vide": "The stained glass is waiting for its first piece",
     "videTexte": "Scan the code to donate and watch your piece of glass appear."
@@ -1272,5 +1277,10 @@
       "encore": "Once more",
       "enregistrer": "Save"
     }
+  },
+  "demoJuridique": {
+    "titre": "A demonstration stained glass",
+    "texte": "{org} is a fictional organization. This stained glass shows what {brand} looks like: its donors, testimonials and donations are made up, you can’t donate here, and it collects no personal information. No privacy policy or terms of use apply to it.",
+    "contact": "{brand} is designed and operated by {studio}. Questions: <courriel>{email}</courriel>."
   }
 }

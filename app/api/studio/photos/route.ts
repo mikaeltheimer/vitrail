@@ -1,5 +1,5 @@
+import { studioAccount } from '@/lib/studio'
 import { NextRequest, NextResponse } from 'next/server'
-import { currentAccount } from '@/lib/auth'
 import { migrateLegacyPhotos } from '@/lib/photo-migration'
 
 export const runtime = 'nodejs'
@@ -11,15 +11,7 @@ export const maxDuration = 300
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status }) // i18n-ok : section Studio (FR)
 
-async function studio(request: NextRequest) {
-  if (request.method !== 'GET') {
-    const origin = request.headers.get('origin')
-    const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim().toLowerCase()
-    if (origin && new URL(origin).host.toLowerCase() !== host) return null
-  }
-  const me = await currentAccount()
-  return me?.isStudio ? me : null
-}
+const studio = studioAccount
 
 /** État, à blanc : rien n'est modifié. */
 export async function GET(request: NextRequest) {

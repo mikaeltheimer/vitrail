@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Mark } from '@/components/plateforme/Brand'
+import { squareJpeg } from '@/lib/photoClient'
 
 // Section Studio (en français : usage interne de Studio Existence). Voir app/api/studio/route.ts.
 
@@ -9,7 +10,7 @@ interface Data {
   me: { email: string; name: string }
   requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; created_at: string }[]
   invitations: { id: string; email: string; orgName: string | null; createdAt: string; expiresAt: string; state: 'pending' | 'accepted' | 'expired' | 'revoked' }[]
-  organizations: { id: string; name: string; slug: string; status: 'draft' | 'live' | 'suspended'; stripeReady: boolean; createdAt: string }[]
+  organizations: { id: string; name: string; slug: string; status: 'draft' | 'live' | 'suspended'; showcase: boolean; stripeReady: boolean; createdAt: string }[]
 }
 
 const day = (iso: string) => new Date(iso).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })
@@ -199,13 +200,15 @@ export default function StudioPanel() {
                       <b>{o.name}</b> <span className="muted">· {o.slug}</span>
                     </span>
                     <span className="muted text-sm">
-                      {o.status === 'live' ? 'En ligne' : o.status === 'draft' ? 'Pas encore en ligne' : 'Suspendu'} · Stripe {o.stripeReady ? 'prêt' : 'à connecter'} · depuis le {day(o.createdAt)}
+                      {o.showcase ? 'Démonstration (fictive, sans dons)' : <>{o.status === 'live' ? 'En ligne' : o.status === 'draft' ? 'Pas encore en ligne' : 'Suspendu'} · Stripe {o.stripeReady ? 'prêt' : 'à connecter'}</>} · depuis le {day(o.createdAt)}
                     </span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
+
+          <DemoCard />
 
           <PhotoMaintenance />
 
@@ -268,6 +271,105 @@ function PhotoMaintenance() {
             {r.apply && <button className="btn btn-ghost !w-auto" disabled={busy} onClick={() => void call()}>Vérifier de nouveau</button>}
           </>
         )}
+      </div>
+    </section>
+  )
+}
+
+interface DemoData {
+  exists: boolean
+  donors: number
+  totalCents: number
+  photos: number
+  namedWithoutPhoto: number
+  links: { vitrail: string; ecran: string; screen: string } | null
+}
+
+/** Vitrail de démonstration : (re)générer les donateurs fictifs, ajouter des photos (attribuées au hasard), les retirer. */
+function DemoCard() {
+  const [d, setD] = useState<DemoData | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const call = useCallback(async (init?: RequestInit) => {
+    const res = await fetch('/api/studio/demo', { cache: 'no-store', ...init })
+    const b = (await res.json().catch(() => ({}))) as DemoData & { error?: string }
+    if (res.ok) { setD(b); setError(null) } else setError(b.error || 'Erreur.')
+  }, [])
+  useEffect(() => {
+    const id = setTimeout(() => void call(), 0)
+    return () => clearTimeout(id)
+  }, [call])
+  const post = async (action: string, label: string) => {
+    setBusy(label)
+    await call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) })
+    setBusy(null)
+  }
+  const upload = async (files: FileList) => {
+    let done = 0
+    let failed = 0
+    for (const f of Array.from(files)) {
+      setBusy(`Photos : ${done + failed + 1} sur ${files.length}…`)
+      try {
+        const blob = await squareJpeg(f)
+        const res = await fetch('/api/studio/demo/photo', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob })
+        if (res.ok) done++
+        else {
+          failed++
+          const b = (await res.json().catch(() => ({}))) as { error?: string }
+          if (res.status === 409) { setError(b.error || 'Plus de morceau libre.'); break }
+        }
+      } catch {
+        failed++
+      }
+    }
+    setBusy(null)
+    await call()
+    if (failed) setError(`${done} photo(s) ajoutée(s), ${failed} refusée(s).`)
+  }
+  const money = (c: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(c / 100)
+  return (
+    <section className="space-y-2.5">
+      <h2 className="text-lg font-bold">Vitrail de démonstration</h2>
+      <div className="card space-y-3 text-sm">
+        <p className="muted">Fondation Pleine Lumière : organisme fictif, en lecture seule (aucun don, aucun signalement). Les textes et les noms sont dans lib/demo-data.ts.</p>
+        {error && <p style={{ color: '#F58FA3' }}>{error}</p>}
+        {d && !d.exists && <p>La démo n’existe pas encore sur cette base.</p>}
+        {d?.exists && (
+          <>
+            <p>
+              <b>{d.donors}</b> donateurs fictifs · <b>{money(d.totalCents)}</b> · <b>{d.photos}</b> photo(s), {d.namedWithoutPhoto} morceau(x) nommé(s) sans photo
+            </p>
+            {d.links && (
+              <p className="flex flex-wrap gap-x-4 gap-y-1">
+                <a className="underline" href={d.links.vitrail} target="_blank" rel="noreferrer">Vitrail</a>
+                <a className="underline" href={d.links.ecran} target="_blank" rel="noreferrer">Écran (FR)</a>
+                <a className="underline" href={d.links.screen} target="_blank" rel="noreferrer">Écran (EN)</a>
+              </p>
+            )}
+          </>
+        )}
+        {busy && <p role="status">{busy}</p>}
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="btn !w-auto"
+            disabled={!!busy || !d}
+            onClick={() => (!d?.exists || confirm('Régénérer les donateurs ? Les dates sont replacées à aujourd’hui ; les photos sont gardées et redistribuées.')) && void post('generate', 'Génération…')}
+          >
+            {d?.exists ? 'Régénérer les donateurs' : 'Créer la démo'}
+          </button>
+          {d?.exists && (
+            <label className="btn btn-ghost !w-auto cursor-pointer">
+              Ajouter des photos…
+              <input type="file" accept="image/*" multiple className="sr-only" disabled={!!busy} onChange={e => { if (e.target.files?.length) void upload(e.target.files); e.target.value = '' }} />
+            </label>
+          )}
+          {!!d?.photos && (
+            <button className="btn btn-ghost !w-auto" disabled={!!busy} onClick={() => confirm(`Retirer les ${d.photos} photo(s) de la démo ? Les fichiers sont effacés.`) && void post('removePhotos', 'Retrait…')}>
+              Retirer les photos
+            </button>
+          )}
+        </div>
+        <p className="muted text-xs">Des photos que Studio a le droit de montrer (vos propres photos, avec consentement) ; jamais de banque d’images de visages.</p>
       </div>
     </section>
   )

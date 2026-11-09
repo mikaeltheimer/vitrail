@@ -39,7 +39,9 @@ export function paymentMode(): PaymentMode {
  * - global « stripe » : un organisme en brouillon a ses dons fermés (« ouvrira bientôt » : on s'exerce sur l'entraînement) ;
  *   un organisme en ligne paie par Stripe seulement si son compte est prêt, sinon les dons sont fermés.
  */
-export function paymentModeFor(org: { status: string; stripeReady: boolean; practiceOf?: string | null }): PaymentMode {
+export function paymentModeFor(org: { status: string; stripeReady: boolean; practiceOf?: string | null; showcase?: boolean }): PaymentMode {
+  // Démonstration : jamais aucun don, même fictif (la démo se montre telle qu'elle est)
+  if (org.showcase) return 'off'
   const global = paymentMode()
   if (org.practiceOf) return global === 'off' ? 'off' : 'demo'
   if (global !== 'stripe') return global

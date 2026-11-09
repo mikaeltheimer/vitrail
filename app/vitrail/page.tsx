@@ -969,6 +969,7 @@ function Vitrail() {
   const count = ranked.length
   const claimLabel = t('ajouter')
   const closed = snap?.mode === 'off'
+  const showcase = !!snap?.showcase
   const atelier = useAtelier()
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
@@ -1122,7 +1123,7 @@ function Vitrail() {
       {/* ── Derniers dons  ── */}
       {closedNotice && (
         <div role="status" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 200, maxWidth: 'calc(100% - 32px)', background: '#14121D', border: '1px solid rgba(240,178,74,0.5)', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', color: '#F4EFE6', fontSize: 15 }}>
-          <span>{t('ferme')}</span>
+          <span>{showcase ? t('demoNotice') : t('ferme')}</span>
           <button onClick={() => setClosedNotice(false)} aria-label={tc('fermer')} style={{ background: 'none', border: 0, color: 'inherit', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>
             ×
           </button>
@@ -1195,6 +1196,11 @@ function Vitrail() {
             }}
           >
             <Editable field="vitrailTitle">{org.vitrailTitle}</Editable>
+            {showcase && (
+              <span className="font-sans" style={{ display: 'block', marginTop: 8, fontSize: 13, fontWeight: 600, letterSpacing: '0.02em', color: '#F0B24A' }}>
+                {t('demoBadge')}
+              </span>
+            )}
           </h1>
         </>
       )}

@@ -33,6 +33,8 @@ export interface Snapshot {
   version: string
   at: string
   mode: 'stripe' | 'demo' | 'off'
+  /** Vitrail de démonstration : donateurs et dons fictifs, rien ne s'y enregistre (affiché comme tel). */
+  showcase?: boolean
   event: EventInfo | null
   totalCents: number
   donationsCount: number

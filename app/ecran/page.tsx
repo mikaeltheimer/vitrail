@@ -733,12 +733,13 @@ export default function Ecran() {
         ) : (
           <div style={{ aspectRatio: '1', background: '#eee' }} />
         )}
-        <div style={{ fontWeight: 700, fontSize: '1.1em', marginTop: '0.5em', lineHeight: 1.2 }}>{t('qrLegende')}</div>
+        <div style={{ fontWeight: 700, fontSize: '1.1em', marginTop: '0.5em', lineHeight: 1.2 }}>{snap?.showcase ? t('qrLegendeDemo') : t('qrLegende')}</div>
         <div style={{ fontSize: '0.8em', opacity: 0.6, marginTop: '0.2em', wordBreak: 'break-all' }}>{target}</div>
       </div>
 
       {/* État */}
       <div className="absolute text-right" style={{ right: '2.4em', top: '2em', fontSize: '0.95em' }}>
+        {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>{t('demonstration')}</div>}
         {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>{t('demo')}</div>}
         {!online && <div className="muted" style={{ marginTop: '0.5em' }}>{t('horsLigne')}</div>}
       </div>

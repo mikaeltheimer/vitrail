@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
   const t = await requireTenant(request)
   if ('response' in t) return t.response
+  if (t.tenant.org.showcase) return errorResponse(request, err('demoLectureSeule'), 403)
 
   const bytes = Buffer.from(await request.arrayBuffer())
   if (bytes.length > PHOTO_MAX_BYTES) return errorResponse(request, err('photoTropLourde'), 413)

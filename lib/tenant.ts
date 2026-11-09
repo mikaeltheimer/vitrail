@@ -38,6 +38,8 @@ export interface OrgRow {
   status: 'draft' | 'live' | 'suspended'
   /** Organisme d'entraînement : l'identifiant de l'organisme réel ; null pour un organisme réel. */
   practiceOf: string | null
+  /** Vitrail de démonstration (vitrine de la plateforme) : lecture seule, donateurs fictifs, jamais de paiement. */
+  showcase: boolean
   name: string
   nameEn: string | null
   photoModeration: 'live' | 'moderation'
@@ -134,6 +136,7 @@ interface OrgDbRow {
   id: string
   status: OrgRow['status']
   practice_of: string | null
+  showcase?: boolean | null
   name_fr: string
   texts: { en?: { name?: string } } | null
   photo_moderation: OrgRow['photoModeration']
@@ -149,6 +152,7 @@ const toOrg = (r: OrgDbRow, slug: string): OrgRow => ({
   slug,
   status: r.status,
   practiceOf: r.practice_of ?? null,
+  showcase: !!r.showcase,
   name: r.name_fr,
   nameEn: r.texts?.en?.name ?? null,
   photoModeration: r.photo_moderation,
@@ -200,7 +204,7 @@ export async function getOrg(orgId: string): Promise<OrgRow | null> {
   return remember(`org:${orgId}`, async () => {
     const db = getDb()
     const [orgRes, slugRes] = await Promise.all([
-      db.from('organizations').select('id,status,practice_of,name_fr,texts,photo_moderation,sender_name,reply_to,stripe_account_id,stripe_ready,fee_schedule').eq('id', orgId).maybeSingle(),
+      db.from('organizations').select('id,status,practice_of,showcase,name_fr,texts,photo_moderation,sender_name,reply_to,stripe_account_id,stripe_ready,fee_schedule').eq('id', orgId).maybeSingle(),
       db.from('organization_slugs').select('slug').eq('organization_id', orgId).eq('is_current', true).maybeSingle(),
     ])
     if (orgRes.error) throw orgRes.error

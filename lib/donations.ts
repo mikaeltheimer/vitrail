@@ -368,6 +368,7 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
     version,
     at: new Date().toISOString(),
     mode: paymentModeFor(org),
+    ...(org.showcase ? { showcase: true } : {}),
     event,
     totalCents,
     donationsCount: Number(vtRes.data?.donations_count ?? 0),

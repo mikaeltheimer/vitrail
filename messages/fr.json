@@ -120,7 +120,8 @@
     "typeImageInconnu": "Type d’image inconnu.",
     "imageLourde": "Image trop lourde ({max} Ko au plus).",
     "imageIllisible": "Image illisible : envoyez un PNG, un JPEG ou un SVG.",
-    "imageDimensions": "Dimensions de l’image invalides."
+    "imageDimensions": "Dimensions de l’image invalides.",
+    "demoLectureSeule": "C’est un vitrail de démonstration : rien n’y est enregistré."
   },
   "photo": {
     "alt": "Votre photo",
@@ -324,7 +325,9 @@
       "recu": "Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment. Paiement sécurisé par Stripe.",
       "creation": "Une création de <lien>{studio}</lien>."
     },
-    "ferme": "Ce vitrail ouvrira bientôt : les dons ne sont pas encore ouverts."
+    "ferme": "Ce vitrail ouvrira bientôt : les dons ne sont pas encore ouverts.",
+    "demoBadge": "Démonstration : donateurs et dons fictifs",
+    "demoNotice": "Ce vitrail est une démonstration : les noms, les témoignages et les dons sont fictifs, et on ne peut pas y donner."
   },
   "claim": {
     "titre": "Ajouter mon morceau",
@@ -363,6 +366,8 @@
     "qrAlt": "Code QR pour donner",
     "qrLegende": "Ajoutez votre morceau",
     "demo": "MODE DÉMO — aucun paiement réel",
+    "demonstration": "DÉMONSTRATION — donateurs et dons fictifs",
+    "qrLegendeDemo": "Explorez ce vitrail",
     "horsLigne": "Connexion perdue — dernier état affiché, reprise automatique",
     "vide": "Le vitrail attend sa première pièce",
     "videTexte": "Scannez le code pour donner et voir votre morceau de verre apparaître."
@@ -1272,5 +1277,10 @@
       "encore": "Encore une fois",
       "enregistrer": "Enregistrer"
     }
+  },
+  "demoJuridique": {
+    "titre": "Un vitrail de démonstration",
+    "texte": "{org} est un organisme fictif. Ce vitrail sert à montrer {brand} : ses donateurs, ses témoignages et ses dons sont inventés, on ne peut pas y donner, et il ne recueille aucun renseignement personnel. Aucune politique de confidentialité ni condition d’utilisation ne s’y applique donc.",
+    "contact": "{brand} est conçu et exploité par {studio}. Pour toute question : <courriel>{email}</courriel>."
   }
 }

@@ -23,12 +23,13 @@ export interface IdentityRow {
   locales: string[] | null
   sender_name: string | null
   reply_to: string | null
+  showcase?: boolean | null
   /** Brouillon de l'atelier (voir lib/atelier.ts) : null s'il n'y a rien en cours. */
   draft?: { locales?: string[]; texts?: StoredTexts; logo_path?: string | null; icon_path?: string | null; logoSize?: [number, number] | null; iconSize?: [number, number] | null } | null
   published_at?: string | null
 }
 
-export const IDENTITY_COLUMNS = 'id,name_fr,website_url,texts,legal,theme,logo_path,icon_path,locales,sender_name,reply_to,draft,published_at'
+export const IDENTITY_COLUMNS = 'id,name_fr,website_url,texts,legal,theme,logo_path,icon_path,locales,sender_name,reply_to,showcase,draft,published_at'
 
 /** Adresse d'un fichier de l'organisme : chemin du bucket, ou fichier statique du site (« /… »). */
 export const assetUrl = (path: string | null | undefined): string | null => (!path ? null : path.startsWith('/') ? path : publicPhotoUrl(path))
@@ -87,6 +88,7 @@ export function identityFromRow(r: IdentityRow): Identity {
     },
     senderName: (r.sender_name || texts[locales[0]].name).trim(),
     replyTo: r.reply_to || legal.officerEmail || null,
+    showcase: !!r.showcase,
   }
 }
 

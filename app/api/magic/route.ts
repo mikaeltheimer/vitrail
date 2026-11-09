@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
   if (!rateLimit(clientKey(request, 'magic'), 60, 10 * 60_000)) return errorResponse(request, err('tropDeDemandes'), 429)
   const t = await requireTenant(request)
   if ('response' in t) return t.response
+  if (t.tenant.org.showcase) return errorResponse(request, err('demoLectureSeule'), 403)
   const orgId = t.tenant.org.id
   const baseUrl = baseUrlOf(request)
   const { email } = (await request.json().catch(() => ({}))) as { email?: unknown }
