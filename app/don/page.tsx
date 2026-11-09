@@ -92,6 +92,12 @@ function DonForm() {
 
   const onDraftChange = useCallback((d: ClaimDraft) => setDraft(d), [])
 
+  // Démonstration : les dons fictifs se font sur le vitrail (le morceau y apparaît, dans l'onglet) ; ce formulaire n'y mènerait nulle part
+  const showcase = !!snap?.showcase
+  useEffect(() => {
+    if (showcase) window.location.replace('/vitrail?don')
+  }, [showcase])
+
   const mode = snap?.mode
   const event = snap?.event ?? null
   const goalPct = event && event.goalCents > 0 ? Math.min(100, Math.round((event.totalCents / event.goalCents) * 100)) : 0

@@ -18,6 +18,7 @@ export default function BottomSheet({
   piece,
   tile,
   own,
+  local = false,
   sheetRef,
   onClose,
   onPrev,
@@ -27,6 +28,8 @@ export default function BottomSheet({
   piece: RankedPiece
   tile: Tile | null
   own: boolean
+  /** Morceau d'essai de la démonstration (n'existe que dans l'onglet) : rien à partager ni à signaler. */
+  local?: boolean
   sheetRef: React.RefObject<HTMLDivElement | null>
   onClose: () => void
   onPrev: () => void
@@ -139,6 +142,7 @@ export default function BottomSheet({
             {tn('suiv')}
           </button>
         </div>
+        {!local && (
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={() => setShare(true)} style={btn}>
             <span>🔗</span>
@@ -150,6 +154,7 @@ export default function BottomSheet({
             </button>
           )}
         </div>
+        )}
       </div>
       {share && <ShareDialog id={piece.id} name={piece.name} own={own} onClose={() => setShare(false)} />}
       {report && <ReportDialog donorId={piece.id} onClose={() => setReport(false)} />}

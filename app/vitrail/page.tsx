@@ -13,7 +13,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AboutPanel from '@/components/vitrail/AboutPanel'
 import BottomSheet from '@/components/vitrail/BottomSheet'
-import ClaimPanel, { type ClaimDraft } from '@/components/vitrail/ClaimPanel'
+import ClaimPanel, { type ClaimDraft, type DemoDonation } from '@/components/vitrail/ClaimPanel'
 import TestimonialField from '@/components/vitrail/TestimonialField'
 import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
@@ -25,10 +25,11 @@ import { useOrg } from '@/lib/useOrg'
 import { useMoney, useOrdinal, useSceneText } from '@/lib/useI18n'
 import { ensureFonts } from '@/lib/fonts'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
+import { useEscape } from '@/lib/useEscape'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
-import type { Piece, Snapshot } from '@/lib/types'
+import type { Piece, RecentDonation, Snapshot } from '@/lib/types'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgMark } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
@@ -65,6 +66,45 @@ const goldButtonStyle: React.CSSProperties = {
   fontWeight: 600,
   cursor: 'pointer',
   boxShadow: '0 8px 30px rgba(240,178,74,0.25)',
+}
+
+// ── Vitrail de démonstration : dons fictifs du visiteur (étape G) ──
+// Rien ne part au serveur : les morceaux vivent dans l'onglet (sessionStorage), survivent à un rechargement et disparaissent
+// à sa fermeture ; aucun autre visiteur ne les voit. Le serveur refuse de toute façon toute écriture sur la démo.
+const DEMO_KEY = 'vitrail:demo-morceaux'
+const DEMO_PREFIX = 'essai-'
+type LocalPiece = Piece & { at: string; paidCents: number }
+function readLocalPieces(): LocalPiece[] {
+  try {
+    const raw = sessionStorage.getItem(DEMO_KEY)
+    const list = raw ? (JSON.parse(raw) as LocalPiece[]) : []
+    return Array.isArray(list) ? list.filter(p => typeof p?.id === 'string' && p.id.startsWith(DEMO_PREFIX)) : []
+  } catch {
+    return []
+  }
+}
+function saveLocalPieces(list: LocalPiece[]) {
+  try {
+    if (list.length) sessionStorage.setItem(DEMO_KEY, JSON.stringify(list))
+    else sessionStorage.removeItem(DEMO_KEY)
+  } catch {
+    // Onglet plein (photos) : le morceau reste affiché jusqu'au prochain rechargement, sans plus
+  }
+}
+/** L'instantané du serveur, plus les morceaux d'essai du visiteur (version distincte : le pavage est recalculé). */
+function withLocalPieces(s: Snapshot, local: LocalPiece[]): Snapshot {
+  if (!local.length) return s
+  const pieces: Piece[] = local.map(({ id, name, message, photoUrl, color, amountCents }) => ({ id, name, message, photoUrl, color, amountCents }))
+  const recent: RecentDonation[] = [...local].reverse().map(p => ({ id: p.id, donorId: p.id, name: p.name, message: p.message, photoUrl: p.photoUrl, amountCents: p.amountCents, at: p.at }))
+  const sum = local.reduce((n, p) => n + p.amountCents, 0)
+  return {
+    ...s,
+    version: `${s.version}+${local.map(p => p.id).join(',')}`,
+    totalCents: s.totalCents + sum,
+    donationsCount: s.donationsCount + local.length,
+    pieces: [...s.pieces, ...pieces],
+    recent: [...recent, ...s.recent].slice(0, Math.max(s.recent.length, recent.length)),
+  }
 }
 
 type Cam = { x: number; y: number; zoom: number }
@@ -179,6 +219,10 @@ function Vitrail() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [toast, setToast] = useState<{ id: string; donorId: string; text: string } | null>(null)
+  // Démonstration : morceaux d'essai du visiteur, et la carte qui suit un don fictif
+  const localRef = useRef<LocalPiece[]>([])
+  const [demoWelcome, setDemoWelcome] = useState<{ paidCents: number } | null>(null)
+  const [emailOpen, setEmailOpen] = useState<{ paidCents: number } | null>(null)
 
   const setSheetOpen = useCallback((v: boolean) => {
     wRef.current.sheetOpen = v
@@ -829,11 +873,19 @@ function Vitrail() {
     const seen = new Set<string>()
     const load = async () => {
       try {
-        const s = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
-        if (stop || !s.pieces) return
+        const raw = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
+        if (stop || !raw.pieces) return
+        if (raw.showcase && first) {
+          localRef.current = readLocalPieces()
+          const last = localRef.current.at(-1)
+          if (last) setMyId(last.id)
+        }
+        const s = raw.showcase ? withLocalPieces(raw, localRef.current) : raw
         setSnap(s)
-        closedRef.current = s.mode === 'off'
-        const fresh = s.recent.filter(d => !seen.has(d.id))
+        // La démonstration n'accepte aucun vrai don, mais son panneau fonctionne (dons fictifs, dans l'onglet)
+        closedRef.current = s.mode === 'off' && !s.showcase
+        // Ses propres morceaux d'essai ne s'annoncent pas comme un « nouveau don »
+        const fresh = s.recent.filter(d => !seen.has(d.id) && !d.id.startsWith(DEMO_PREFIX))
         s.recent.forEach(d => seen.add(d.id))
         if (!first && fresh.length) {
           const d = fresh[0]
@@ -953,6 +1005,36 @@ function Vitrail() {
     api.current.preview(draft, geometryChanged)
   }, [])
 
+  // Démonstration : le morceau entre dans le vitrail de l'onglet, avec le même vol qu'après un vrai paiement
+  const onDemoDonate = useCallback(async (d: DemoDonation) => {
+    const id = `${DEMO_PREFIX}${crypto.randomUUID()}`
+    const piece: LocalPiece = { id, name: d.name, message: d.message, photoUrl: d.photoSrc, color: d.color, amountCents: d.amountCents, paidCents: d.paidCents, at: new Date().toISOString() }
+    localRef.current = [...localRef.current, piece]
+    saveLocalPieces(localRef.current)
+    setMyId(id)
+    // Pendant le don, l'instantané met à jour les morceaux sans recalculer le pavage ; la fermeture du panneau le recalcule
+    await reloadRef.current()
+    api.current.closeClaim()
+    setWelcome(null)
+    setDemoWelcome({ paidCents: d.paidCents })
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, i ? 500 : 900))
+      const w = wRef.current
+      if (w.ready && !w.claim && w.tiles.has(id)) {
+        api.current.select(id, true)
+        return
+      }
+    }
+  }, [])
+  const clearDemo = useCallback(async () => {
+    localRef.current = []
+    saveLocalPieces([])
+    setMyId(null)
+    setDemoWelcome(null)
+    api.current.home()
+    await reloadRef.current()
+  }, [])
+
   // Mis à jour après les effets du moteur, qui lisent ces textes
   useEffect(() => {
     fmtRef.current = { count: n => ti('compteur', { count: n }), toast: name => tt('ajoute', { nom: name ?? tt('quelquun') }), anon: tc('anonyme'), text: sceneText }
@@ -968,8 +1050,8 @@ function Vitrail() {
   const totalCents = snap?.totalCents ?? 0
   const count = ranked.length
   const claimLabel = t('ajouter')
-  const closed = snap?.mode === 'off'
   const showcase = !!snap?.showcase
+  const closed = snap?.mode === 'off' && !showcase
   const atelier = useAtelier()
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
@@ -1044,7 +1126,8 @@ function Vitrail() {
             <BottomSheet
               piece={piece}
               tile={tile}
-              own={piece.id === mine?.id}
+              own={piece.id === mine?.id || piece.id.startsWith(DEMO_PREFIX)}
+              local={piece.id.startsWith(DEMO_PREFIX)}
               sheetRef={sheetRef}
               onClose={() => setSheetOpen(false)}
               onPrev={() => api.current.step(-1)}
@@ -1097,7 +1180,7 @@ function Vitrail() {
             onPrev={() => api.current.step(-1)}
             onNext={() => api.current.step(1)}
           />
-          {piece && <DetailPanel piece={piece} tile={tile} count={count} totalCents={totalCents} own={piece.id === mine?.id} onClose={() => api.current.home()} />}
+          {piece && <DetailPanel piece={piece} tile={tile} count={count} totalCents={totalCents} own={piece.id === mine?.id || piece.id.startsWith(DEMO_PREFIX)} local={piece.id.startsWith(DEMO_PREFIX)} onClose={() => api.current.home()} />}
         </>
       )}
 
@@ -1128,7 +1211,7 @@ function Vitrail() {
       {/* ── Derniers dons  ── */}
       {closedNotice && (
         <div role="status" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 200, maxWidth: 'calc(100% - 32px)', background: '#14121D', border: '1px solid rgba(240,178,74,0.5)', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', color: '#F4EFE6', fontSize: 15 }}>
-          <span>{showcase ? t('demoNotice') : t('ferme')}</span>
+          <span>{t('ferme')}</span>
           <button onClick={() => setClosedNotice(false)} aria-label={tc('fermer')} style={{ background: 'none', border: 0, color: 'inherit', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>
             ×
           </button>
@@ -1153,16 +1236,35 @@ function Vitrail() {
 
       {/* ── Don sur place ── */}
       {claimOpen && (
-        <ClaimPanel amounts={ranked.map(p => p.amountCents)} typicalCents={snap?.typicalCents ?? null} demo={snap?.mode === 'demo'} isMobile={mobile} panelRef={claimPanelRef} onDraftChange={onDraftChange} onClose={() => api.current.closeClaim()} />
+        <ClaimPanel
+          amounts={ranked.map(p => p.amountCents)}
+          typicalCents={snap?.typicalCents ?? null}
+          demo={snap?.mode === 'demo'}
+          isMobile={mobile}
+          panelRef={claimPanelRef}
+          onDraftChange={onDraftChange}
+          onClose={() => api.current.closeClaim()}
+          onDemoDonate={showcase ? d => void onDemoDonate(d) : undefined}
+        />
       )}
 
       <ScaleBadge style={{ left: '50%', bottom: 16, transform: 'translateX(-50%)' }} />
 
       {/* ── Retour de paiement ── */}
       {welcome && !claimOpen && <WelcomeCard welcome={welcome} isMobile={mobile} topOffset={barOffset} onClose={() => setWelcome(null)} onPublished={() => void reloadRef.current()} />}
+      {demoWelcome && !claimOpen && (
+        <DemoWelcomeCard
+          isMobile={mobile}
+          topOffset={barOffset}
+          onEmail={() => setEmailOpen({ paidCents: demoWelcome.paidCents })}
+          onClear={() => void clearDemo()}
+          onClose={() => setDemoWelcome(null)}
+        />
+      )}
+      {emailOpen && <DemoEmailPreview paidCents={emailOpen.paidCents} onClose={() => setEmailOpen(null)} />}
 
       {/* ── Nouveau don pendant la visite ── */}
-      {toast && !claimOpen && !welcome && (
+      {toast && !claimOpen && !welcome && !demoWelcome && (
         <div style={{ position: 'fixed', left: '50%', top: HEADER_HEIGHT + 72 + barOffset, transform: 'translateX(-50%)', zIndex: 400, width: 'min(92vw, 420px)' }}>
           <div className="tv-banner-in" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(20,18,29,0.95)', border: '1px solid rgba(240,178,74,0.45)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
             <span style={{ flex: 1, fontSize: 13 }}>{toast.text}</span>
@@ -1369,6 +1471,92 @@ function WelcomeCard({ welcome, isMobile, topOffset = 0, onClose, onPublished }:
 const welcomeText: React.CSSProperties = { margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45 }
 const welcomeMuted: React.CSSProperties = { margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.45 }
 const laterButtonStyle: React.CSSProperties = { padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#F4EFE6', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 14, cursor: 'pointer', flexShrink: 0 }
+
+/**
+ * Démonstration : après un don fictif, à la place de la bienvenue habituelle. Dit honnêtement où vit le morceau (cet onglet
+ * seulement) et montre ce qu'un organisme veut voir avant de s'inscrire : le courriel de remerciement.
+ */
+function DemoWelcomeCard({ isMobile, topOffset = 0, onEmail, onClear, onClose }: { isMobile: boolean; topOffset?: number; onEmail: () => void; onClear: () => void; onClose: () => void }) {
+  const t = useTranslations('vitrail.demoDon')
+  const tc = useTranslations('commun')
+  return (
+    <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14 + topOffset, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 480px)' }}>
+      <div
+        role="status"
+        className="tv-banner-in"
+        style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(20,18,29,0.97)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 0 40px rgba(240,178,74,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'DM Sans', sans-serif" }}
+      >
+        <button onClick={onClose} aria-label={tc('fermer')} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
+          ×
+        </button>
+        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: GOLD }}>{t('surtitre')}</div>
+        <p style={{ margin: 0, paddingRight: 18, fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>{t('titre')}</p>
+        <p style={welcomeText}>{t('texte')}</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+          <button onClick={onEmail} style={{ ...goldButtonStyle, flex: 1, borderRadius: 8 }}>
+            {t('voirCourriel')}
+          </button>
+          <button onClick={onClear} style={laterButtonStyle}>
+            {t('retirer')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Démonstration : le vrai gabarit du courriel de remerciement, rendu par le serveur sans envoi (seuls le montant et la langue
+ * y vont). Affiché dans un cadre isolé (aucun script) ; ses liens sont désactivés : leur jeton est fictif.
+ */
+function DemoEmailPreview({ paidCents, onClose }: { paidCents: number; onClose: () => void }) {
+  const t = useTranslations('vitrail.demoDon')
+  const tc = useTranslations('commun')
+  const locale = useLocale()
+  const [mail, setMail] = useState<{ subject: string; fromName: string; html: string } | 'error' | null>(null)
+  useEscape(onClose)
+  useEffect(() => {
+    let live = true
+    fetch(`/api/demo/courriel?montant=${paidCents}&lang=${locale}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then(d => live && setMail({ subject: String(d.subject), fromName: String(d.fromName), html: String(d.html) }))
+      .catch(() => live && setMail('error'))
+    return () => {
+      live = false
+    }
+  }, [paidCents, locale])
+  // Les liens du courriel portent un jeton fictif : on les rend inertes plutôt que de mener à « lien expiré »
+  const srcDoc = mail && mail !== 'error' ? mail.html.replace('</head>', '<style>a{pointer-events:none;cursor:default}</style></head>') : ''
+  return (
+    <div className="fixed inset-0 z-[900] flex items-end justify-center p-3 sm:items-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('courrielTitre')}
+        style={{ width: 'min(640px, 100%)', maxHeight: 'calc(100dvh - 24px)', display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: 10, padding: 14, borderRadius: 14, background: '#121019', border: '1px solid rgba(255,255,255,0.12)', color: '#F4EFE6', fontFamily: "'DM Sans', sans-serif" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+            <b style={{ fontSize: 16 }}>{t('courrielTitre')}</b>
+            {mail && mail !== 'error' && (
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', overflowWrap: 'anywhere' }}>
+                {t('courrielDe', { expediteur: mail.fromName })} · {t('courrielObjet', { objet: mail.subject })}
+              </span>
+            )}
+          </div>
+          <button onClick={onClose} aria-label={tc('fermer')} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.6)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>
+            ×
+          </button>
+        </div>
+        {mail === null && <p style={welcomeText}>{t('chargement')}</p>}
+        {mail === 'error' && <p style={{ ...welcomeText, color: '#f87171' }}>{t('erreur')}</p>}
+        {mail && mail !== 'error' && <iframe title={t('courrielTitre')} sandbox="" srcDoc={srcDoc} style={{ width: '100%', height: 'min(70dvh, 720px)', border: 0, borderRadius: 10, background: '#0B0A12' }} />}
+        <p style={welcomeMuted}>{t('courrielNote')}</p>
+      </div>
+    </div>
+  )
+}
 
 function Header({
   mobile,

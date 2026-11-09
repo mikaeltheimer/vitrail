@@ -15,7 +15,7 @@ import { useOrdinal } from '@/lib/useI18n'
 const MONO = "'DM Sans', sans-serif"
 const divider = { height: '1px', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)', margin: '24px 0' }
 
-export default function DetailPanel({ piece, tile, count, own, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents?: number; own: boolean; onClose: () => void }) {
+export default function DetailPanel({ piece, tile, count, own, local = false, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents?: number; own: boolean; /** Morceau d'essai de la démonstration (n'existe que dans l'onglet) : rien à partager ni à signaler. */ local?: boolean; onClose: () => void }) {
   const t = useTranslations('vitrail.fiche')
   const tc = useTranslations('commun')
   const ordinal = useOrdinal()
@@ -78,11 +78,13 @@ export default function DetailPanel({ piece, tile, count, own, onClose }: { piec
         <div style={divider} />
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>{t('unMorceau')}</p>
+          {!local && (
           <button onClick={() => setShare(true)} style={{ ...actionStyle, marginTop: '16px' }}>
             <span>🔗</span>
             <span>{own ? t('partagerMien') : t('partagerCe')}</span>
           </button>
-          {!own && (
+          )}
+          {!own && !local && (
             <button onClick={() => setReport(true)} style={{ ...actionStyle, marginTop: '8px', background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.7)' }}>
               <span>⚑</span>
               <span>{t('signaler')}</span>

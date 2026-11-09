@@ -69,6 +69,27 @@ async function main() {
   const kept = tables.donors.filter(d => d.photo_url).map(d => d.photo_url as string).sort()
   check('régénérer : photos gardées', JSON.stringify(kept) === JSON.stringify([...photos].sort()) && files.size === 2)
 
+  console.log('Courriel de remerciement (étape G)')
+  process.env.PLATFORM_DOMAIN = 'donivers.test'
+  const { NextRequest } = await import('next/server')
+  const courriel = await import('../app/api/demo/courriel/route')
+  const ask = (host: string, q: string) => courriel.GET(new NextRequest(`https://${host}/api/demo/courriel?${q}`, { headers: { host } }))
+  const before = JSON.stringify(tables)
+  const r1 = await ask('demo.donivers.test', 'montant=2575&lang=fr')
+  const m1 = (await r1.json()) as { subject?: string; fromName?: string; html?: string }
+  check('démo : le reçu, rendu sans envoi', r1.status === 200 && !!m1.subject?.includes('Fondation Pleine Lumière') && !!m1.html?.includes('25,75'), m1.subject)
+  check('démo : lien au jeton fictif, sur l’adresse de la démo', !!m1.html?.includes('https://demo.donivers.test/m/demonstration?lang=fr'))
+  const r2 = await ask('demo.donivers.test', 'montant=2575&lang=en')
+  const m2 = (await r2.json()) as { html?: string }
+  check('démo : en anglais aussi', r2.status === 200 && !!m2.html?.includes('$25.75'))
+  check('démo : montant hors limites refusé', (await ask('demo.donivers.test', 'montant=0&lang=fr')).status === 400)
+  check('démo : rien d’écrit en base (ni journal des courriels)', JSON.stringify(tables) === before && !(tables.email_log ?? []).length)
+  tables.organizations.push({ id: 'vrai2', name_fr: 'Vrai organisme', status: 'live', showcase: false, texts: {} })
+  tables.organization_slugs.push({ slug: 'vrai', organization_id: 'vrai2', is_current: true })
+  tables.vitraux.push({ id: 'vrai2-v', organization_id: 'vrai2', kind: 'permanent', slug: null, name: null, state: 'active', in_main: true, goal_cents: 0 })
+  const r3 = await ask('vrai.donivers.test', 'montant=2500&lang=fr')
+  check('vrai organisme : pas d’aperçu public', r3.status === 404 && ((await r3.json()) as { code?: string }).code === 'impossibleIci')
+
   console.log('Jamais un autre organisme')
   reset()
   tables.organizations = [{ id: 'vrai', name_fr: 'Vrai organisme', status: 'live', showcase: false }]

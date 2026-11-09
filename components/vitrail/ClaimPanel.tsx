@@ -53,9 +53,25 @@ interface Props {
   returnTo?: "vitrail" | "don";
   /** Provenance par défaut (sinon celle de la session). */
   defaultChannel?: string;
+  /**
+   * Vitrail de démonstration : le panneau fonctionne en entier, mais rien ne part au serveur (photo gardée dans la page,
+   * jamais téléversée) et le paiement est remplacé par une confirmation. Le morceau est remis à la page, qui le garde.
+   */
+  onDemoDonate?: (d: DemoDonation) => void;
   /** geometryChanged = la taille change (il faut recalculer le pavage) ; sinon simple mise à jour visuelle */
   onDraftChange: (draft: ClaimDraft, geometryChanged: boolean) => void;
   onClose?: () => void;
+}
+
+/** Don fictif du vitrail de démonstration : la photo est une data URL (elle doit survivre à un rechargement de l'onglet). */
+export interface DemoDonation {
+  amountCents: number;
+  /** Ce que le donateur aurait payé (frais couverts compris) : c'est le montant du courriel de remerciement. */
+  paidCents: number;
+  name: string | null;
+  message: string | null;
+  photoSrc: string | null;
+  color: string;
 }
 
 export interface KnownDonor {
@@ -132,7 +148,9 @@ export default function ClaimPanel({
   token = null,
   returnTo = "vitrail",
   defaultChannel = "vitrail",
+  onDemoDonate,
 }: Props) {
+  const showcase = !!onDemoDonate;
   const t = useTranslations("claim");
   const tp = useTranslations("photo");
   const te = useTranslations("erreurs");
@@ -168,6 +186,8 @@ export default function ClaimPanel({
   const [photoBusy, setPhotoBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Démonstration : l'étape de paiement, remplacée par une confirmation
+  const [confirming, setConfirming] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Couleur tirée au hasard à l'ouverture (le serveur ne peut pas faire le même tirage), sauf brouillon retrouvé
@@ -254,6 +274,12 @@ export default function ClaimPanel({
     setPhotoBusy(true);
     try {
       const blob = await squareJpeg(file);
+      if (showcase) {
+        // Démonstration : la photo reste dans la page (data URL, qui survit au rechargement), jamais envoyée
+        photoBlob.current = null;
+        setPhoto({ src: await blobToDataUrl(blob), path: null });
+        return;
+      }
       photoBlob.current = blob;
       const src = URL.createObjectURL(blob);
       setPhoto({ src, path: null });
@@ -276,6 +302,11 @@ export default function ClaimPanel({
     !photoBusy;
   const submit = async () => {
     if (!valid) return;
+    if (showcase) {
+      setError(null);
+      setConfirming(true);
+      return;
+    }
     setBusy(true);
     setError(null);
     let channel: string | null = defaultChannel;
@@ -379,7 +410,9 @@ export default function ClaimPanel({
         }}
       >
         <h2 className="font-display" style={{ margin: 0, fontSize: "20px" }}>
-          {agrandir
+          {confirming
+            ? t("demoPaiement.titre")
+            : agrandir
             ? known!.showName && known!.name
               ? t("agrandirNom", { nom: known!.name })
               : t("agrandir")
@@ -392,6 +425,25 @@ export default function ClaimPanel({
         )}
       </div>
 
+      {confirming && onDemoDonate ? (
+        <DemoCheckout
+          payCents={payCents}
+          name={showName ? name.trim() : null}
+          color={color}
+          onBack={() => setConfirming(false)}
+          onConfirm={() =>
+            onDemoDonate({
+              amountCents: baseCents,
+              paidCents: payCents,
+              name: showName ? name.trim() : null,
+              message: message.trim() || null,
+              photoSrc: photo.src,
+              color,
+            })
+          }
+        />
+      ) : (
+      <>
       {agrandir && (
         <p
           style={{
@@ -712,7 +764,7 @@ export default function ClaimPanel({
       {error && (
         <p style={{ margin: 0, fontSize: "13px", color: "#f87171" }}>{error}</p>
       )}
-      {demo && (
+      {(demo || showcase) && (
         <p
           style={{
             margin: 0,
@@ -725,7 +777,7 @@ export default function ClaimPanel({
             border: "1px dashed rgba(240,178,74,0.45)",
           }}
         >
-          {t("demo")}
+          {showcase ? t("demoVitrine") : t("demo")}
         </p>
       )}
 
@@ -744,7 +796,7 @@ export default function ClaimPanel({
         </button>
       </div>
       <p style={{ ...hintStyle, textAlign: "center" }}>
-        {t("pied")}{" "}
+        {showcase ? t("piedDemo") : t("pied")}{" "}
         <Link
           href="/confidentialite"
           target="_blank"
@@ -761,6 +813,88 @@ export default function ClaimPanel({
           {tc("conditionsCourt")}
         </Link>
       </p>
+      </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Démonstration : à la place de Stripe, une étape qui dit ce qui se passerait et confirme qu'aucun paiement n'a lieu.
+ * Le récapitulatif reprend le montant et le verre, pour qu'on sache ce qu'on « donne ».
+ */
+function DemoCheckout({
+  payCents,
+  name,
+  color,
+  onBack,
+  onConfirm,
+}: {
+  payCents: number;
+  name: string | null;
+  color: string;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  const t = useTranslations("claim.demoPaiement");
+  const tc = useTranslations("commun");
+  const money = useMoney();
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => confirmRef.current?.focus(), []);
+  return (
+    <div style={{ display: "grid", gap: "14px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          padding: "12px",
+          borderRadius: "10px",
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.04)",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: "34px",
+            height: "34px",
+            flex: "none",
+            borderRadius: "8px",
+            background: color,
+            boxShadow: `0 0 14px ${color}`,
+          }}
+        />
+        <span style={{ display: "grid", gap: "2px" }}>
+          <span style={{ fontSize: "20px", fontWeight: 700, color: GOLD }}>{money(payCents)}</span>
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)" }}>{name ?? tc("anonyme")}</span>
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: "rgba(255,255,255,0.85)" }}>
+        {t("texte")}
+      </p>
+      <p
+        style={{
+          margin: 0,
+          padding: "10px 12px",
+          borderRadius: "8px",
+          fontSize: "13px",
+          lineHeight: 1.45,
+          color: "#FFE2A8",
+          background: "rgba(240,178,74,0.08)",
+          border: "1px dashed rgba(240,178,74,0.45)",
+        }}
+      >
+        {t("aucunPaiement")}
+      </p>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <button type="button" onClick={onBack} style={secondaryStyle}>
+          {t("modifier")}
+        </button>
+        <button ref={confirmRef} type="button" onClick={onConfirm} style={goldStyle}>
+          {t("confirmer")}
+        </button>
+      </div>
     </div>
   );
 }

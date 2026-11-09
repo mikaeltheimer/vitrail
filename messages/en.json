@@ -327,7 +327,19 @@
     },
     "ferme": "This stained glass opens soon: donations are not open yet.",
     "demoBadge": "Demonstration: fictional donors and donations",
-    "demoNotice": "This stained glass is a demonstration: the names, testimonials and donations are fictional, and you can’t donate here."
+    "demoDon": {
+      "surtitre": "Demonstration",
+      "titre": "Your piece is in the stained glass.",
+      "texte": "It only exists in this tab: nobody else sees it, and it will disappear when you close it. On a real stained glass, the donor would now receive this email:",
+      "voirCourriel": "See the thank-you email",
+      "retirer": "Remove my test pieces",
+      "courrielTitre": "The email the donor would receive",
+      "courrielDe": "From: {expediteur}",
+      "courrielObjet": "Subject: {objet}",
+      "chargement": "Loading…",
+      "erreur": "The preview could not be loaded. Try again.",
+      "courrielNote": "Preview of the real template, nothing is sent. The button leads to the donor's personal page (name, testimonial, photo, removal); it is disabled here."
+    }
   },
   "claim": {
     "titre": "Add my piece",
@@ -352,7 +364,16 @@
     "donner": "Donate {montant}",
     "pied": "What you see is a preview. Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your piece. No tax receipt at this time.",
     "erreurInattendue": "Unexpected error. Please try again.",
-    "listeEnvoi": "I agree to receive news from {org} by email (campaigns, events). I can unsubscribe at any time."
+    "listeEnvoi": "I agree to receive news from {org} by email (campaigns, events). I can unsubscribe at any time.",
+    "demoVitrine": "Demonstration: go ahead and try it. Nothing is charged or saved; your piece only exists in this tab.",
+    "piedDemo": "On a real stained glass, payment happens on Stripe (card, Apple Pay, Google Pay), which asks for the donor's email; then back to their piece.",
+    "demoPaiement": {
+      "titre": "Payment (demonstration)",
+      "texte": "Here, a real donor would pay on Stripe (card, Apple Pay or Google Pay) and give their email to receive a thank-you and the link to their piece.",
+      "aucunPaiement": "Demonstration: no payment. Nothing is sent or saved.",
+      "modifier": "Edit",
+      "confirmer": "Add my piece, without paying"
+    }
   },
   "ecran": {
     "sur": "of {montant}",

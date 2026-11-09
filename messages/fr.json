@@ -327,7 +327,19 @@
     },
     "ferme": "Ce vitrail ouvrira bientôt : les dons ne sont pas encore ouverts.",
     "demoBadge": "Démonstration : donateurs et dons fictifs",
-    "demoNotice": "Ce vitrail est une démonstration : les noms, les témoignages et les dons sont fictifs, et on ne peut pas y donner."
+    "demoDon": {
+      "surtitre": "Démonstration",
+      "titre": "Votre morceau est dans le vitrail.",
+      "texte": "Il n'existe que dans cet onglet : personne d'autre ne le voit, et il disparaîtra quand vous le fermerez. Sur un vrai vitrail, le donateur recevrait maintenant ce courriel :",
+      "voirCourriel": "Voir le courriel de remerciement",
+      "retirer": "Retirer mes morceaux d'essai",
+      "courrielTitre": "Le courriel que recevrait le donateur",
+      "courrielDe": "De : {expediteur}",
+      "courrielObjet": "Objet : {objet}",
+      "chargement": "Chargement…",
+      "erreur": "L'aperçu n'a pas pu être chargé. Réessayez.",
+      "courrielNote": "Aperçu du vrai gabarit, sans envoi. Le bouton mène à la page personnelle du donateur (nom, témoignage, photo, retrait) ; il est désactivé ici."
+    }
   },
   "claim": {
     "titre": "Ajouter mon morceau",
@@ -352,7 +364,16 @@
     "donner": "Donner {montant}",
     "pied": "Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre morceau. Pas de reçu fiscal pour le moment.",
     "erreurInattendue": "Erreur inattendue. Réessayez.",
-    "listeEnvoi": "J’accepte de recevoir par courriel les nouvelles de {org} (campagnes, événements). Je peux me désabonner en tout temps."
+    "listeEnvoi": "J’accepte de recevoir par courriel les nouvelles de {org} (campagnes, événements). Je peux me désabonner en tout temps.",
+    "demoVitrine": "Démonstration : essayez sans crainte. Rien n'est payé ni enregistré ; votre morceau n'existe que dans cet onglet.",
+    "piedDemo": "Sur un vrai vitrail, le paiement se fait chez Stripe (carte, Apple Pay, Google Pay), qui demande le courriel du donateur ; puis retour sur son morceau.",
+    "demoPaiement": {
+      "titre": "Paiement (démonstration)",
+      "texte": "Ici, un vrai donateur paierait chez Stripe (carte, Apple Pay ou Google Pay) et donnerait son courriel pour recevoir son remerciement et le lien vers son morceau.",
+      "aucunPaiement": "Démonstration : aucun paiement. Rien n'est envoyé ni enregistré.",
+      "modifier": "Modifier",
+      "confirmer": "Ajouter mon morceau, sans payer"
+    }
   },
   "ecran": {
     "sur": "sur {montant}",
