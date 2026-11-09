@@ -25,6 +25,8 @@ const Ctx = createContext<AtelierState | null>(null)
 export const useAtelier = () => useContext(Ctx)
 
 interface Draft {
+  /** Console de l'organisme réel (l'atelier est sur une autre adresse). */
+  consoleUrl?: string | null
   /** Photos et témoignages de l'atelier en attente d'approbation. */
   toModerate?: number
   pending: boolean
@@ -179,6 +181,12 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
             className="fixed inset-x-2 top-[62px] z-[1200] flex flex-wrap items-center gap-1.5 rounded-2xl px-2 py-1.5 text-[12px] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:flex-nowrap md:whitespace-nowrap md:rounded-full"
             style={{ background: 'rgba(20,18,29,0.96)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)', color: '#F4EFE6' }}
           >
+            {/* Retour à la console : en tête de barre, loin de Publier et Annuler (à droite) */}
+            {draft.consoleUrl && (
+              <a href={draft.consoleUrl} className="chip !px-2.5 !py-1 text-[12px]">
+                ← {t('console')}
+              </a>
+            )}
             <span className="px-1.5 font-semibold" style={{ color: '#F0B24A' }}>
               {t('titre')}
             </span>

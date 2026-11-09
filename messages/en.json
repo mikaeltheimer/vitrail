@@ -388,7 +388,7 @@
     "qrLegende": "Add your piece",
     "demo": "DEMO MODE — no real payments",
     "demonstration": "DEMONSTRATION — fictional donors and donations",
-    "qrLegendeDemo": "Explore this stained glass",
+    "qrLegendeDemo": "Try it: add your piece",
     "horsLigne": "Connection lost — showing the last known state, resuming automatically",
     "vide": "The stained glass is waiting for its first piece",
     "videTexte": "Scan the code to donate and watch your piece of glass appear."
@@ -1205,6 +1205,7 @@
   },
   "atelier": {
     "titre": "Workshop",
+    "console": "Dashboard",
     "modifier": "Edit",
     "terminer": "Done",
     "tousLesTextes": "All texts",

@@ -6,6 +6,7 @@ import { discardDraft, loadDraft, publishDraft, saveDraft, validateLocales, vali
 import type { Locale } from '@/i18n/config'
 import type { StoredTexts } from '@/lib/identity-shared'
 import { failer } from '@/lib/errors'
+import { getOrg, orgUrl } from '@/lib/tenant'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,9 +37,16 @@ async function toModerate(atelierId: string): Promise<number> {
   return count ?? 0
 }
 
-async function state(orgId: string, atelierId: string) {
+/** Retour à la console de l'organisme réel (sous-domaine, ou ?org= en prévisualisation). */
+async function consoleUrl(orgId: string, request: NextRequest): Promise<string | null> {
+  const org = await getOrg(orgId)
+  return org ? orgUrl(org.slug, '/admin', request) : null
+}
+
+async function state(orgId: string, atelierId: string, request: NextRequest) {
   const { draft, pending, fallbackName } = await loadDraft(orgId)
   return {
+    consoleUrl: await consoleUrl(orgId, request),
     toModerate: await toModerate(atelierId),
     pending,
     fallbackName,
@@ -52,7 +60,7 @@ async function state(orgId: string, atelierId: string) {
 export async function GET(request: NextRequest) {
   const g = await guard(request)
   if ('response' in g) return g.response
-  return NextResponse.json(await state(g.orgId, g.atelierId), { headers: { 'Cache-Control': 'no-store' } })
+  return NextResponse.json(await state(g.orgId, g.atelierId, request), { headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function POST(request: NextRequest) {
@@ -73,7 +81,7 @@ export async function POST(request: NextRequest) {
       patch.texts = t.texts
     }
     await saveDraft(g.orgId, patch)
-    return NextResponse.json(await state(g.orgId, g.atelierId))
+    return NextResponse.json(await state(g.orgId, g.atelierId, request))
   }
   if (b.action === 'publish') {
     const { draft, fallbackName } = await loadDraft(g.orgId)
@@ -81,11 +89,11 @@ export async function POST(request: NextRequest) {
     if (name.length < 2) return fail('nomOrganismeRequis')
     const r = await publishDraft(g.orgId)
     if (!r.ok) return fail('rienAPublier')
-    return NextResponse.json(await state(g.orgId, g.atelierId))
+    return NextResponse.json(await state(g.orgId, g.atelierId, request))
   }
   if (b.action === 'discard') {
     await discardDraft(g.orgId)
-    return NextResponse.json(await state(g.orgId, g.atelierId))
+    return NextResponse.json(await state(g.orgId, g.atelierId, request))
   }
   return fail('actionInconnue')
 }

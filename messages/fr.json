@@ -388,7 +388,7 @@
     "qrLegende": "Ajoutez votre morceau",
     "demo": "MODE DÉMO — aucun paiement réel",
     "demonstration": "DÉMONSTRATION — donateurs et dons fictifs",
-    "qrLegendeDemo": "Explorez ce vitrail",
+    "qrLegendeDemo": "Essayez : ajoutez votre morceau",
     "horsLigne": "Connexion perdue — dernier état affiché, reprise automatique",
     "vide": "Le vitrail attend sa première pièce",
     "videTexte": "Scannez le code pour donner et voir votre morceau de verre apparaître."
@@ -1205,6 +1205,7 @@
   },
   "atelier": {
     "titre": "Atelier",
+    "console": "Console",
     "modifier": "Modifier",
     "terminer": "Terminer",
     "tousLesTextes": "Tous les textes",
