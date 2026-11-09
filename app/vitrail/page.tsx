@@ -973,6 +973,7 @@ function Vitrail() {
   const atelier = useAtelier()
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
+  const atelierBarHeight = atelier?.barHeight ?? 0
   // Bas du titre du vitrail (en haut à gauche) : les dons récents se rangent juste dessous
   const titleRef = useRef<HTMLHeadingElement>(null)
   const hasSnap = snap !== null
@@ -989,7 +990,7 @@ function Vitrail() {
       ro.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [hasSnap, mobile, atelierBar])
+  }, [hasSnap, mobile, atelierBar, atelierBarHeight])
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -1184,7 +1185,8 @@ function Vitrail() {
             style={{
               position: 'fixed',
               left: mobile ? 16 : 24,
-              top: HEADER_HEIGHT + (mobile ? (atelierBar ? 58 : 14) : 20),
+              // sous la barre de l'atelier sur téléphone, qui passe parfois sur deux lignes (62 = haut de la barre)
+              top: mobile ? (atelierBar ? 62 + atelierBarHeight + 12 : HEADER_HEIGHT + 14) : HEADER_HEIGHT + 20,
               maxWidth: mobile ? 'calc(100% - 32px)' : 'min(30em, 40vw)',
               margin: 0,
               fontSize: mobile ? '20px' : 'clamp(24px, 2.4vw, 34px)',

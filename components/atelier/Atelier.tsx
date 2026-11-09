@@ -18,6 +18,8 @@ export type EditTarget = TextField | 'logo' | 'icon'
 interface AtelierState {
   editing: boolean
   open: (target: EditTarget) => void
+  /** Hauteur de la barre de l'atelier (une ou deux lignes sur téléphone) : la page range son titre dessous. */
+  barHeight: number
 }
 const Ctx = createContext<AtelierState | null>(null)
 export const useAtelier = () => useContext(Ctx)
@@ -63,6 +65,13 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
   const [intro, setIntro] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [barHeight, setBarHeight] = useState(36)
+  const watchBar = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return
+    const ro = new ResizeObserver(() => setBarHeight(Math.round(el.getBoundingClientRect().height)))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const apply = (d: Draft) => setDraft(d)
   const load = useCallback(async () => {
@@ -159,14 +168,15 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ editing: editing && !hiddenHere, open: f => setTarget(f) }}>
+    <Ctx.Provider value={{ editing: editing && !hiddenHere, open: f => setTarget(f), barHeight: hiddenHere ? 0 : barHeight }}>
       <OrgIdentityProvider identity={shown} surface={surface}>
         {children}
         {!hiddenHere && (
           <div
+            ref={watchBar}
             role="region"
             aria-label={t('titre')}
-            className="fixed inset-x-2 top-[62px] z-[1200] flex items-center gap-1.5 overflow-x-auto whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] md:inset-x-auto md:left-1/2 md:-translate-x-1/2"
+            className="fixed inset-x-2 top-[62px] z-[1200] flex flex-wrap items-center gap-1.5 rounded-2xl px-2 py-1.5 text-[12px] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:flex-nowrap md:whitespace-nowrap md:rounded-full"
             style={{ background: 'rgba(20,18,29,0.96)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)', color: '#F4EFE6' }}
           >
             <span className="px-1.5 font-semibold" style={{ color: '#F0B24A' }}>
@@ -190,18 +200,21 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
                 {t('aModerer', { count: draft.toModerate })} ↗
               </a>
             )}
-            {draft.pending ? (
-              <>
-                <button className="btn !w-auto !px-3 !py-1 !text-[12px]" disabled={busy} onClick={() => void publish()}>
-                  {t('publier')}
-                </button>
-                <button className="chip !px-2.5 !py-1 text-[12px]" disabled={busy} onClick={() => void discard()} title={t('abandonnerAide')}>
-                  {t('annulerCourt')}
-                </button>
-              </>
-            ) : (
-              <span className="muted px-1.5 text-[11px]">{t('aJour')}</span>
-            )}
+            {/* Publier et Annuler restent groupés, poussés à droite : sur téléphone, la barre passe à la ligne plutôt que de les cacher */}
+            <span className="ml-auto flex shrink-0 items-center gap-1.5">
+              {draft.pending ? (
+                <>
+                  <button className="btn !w-auto !px-3 !py-1 !text-[12px]" disabled={busy} onClick={() => void publish()}>
+                    {t('publier')}
+                  </button>
+                  <button className="chip !px-2.5 !py-1 text-[12px]" disabled={busy} onClick={() => void discard()} title={t('abandonnerAide')}>
+                    {t('annulerCourt')}
+                  </button>
+                </>
+              ) : (
+                <span className="muted px-1.5 text-[11px]">{t('aJour')}</span>
+              )}
+            </span>
           </div>
         )}
         {note && (
@@ -211,6 +224,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
         )}
         {intro && !hiddenHere && (
           <Sheet
+            side={false}
             title={t('introTitre')}
             onClose={() => {
               setIntro(false)
@@ -234,7 +248,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
         }} />}
         {target === 'tout' && <AllTexts draft={draft} onPick={f => setTarget(f)} onClose={() => setTarget(null)} />}
         {target && target !== 'langues' && target !== 'tout' && target !== 'logo' && target !== 'icon' && (
-          <TextSheet field={target} draft={draft} pageLocale={pageLocale} setText={setText} onClose={() => setTarget(null)} />
+          <TextSheet key={target} field={target} draft={draft} pageLocale={pageLocale} setText={setText} onClose={() => setTarget(null)} />
         )}
         {(target === 'logo' || target === 'icon') && <ImageSheet type={target} url={target === 'logo' ? draft.logoUrl : draft.iconUrl} onDone={load} onClose={() => setTarget(null)} />}
       </OrgIdentityProvider>
@@ -242,14 +256,59 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Sheet({ title, onClose, closeLabel, children }: { title: string; onClose: () => void; closeLabel: string; children: React.ReactNode }) {
+const WIDE = '(min-width: 1024px)'
+
+/** Grand écran (ordinateur) : les éditeurs deviennent un panneau latéral. */
+function useWide() {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(WIDE)
+    const update = () => setWide(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return wide
+}
+
+/**
+ * Fenêtre d'un éditeur. Téléphone et tablette : feuille du bas (ou centrée) sur un fond assombri.
+ * Ordinateur (`side`) : panneau à droite, sans fond : le vitrail reste visible ET cliquable derrière,
+ * on voit chaque frappe à sa place et un clic sur un autre pointillé change d'éditeur. Échap ferme.
+ */
+function Sheet({ title, onClose, closeLabel, children, side = true }: { title: string; onClose: () => void; closeLabel: string; children: React.ReactNode; side?: boolean }) {
+  const wide = useWide()
+  const panel = side && wide
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  if (panel)
+    return (
+      <aside
+        role="dialog"
+        aria-modal="false"
+        aria-label={title}
+        className="fixed right-4 top-[112px] z-[1400] max-h-[calc(100dvh-128px)] w-[380px] space-y-3 overflow-y-auto rounded-2xl p-5 text-sm"
+        style={{ background: '#14121D', border: '1px solid rgba(240,178,74,0.4)', boxShadow: '0 16px 50px rgba(0,0,0,0.6)', color: '#F4EFE6' }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button className="chip !px-2.5 !py-1 text-[12px]" onClick={onClose} aria-label={closeLabel}>
+            ✕
+          </button>
+        </div>
+        {children}
+      </aside>
+    )
   return (
     <div className="fixed inset-0 z-[1400] flex items-end justify-center sm:items-center" style={{ background: 'rgba(5,4,8,0.55)' }} onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[85vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-t-2xl p-5 text-sm sm:rounded-2xl"
+        className="max-h-[85vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-t-2xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-sm sm:rounded-2xl"
         style={{ background: '#14121D', border: '1px solid rgba(244,239,230,0.12)', color: '#F4EFE6' }}
         onClick={e => e.stopPropagation()}
       >
