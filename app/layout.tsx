@@ -11,6 +11,7 @@ import '@fontsource/fraunces/latin-400-italic.css'
 import './globals.css'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
+import { headers } from 'next/headers'
 import { INTL_TAG, type Locale } from '@/i18n/config'
 import { brandFor, CONFIG } from '@/lib/config'
 import { requestIdentity } from '@/lib/identity'
@@ -18,6 +19,18 @@ import { OrgIdentityProvider } from '@/components/OrgIdentity'
 import Atelier from '@/components/atelier/Atelier'
 import { siteUrl } from '@/lib/env'
 import { translatorFor } from '@/lib/i18n'
+
+async function pageBase(): Promise<URL> {
+  const h = await headers()
+  const host = (h.get('x-forwarded-host') || h.get('host') || '').split(',')[0].trim()
+  if (!host) return new URL(siteUrl())
+  const proto = (h.get('x-forwarded-proto') || '').split(',')[0].trim() || (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? 'http' : 'https')
+  try {
+    return new URL(`${proto}://${host}`)
+  } catch {
+    return new URL(siteUrl())
+  }
+}
 
 // Titre et description dans la langue de la requête ; l'image de partage est celle de la même langue (/api/og).
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,7 +40,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const org = identity ? identity.texts[locale].name : CONFIG.brand.name
   const title = t('meta.titre', { org })
   return {
-    metadataBase: new URL(siteUrl()),
+    // L'adresse de la PAGE (sous-domaine de l'organisme, ou plateforme) : l'image de partage doit être demandée là,
+    // sinon /api/og ne sait pas de quel organisme il s'agit. siteUrl() seulement à défaut d'en-tête.
+    metadataBase: await pageBase(),
     title,
     description: t('meta.description', { org, slogan: brandFor(locale).slogan }),
     robots: { index: false },
