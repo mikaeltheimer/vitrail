@@ -36,7 +36,7 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
         style={textareaStyle}
       />
       </Editable>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '12px', color: 'rgba(255,255,255,0.62)' }}>
         <span>{t('aide')}</span>
         <span style={{ fontFamily: "'DM Sans', sans-serif", color: left < 40 ? '#F0B24A' : undefined, flexShrink: 0 }}>{left}</span>
       </div>
@@ -51,7 +51,7 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
 }
 
 const textareaStyle: CSSProperties = {
-  font: "400 15px/1.5 'DM Sans', sans-serif",
+  font: "400 16px/1.5 'DM Sans', sans-serif", // 16 px minimum : sinon Safari (iPhone) agrandit la page au toucher du champ
   color: '#F4EFE6',
   background: '#0B0A12',
   border: '1px solid rgba(255,255,255,0.12)',

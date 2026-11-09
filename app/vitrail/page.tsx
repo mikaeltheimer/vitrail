@@ -1471,7 +1471,7 @@ function Header({
           <>
             <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
             <nav style={{ position: 'fixed', top: HEADER_HEIGHT, right: 0, left: 0, zIndex: 999, background: 'rgba(6,6,10,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 16px 16px', display: 'grid', gap: 4 }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{org.name}</span>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 0' }}>{org.name}</span>
               <button onClick={onAbout} style={{ ...menuLink, background: 'none', border: 0, borderBottom: menuLink.borderBottom, textAlign: 'left' }}>
                 {t('apropos')}
               </button>
@@ -1605,7 +1605,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
     ref.current?.blur()
   }
   return (
-    <div style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', background: 'rgba(6,6,10,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', zIndex: 100, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
+    <div className="focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#F0B24A]" style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', background: 'rgba(6,6,10,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', zIndex: 100, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8" />

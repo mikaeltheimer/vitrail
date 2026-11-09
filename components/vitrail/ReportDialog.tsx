@@ -3,6 +3,7 @@
 // Signaler un morceau (nom, message ou photo inappropriés) : l'équipe le voit dans la console.
 
 import { useState } from 'react'
+import { useEscape } from '@/lib/useEscape'
 import { useTranslations } from 'next-intl'
 
 export function ReportDialog({ donorId, onClose }: { donorId: string; onClose: () => void }) {
@@ -17,9 +18,11 @@ export function ReportDialog({ donorId, onClose }: { donorId: string; onClose: (
     setState(res?.ok ? 'sent' : 'error')
   }
 
+  useEscape(onClose)
+
   return (
     <div className="fixed inset-0 z-[900] flex items-end justify-center p-3 sm:items-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-      <div className="card w-full max-w-sm space-y-3" style={{ background: '#121019' }} onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={t('titre')} className="card w-full max-w-sm space-y-3" style={{ background: '#121019' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <b>{t('titre')}</b>
           <button className="muted px-2 text-xl leading-none" aria-label={tc('fermer')} onClick={onClose}>

@@ -5,6 +5,7 @@
 
 import { publicLink } from '@/lib/links'
 import { useState } from 'react'
+import { useEscape } from '@/lib/useEscape'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { useOrg } from '@/lib/useOrg'
@@ -29,9 +30,11 @@ export function ShareDialog({ id, name, own, onClose }: { id: string; name: stri
     } catch {}
   }
 
+  useEscape(onClose)
+
   return (
     <div className="fixed inset-0 z-[900] flex items-end justify-center p-3 sm:items-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-      <div className="card w-full max-w-sm space-y-2" style={{ background: '#121019' }} onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={own ? tf('partagerMien') : tf('partagerCe')} className="card w-full max-w-sm space-y-2" style={{ background: '#121019' }} onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <b>{own ? tf('partagerMien') : tf('partagerCe')}</b>
           <button className="muted px-2 text-xl leading-none" aria-label={tc('fermer')} onClick={onClose}>

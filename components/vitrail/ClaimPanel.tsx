@@ -786,7 +786,7 @@ const hintStyle: CSSProperties = {
   lineHeight: 1.5,
 };
 const inputStyle: CSSProperties = {
-  font: "500 15px 'DM Sans', sans-serif",
+  font: "500 16px 'DM Sans', sans-serif", // 16 px minimum : sinon Safari (iPhone) agrandit la page au toucher du champ
   color: "#F4EFE6",
   background: "#0B0A12",
   border: "1px solid rgba(255,255,255,0.12)",
