@@ -36,8 +36,15 @@ const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise
 const CARD_EM = 28 // légende du morceau en scène (nom, témoignage)
 const CARD_WIDE_EM = 34 // … pour un long témoignage
 const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
-const CTA_EVERY = 6 // une pause « Faites partie du vitrail » toutes les N visites
+// Pause « Faites partie du vitrail » : à l'ouverture de l'écran, puis dès que CTA_EVERY_MS se sont écoulées depuis la
+// dernière (mesuré en temps, pas en morceaux : un morceau dure de 5 à 30 s selon son témoignage), ou plus tôt quand un
+// petit vitrail a déjà montré tous ses morceaux.
+const CTA_EVERY_MS = 50_000
 const CTA_MS = 11000
+// D'un morceau au suivant, la caméra repasse TOUJOURS par le vitrail entier : recul, court arrêt, puis plongée
+const OUT_MS = 1900
+const HOME_PAUSE_MS = 700
+const IN_MS = 2600
 const MAX_ZOOM = 40
 const GOLD = '#F0B24A'
 const MONO = "'DM Sans', sans-serif"
@@ -112,8 +119,10 @@ export default function Ecran() {
     const fresh = new Set<string>() // morceaux d'un don tout neuf (annonce « vient de donner »)
     let deck: string[] = []
     let hops = 0
+    /** Fin de la dernière pause d'appel (performance.now) ; -Infinity = jamais : l'écran s'ouvre sur elle. */
+    let lastCtaAt = -Infinity
     // Les morceaux déjà montrés depuis la dernière pause d'appel : jamais deux fois le même dans un cycle
-    // (avec moins de CTA_EVERY morceaux, le cycle est simplement plus court)
+    // (un petit vitrail revient plus tôt à la pause, quand tous ses morceaux ont été vus)
     const cycleSeen = new Set<string>()
     let anim = 0
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -134,6 +143,7 @@ export default function Ecran() {
     let raf = 0
 
     const homeCam = (): Cam => ({ x: 0, y: 0, zoom: (Math.min(H * 0.88, W * 0.62)) / 2 / UNIVERSE_RADIUS })
+    const atHome = () => Math.abs(cam.zoom - base) < base * 1e-3 && Math.hypot(cam.x, cam.y) * cam.zoom < 1
 
     const resize = () => {
       W = window.innerWidth
@@ -263,13 +273,15 @@ export default function Ecran() {
       // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant). Elle vient après CTA_EVERY morceaux,
       // ou plus tôt quand tous les morceaux ont déjà été montrés dans ce cycle (petit vitrail)
       const unseen = [...tiles.keys()].some(id => !cycleSeen.has(id))
-      if ((hops >= CTA_EVERY || (hops > 0 && !unseen)) && !priority.some(id => tiles.has(id))) {
+      const due = performance.now() - lastCtaAt >= CTA_EVERY_MS
+      if ((due || (hops > 0 && !unseen)) && !priority.some(id => tiles.has(id))) {
         hops = 0
         cycleSeen.clear()
-        flyTo(homeCam(), FLY_MS, 0, () => {
+        flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
           setCta(true)
           timer = setTimeout(() => {
             setCta(false)
+            lastCtaAt = performance.now()
             next()
           }, CTA_MS)
         })
@@ -290,9 +302,16 @@ export default function Ecran() {
       const wide = isLong(message)
       const lay = stageLayout(tile, wide)
       const color = p?.color ?? '#E0657F'
-      // Dès le départ du vol, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
-      stage = id
-      flyTo(lay.cam, FLY_MS, 0.6, () => {
+      // Plongée vers le morceau ; dès son départ, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
+      const dive = (after: () => void) => {
+        stage = id
+        needs = true
+        flyTo(lay.cam, IN_MS, 0, after)
+      }
+      // Recul jusqu'au vitrail entier, court arrêt (on le voit en entier), puis plongée
+      const go = (after: () => void) =>
+        atHome() ? dive(after) : flyTo(homeCam(), OUT_MS, 0, () => { timer = setTimeout(() => !disposed && dive(after), HOME_PAUSE_MS) })
+      go(() => {
         spot = id
         needs = true
         setCardOut(false)
