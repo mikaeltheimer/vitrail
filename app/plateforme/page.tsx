@@ -9,7 +9,7 @@ import { DEMO_TEXTS } from '@/lib/demo-data'
 import RequestForm from '@/components/plateforme/RequestForm'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
-import { DEFAULT_FEE_SCHEDULE } from '@/lib/platform-fee'
+import { PRICING, pricingExampleCents } from '@/lib/platform-fee'
 import type { Locale } from '@/i18n/config'
 
 // Vitrine de la plateforme : sur le domaine nu (proxy.ts réécrit « / » vers ici), et à /plateforme partout ailleurs.
@@ -42,13 +42,36 @@ export default async function PlateformePage() {
   const t = await getTranslations('plateforme')
   const locale = (await getLocale()) as Locale
   const brand = CONFIG.brand.name
-  const fee = DEFAULT_FEE_SCHEDULE
+  const P = PRICING
   const money = (c: number) => formatMoney(c, locale)
-  // 5 000 $ de commissions ≈ dons reçus, arrondis à 500 $ près vers le bas
-  const donsSeuil = Math.floor(fee.tierAfterCents / fee.rate / 50_000) * 50_000
-  const exemple = 10_000
-  const exCommission = Math.round(exemple * fee.rate)
-  const exStripe = Math.round(exemple * CONFIG.feePercent) + CONFIG.feeFixedCents
+  // Le prix en trois temps (verres de la palette : jade, ambre, ciel ; l'ambre, couleur d'accent, sur le seul temps payant)
+  const glass = (id: string) => DEFAULT_GLASSES.find(g => g.id === id)!.value
+  const exampleDon = 5_000
+  const phases = [
+    { key: 'p1', glass: glass('jade'), radius: '999px 0 0 999px', label: t('tarifs.p1Etiquette', { gratuit: P.freeDonors }), value: pct(0, locale), text: t('tarifs.p1Texte'), accent: false },
+    {
+      key: 'p2',
+      glass: glass('ambre'),
+      radius: '0',
+      label: t('tarifs.p2Etiquette', { suivant: P.freeDonors + 1 }),
+      value: pct(P.rate, locale),
+      text: t('tarifs.p2Texte', { plafond: money(P.capCents) }),
+      example: t('tarifs.p2Exemple', { don: money(exampleDon), commission: money(Math.round(exampleDon * P.rate)) }),
+      accent: true,
+    },
+    { key: 'p3', glass: glass('ciel'), radius: '0 999px 999px 0', label: t('tarifs.p3Etiquette'), value: pct(0, locale), text: t('tarifs.p3Texte'), accent: false },
+  ]
+  // Les exemples du modèle d'affaires (chaque donateur donne une fois), calculés depuis la grille
+  const examples = (
+    [
+      ['exPetit', 60, 5_000],
+      ['exMoyen', 300, 6_000],
+      ['exGala', 400, 10_000],
+    ] as const
+  ).map(([key, donors, avg]) => {
+    const fee = pricingExampleCents(donors, avg)
+    return { key, donors, avg, fee, capped: fee >= P.capCents }
+  })
   const dot = (c: string) => <span aria-hidden="true" className="mt-[10px] h-2 w-2 flex-none rounded-full" style={{ background: c }} />
   const band = 'border-y'
   const bandStyle = { background: '#110F19', borderColor: 'rgba(244,239,230,0.08)' }
@@ -185,57 +208,73 @@ export default async function PlateformePage() {
         </section>
 
         <section id="tarifs" className={band} style={bandStyle}>
-          <div className="mx-auto flex max-w-[1160px] flex-col gap-8 px-6 py-20">
-            <div className="flex max-w-[720px] flex-col gap-3">
-              <H2>{t('tarifs.titre')}</H2>
+          <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 py-20">
+            <div className="flex max-w-[760px] flex-col gap-3">
+              <H2>{t('tarifs.titre', { gratuit: P.freeDonors })}</H2>
               <p className="m-0 text-[20px]" style={{ color: '#D9D3E3' }}>
-                {t('tarifs.intro')}
+                {t('tarifs.sousTitre', { taux: pct(P.rate, locale), plafond: money(P.capCents) })}
               </p>
             </div>
-            <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
-              <div className="card flex flex-col gap-2.5 !rounded-[20px] !p-7" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
-                <span className="muted text-sm">{t('tarifs.commission', { brand })}</span>
-                <span className="text-[56px] leading-none" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                  {pct(fee.rate, locale)}
-                </span>
-                <span>{t('tarifs.deChaque')}</span>
-                <span className="mt-2 border-t pt-3.5" style={{ borderColor: 'var(--line)' }}>
-                  {t.rich('tarifs.palier', {
-                    taux: pct(fee.tierRate, locale),
-                    seuil: money(fee.tierAfterCents),
-                    dons: money(donsSeuil),
-                    b: chunks => <b style={{ color: '#F0B24A' }}>{chunks}</b>,
-                  })}
-                </span>
+
+            {/* Le prix en trois temps : une barre de trois verres, puis ce que chaque temps veut dire */}
+            <ol aria-label={t('tarifs.jauge')} className="m-0 grid list-none gap-x-2 gap-y-7 p-0 md:grid-cols-[1fr_1.3fr_1fr]">
+              {phases.map(ph => (
+                <li key={ph.key} className="flex flex-col gap-3">
+                  <span aria-hidden="true" className="h-2.5 rounded-full md:[border-radius:var(--r)]" style={{ background: ph.glass, ['--r' as string]: ph.radius }} />
+                  <span className="muted text-sm">{ph.label}</span>
+                  <span className="text-[44px] leading-none" style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: ph.accent ? '#F0B24A' : undefined }}>
+                    {ph.value}
+                  </span>
+                  <span style={{ color: '#D9D3E3' }}>{ph.text}</span>
+                  {ph.example && <span className="muted text-sm">{ph.example}</span>}
+                </li>
+              ))}
+            </ol>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                <h3 className="m-0 text-[18px]">{t('tarifs.exemples')}</h3>
+                <span className="muted text-sm">{t('tarifs.exHypothese')}</span>
               </div>
-              <div className="card flex flex-col gap-2.5 !rounded-[20px] !p-7">
-                <span className="muted text-sm">{t('tarifs.stripeTitre')}</span>
-                <span className="text-[40px] leading-tight" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                  Stripe
-                </span>
-                <span>{t('tarifs.stripe', { pct: pct(CONFIG.feePercent, locale), fixe: money(CONFIG.feeFixedCents) })}</span>
-                <span className="muted">{t('tarifs.couvrir')}</span>
-              </div>
-              <div className="card flex flex-col gap-2.5 !rounded-[20px] !p-7">
-                <span className="muted text-sm">{t('tarifs.exemple', { montant: money(exemple) })}</span>
-                <dl className="m-0 mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2.5">
-                  <dt>{t('tarifs.exCommission', { brand })}</dt>
-                  <dd className="m-0 text-right">{money(exCommission)}</dd>
-                  <dt>{t('tarifs.exStripe')}</dt>
-                  <dd className="m-0 text-right">{money(exStripe)}</dd>
-                  <dt className="border-t pt-2.5 font-bold" style={{ borderColor: 'var(--line)' }}>
-                    {t('tarifs.exRecu')}
-                  </dt>
-                  <dd className="m-0 border-t pt-2.5 text-right font-bold" style={{ borderColor: 'var(--line)' }}>
-                    {money(exemple - exCommission - exStripe)}
-                  </dd>
-                </dl>
+              <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+                {examples.map(ex => (
+                  <div
+                    key={ex.key}
+                    className="card flex flex-col gap-1.5 !rounded-[20px] !p-6"
+                    style={ex.capped ? { borderColor: 'rgba(240,178,74,0.45)' } : undefined}
+                  >
+                    <span className="font-bold">{t(`tarifs.${ex.key}`)}</span>
+                    <span className="muted text-sm">{t('tarifs.exDetail', { donateurs: ex.donors, total: money(ex.donors * ex.avg) })}</span>
+                    <span className="mt-2 text-[32px] leading-none" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                      {money(ex.fee)}
+                    </span>
+                    <span className="muted text-sm">
+                      {ex.fee === 0 ? t('tarifs.exGratuit') : ex.capped ? t('tarifs.exPlafond') : t('tarifs.exReste', { reste: money(P.capCents - ex.fee) })}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-            <ul className="m-0 grid list-none gap-x-8 gap-y-3 p-0 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]" style={{ color: '#D9D3E3' }}>
-              <li>{t('tarifs.direct', { brand })}</li>
-              <li>{t('tarifs.rembourse')}</li>
-            </ul>
+
+            <div className="grid gap-x-10 gap-y-6 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]" style={{ color: '#D9D3E3' }}>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="m-0 text-[18px]" style={{ color: '#F4EFE6' }}>
+                  {t('tarifs.stripeTitre')}
+                </h3>
+                <p className="m-0">{t('tarifs.stripe', { pct: pct(CONFIG.feePercent, locale), fixe: money(CONFIG.feeFixedCents) })}</p>
+                <p className="m-0">{t('tarifs.direct', { brand })}</p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="m-0 text-[18px]" style={{ color: '#F4EFE6' }}>
+                  {t('tarifs.gratuitTitre')}
+                </h3>
+                <p className="m-0">{t('tarifs.gratuitTexte')}</p>
+              </div>
+            </div>
+
+            <p className="muted m-0 border-t pt-5 text-sm" style={{ borderColor: 'rgba(244,239,230,0.08)' }}>
+              {t('tarifs.bientot', { taux: pct(P.rate, locale), campagne: money(P.campaignCapCents), pro: money(P.proYearCents), brand })}
+            </p>
           </div>
         </section>
 

@@ -4,6 +4,29 @@ import { getDb } from './db'
 // Le palier se mesure en commissions cumulées NETTES de l'organisme (à vie) : une commission rendue lors d'un
 // remboursement est retranchée. Un don qui franchit le seuil garde l'ancien taux ; le suivant prend le nouveau.
 
+/**
+ * Le modèle d'affaires affiché (vitrine, inscription, conditions) depuis le 10 novembre 2026 : gratuit jusqu'à 100 donateurs,
+ * puis 2,8 % par don jusqu'à 495 $ de commissions cumulées, puis 0 % pour toujours ; campagnes 2,8 % jusqu'à 195 $ chacune ;
+ * Pro à l'année. Source unique des chiffres affichés. Le calcul des paiements (plus bas) suit encore l'ancienne grille :
+ * il passe à ce modèle à l'étape K1 (claude/donivers-plan-etape-k.md), avant le premier paiement réel.
+ */
+export const PRICING = {
+  /** Donateurs (adresses distinctes) avant la première commission. */
+  freeDonors: 100,
+  rate: 0.028,
+  /** Plafond des commissions cumulées du vitrail principal (cents). */
+  capCents: 49_500,
+  /** Plafond par vitrail de campagne (cents) : bientôt. */
+  campaignCapCents: 19_500,
+  /** Donivers Pro, par année (cents) : bientôt. */
+  proYearCents: 24_900,
+} as const
+
+/** Commission totale (cents) du vitrail principal pour `donors` donateurs qui donnent chacun `avgCents` une fois. */
+export function pricingExampleCents(donors: number, avgCents: number): number {
+  return Math.min(PRICING.capCents, Math.max(0, donors - PRICING.freeDonors) * Math.round(avgCents * PRICING.rate))
+}
+
 export interface FeeSchedule {
   /** Taux de base (0.028 = 2,8 %). */
   rate: number

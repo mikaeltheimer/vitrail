@@ -1042,21 +1042,31 @@
       "l7": "The list of donors who agree to receive your news"
     },
     "tarifs": {
-      "titre": "Pricing",
-      "intro": "No subscription, no fixed fees. You only pay when you receive a donation.",
-      "commission": "{brand} commission",
-      "taux": "{taux}",
-      "deChaque": "of each donation",
-      "palier": "<b>{taux}</b> once {seuil} in commissions have been paid, that is about {dons} in donations received. Forever.",
-      "stripeTitre": "Card processing fees",
-      "stripe": "Paid directly to Stripe by your organization: {pct} + {fixe} per Canadian card.",
-      "couvrir": "Donors can choose to cover them by giving a little more.",
-      "exemple": "Example: a {montant} donation",
-      "exCommission": "{brand} commission",
-      "exStripe": "Stripe fees",
-      "exRecu": "Received by your organization",
+      "titre": "Free for your first {gratuit} donors.",
+      "sousTitre": "Then {taux} per donation, up to {plafond} in total. After that, nothing, forever.",
+      "jauge": "Pricing in three stages",
+      "p1Etiquette": "Your first {gratuit} donors",
+      "p1Texte": "Nothing to pay.",
+      "p2Etiquette": "From your {suivant, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} donor",
+      "p2Texte": "per donation, up to {plafond} in total. Collected automatically by Stripe, no invoice.",
+      "p2Exemple": "On a {don} donation: {commission}.",
+      "p3Etiquette": "Then, forever",
+      "p3Texte": "Unlimited donations, no commission.",
+      "exemples": "Examples",
+      "exHypothese": "Each donor gives once; Stripe fees not included.",
+      "exPetit": "Small organization",
+      "exMoyen": "Mid-sized organization",
+      "exGala": "Gala",
+      "exDetail": "{donateurs} donors · {total} received",
+      "exGratuit": "Under the free threshold.",
+      "exReste": "{reste} more at most, then nothing.",
+      "exPlafond": "Cap reached: nothing more, ever.",
+      "stripeTitre": "Stripe fees",
+      "stripe": "Paid directly to Stripe by your organization: {pct} + {fixe} per Canadian card. Donors can choose to cover them.",
       "direct": "The money goes straight to your Stripe account: it never passes through {brand}.",
-      "rembourse": "If a donation is refunded, our commission is returned to you pro rata."
+      "gratuitTitre": "Always free",
+      "gratuitTexte": "Exporting your data, donors’ right to withdraw, refunds, moderation. If a donation is refunded, our commission is returned to you pro rata.",
+      "bientot": "Coming soon: campaign stained glass ({taux} per donation, up to {campagne} per campaign) and {brand} Pro ({pro} per year)."
     },
     "garanties": {
       "quebecTitre": "Made in Québec",
@@ -1167,7 +1177,7 @@
     },
     "conditions": {
       "titre": "The terms, in short",
-      "l1": "<b>{taux} per donation</b>, then {palier} after {seuil} in commissions. No fixed fees.",
+      "l1": "<b>Free for your first {gratuit} donors.</b> Then {taux} per donation, up to {plafond} in total. After that, nothing, forever.",
       "l2": "<b>Stripe fees</b> (and any disputes) are borne by your organization, even when a donation is refunded.",
       "l3": "Your organization is <b>responsible for its donors’ personal information</b> (Law 25); Studio Existence hosts and processes it on your behalf.",
       "l4": "You moderate what appears on your stained glass.",
@@ -1485,9 +1495,13 @@
         {
           "titre": "5. Our commission",
           "blocs": [
-            "For each donation received, we take a commission of {taux} of the donation amount, excluding any processing fees covered by the donor. Once the total commissions paid by the organization reach {seuil}, the commission drops to {palier} for all later donations.",
+            "The organization’s first {gratuit} donors give rise to no commission. A donor is a distinct email address; a donor added by hand in the dashboard also counts, and a donor who gives several times counts only once. A donor whose information has been erased still counts.",
+            "Once this threshold is reached, we take a commission of {taux} of the amount of each card donation received on the main stained glass, excluding any processing fees covered by the donor. The threshold is assessed when the payment starts.",
+            "Total commissions on the main stained glass never exceed {plafond}. The donation that reaches this cap pays only the balance. Once the cap is reached, no further commission is taken on the main stained glass for the remainder of the contract, even if a later refund lowers that total.",
             "The commission is collected automatically by Stripe at the time of payment. If a donation is refunded or a dispute is lost, the corresponding share of the commission is returned. Applicable taxes are added, if any.",
-            "There is no subscription and no fixed fee. We may change the commission by giving the organization at least 30 days’ notice; the change applies only to donations received after it takes effect."
+            "Campaign stained glass and {brand} Pro features, once offered, will have their own prices, shown before anything is turned on. None is charged without the organization’s agreement.",
+            "The main stained glass has no subscription and no fixed fee. We may change the commission by giving the organization at least 30 days’ notice; the change applies only to donations received after it takes effect and cannot reinstate a commission on a main stained glass whose cap has been reached.",
+            "Special terms agreed in writing with an organization (for example, a commission exemption) take precedence over this section."
           ]
         },
         {

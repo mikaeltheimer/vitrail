@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
-import { DEFAULT_FEE_SCHEDULE } from '@/lib/platform-fee'
+import { PRICING } from '@/lib/platform-fee'
 import type { Locale } from '@/i18n/config'
 import { Mark } from './Brand'
 
@@ -92,7 +92,6 @@ export default function Signup({ token, domain }: { token: string; domain: strin
   })
 
   const n = step === 'compte' || step === 'code' ? 1 : step === 'organisme' ? 2 : 3
-  const fee = DEFAULT_FEE_SCHEDULE
   const pct = (r: number) => new Intl.NumberFormat(locale === 'en' ? 'en-CA' : 'fr-CA', { style: 'percent', maximumFractionDigits: 1 }).format(r)
   const b = (c: React.ReactNode) => <b>{c}</b>
 
@@ -363,7 +362,7 @@ export default function Signup({ token, domain }: { token: string; domain: strin
           </h1>
           <ul className="card m-0 list-none space-y-3 !p-4">
             {[
-              t.rich('conditions.l1', { taux: pct(fee.rate), palier: pct(fee.tierRate), seuil: formatMoney(fee.tierAfterCents, locale), b }),
+              t.rich('conditions.l1', { gratuit: PRICING.freeDonors, taux: pct(PRICING.rate), plafond: formatMoney(PRICING.capCents, locale), b }),
               t.rich('conditions.l2', { b }),
               t.rich('conditions.l3', { b }),
               t('conditions.l4'),

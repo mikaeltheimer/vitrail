@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
-import { DEFAULT_FEE_SCHEDULE } from '@/lib/platform-fee'
+import { PRICING } from '@/lib/platform-fee'
 import { TERMS_VERSION } from '@/lib/signup'
 import type { Locale } from '@/i18n/config'
 import fr from '@/messages/fr.json'
@@ -12,7 +12,7 @@ import en from '@/messages/en.json'
 // remplacées ici, avec les vraies valeurs (raison sociale, commission, version des conditions).
 
 /** Date d'entrée en vigueur des textes de la plateforme (à changer avec eux, comme TERMS_VERSION). */
-export const LEGAL_EFFECTIVE_DATE = '2026-11-08'
+export const LEGAL_EFFECTIVE_DATE = '2026-11-10'
 
 interface Doc {
   titre: string
@@ -26,7 +26,6 @@ export default async function LegalDoc({ doc }: { doc: 'confidentialite' | 'cond
   // Lus tels quels dans les messages (pas de format ICU : ce sont des textes longs, avec leurs propres variables)
   const d = (locale === 'en' ? en : fr).legalPlateforme[doc] as Doc
   const s = CONFIG.brand.studioLegal
-  const fee = DEFAULT_FEE_SCHEDULE
   const pct = (r: number) => new Intl.NumberFormat(locale === 'en' ? 'en-CA' : 'fr-CA', { style: 'percent', maximumFractionDigits: 1 }).format(r)
   const date = new Intl.DateTimeFormat(locale === 'en' ? 'en-CA' : 'fr-CA', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${LEGAL_EFFECTIVE_DATE}T12:00:00Z`))
   const vars: Record<string, string> = {
@@ -35,9 +34,9 @@ export default async function LegalDoc({ doc }: { doc: 'confidentialite' | 'cond
     neq: s.neq,
     address: s.address,
     email: s.email,
-    taux: pct(fee.rate),
-    palier: pct(fee.tierRate),
-    seuil: formatMoney(fee.tierAfterCents, locale),
+    taux: pct(PRICING.rate),
+    gratuit: String(PRICING.freeDonors),
+    plafond: formatMoney(PRICING.capCents, locale),
     version: TERMS_VERSION,
     date,
   }

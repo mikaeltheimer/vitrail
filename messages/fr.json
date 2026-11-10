@@ -1042,21 +1042,31 @@
       "l7": "La liste des donateurs qui acceptent vos nouvelles"
     },
     "tarifs": {
-      "titre": "Tarifs",
-      "intro": "Aucun abonnement, aucuns frais fixes. Vous ne payez que lorsque vous recevez un don.",
-      "commission": "Commission {brand}",
-      "taux": "{taux}",
-      "deChaque": "de chaque don",
-      "palier": "<b>{taux}</b> une fois {seuil} de commissions versées, soit environ {dons} de dons reçus. Pour toujours.",
-      "stripeTitre": "Frais de traitement des cartes",
-      "stripe": "Payés directement à Stripe par votre organisme : {pct} + {fixe} par carte canadienne.",
-      "couvrir": "Le donateur peut choisir de les couvrir en donnant un peu plus.",
-      "exemple": "Exemple : un don de {montant}",
-      "exCommission": "Commission {brand}",
-      "exStripe": "Frais Stripe",
-      "exRecu": "Reçu par votre organisme",
+      "titre": "Gratuit pour vos {gratuit} premiers donateurs.",
+      "sousTitre": "Ensuite, {taux} par don, jusqu’à {plafond} versés. Puis plus rien, pour toujours.",
+      "jauge": "Le prix en trois temps",
+      "p1Etiquette": "Vos {gratuit} premiers donateurs",
+      "p1Texte": "Rien à payer.",
+      "p2Etiquette": "À partir du {suivant, selectordinal, one {#er} other {#e}} donateur",
+      "p2Texte": "par don, jusqu’à {plafond} au total. Prélevé automatiquement par Stripe, sans facture.",
+      "p2Exemple": "Sur un don de {don} : {commission}.",
+      "p3Etiquette": "Puis, pour toujours",
+      "p3Texte": "Dons illimités, sans commission.",
+      "exemples": "Exemples",
+      "exHypothese": "Chaque donateur donne une fois ; frais de Stripe exclus.",
+      "exPetit": "Petit organisme",
+      "exMoyen": "Organisme moyen",
+      "exGala": "Gala",
+      "exDetail": "{donateurs} donateurs · {total} reçus",
+      "exGratuit": "Sous le seuil gratuit.",
+      "exReste": "Encore {reste} au plus, puis plus rien.",
+      "exPlafond": "Plafond atteint : plus rien, jamais.",
+      "stripeTitre": "Frais de Stripe",
+      "stripe": "Payés directement à Stripe par votre organisme : {pct} + {fixe} par carte canadienne. Le donateur peut choisir de les couvrir.",
       "direct": "L’argent va directement dans votre compte Stripe : il ne passe jamais par {brand}.",
-      "rembourse": "En cas de remboursement, notre commission vous est rendue au prorata."
+      "gratuitTitre": "Toujours gratuit",
+      "gratuitTexte": "Exports de vos données, droit de retrait des donateurs, remboursements, modération. En cas de remboursement, notre commission vous est rendue au prorata.",
+      "bientot": "Bientôt : vitraux de campagne ({taux} par don, jusqu’à {campagne} par campagne) et {brand} Pro ({pro} par année)."
     },
     "garanties": {
       "quebecTitre": "Fait au Québec",
@@ -1167,7 +1177,7 @@
     },
     "conditions": {
       "titre": "Les conditions, en bref",
-      "l1": "<b>{taux} par don</b>, puis {palier} après {seuil} de commissions. Aucuns frais fixes.",
+      "l1": "<b>Gratuit pour vos {gratuit} premiers donateurs.</b> Ensuite, {taux} par don, jusqu’à {plafond} versés. Puis plus rien, pour toujours.",
       "l2": "Les <b>frais de Stripe</b> (et d’éventuels litiges) sont à la charge de votre organisme, même en cas de remboursement.",
       "l3": "Votre organisme est <b>responsable des renseignements</b> de ses donateurs (Loi 25) ; Studio Existence les héberge et les traite pour vous.",
       "l4": "Vous modérez ce qui s’affiche sur votre vitrail.",
@@ -1485,9 +1495,13 @@
         {
           "titre": "5. Notre commission",
           "blocs": [
-            "Pour chaque don reçu, nous prélevons une commission de {taux} du montant du don, frais de traitement couverts par le donateur exclus. Lorsque le total des commissions versées par l’organisme atteint {seuil}, la commission passe à {palier} pour tous les dons suivants.",
+            "Les {gratuit} premiers donateurs de l’organisme ne donnent lieu à aucune commission. Un donateur est une adresse courriel distincte ; un donateur ajouté à la main dans la console compte aussi, et un donateur qui donne plusieurs fois ne compte qu’une fois. Un donateur dont les renseignements ont été supprimés continue de compter.",
+            "Une fois ce seuil atteint, nous prélevons une commission de {taux} du montant de chaque don reçu par carte sur le vitrail principal, frais de traitement couverts par le donateur exclus. Le seuil s’apprécie au moment où le paiement commence.",
+            "Le total des commissions du vitrail principal ne dépasse jamais {plafond}. Le don qui atteint ce plafond ne paie que le solde. Une fois le plafond atteint, plus aucune commission n’est prélevée sur le vitrail principal pour toute la durée du contrat, même si un remboursement fait ensuite baisser ce total.",
             "La commission est prélevée automatiquement par Stripe au moment du paiement. En cas de remboursement ou de litige perdu, la part correspondante de la commission est rendue. Les taxes applicables s’ajoutent, s’il y a lieu.",
-            "Il n’y a ni abonnement ni frais fixes. Nous pouvons modifier la commission en avisant l’organisme au moins 30 jours à l’avance ; la modification ne vise que les dons reçus après son entrée en vigueur."
+            "Les vitraux de campagne et les fonctions de {brand} Pro, lorsqu’ils seront offerts, auront leurs propres prix, affichés avant toute activation. Aucun n’est facturé sans l’accord de l’organisme.",
+            "Le vitrail principal n’a ni abonnement ni frais fixes. Nous pouvons modifier la commission en avisant l’organisme au moins 30 jours à l’avance ; la modification ne vise que les dons reçus après son entrée en vigueur et ne peut pas rétablir de commission sur un vitrail principal dont le plafond est atteint.",
+            "Des conditions particulières convenues par écrit avec un organisme (par exemple, une exemption de commission) l’emportent sur la présente section."
           ]
         },
         {

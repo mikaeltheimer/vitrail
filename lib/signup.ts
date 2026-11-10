@@ -22,7 +22,7 @@ import type { AppError } from './errors'
 // chacun avec son vitrail permanent ; la personne en est propriétaire et sa session s'ouvre.
 
 /** À changer à CHAQUE modification du texte des conditions (preuve de ce qui a été accepté). Provisoire : avocat. */
-export const TERMS_VERSION = '2026-11-08-provisoire'
+export const TERMS_VERSION = '2026-11-10-provisoire'
 const CODE_MINUTES = 15
 const CODE_ATTEMPTS = 5
 const CODES_PER_HOUR = 5
