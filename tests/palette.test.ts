@@ -1,12 +1,12 @@
 import { check, done } from './helpers'
 
-// Palette « Atelier+ » : six verres, anciennes couleurs ramenées au verre actuel, rien d'autre accepté.
+// Palette « Atelier+ » : cinq verres, anciennes couleurs ramenées au verre actuel, rien d'autre accepté.
 async function main() {
   const { DEFAULT_GLASSES, LEGACY_GLASSES, currentGlass, contrast } = await import('../lib/theme')
   const { validateColor } = await import('../lib/validate')
   const { VALID_COLORS } = await import('../lib/config')
 
-  check('six verres, identifiants uniques', DEFAULT_GLASSES.length === 6 && new Set(DEFAULT_GLASSES.map(g => g.id)).size === 6)
+  check('cinq verres, identifiants uniques', DEFAULT_GLASSES.length === 5 && new Set(DEFAULT_GLASSES.map(g => g.id)).size === 5)
   check('chaque ancienne couleur mène à un verre actuel', Object.values(LEGACY_GLASSES).every(v => VALID_COLORS.includes(v)))
   check('ancien turquoise → jade', currentGlass('#3DB5A6') === '#1FA978')
   check('minuscules acceptées', currentGlass('#f0b24a') === '#F0B24A')

@@ -29,13 +29,14 @@ export const DEFAULT_THEME: Theme = {
   glow: '#FFE2A8',
 }
 
-// Palette « Atelier+ » (9 nov. 2026) : six verres clairs et saturés, choisis pour rester lisibles sur une télé comme sur un
+// Palette « Atelier+ » (9 nov. 2026) : cinq verres clairs et saturés, choisis pour rester lisibles sur une télé comme sur un
 // projecteur en salle éclairée (fond gris, couleurs délavées), et pour que deux verres voisins restent distincts en
-// deutéranopie et en protanopie (écart de clarté). Mesures : scripts/palette.py.
+// deutéranopie et en protanopie (écart de clarté). Mesures : scripts/palette.py. Un sixième verre (corail) a été
+// essayé puis retiré : entre l'ambre et le rose, il rendait le vitrail trop orangé, et chaque autre sixième verre
+// mesuré (indigo, tilleul, turquoise) se confondait avec un voisin en daltonisme ou au projecteur.
 // `id` : clé du nom dans messages/*.json (commun.verres) ; `name` : nom français (console d'administration).
 export const DEFAULT_GLASSES = [
   { id: 'ambre', name: 'Ambre', value: '#F0B24A' },
-  { id: 'corail', name: 'Corail', value: '#EA6646' },
   { id: 'jade', name: 'Jade', value: '#1FA978' },
   { id: 'ciel', name: 'Ciel', value: '#5CC0F5' },
   { id: 'violet', name: 'Violet', value: '#9450CC' },
@@ -45,7 +46,7 @@ export const DEFAULT_GLASSES = [
 export type GlassId = (typeof DEFAULT_GLASSES)[number]['id']
 
 /** Verre de repli (couleur absente ou illisible). */
-export const FALLBACK_GLASS: string = DEFAULT_GLASSES[5].value
+export const FALLBACK_GLASS: string = DEFAULT_GLASSES[4].value
 
 /**
  * Anciennes valeurs des verres → verre actuel. Une couleur enregistrée avant un changement de palette (donateur en base,

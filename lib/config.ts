@@ -93,7 +93,7 @@ export const BRAND: Record<Locale, BrandTexts> = {
 
 export const brandFor = (locale: Locale = DEFAULT_LOCALE): BrandTexts => BRAND[locale]
 
-/** Verres disponibles : les six de la palette (plus tard, ceux choisis par l'organisme). */
+/** Verres disponibles : les cinq de la palette (plus tard, ceux choisis par l'organisme). */
 export const GLASS_COLORS = DEFAULT_GLASSES
 
 export const VALID_COLORS: string[] = GLASS_COLORS.map(c => c.value)

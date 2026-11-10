@@ -137,8 +137,8 @@ export default async function PlateformePage() {
               {(
                 [
                   [1, DEFAULT_GLASSES[0].value, 'e1'],
-                  [2, DEFAULT_GLASSES[1].value, 'e2'],
-                  [3, DEFAULT_GLASSES[3].value, 'e3'],
+                  [2, DEFAULT_GLASSES[4].value, 'e2'],
+                  [3, DEFAULT_GLASSES[1].value, 'e3'],
                 ] as const
               ).map(([n, c, k]) => (
                 <article key={k} className="card flex flex-col gap-3 !rounded-[20px] !p-7">

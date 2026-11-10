@@ -185,8 +185,8 @@ export default function Affiche({ poster }: { poster: Record<Locale, PosterTexts
 
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '3.5cqi', margin: langs.length > 1 ? '3.5cqi 0 1.5cqi' : '5cqi 0 2cqi' }}>
             {[
-              { dollars: 10, color: DEFAULT_GLASSES[2].value },
-              { dollars: 25, color: DEFAULT_GLASSES[1].value },
+              { dollars: 10, color: DEFAULT_GLASSES[1].value },
+              { dollars: 25, color: DEFAULT_GLASSES[4].value },
               { dollars: 100, color: '#F0B24A' },
             ].map(d => {
               const side = 4.2 * Math.pow(d.dollars / 10, CONFIG.sizeExponent / 2)

@@ -30,8 +30,8 @@ const GOLD = '#F0B24A'
 const ON_GOLD = '#1A1208'
 const SERIF = "Fraunces,Georgia,'Times New Roman',serif"
 const SANS = "'DM Sans',Arial,Helvetica,sans-serif"
-/** Les six verres : le bandeau du haut est un petit vitrail (cellules de largeurs inégales, sans image). */
-const GLASS_WIDTHS = [19, 12, 21, 14, 20, 14]
+/** Les cinq verres : le bandeau du haut est un petit vitrail (cellules de largeurs inégales, sans image). */
+const GLASS_WIDTHS = [22, 14, 24, 16, 24]
 const GLASS: [string, number][] = DEFAULT_GLASSES.map((g, i) => [g.value, GLASS_WIDTHS[i]])
 
 /**
