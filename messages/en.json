@@ -17,7 +17,9 @@
     "anonyme": "Anonymous",
     "ordinal": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
     "conditionsCourt": "Terms",
-    "aCompleter": "TO COMPLETE"
+    "aCompleter": "TO COMPLETE",
+    "propulsePar": "powered by",
+    "signatureLien": "{brand}: create your organization’s stained glass (new tab)"
   },
   "erreurs": {
     "courrielRequis": "Email address required.",

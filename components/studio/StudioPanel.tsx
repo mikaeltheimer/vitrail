@@ -8,7 +8,7 @@ import { squareJpeg } from '@/lib/photoClient'
 
 interface Data {
   me: { email: string; name: string }
-  requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; created_at: string }[]
+  requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; source: string | null; created_at: string }[]
   invitations: { id: string; email: string; orgName: string | null; createdAt: string; expiresAt: string; state: 'pending' | 'accepted' | 'expired' | 'revoked' }[]
   organizations: { id: string; name: string; slug: string; status: 'draft' | 'live' | 'suspended'; showcase: boolean; stripeReady: boolean; createdAt: string }[]
 }
@@ -128,6 +128,7 @@ export default function StudioPanel() {
                       <b>{r.org_name}</b>
                       <span className="muted">
                         {r.name} · {r.email} · {day(r.created_at)} · {r.locale.toUpperCase()}
+                        {r.source && <> · venu du vitrail <b>{r.source}</b></>}
                       </span>
                       {r.message && <span className="italic" style={{ color: '#D9D3E3' }}>« {r.message} »</span>}
                     </span>

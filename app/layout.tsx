@@ -20,6 +20,7 @@ import { OrgIdentityProvider } from '@/components/OrgIdentity'
 import Atelier from '@/components/atelier/Atelier'
 import { OrgMissingPage } from '@/components/ErrorPages'
 import { platformUrl } from '@/lib/tenant'
+import { isPreviewEnv } from '@/lib/hosts'
 import { siteUrl } from '@/lib/env'
 import { translatorFor } from '@/lib/i18n'
 
@@ -65,15 +66,19 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale
-  const { identity, surface, atelier, missing, redirect } = await requestIdentity()
+  const { identity, surface, atelier, missing, redirect, slug } = await requestIdentity()
   // Ancien identifiant de l'organisme : même page à son adresse actuelle (les QR imprimés ne cassent pas)
   if (redirect) permanentRedirect(redirect)
-  const page = missing ? <OrgMissingPage platformHref={platformUrl(new Request('https://x/', { headers: await headers() }))} /> : atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children
+  const platform = platformUrl(new Request('https://x/', { headers: await headers() }))
+  // Signature « propulsé par » : la vitrine (/plateforme en prévisualisation, où le domaine nu n'existe pas), avec la
+  // provenance, pour savoir quels vitraux amènent des demandes d'invitation
+  const brandHref = `${platform}${isPreviewEnv() ? '/plateforme' : '/'}${slug ? `?ref=${encodeURIComponent(slug)}` : ''}`
+  const page = missing ? <OrgMissingPage platformHref={platform} /> : atelier && surface === 'org' && identity ? <Atelier>{children}</Atelier> : children
   return (
     <html lang={INTL_TAG[locale]}>
       <body>
         <NextIntlClientProvider>
-          <OrgIdentityProvider identity={identity} surface={surface}>
+          <OrgIdentityProvider identity={identity} surface={surface} brandHref={brandHref}>
             {page}
           </OrgIdentityProvider>
         </NextIntlClientProvider>

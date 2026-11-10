@@ -27,6 +27,11 @@ export function useIdentity(): Identity | null {
   return useIdentityContext().identity
 }
 
+/** Vitrine de Donivers avec la provenance (?ref=<organisme>), pour la signature « propulsé par ». */
+export function useBrandHref(): string | null {
+  return useIdentityContext().brandHref
+}
+
 export function useBrand(): BrandTexts {
   return brandFor(useLocale() as Locale)
 }

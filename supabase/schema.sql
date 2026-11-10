@@ -1,4 +1,6 @@
--- Donivers — schéma complet de la base (état au 2026-11-09 : migrations jusqu'à 2026-11-18-resserrer-2.sql comprise).
+-- Donivers — schéma complet de la base (état au 2026-11-09 : migrations jusqu'à 2026-11-20-provenance-demandes.sql comprise ;
+-- la 19 ne touche que des données ; la colonne access_requests.source de la 20 a été reportée à la main, définitions
+-- relevées sur donivers-test : régénérer le fichier à la prochaine migration).
 --
 -- Sert à créer un projet Supabase NEUF en une fois (SQL Editor, ou psql). Une base déjà en service se met à jour avec les
 -- fichiers de supabase/migrations/, dans l'ordre de leur nom ; l'histoire et les raisons de chaque choix sont dans leurs
@@ -69,12 +71,14 @@ CREATE TABLE public.access_requests (
     handled_at timestamp with time zone,
     outcome text,
     invitation_id uuid,
+    source text,
     CONSTRAINT access_requests_email_check CHECK (((email = lower(email)) AND (POSITION(('@'::text) IN (email)) > 1))),
     CONSTRAINT access_requests_locale_check CHECK ((locale = ANY (ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT access_requests_message_check CHECK ((length(message) <= 1000)),
     CONSTRAINT access_requests_name_check CHECK (((length(name) >= 2) AND (length(name) <= 80))),
     CONSTRAINT access_requests_org_name_check CHECK (((length(org_name) >= 2) AND (length(org_name) <= 120))),
-    CONSTRAINT access_requests_outcome_check CHECK ((outcome = ANY (ARRAY['invited'::text, 'archived'::text])))
+    CONSTRAINT access_requests_outcome_check CHECK ((outcome = ANY (ARRAY['invited'::text, 'archived'::text]))),
+    CONSTRAINT access_requests_source_check CHECK ((source ~ '^[a-z0-9][a-z0-9-]{0,39}$'::text))
 );
 
 CREATE TABLE public.accounts (

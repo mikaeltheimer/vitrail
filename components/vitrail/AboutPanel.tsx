@@ -3,6 +3,7 @@
 // « À propos de la collecte » : qui est l'école, pourquoi donner, comment marche le vitrail.
 // Ordinateur : panneau à droite (comme une fiche) ; téléphone : feuille en plein écran sous l'en-tête.
 
+import Signature from '@/components/Signature'
 import { useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { useBrand, useOrg } from '@/lib/useOrg'
@@ -158,8 +159,8 @@ export default function AboutPanel({
 
         {/* La plateforme : seul endroit (avec la confidentialité) où Studio Existence apparaît */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
-          <div className="font-display" style={{ fontSize: 18 }}>{CONFIG.brand.name}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{brand.descriptor}</div>
+          <Signature compact height={26} opacity={0.75} />
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>{brand.descriptor}</div>
           <div className="slogan" style={{ fontSize: 14, marginTop: 6 }}>{brand.slogan}</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 8 }}>
             {t.rich('creation', {

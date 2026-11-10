@@ -137,13 +137,15 @@ export interface RequestIdentity {
   missing: boolean
   /** Ancien identifiant de l'organisme : adresse actuelle, même chemin (redirection permanente, les QR imprimés restent bons). */
   redirect: string | null
+  /** Identifiant de l'organisme réel de la page (atelier : celui de l'organisme dont c'est l'entraînement). */
+  slug: string | null
 }
 
 export async function requestIdentity(): Promise<RequestIdentity> {
   const h = await headers()
   const raw = h.get(SURFACE_HEADER)
   const surface: Surface = raw === 'platform' || raw === 'console' ? raw : 'org'
-  const none = { identity: null, surface, atelier: false, missing: false, redirect: null }
+  const none = { identity: null, surface, atelier: false, missing: false, redirect: null, slug: null }
   if (surface === 'platform') return none
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost'
   const path = h.get(PATH_HEADER) || '/'
@@ -152,5 +154,5 @@ export async function requestIdentity(): Promise<RequestIdentity> {
   if (!r) return none
   if ('redirect' in r) return { ...none, redirect: r.redirect }
   if ('notFound' in r) return { ...none, missing: true }
-  return { ...none, identity: await getIdentity(r.tenant.org).catch(() => null), atelier: !!r.tenant.org.practiceOf }
+  return { ...none, identity: await getIdentity(r.tenant.org).catch(() => null), atelier: !!r.tenant.org.practiceOf, slug: r.tenant.org.slug.replace(/--essai$/, '') }
 }

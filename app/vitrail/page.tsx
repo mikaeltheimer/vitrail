@@ -12,6 +12,7 @@ import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AboutPanel from '@/components/vitrail/AboutPanel'
+import Signature from '@/components/Signature'
 import BottomSheet from '@/components/vitrail/BottomSheet'
 import ClaimPanel, { type ClaimDraft, type DemoDonation } from '@/components/vitrail/ClaimPanel'
 import TestimonialField from '@/components/vitrail/TestimonialField'
@@ -1601,19 +1602,25 @@ function Header({
   const [query, setQuery] = useState('')
   const q = query.trim().toLocaleLowerCase(tag)
   const results = q ? ranked.filter(p => p.name?.toLocaleLowerCase(tag).includes(q)).slice(0, 8) : []
-  // L'organisme d'abord : son emblème et son nom ; Donivers, discret, dessous
+  // L'organisme d'abord : son emblème et son nom ; la signature de Donivers, plus petite, dessous (lien vers la vitrine,
+  // hors du bouton « retour au vitrail entier » : un lien ne peut pas être dans un bouton)
+  const homeButton: React.CSSProperties = { color: '#F4EFE6', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }
   const brand = (
-    <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#F4EFE6', background: 'none', border: 0, cursor: 'pointer', padding: 0, minWidth: 0, textAlign: 'left' }}>
-      <Editable field="icon">
-        <OrgMark size={32} />
-      </Editable>
-      <span style={{ display: 'grid', minWidth: 0, lineHeight: 1.1 }}>
-        <Editable field="name">
-          <span className="font-display" style={{ fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+      <button onClick={onHome} tabIndex={-1} aria-hidden="true" style={{ ...homeButton, flexShrink: 0 }}>
+        <Editable field="icon">
+          <OrgMark size={32} />
         </Editable>
-        <span style={{ fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CONFIG.brand.name}</span>
+      </button>
+      <span style={{ display: 'grid', minWidth: 0, gap: 3, justifyItems: 'start' }}>
+        <button onClick={onHome} style={{ ...homeButton, lineHeight: 1.1, maxWidth: '100%' }}>
+          <Editable field="name">
+            <span className="font-display" style={{ display: 'block', fontSize: mobile ? '16px' : '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{org.name}</span>
+          </Editable>
+        </button>
+        <Signature compact={mobile} height={mobile ? 12 : 15} />
       </span>
-    </button>
+    </div>
   )
   // Où en est la collecte : objectif de l'événement en cours s'il y en a un, sinon le total
   const raised = goalCents > 0 ? eventCents : totalCents

@@ -16,8 +16,9 @@ import QRCode from 'qrcode'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { FALLBACK_GLASS } from '@/lib/theme'
+import Signature from '@/components/Signature'
 import { QUOTES, type Locale } from '@/i18n/config'
-import { useBrand, useOrg } from '@/lib/useOrg'
+import { useOrg } from '@/lib/useOrg'
 import { useMoney, useSceneText } from '@/lib/useI18n'
 import { donorNameFamily, donorNamesSerif } from '@/lib/fonts'
 import { ensureFonts } from '@/lib/fonts'
@@ -77,7 +78,6 @@ export default function Ecran() {
   const t = useTranslations('ecran')
   const tc = useTranslations('commun')
   const org = useOrg()
-  const brand = useBrand()
   const money = useMoney()
   const locale = useLocale() as Locale
   const sceneText = useSceneText()
@@ -715,9 +715,10 @@ export default function Ecran() {
         </div>
       </div>
 
-      {/* Donivers, discret : le message de l'organisme passe avant */}
-      <div className="absolute" style={{ left: '50%', bottom: '0.9em', transform: 'translateX(-50%)', fontSize: '0.85em', color: 'rgba(244,239,230,0.45)', whiteSpace: 'nowrap' }}>
-        {CONFIG.brand.name} · <span className="slogan">{brand.slogan}</span>
+      {/* Signature de Donivers : en bas à gauche, en face du QR, sous le bloc de l'organisme (toujours plus petite que
+          lui). Pas de lien : c'est un écran. S'efface comme l'en-tête pendant une mise en scène. */}
+      <div className="absolute" style={{ left: '2.4em', bottom: '2.2em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
+        <Signature height="1.6em" link={false} opacity={0.55} />
       </div>
         </>
       )}

@@ -457,7 +457,7 @@ export async function sendSignupCode(i: { to: string; code: string; locale: Loca
 export const studioNotifyEmail = () => (process.env.STUDIO_NOTIFY_EMAIL || CONFIG.brand.studioLegal.email).trim()
 
 /** Avis à Studio : une demande d'invitation est arrivée par la vitrine (en français : c'est pour Studio). */
-export async function sendAccessRequestNotice(r: { orgName: string; name: string; email: string; message: string | null; studioUrl: string }): Promise<boolean> {
+export async function sendAccessRequestNotice(r: { orgName: string; name: string; email: string; message: string | null; source?: string | null; studioUrl: string }): Promise<boolean> {
   return sendEmail({
     kind: 'access_request',
     to: studioNotifyEmail(),
@@ -467,7 +467,7 @@ export async function sendAccessRequestNotice(r: { orgName: string; name: string
     content: {
       preheader: `${r.name} (${r.email})`,
       heading: 'Nouvelle demande d’invitation', // i18n-ok : avis pour Studio (FR)
-      paragraphs: [`${r.orgName} — ${r.name}, ${r.email}`, ...(r.message ? [`« ${r.message} »`] : [])],
+      paragraphs: [`${r.orgName} — ${r.name}, ${r.email}`, ...(r.message ? [`« ${r.message} »`] : []), ...(r.source ? [`Venu du vitrail : ${r.source}`] : [])], // i18n-ok : avis pour Studio (FR)
       button: { label: 'Ouvrir la section Studio', url: r.studioUrl }, // i18n-ok : avis pour Studio (FR)
       footer: [CONFIG.brand.studioLegal.name],
     },

@@ -7,10 +7,11 @@ import type { Surface } from '@/lib/hosts'
 // Identité de l'organisme de la page, fournie par le gabarit racine (app/layout.tsx) : lue en base par le serveur.
 // Hors organisme (vitrine, inscription, Studio), elle est absente.
 
-const Ctx = createContext<{ identity: Identity | null; surface: Surface }>({ identity: null, surface: 'platform' })
+// brandHref : la vitrine de Donivers, avec la provenance (?ref=<organisme>) ; lien de la signature « propulsé par ».
+const Ctx = createContext<{ identity: Identity | null; surface: Surface; brandHref: string | null }>({ identity: null, surface: 'platform', brandHref: null })
 
-export function OrgIdentityProvider({ identity, surface, children }: { identity: Identity | null; surface: Surface; children: React.ReactNode }) {
-  return <Ctx.Provider value={{ identity, surface }}>{children}</Ctx.Provider>
+export function OrgIdentityProvider({ identity, surface, brandHref = null, children }: { identity: Identity | null; surface: Surface; brandHref?: string | null; children: React.ReactNode }) {
+  return <Ctx.Provider value={{ identity, surface, brandHref }}>{children}</Ctx.Provider>
 }
 
 export function useIdentityContext() {

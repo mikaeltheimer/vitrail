@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 type Err = 'organisme' | 'nom' | 'courriel' | 'trop' | 'serveur'
@@ -11,6 +11,21 @@ export default function RequestForm() {
   const [f, setF] = useState({ orgName: '', name: '', email: '', message: '', site: '' })
   const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle')
   const [error, setError] = useState<Err | null>(null)
+  // Provenance : ?ref=<organisme> quand on arrive par la signature d'un vitrail, gardée pour la visite (les ancres de la
+  // vitrine la font disparaître de l'adresse) ; relue à l'envoi
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref')
+      if (ref) sessionStorage.setItem('donivers:ref', ref)
+    } catch {}
+  }, [])
+  const source = () => {
+    try {
+      return new URLSearchParams(window.location.search).get('ref') ?? sessionStorage.getItem('donivers:ref')
+    } catch {
+      return null
+    }
+  }
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value })
 
   if (state === 'done')
@@ -28,7 +43,7 @@ export default function RequestForm() {
         setState('busy')
         setError(null)
         try {
-          const res = await fetch('/api/plateforme/demande', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) })
+          const res = await fetch('/api/plateforme/demande', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, source: source() }) })
           if (res.ok) return setState('done')
           const b = (await res.json().catch(() => ({}))) as { error?: Err }
           setError(b.error ?? 'serveur')

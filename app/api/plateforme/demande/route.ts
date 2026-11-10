@@ -4,6 +4,7 @@ import { sendAccessRequestNotice } from '@/lib/email'
 import { localeOf } from '@/lib/i18n'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { platformUrl } from '@/lib/tenant'
+import { cleanChannel } from '@/lib/validate'
 
 export const runtime = 'nodejs'
 
@@ -19,13 +20,15 @@ export async function POST(request: NextRequest) {
   const name = clean(b.name, 80)
   const email = clean(b.email, 200).toLowerCase()
   const message = typeof b.message === 'string' ? b.message.trim().slice(0, 1000) : ''
+  // Provenance (vitrail dont la signature a mené ici) : quelques lettres, chiffres et tirets, sinon rien
+  const source = cleanChannel(b.source)
   if (orgName.length < 2) return NextResponse.json({ error: 'organisme' }, { status: 400 })
   if (name.length < 2) return NextResponse.json({ error: 'nom' }, { status: 400 })
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ error: 'courriel' }, { status: 400 })
 
   const { error } = await getDb()
     .from('access_requests')
-    .insert({ org_name: orgName, name, email, message: message || null, locale: localeOf(request), created_at: new Date().toISOString() })
+    .insert({ org_name: orgName, name, email, message: message || null, locale: localeOf(request), ...(source ? { source } : {}), created_at: new Date().toISOString() })
   if (error) {
     console.error('Demande d’invitation non enregistrée :', error.message)
     return NextResponse.json({ error: 'serveur' }, { status: 500 })
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
   const studioUrl = `${platformUrl(request)}/studio`
   after(async () => {
     try {
-      await sendAccessRequestNotice({ orgName, name, email, message: message || null, studioUrl })
+      await sendAccessRequestNotice({ orgName, name, email, message: message || null, source, studioUrl })
     } catch (e) {
       console.error('Avis de demande non envoyé :', e)
     }

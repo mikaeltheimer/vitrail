@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (!me) return fail('Réservé à Studio Existence.', 403) // i18n-ok : section Studio (FR)
   const db = getDb()
   const [reqs, invs, orgs, slugs] = await Promise.all([
-    db.from('access_requests').select('id,org_name,name,email,message,locale,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
+    db.from('access_requests').select('id,org_name,name,email,message,locale,source,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
     db.from('invitations').select('id,email,org_name,locale,created_at,expires_at,accepted_at,revoked_at').is('organization_id', null).order('created_at', { ascending: false }).limit(200),
     db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,created_at,terms_accepted_by').is('practice_of', null).order('created_at', { ascending: false }).limit(500),
     db.from('organization_slugs').select('slug,organization_id').eq('is_current', true),

@@ -17,7 +17,9 @@
     "anonyme": "Anonyme",
     "ordinal": "{n, selectordinal, one {#er} other {#e}}",
     "conditionsCourt": "Conditions",
-    "aCompleter": "À COMPLÉTER"
+    "aCompleter": "À COMPLÉTER",
+    "propulsePar": "propulsé par",
+    "signatureLien": "{brand} : créez le vitrail de votre organisme (nouvel onglet)"
   },
   "erreurs": {
     "courrielRequis": "Courriel requis.",
