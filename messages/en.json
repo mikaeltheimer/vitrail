@@ -976,8 +976,8 @@
     }
   },
   "plateforme": {
-    "metaTitre": "{brand} — every donation becomes a piece of the stained glass",
-    "metaDescription": "Your organization’s fundraising becomes a collective artwork: each donor picks a colour, leaves a word, and their piece joins the stained glass, online and on the big screen.",
+    "metaTitre": "{brand} — fundraising that puts a face on your community",
+    "metaDescription": "Behind every gift there’s someone. Every gift becomes a piece of stained glass, with the donor’s name, face and words: people can see who your organization touches, and why they care.",
     "nav": {
       "comment": "How it works",
       "tarifs": "Pricing",
@@ -988,13 +988,13 @@
     },
     "hero": {
       "beta": "Beta · invitation only",
-      "titre": "Every donation becomes a piece of the stained glass.",
-      "texte": "{brand} turns your organization’s fundraising into a collective artwork. Each donor picks a colour, leaves a word, and their piece joins the stained glass, online and live on the big screen during your events.",
+      "titre": "Your community, finally visible.",
+      "texte": "Behind every gift there’s someone: a parent, a neighbour, a former volunteer, everyone who believes in what you do. With {brand}, they take their place in a stained glass that grows with every gift, with their name, their face and their words, if they wish. Your organization gains a place of its own, online and on the big screen, where people can see who it touches and why they care. And when you can see a community, you want to find your place in it.",
       "demander": "Request an invitation",
       "voir": "See how it works",
       "pour": "For non-profits, schools, cultural venues and causes in Québec. In French and English.",
       "illustration": "A stained glass made of coloured pieces; a new piece joins every few seconds",
-      "direct": "Each new donation, a new piece",
+      "direct": "A new gift, a new piece, live",
       "essayer": "Try the demo",
       "demoLegende": "{org} · demonstration stained glass",
       "demoExplorer": "Explore the demo →",
