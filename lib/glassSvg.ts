@@ -1,10 +1,11 @@
-// Le vitrail en SVG, côté serveur : image de partage (/api/og). Même pavage que la page (même graine, mêmes poids),
-// même lecture du verre (fond profond, cœur lumineux, plomb plus épais autour des grandes pièces), sans photos ni textes.
-// Couleurs en rgb() : le moteur qui dessine l'image (resvg) ne lit pas la syntaxe hsl() récente.
+// Le vitrail en SVG, sans canevas : image de partage (/api/og, côté serveur) et affiche (/affiche, à imprimer).
+// Même pavage que la page (même graine, mêmes poids), même lecture du verre (fond profond, cœur lumineux, plomb plus
+// épais autour des grandes pièces), sans photos ni textes. Couleurs en rgb() : le moteur de l'image de partage (resvg)
+// ne lit pas la syntaxe hsl() récente.
 
 import { FALLBACK_GLASS, LEGACY_GLASSES } from './theme'
 import { pieceWeights } from './render'
-import { UNIVERSE_RADIUS, computeTileData, mulberry32, seedFromIds } from './tiling'
+import { UNIVERSE_RADIUS, computeTileData, mulberry32, seedFromIds, type Point, type TileData, type TilingItem } from './tiling'
 
 type Rgb = [number, number, number]
 
@@ -41,45 +42,119 @@ export interface SvgPiece {
   amountCents: number
 }
 
+export interface SceneTile {
+  id: string
+  /** Points pour <polygon points> (unités monde, origine au centre). */
+  points: string
+  /** Fond, teinte moyenne, cœur (rgb). */
+  base: string
+  mid: string
+  core: string
+  /** Assez grande pour un dégradé (sinon : teinte moyenne pleine). */
+  shaded: boolean
+  /** Dégradé : centre et rayon (unités monde). */
+  glow: [number, number, number]
+  /** Plomb (unités monde). */
+  lead: number
+  labelCenter: Point
+  inRadius: number
+}
+
+export interface GlassScene {
+  tiles: SceneTile[]
+  /** La place libre de l'affiche (morceau vide), si demandée. */
+  free: SceneTile | null
+  /** Demi-côté du carré à afficher (le disque et son anneau de plomb), centré sur l'origine. */
+  view: number
+  ring: number
+  radius: number
+}
+
+const FREE_ID = '__votre-morceau'
+
 /**
- * Le vitrail entier, carré de `size` px (le disque le remplit, avec son anneau de plomb).
- * Vide : null (l'appelant montre autre chose).
+ * Le vitrail en tuiles prêtes à dessiner, pour un rendu de `sizePx` px de côté (épaisseur du plomb).
+ * `freeSlot` (affiche) : une place libre est ajoutée au pavage, grande comme un don généreux ; parmi quelques essais
+ * (la graine dépend de l'ensemble des identifiants), on garde celui où elle tombe le plus près du centre.
  */
-export function vitrailSvg(pieces: SvgPiece[], size: number): string | null {
-  if (!pieces.length) return null
-  // Même pavage que la page : poids de pieceWeights, graine tirée de l'ensemble des donateurs
-  const data = computeTileData(pieceWeights(pieces as never), mulberry32(seedFromIds(pieces.map(p => p.id))))
-  const byId = new Map(pieces.map(p => [p.id, p]))
+export function glassScene(pieces: SvgPiece[], sizePx: number, freeSlot = false): GlassScene | null {
+  if (!pieces.length && !freeSlot) return null
   const R = UNIVERSE_RADIUS
   const ring = R * 0.035
   const view = R + ring
-  const k = size / (2 * view) // px par unité
+  const k = sizePx / (2 * view)
+  const weights: TilingItem[] = pieceWeights(pieces as never)
+  let data: TileData[]
+  let freeId: string | null = null
+  if (!freeSlot) data = computeTileData(weights, mulberry32(seedFromIds(pieces.map(p => p.id))))
+  else {
+    const mean = weights.length ? weights.reduce((a, w) => a + w.weight, 0) / weights.length : 1
+    // Assez grande pour y écrire « votre morceau » et se voir de loin (environ 5 % du disque sur un grand vitrail),
+    // sans écraser un petit vitrail
+    const total = weights.reduce((a, w) => a + w.weight, 0)
+    const weight = Math.max(mean * 1.6, total * 0.05)
+    let best: { data: TileData[]; id: string; score: number } | null = null
+    for (let n = 0; n < (weights.length > 150 ? 4 : 8); n++) {
+      const id = `${FREE_ID}-${n}`
+      const items = [...weights, { id, weight }]
+      const d = computeTileData(items, mulberry32(seedFromIds(items.map(i => i.id))))
+      const t = d.find(x => x.id === id)!
+      const score = Math.hypot(t.labelCenter[0], t.labelCenter[1]) / R - t.inRadius / R
+      if (!best || score < best.score) best = { data: d, id, score }
+    }
+    data = best!.data
+    freeId = best!.id
+  }
+  const byId = new Map(pieces.map(p => [p.id, p]))
+  const f = (n: number) => n.toFixed(1)
+  let free: SceneTile | null = null
+  const tiles: SceneTile[] = []
+  for (const t of data) {
+    const c = shades(byId.get(t.id)?.color ?? FALLBACK_GLASS)
+    const px = t.equivRadius * 2 * k
+    const tile: SceneTile = {
+      id: t.id,
+      points: t.poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' '),
+      ...c,
+      shaded: px >= 10,
+      glow: [t.labelCenter[0], t.labelCenter[1], Math.max(t.inRadius * 1.6, t.equivRadius * 0.8)],
+      lead: Math.min(5, 0.7 + Math.sqrt(px) * 0.3) / k,
+      labelCenter: t.labelCenter,
+      inRadius: t.inRadius,
+    }
+    if (t.id === freeId) free = tile
+    else tiles.push(tile)
+  }
+  return { tiles, free, view, ring, radius: R }
+}
+
+/**
+ * Le vitrail entier en texte SVG, carré de `size` px (le disque le remplit, avec son anneau de plomb).
+ * Vide : null (l'appelant montre autre chose).
+ */
+export function vitrailSvg(pieces: SvgPiece[], size: number): string | null {
+  const s = glassScene(pieces, size)
+  if (!s) return null
   const f = (n: number) => n.toFixed(1)
   const defs: string[] = []
   const body: string[] = []
-  data.forEach((t, i) => {
-    const p = byId.get(t.id)
-    const c = shades(p?.color ?? FALLBACK_GLASS)
-    const pts = t.poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ')
-    const sizePx = t.equivRadius * 2 * k
-    const lead = Math.min(5, 0.7 + Math.sqrt(sizePx) * 0.3) / k
-    body.push(`<polygon points="${pts}" fill="${sizePx < 10 ? c.mid : c.base}"/>`)
-    if (sizePx >= 10) {
-      const [cx, cy] = t.labelCenter
-      const r = Math.max(t.inRadius * 1.6, t.equivRadius * 0.8)
+  s.tiles.forEach((t, i) => {
+    body.push(`<polygon points="${t.points}" fill="${t.shaded ? t.base : t.mid}"/>`)
+    if (t.shaded) {
+      const [cx, cy, r] = t.glow
       defs.push(
-        `<radialGradient id="g${i}" gradientUnits="userSpaceOnUse" cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}"><stop offset="0" stop-color="${c.core}" stop-opacity="0.9"/><stop offset="0.55" stop-color="${c.mid}"/><stop offset="1" stop-color="${c.mid}" stop-opacity="0"/></radialGradient>`,
+        `<radialGradient id="g${i}" gradientUnits="userSpaceOnUse" cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}"><stop offset="0" stop-color="${t.core}" stop-opacity="0.9"/><stop offset="0.55" stop-color="${t.mid}"/><stop offset="1" stop-color="${t.mid}" stop-opacity="0"/></radialGradient>`,
       )
-      body.push(`<polygon points="${pts}" fill="url(#g${i})"/>`)
+      body.push(`<polygon points="${t.points}" fill="url(#g${i})"/>`)
     }
-    body.push(`<polygon points="${pts}" fill="none" stroke="#050408" stroke-width="${f(lead)}" stroke-linejoin="round"/>`)
+    body.push(`<polygon points="${t.points}" fill="none" stroke="#050408" stroke-width="${f(t.lead)}" stroke-linejoin="round"/>`)
   })
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${-view} ${-view} ${2 * view} ${2 * view}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${-s.view} ${-s.view} ${2 * s.view} ${2 * s.view}">` +
     `<defs>${defs.join('')}</defs>` +
-    `<circle r="${R}" fill="#050408"/>` +
+    `<circle r="${s.radius}" fill="#050408"/>` +
     body.join('') +
-    `<circle r="${f(R + ring / 2)}" fill="none" stroke="#050408" stroke-width="${f(ring)}"/>` +
+    `<circle r="${f(s.radius + s.ring / 2)}" fill="none" stroke="#050408" stroke-width="${f(s.ring)}"/>` +
     `</svg>`
   )
 }
