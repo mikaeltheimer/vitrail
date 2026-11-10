@@ -5,7 +5,9 @@ import PlatformShell from '@/components/plateforme/PlatformShell'
 import { headers } from 'next/headers'
 import HeroGlass, { type HeroDemo } from '@/components/plateforme/HeroGlass'
 import { demoForVitrine } from '@/lib/demo'
-import { DEMO_TEXTS } from '@/lib/demo-data'
+import { DEMO_TEXTS, TESTIMONIALS_EN, TESTIMONIALS_FR } from '@/lib/demo-data'
+import Voices, { pickVoices } from '@/components/plateforme/Voices'
+import { QUOTES } from '@/i18n/config'
 import RequestForm from '@/components/plateforme/RequestForm'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
@@ -68,6 +70,8 @@ export default async function PlateformePage() {
         name: demoName,
       }
     : null
+  // « Les gens derrière les dons » : trois témoignages nommés de la démo, dans la langue de la page
+  const voices = demo ? pickVoices(demo.snapshot.pieces, locale === 'en' ? TESTIMONIALS_EN : TESTIMONIALS_FR) : []
 
   return (
     <PlatformShell>
@@ -97,6 +101,19 @@ export default async function PlateformePage() {
             <HeroGlass demo={heroDemo} />
           </div>
         </section>
+
+        {voices.length > 0 && (
+          <section id="voix" className="mx-auto flex max-w-[1160px] flex-col gap-8 px-6 pb-20">
+            <div className="flex max-w-[720px] flex-col gap-3">
+              <H2>{t('voix.titre')}</H2>
+              <p className="m-0 text-[19px]" style={{ color: '#D9D3E3' }}>
+                {t('voix.intro')}
+              </p>
+            </div>
+            <Voices voices={voices} quotes={{ open: QUOTES[locale][0], close: QUOTES[locale][1] }} />
+            <p className="muted m-0 text-sm">{t('voix.note', { org: demoName })}</p>
+          </section>
+        )}
 
         {demo && (
           <section id="essai" className="mx-auto flex max-w-[1160px] flex-col gap-8 px-6 pb-20">
@@ -253,7 +270,7 @@ export default async function PlateformePage() {
             <div className="mb-4">
               <H2>{t('faq.titre')}</H2>
             </div>
-            {([1, 2, 3, 4, 5] as const).map(n => (
+            {([1, 2, 3, 4, 5, 6] as const).map(n => (
               <details key={n} className="card !rounded-2xl !px-[22px] !py-[18px]" open={n === 1}>
                 <summary className="cursor-pointer font-bold">{t(`faq.q${n}`)}</summary>
                 <p className="muted mb-0 mt-3">{t(`faq.r${n}`, { brand })}</p>

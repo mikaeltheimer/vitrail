@@ -61,7 +61,7 @@ export function resolveLocale({ param, cookie, acceptLanguage }: LocaleSignals):
 }
 
 /** Guillemets de citation (témoignages) : conventions typographiques de la langue, pas des textes à traduire. */
-export const QUOTES: Record<Locale, readonly [open: string, close: string]> = { fr: ['« ', ' »'], en: ['“', '”'] }
+export const QUOTES: Record<Locale, readonly [open: string, close: string]> = { fr: ['«\u00a0', '\u00a0»'], en: ['“', '”'] }
 
 /**
  * Pages dont la langue est fixée par l'adresse, jamais par le navigateur ni le cookie : un écran de projection

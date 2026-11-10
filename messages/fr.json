@@ -1001,11 +1001,16 @@
       "demoOuvrir": "Ouvrir le vitrail de démonstration de {org}",
       "demoEcran": "Écran de projection de démonstration de {org}"
     },
+    "voix": {
+      "titre": "Les gens derrière les dons",
+      "intro": "Un don ne dit pas tout. Leurs mots, si.",
+      "note": "Donateurs fictifs du vitrail de démonstration de {org}."
+    },
     "essai": {
       "titre": "Essayez-le",
-      "intro": "{org} est un organisme fictif : 200 donateurs inventés, leurs mots et leurs morceaux de verre. Tout y fonctionne comme chez vous, sauf qu’on ne peut pas y donner.",
+      "intro": "{org} est un organisme fictif : 200 donateurs inventés, leurs mots et leurs morceaux de verre. Tout y fonctionne comme chez vous, et vous pouvez y ajouter votre propre morceau, sans rien payer.",
       "vitrailTitre": "Le vitrail",
-      "vitrailTexte": "Ce que voient vos donateurs sur leur téléphone : touchez un morceau pour lire son témoignage, cherchez un nom, découvrez la collecte.",
+      "vitrailTexte": "Ce que voit votre communauté sur son téléphone : touchez un morceau pour savoir qui a donné et pourquoi, cherchez un nom, ajoutez le vôtre.",
       "vitrailBouton": "Ouvrir le vitrail",
       "ecranTitre": "L’écran de projection",
       "ecranTexte": "Ce qui passe sur grand écran pendant vos événements : les morceaux défilent un à un, avec le code QR pour donner sur place. Plein écran : touche F.",
@@ -1015,18 +1020,18 @@
     "comment": {
       "titre": "Comment ça marche",
       "e1Titre": "Créez votre vitrail",
-      "e1": "Votre nom, votre logo, vos couleurs et une adresse à vous. Connectez votre compte Stripe pour recevoir les dons : aucune compétence technique requise.",
+      "e1": "Votre nom, votre logo, vos mots et une adresse à vous. Connectez votre compte Stripe pour recevoir les dons : aucune compétence technique requise.",
       "e2Titre": "Invitez à donner",
       "e2": "Partagez le lien, imprimez des codes QR pour vos lieux et projetez le vitrail sur grand écran pendant votre événement.",
-      "e3Titre": "Regardez-le grandir",
-      "e3": "Chaque don apparaît en direct. Le donateur reçoit son reçu et un lien pour modifier son morceau quand il le veut."
+      "e3Titre": "Regardez votre communauté grandir",
+      "e3": "Chaque don apparaît en direct, avec le nom, la photo et le mot de la personne, si elle le souhaite. Elle reçoit son reçu et peut modifier son morceau quand elle veut."
     },
     "donateurs": {
       "titre": "Pour vos donateurs",
-      "intro": "Donner devient un geste visible, qu’on a envie de montrer.",
-      "l1": "Une couleur choisie parmi les verres de votre vitrail",
+      "intro": "Donner devient une façon de dire : j’en fais partie.",
+      "l1": "Un mot pour dire pourquoi il donne, et une photo, s’il le souhaite",
       "l2": "Son nom affiché, ou l’anonymat",
-      "l3": "Un témoignage et une photo, s’il le souhaite",
+      "l3": "Une couleur choisie parmi les verres du vitrail",
       "l4": "Son morceau grandit s’il donne à nouveau",
       "l5": "Il modifie ou retire son contenu à tout moment"
     },
@@ -1034,7 +1039,7 @@
       "titre": "Pour votre équipe",
       "intro": "Une console pensée pour le téléphone, le soir de l’événement.",
       "l1": "Le total et les dons en direct",
-      "l2": "Photos et témoignages approuvés avant d’apparaître à l’écran",
+      "l2": "Publication immédiate, ou après votre approbation : vous choisissez",
       "l3": "Les dons en argent comptant ajoutés au vitrail",
       "l4": "D’où viennent les dons : quel code QR, quel lien",
       "l5": "Une équipe de bénévoles avec des accès limités",
@@ -1072,14 +1077,16 @@
       "titre": "Questions",
       "q1": "Faut-il déjà avoir un compte Stripe ?",
       "r1": "Non. Vous le créez depuis votre console en quelques étapes guidées par Stripe. En attendant, vous pouvez personnaliser votre vitrail et vous exercer dans l’atelier.",
-      "q2": "Faut-il organiser un événement ?",
-      "r2": "Non. Le vitrail est en ligne en tout temps. L’écran de projection est un plus pour vos soirées et vos expositions.",
-      "q3": "Qui décide de ce qui s’affiche ?",
-      "r3": "Vous. Vous pouvez approuver chaque photo et chaque témoignage avant qu’ils apparaissent, et masquer un morceau en un geste.",
-      "q4": "Et les reçus officiels pour l’impôt ?",
-      "r4": "Le donateur reçoit un reçu de paiement par courriel. Les reçus officiels aux fins de l’impôt restent émis par votre organisme, s’il est un organisme de bienfaisance enregistré.",
-      "q5": "Pourquoi sur invitation ?",
-      "r5": "{brand} est en bêta. Nous accompagnons personnellement les premiers organismes avant d’ouvrir l’inscription à tous."
+      "q2": "Et les donateurs qui préfèrent rester discrets ?",
+      "r2": "Personne n’est obligé de se montrer. Chacun choisit d’afficher son nom ou de rester anonyme, d’ajouter ou non un mot et une photo, et peut tout retirer à tout moment. Un don anonyme a quand même son morceau : il fait partie de la communauté, lui aussi.",
+      "q3": "Faut-il organiser un événement ?",
+      "r3": "Non. Le vitrail est en ligne en tout temps. L’écran de projection est un plus pour vos soirées et vos expositions.",
+      "q4": "Qui décide de ce qui s’affiche ?",
+      "r4": "Vous. Vous pouvez approuver chaque photo et chaque témoignage avant qu’ils apparaissent, et masquer un morceau en un geste.",
+      "q5": "Et les reçus officiels pour l’impôt ?",
+      "r5": "Le donateur reçoit un reçu de paiement par courriel. Les reçus officiels aux fins de l’impôt restent émis par votre organisme, s’il est un organisme de bienfaisance enregistré.",
+      "q6": "Pourquoi sur invitation ?",
+      "r6": "{brand} est en bêta. Nous accompagnons personnellement les premiers organismes avant d’ouvrir l’inscription à tous."
     },
     "demande": {
       "titre": "Votre organisme veut son vitrail ?",
