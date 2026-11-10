@@ -1121,8 +1121,7 @@
       "confUsage": "À quoi ça sert : vous répondre, vous inviter et vous donner accès à la console. Rien n’est vendu ni utilisé pour de la publicité.",
       "confDroits": "Vos droits : consulter, corriger ou faire supprimer vos renseignements, en écrivant à {email}.",
       "confResponsable": "Responsable de la protection des renseignements personnels : {studio}, {address}."
-    },
-    "ogSousTitre": "Créez le vitrail de votre organisme"
+    }
   },
   "inscription": {
     "metaTitre": "Créer mon vitrail — {brand}",
@@ -1591,7 +1590,7 @@
     "poster": {
       "invitation": "Faites partie du vitrail",
       "titre": "Chaque don devient un morceau de verre",
-      "explication": "Plus votre don est grand, plus votre morceau l’est. Ajoutez votre nom, un mot, une photo : ils apparaissent sur le vitrail.",
+      "explication": "Plus votre don est grand, plus votre morceau l’est. Ajoutez votre nom, une photo et quelques mots pour dire pourquoi vous donnez : ils apparaissent sur le vitrail.",
       "scannez": "Scannez pour donner",
       "enUneMinute": "En une minute : carte, Apple Pay ou Google Pay",
       "qrAlt": "Code QR pour donner à {org}"

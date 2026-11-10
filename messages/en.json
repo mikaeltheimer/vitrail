@@ -1121,8 +1121,7 @@
       "confUsage": "What it is for: answering you, inviting you and giving you access to the console. Nothing is sold or used for advertising.",
       "confDroits": "Your rights: access, correct or have your information deleted by writing to {email}.",
       "confResponsable": "Person in charge of protecting personal information: {studio}, {address}."
-    },
-    "ogSousTitre": "Create your organization’s stained glass"
+    }
   },
   "inscription": {
     "metaTitre": "Create my stained glass — {brand}",
@@ -1591,7 +1590,7 @@
     "poster": {
       "invitation": "Be part of the stained glass",
       "titre": "Every donation becomes a piece of glass",
-      "explication": "The bigger your gift, the bigger your piece. Add your name, a few words, a photo: they appear on the stained glass.",
+      "explication": "The bigger your gift, the bigger your piece. Add your name, a photo and a few words on why you give: they appear on the stained glass.",
       "scannez": "Scan to give",
       "enUneMinute": "In one minute: card, Apple Pay or Google Pay",
       "qrAlt": "QR code to donate to {org}"
