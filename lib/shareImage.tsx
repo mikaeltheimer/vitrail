@@ -65,14 +65,31 @@ function waiting(seed: string): SvgPiece[] {
  */
 async function Disc({ pieces, size, waitingFor }: { pieces: SvgPiece[]; size: number; waitingFor: string | null }) {
   const empty = pieces.length === 0
-  const svg = vitrailSvg(empty && waitingFor ? waiting(waitingFor) : pieces, size)
+  // Le disque en haut à droite ; ses rayons tombent jusqu'au bas de l'image et s'évasent (sous le texte à gauche)
+  const top = 30
+  const padX = 320
+  const padBottom = H - top - size
+  const svg = vitrailSvg(empty && waitingFor ? waiting(waitingFor) : pieces, size, { rays: true, padX, padBottom })
   const symbol = svg ? null : await brandFile('donivers-symbole.svg')
-  const src = svg ? svgData(svg) : symbol?.src
   const veiled = empty && !!svg
   return (
-    <div style={{ position: 'absolute', right: 48, top: (H - size) / 2, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ position: 'absolute', left: -60, top: -60, width: size + 120, height: size + 120, borderRadius: 9999, backgroundImage: 'radial-gradient(circle, rgba(255,226,168,0.20) 0%, rgba(240,178,74,0.08) 45%, rgba(11,10,18,0) 70%)' }} />
-      {src && <img src={src} width={svg ? size : size * 0.92} height={svg ? size : size * 0.92} alt="" style={{ opacity: veiled ? 0.32 : 1 }} />}
+    <div style={{ position: 'absolute', right: 56 - padX, top, width: size + 2 * padX, height: size + padBottom, display: 'flex' }}>
+      <div
+        style={{
+          position: 'absolute',
+          left: padX - 60,
+          top: -60,
+          width: size + 120,
+          height: size + 120,
+          borderRadius: 9999,
+          backgroundImage: 'radial-gradient(circle, rgba(255,226,168,0.20) 0%, rgba(240,178,74,0.08) 45%, rgba(11,10,18,0) 70%)',
+        }}
+      />
+      {svg ? (
+        <img src={svgData(svg)} width={size + 2 * padX} height={size + padBottom} alt="" style={{ opacity: veiled ? 0.32 : 1 }} />
+      ) : (
+        symbol && <img src={symbol.src} width={size * 0.92} height={size * 0.92} alt="" style={{ marginLeft: padX + size * 0.04, marginTop: size * 0.04 }} />
+      )}
     </div>
   )
 }
@@ -100,7 +117,7 @@ const HEADERS = { 'Cache-Control': 'public, max-age=300, s-maxage=300, stale-whi
 
 export async function shareImage(p: OrgShare | PlatformShare): Promise<ImageResponse> {
   const [fontList, small, full] = await Promise.all([fonts(), brandFile('donivers-logo-creme-petit.svg'), brandFile('donivers-logo-creme.svg')])
-  const disc = await Disc({ pieces: p.pieces, size: 540, waitingFor: p.kind === 'org' ? p.name : null })
+  const disc = await Disc({ pieces: p.pieces, size: 470, waitingFor: p.kind === 'org' ? p.name : null })
   const column = { position: 'absolute' as const, left: 72, top: 64, bottom: 60, width: 520, display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between' }
 
   const content =
@@ -132,12 +149,10 @@ export async function shareImage(p: OrgShare | PlatformShare): Promise<ImageResp
     )
 
   return new ImageResponse(
-    (
-      <div style={{ width: W, height: H, display: 'flex', position: 'relative', background: NIGHT, color: CREAM, fontFamily: 'DM Sans' }}>
-        {disc}
-        {content}
-      </div>
-    ),
+    <div style={{ width: W, height: H, display: 'flex', position: 'relative', background: NIGHT, color: CREAM, fontFamily: 'DM Sans' }}>
+      {disc}
+      {content}
+    </div>,
     { width: W, height: H, fonts: fontList, headers: HEADERS },
   )
 }

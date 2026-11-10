@@ -186,12 +186,26 @@ export function lightRays(scene: GlassScene, length = 2.6): LightRay[] {
  * Le vitrail entier en texte SVG, carré de `size` px (le disque le remplit, avec son anneau de plomb).
  * Vide : null (l'appelant montre autre chose).
  */
-export function vitrailSvg(pieces: SvgPiece[], size: number): string | null {
+export function vitrailSvg(pieces: SvgPiece[], size: number, opts: { rays?: boolean; padX?: number; padBottom?: number } = {}): string | null {
   const s = glassScene(pieces, size)
   if (!s) return null
   const f = (n: number) => n.toFixed(1)
   const defs: string[] = []
   const body: string[] = []
+  // Rayons (fond sombre) : la lumière du verre qui tombe sous le disque. L'image s'agrandit (padX de chaque côté,
+  // padBottom dessous, en px) pour les laisser s'évaser ; le disque garde sa taille et sa place en haut.
+  const k = (2 * s.view) / size
+  const padX = (opts.padX ?? 0) * k
+  const padBottom = (opts.padBottom ?? 0) * k
+  if (opts.rays) {
+    lightRays(s, 2.4).forEach((r, i) => {
+      defs.push(
+        `<linearGradient id="r${i}" gradientUnits="userSpaceOnUse" x1="${f(r.from[0])}" y1="${f(r.from[1])}" x2="${f(r.to[0])}" y2="${f(r.to[1])}"><stop offset="0" stop-color="${r.color}" stop-opacity="0.26"/><stop offset="0.3" stop-color="${r.color}" stop-opacity="0.09"/><stop offset="0.75" stop-color="${r.color}" stop-opacity="0"/></linearGradient>`,
+      )
+      body.push(`<polygon points="${r.points}" fill="url(#r${i})"/>`)
+    })
+  }
+  body.push(`<circle r="${s.radius}" fill="#050408"/>`)
   s.tiles.forEach((t, i) => {
     body.push(`<polygon points="${t.points}" fill="${t.shaded ? t.base : t.mid}"/>`)
     if (t.shaded) {
@@ -204,9 +218,8 @@ export function vitrailSvg(pieces: SvgPiece[], size: number): string | null {
     body.push(`<polygon points="${t.points}" fill="none" stroke="#050408" stroke-width="${f(t.lead)}" stroke-linejoin="round"/>`)
   })
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${-s.view} ${-s.view} ${2 * s.view} ${2 * s.view}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size + 2 * (opts.padX ?? 0)}" height="${size + (opts.padBottom ?? 0)}" viewBox="${f(-s.view - padX)} ${f(-s.view)} ${f(2 * s.view + 2 * padX)} ${f(2 * s.view + padBottom)}">` +
     `<defs>${defs.join('')}</defs>` +
-    `<circle r="${s.radius}" fill="#050408"/>` +
     body.join('') +
     `<circle r="${f(s.radius + s.ring / 2)}" fill="none" stroke="#050408" stroke-width="${f(s.ring)}"/>` +
     `</svg>`
