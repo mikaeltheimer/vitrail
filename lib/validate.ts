@@ -1,5 +1,6 @@
 import { defaultColorFor } from './colors'
 import { ANON_LABEL, CONFIG, VALID_COLORS } from './config'
+import { currentGlass } from './theme'
 import { validatePhotoPath } from './photos'
 import { isProfane } from './profanity'
 import { err, money, type AppError } from './errors'
@@ -60,8 +61,10 @@ export function cleanChannel(input: unknown): string | null {
 }
 
 export function validateColor(input: unknown): Result<string> {
-  if (typeof input !== 'string' || !VALID_COLORS.includes(input)) return { ok: false, error: err('couleurInvalide') }
-  return { ok: true, value: input }
+  // Ancienne palette acceptée et ramenée au verre actuel (session Stripe ou onglet ouverts avant le changement)
+  const color = currentGlass(input)
+  if (!color || !VALID_COLORS.includes(color)) return { ok: false, error: err('couleurInvalide') }
+  return { ok: true, value: color }
 }
 
 export interface DonorProfileInput {

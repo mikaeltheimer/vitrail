@@ -4,6 +4,7 @@
 // sauf l'ambiance (halo, rayons, poussière, projection, cadre), dessinée en coordonnées écran.
 
 import type { Tile } from './tiling'
+import { FALLBACK_GLASS, LEGACY_GLASSES } from './theme'
 
 // ---------- Couleurs de verre ----------
 export interface GlassColors {
@@ -16,7 +17,8 @@ export interface GlassColors {
 }
 
 function hexToRgb(hex: string): [number, number, number] {
-  const h = /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#E0657F'
+  // Ancienne palette : ramenée au verre actuel (morceaux d'essai gardés dans le navigateur, brouillons)
+  const h = LEGACY_GLASSES[hex.toUpperCase()] ?? (/^#[0-9a-f]{6}$/i.test(hex) ? hex : FALLBACK_GLASS)
   return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
 }
 

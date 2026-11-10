@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { DEFAULT_GLASSES } from '@/lib/theme'
 import path from 'node:path'
 import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
   } catch {}
   const t = translatorFor(locale)
   const brand = brandFor(locale)
-  const colors = ['#F0B24A', '#E0657F', '#3DB5A6', '#6A78E6', '#A56BD9']
+  const colors = DEFAULT_GLASSES.map(g => g.value)
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', background: '#0B0A12', color: '#F4EFE6', padding: 64, fontFamily: 'sans-serif' }}>

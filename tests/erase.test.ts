@@ -20,7 +20,7 @@ async function main() {
     tables.donors = [
       {
         id: 'ana', organization_id: 'ecole', email: 'ana@exemple.ca', display_name: 'Ana', show_name: true, message: 'Bravo', message_status: 'approved',
-        quote_consent: true, photo_url: photoA, photo_status: 'approved', color: '#3DB5A6', hidden: false, locale: 'en',
+        quote_consent: true, photo_url: photoA, photo_status: 'approved', color: '#1FA978', hidden: false, locale: 'en',
         mailing_consent_at: '2026-11-01T00:00:00Z', mailing_consent_version: 'v1', mailing_consent_locale: 'en', mailing_withdrawn_at: null, erased_at: null,
       },
       // La même personne chez un AUTRE organisme : rien ne doit y bouger
@@ -52,7 +52,7 @@ async function main() {
   check('langue remise à la valeur neutre', ana.locale === 'fr')
   check('consentement à la liste effacé', ana.mailing_consent_at === null && ana.mailing_consent_version === null && ana.mailing_consent_locale === null)
   check('date de suppression notée', typeof ana.erased_at === 'string')
-  check('couleur gardée (le morceau reste)', ana.color === '#3DB5A6')
+  check('couleur gardée (le morceau reste)', ana.color === '#1FA978')
   check('dons gardés', tables.donations.length === 2 && tables.donations[0].donor_id === 'ana')
   check('jetons supprimés', !tables.edit_tokens.some(x => x.donor_id === 'ana'))
   check('signalements supprimés', !tables.reports.some(x => x.donor_id === 'ana'))

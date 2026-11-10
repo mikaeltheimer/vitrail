@@ -1,6 +1,7 @@
 'use client'
 
 /* eslint-disable @next/next/no-img-element -- code QR (data URL) et logo téléversé par l'organisme */
+import { DEFAULT_GLASSES } from '@/lib/theme'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
@@ -184,8 +185,8 @@ export default function Affiche({ poster }: { poster: Record<Locale, PosterTexts
 
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '3.5cqi', margin: langs.length > 1 ? '3.5cqi 0 1.5cqi' : '5cqi 0 2cqi' }}>
             {[
-              { dollars: 10, color: '#3DB5A6' },
-              { dollars: 25, color: '#E0657F' },
+              { dollars: 10, color: DEFAULT_GLASSES[2].value },
+              { dollars: 25, color: DEFAULT_GLASSES[1].value },
               { dollars: 100, color: '#F0B24A' },
             ].map(d => {
               const side = 4.2 * Math.pow(d.dollars / 10, CONFIG.sizeExponent / 2)

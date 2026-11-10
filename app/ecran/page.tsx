@@ -15,6 +15,7 @@ import { useSearchParams } from 'next/navigation'
 import QRCode from 'qrcode'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
+import { FALLBACK_GLASS } from '@/lib/theme'
 import { QUOTES, type Locale } from '@/i18n/config'
 import { useBrand, useOrg } from '@/lib/useOrg'
 import { useMoney, useSceneText } from '@/lib/useI18n'
@@ -315,7 +316,7 @@ export default function Ecran() {
       const message = CONFIG.showMessagesOnScreen ? p?.message ?? null : null
       const wide = isLong(message)
       const lay = stageLayout(tile, wide)
-      const color = p?.color ?? '#E0657F'
+      const color = p?.color ?? FALLBACK_GLASS
       // Plongée vers le morceau ; dès son départ, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
       const dive = (after: () => void) => {
         stage = id
@@ -371,7 +372,7 @@ export default function Ecran() {
           pieces = pieceMap(s.pieces, CONFIG.showMessagesOnScreen)
           version++
           needs = true
-          const colorOf = (tile: Tile): GlassColors => glassColors(pieces.get(tile.id)?.color ?? '#E0657F', tile.id)
+          const colorOf = (tile: Tile): GlassColors => glassColors(pieces.get(tile.id)?.color ?? FALLBACK_GLASS, tile.id)
           ambience.rebuild(t.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
             const hit = hitTile(t.values(), x, y)
             return hit ? colorOf(hit) : null

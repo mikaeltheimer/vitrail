@@ -17,6 +17,7 @@ import { INTL_TAG, type Locale } from "@/i18n/config";
 import { useOrg } from "@/lib/useOrg";
 import { useCount, useGlassName, useMoney, useOrdinal } from "@/lib/useI18n";
 import { CONFIG, GLASS_COLORS } from "@/lib/config";
+import { currentGlass } from "@/lib/theme";
 import { feeFor } from "@/lib/fees";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
@@ -170,7 +171,7 @@ export default function ClaimPanel({
   const [coverFees, setCoverFees] = useState(saved?.coverFees ?? false);
   const [name, setName] = useState(saved?.name ?? "");
   const [color, setColor] = useState<string>(
-    saved?.color ?? GLASS_COLORS[0].value,
+    currentGlass(saved?.color) ?? GLASS_COLORS[0].value,
   );
   const [message, setMessage] = useState(saved?.message ?? "");
   const [quoteConsent, setQuoteConsent] = useState(

@@ -7,10 +7,11 @@
     },
     "verres": {
       "ambre": "Amber",
-      "rose": "Rose",
-      "turquoise": "Turquoise",
-      "indigo": "Indigo",
-      "violet": "Violet"
+      "corail": "Coral",
+      "jade": "Jade",
+      "ciel": "Sky",
+      "violet": "Violet",
+      "rose": "Pink"
     },
     "confidentialiteCourt": "Privacy",
     "fermer": "Close",

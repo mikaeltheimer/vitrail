@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { DEFAULT_GLASSES } from '@/lib/theme'
 import { getLocale, getTranslations } from 'next-intl/server'
 import PlatformShell from '@/components/plateforme/PlatformShell'
 import { headers } from 'next/headers'
@@ -135,9 +136,9 @@ export default async function PlateformePage() {
             <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
               {(
                 [
-                  [1, '#F0B24A', 'e1'],
-                  [2, '#E0657F', 'e2'],
-                  [3, '#3DB5A6', 'e3'],
+                  [1, DEFAULT_GLASSES[0].value, 'e1'],
+                  [2, DEFAULT_GLASSES[1].value, 'e2'],
+                  [3, DEFAULT_GLASSES[3].value, 'e3'],
                 ] as const
               ).map(([n, c, k]) => (
                 <article key={k} className="card flex flex-col gap-3 !rounded-[20px] !p-7">

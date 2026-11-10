@@ -1,4 +1,5 @@
 import { CONFIG } from './config'
+import { FALLBACK_GLASS } from './theme'
 import { QUOTES } from '@/i18n/config'
 import { donorNamesSerif, FONT_DISPLAY, FONT_SANS, FONT_SERIF } from './fonts'
 import { drawGlassTile, glassColors } from './glass'
@@ -179,7 +180,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
       if (piece?.rows && avatar) reveal = 1 - LIFT_VEIL * (s.labelAlpha ?? 1)
       const staged = s.stageId === id
       drawGlassTile(ctx, tile, {
-        colors: glassColors(piece?.color ?? '#E0657F', id),
+        colors: glassColors(piece?.color ?? FALLBACK_GLASS, id),
         sizePx: sidePx,
         zoom: view.scale,
         avatar,

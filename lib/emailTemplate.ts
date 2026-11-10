@@ -1,4 +1,5 @@
 import type { Locale } from '@/i18n/config'
+import { DEFAULT_GLASSES } from './theme'
 import { CONFIG, brandFor } from './config'
 
 // Gabarit des courriels : une version HTML (mise en page en tableaux et styles en ligne, pour tous les logiciels de courriel)
@@ -29,14 +30,9 @@ const GOLD = '#F0B24A'
 const ON_GOLD = '#1A1208'
 const SERIF = "Fraunces,Georgia,'Times New Roman',serif"
 const SANS = "'DM Sans',Arial,Helvetica,sans-serif"
-/** Les cinq verres : le bandeau du haut est un petit vitrail (cellules de largeurs inégales, sans image). */
-const GLASS: [string, number][] = [
-  ['#F0B24A', 22],
-  ['#E0657F', 14],
-  ['#3DB5A6', 24],
-  ['#6A78E6', 16],
-  ['#A56BD9', 24],
-]
+/** Les six verres : le bandeau du haut est un petit vitrail (cellules de largeurs inégales, sans image). */
+const GLASS_WIDTHS = [19, 12, 21, 14, 20, 14]
+const GLASS: [string, number][] = DEFAULT_GLASSES.map((g, i) => [g.value, GLASS_WIDTHS[i]])
 
 /**
  * En-tête d'un courriel d'organisme : son logo (version claire, sur le fond sombre du courriel), sinon son nom.

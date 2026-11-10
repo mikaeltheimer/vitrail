@@ -20,6 +20,7 @@ import { HoverCard } from '@/components/vitrail/HoverCard'
 import Ticker from '@/components/vitrail/Ticker'
 import type { RankedPiece } from '@/components/vitrail/types'
 import { CONFIG } from '@/lib/config'
+import { FALLBACK_GLASS } from '@/lib/theme'
 import { INTL_TAG, type Locale } from '@/i18n/config'
 import { useOrg } from '@/lib/useOrg'
 import { useMoney, useOrdinal, useSceneText } from '@/lib/useI18n'
@@ -394,7 +395,7 @@ function Vitrail() {
       w.version++
       layerKey = ''
       w.needs = true
-      const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#E0657F', t.id)
+      const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? FALLBACK_GLASS, t.id)
       ambience.rebuild(tiles.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
         const t = hitTile(tiles.values(), x, y)
         return t ? colorOf(t) : null
@@ -907,7 +908,7 @@ function Vitrail() {
         w.pieces = pieceMap(s.pieces)
         w.version++
         w.needs = true
-        const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? '#E0657F', t.id)
+        const colorOf = (t: Tile): GlassColors => glassColors(w.pieces.get(t.id)?.color ?? FALLBACK_GLASS, t.id)
         ambience.rebuild(tiles.values(), colorOf, UNIVERSE_RADIUS, (x, y) => {
           const t = hitTile(tiles.values(), x, y)
           return t ? colorOf(t) : null
@@ -1084,7 +1085,7 @@ function Vitrail() {
     if (el) viewRects.current.add(el)
   }, [])
   const polygons = [...tilesMap.values()].map(t => (
-    <polygon key={t.id} points={t.svgPoints} fill={colorById.get(t.id) ?? (t.id === PREVIEW_ID ? GOLD : '#E0657F')} opacity={selected === t.id ? 1 : 0.5} />
+    <polygon key={t.id} points={t.svgPoints} fill={colorById.get(t.id) ?? (t.id === PREVIEW_ID ? GOLD : FALLBACK_GLASS)} opacity={selected === t.id ? 1 : 0.5} />
   ))
 
   return (

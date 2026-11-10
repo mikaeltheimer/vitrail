@@ -1,5 +1,6 @@
 'use client'
 
+import { currentGlass } from '@/lib/theme'
 import { useEffect, useState } from 'react'
 import TestimonialField from '@/components/vitrail/TestimonialField'
 import Link from 'next/link'
@@ -63,7 +64,7 @@ export default function ManagePage() {
         setQuoteConsent(!!d.quoteConsent)
         setMailing(!!d.mailing)
         setMessagePending(!!d.messagePending)
-        setColor(d.color)
+        setColor(currentGlass(d.color) ?? d.color)
         setPhoto({ src: d.photoUrl ?? null, path: null })
         setPhotoPending(!!d.photoPending)
         setLoaded('ok')

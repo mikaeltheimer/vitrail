@@ -29,14 +29,43 @@ export const DEFAULT_THEME: Theme = {
   glow: '#FFE2A8',
 }
 
-// `id` : clé du nom dans messages/*.json (commun.verres) ; `name` : nom français historique (console d'administration).
+// Palette « Atelier+ » (9 nov. 2026) : six verres clairs et saturés, choisis pour rester lisibles sur une télé comme sur un
+// projecteur en salle éclairée (fond gris, couleurs délavées), et pour que deux verres voisins restent distincts en
+// deutéranopie et en protanopie (écart de clarté). Mesures : scripts/palette.py.
+// `id` : clé du nom dans messages/*.json (commun.verres) ; `name` : nom français (console d'administration).
 export const DEFAULT_GLASSES = [
   { id: 'ambre', name: 'Ambre', value: '#F0B24A' },
-  { id: 'rose', name: 'Rose', value: '#E0657F' },
-  { id: 'turquoise', name: 'Turquoise', value: '#3DB5A6' },
-  { id: 'indigo', name: 'Indigo', value: '#6A78E6' },
-  { id: 'violet', name: 'Violet', value: '#A56BD9' },
+  { id: 'corail', name: 'Corail', value: '#EA6646' },
+  { id: 'jade', name: 'Jade', value: '#1FA978' },
+  { id: 'ciel', name: 'Ciel', value: '#5CC0F5' },
+  { id: 'violet', name: 'Violet', value: '#9450CC' },
+  { id: 'rose', name: 'Rose', value: '#F59AC5' },
 ] as const
+
+export type GlassId = (typeof DEFAULT_GLASSES)[number]['id']
+
+/** Verre de repli (couleur absente ou illisible). */
+export const FALLBACK_GLASS: string = DEFAULT_GLASSES[5].value
+
+/**
+ * Anciennes valeurs des verres → verre actuel. Une couleur enregistrée avant un changement de palette (donateur en base,
+ * session Stripe ouverte, onglet resté ouvert) garde ainsi un sens. La migration 2026-11-19-palette-atelier.sql applique
+ * la même correspondance aux donateurs déjà enregistrés.
+ */
+export const LEGACY_GLASSES: Readonly<Record<string, string>> = {
+  '#E0657F': '#F59AC5', // rose      → rose
+  '#3DB5A6': '#1FA978', // turquoise → jade
+  '#6A78E6': '#5CC0F5', // indigo    → ciel
+  '#A56BD9': '#9450CC', // violet    → violet
+}
+
+/** Couleur de verre actuelle pour une valeur reçue (majuscules ou minuscules, ancienne palette acceptée), sinon null. */
+export function currentGlass(input: unknown): string | null {
+  if (typeof input !== 'string') return null
+  const v = input.trim().toUpperCase()
+  if (DEFAULT_GLASSES.some(g => g.value === v)) return v
+  return LEGACY_GLASSES[v] ?? null
+}
 
 // ── Contraste (WCAG) : texte 4,5:1 au moins, texte large 3:1 ───────────────────
 function channel(c: number): number {
