@@ -1001,11 +1001,6 @@
       "demoOuvrir": "Ouvrir le vitrail de démonstration de {org}",
       "demoEcran": "Écran de projection de démonstration de {org}"
     },
-    "voix": {
-      "titre": "Les gens derrière les dons",
-      "intro": "Un don ne dit pas tout. Leurs mots, si.",
-      "note": "Donateurs fictifs du vitrail de démonstration de {org}."
-    },
     "essai": {
       "titre": "Essayez-le",
       "intro": "{org} est un organisme fictif : 200 donateurs inventés, leurs mots et leurs morceaux de verre. Tout y fonctionne comme chez vous, et vous pouvez y ajouter votre propre morceau, sans rien payer.",

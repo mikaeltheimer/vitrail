@@ -1001,11 +1001,6 @@
       "demoOuvrir": "Open the {org} demonstration stained glass",
       "demoEcran": "{org} demonstration projection screen"
     },
-    "voix": {
-      "titre": "The people behind the gifts",
-      "intro": "A donation doesn’t say everything. Their words do.",
-      "note": "Fictional donors from {org}’s demonstration stained glass."
-    },
     "essai": {
       "titre": "Try it",
       "intro": "{org} is a fictional organization: 200 made-up donors, their words and their pieces of glass. Everything works just as it will for you, and you can add your own piece, without paying anything.",
