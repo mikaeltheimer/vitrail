@@ -7,9 +7,10 @@ update donors set color = case upper(color)
     when '#3DB5A6' then '#1FA978' -- turquoise → jade
     when '#6A78E6' then '#5CC0F5' -- indigo    → ciel
     when '#A56BD9' then '#9450CC' -- violet    → violet
+    when '#EA6646' then '#F59AC5' -- corail (essayé puis retiré le 9 nov.) → rose
     else color
   end
-where upper(color) in ('#E0657F', '#3DB5A6', '#6A78E6', '#A56BD9');
+where upper(color) in ('#E0657F', '#3DB5A6', '#6A78E6', '#A56BD9', '#EA6646');
 
 -- Contrôle : toute couleur restante hors de la palette (devrait renvoyer 0 ligne)
 select color, count(*) from donors

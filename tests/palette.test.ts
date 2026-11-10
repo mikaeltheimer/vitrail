@@ -9,6 +9,7 @@ async function main() {
   check('cinq verres, identifiants uniques', DEFAULT_GLASSES.length === 5 && new Set(DEFAULT_GLASSES.map(g => g.id)).size === 5)
   check('chaque ancienne couleur mène à un verre actuel', Object.values(LEGACY_GLASSES).every(v => VALID_COLORS.includes(v)))
   check('ancien turquoise → jade', currentGlass('#3DB5A6') === '#1FA978')
+  check('corail retiré → rose', currentGlass('#ea6646') === '#F59AC5')
   check('minuscules acceptées', currentGlass('#f0b24a') === '#F0B24A')
   check('couleur hors palette refusée', currentGlass('#123456') === null && currentGlass(42) === null)
   const v = validateColor('#6a78e6')

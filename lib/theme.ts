@@ -58,6 +58,7 @@ export const LEGACY_GLASSES: Readonly<Record<string, string>> = {
   '#3DB5A6': '#1FA978', // turquoise → jade
   '#6A78E6': '#5CC0F5', // indigo    → ciel
   '#A56BD9': '#9450CC', // violet    → violet
+  '#EA6646': '#F59AC5', // corail (essayé le 9 nov.) → rose
 }
 
 /** Couleur de verre actuelle pour une valeur reçue (majuscules ou minuscules, ancienne palette acceptée), sinon null. */
