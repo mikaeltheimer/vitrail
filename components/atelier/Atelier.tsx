@@ -85,8 +85,8 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const id = setTimeout(() => {
       void load()
-      // ?atelier (lien de la console) : on arrive directement en mode Modifier, avec l'explication la première fois
-      if (new URLSearchParams(window.location.search).has('atelier')) setEditing(true)
+      // On arrive toujours hors du mode Modifier (on vient souvent faire un don fictif ou projeter l'écran) ;
+      // l'explication de la première visite indique où se trouve « Modifier ».
       try {
         if (!localStorage.getItem('donivers:atelier-vu')) setIntro(true)
       } catch {}
