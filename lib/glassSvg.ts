@@ -5,7 +5,7 @@
 
 import { FALLBACK_GLASS, LEGACY_GLASSES } from './theme'
 import { pieceWeights } from './render'
-import { UNIVERSE_RADIUS, computeTileData, mulberry32, seedFromIds, type Point, type TileData, type TilingItem } from './tiling'
+import { UNIVERSE_RADIUS, computeTileData, mulberry32, pointInPolygon, seedFromIds, type Point, type TileData, type TilingItem } from './tiling'
 
 type Rgb = [number, number, number]
 
@@ -14,8 +14,12 @@ function hexToRgb(hex: string): Rgb {
   return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
 }
 function rgbToHsl([r0, g0, b0]: Rgb): Rgb {
-  const r = r0 / 255, g = g0 / 255, b = b0 / 255
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2
+  const r = r0 / 255,
+    g = g0 / 255,
+    b = b0 / 255
+  const mx = Math.max(r, g, b),
+    mn = Math.min(r, g, b),
+    l = (mx + mn) / 2
   if (mx === mn) return [0, 0, l * 100]
   const d = mx - mn
   const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)
@@ -23,7 +27,8 @@ function rgbToHsl([r0, g0, b0]: Rgb): Rgb {
   return [h * 60, s * 100, l * 100]
 }
 function hsl(h: number, s0: number, l0: number): string {
-  const s = s0 / 100, l = Math.max(0, Math.min(100, l0)) / 100
+  const s = s0 / 100,
+    l = Math.max(0, Math.min(100, l0)) / 100
   const k = (n: number) => (n + h / 30) % 12
   const a = s * Math.min(l, 1 - l)
   const f = (n: number) => Math.round((l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))) * 255)
@@ -46,6 +51,7 @@ export interface SceneTile {
   id: string
   /** Points pour <polygon points> (unités monde, origine au centre). */
   points: string
+  poly: Point[]
   /** Fond, teinte moyenne, cœur (rgb). */
   base: string
   mid: string
@@ -115,6 +121,7 @@ export function glassScene(pieces: SvgPiece[], sizePx: number, freeSlot = false)
     const tile: SceneTile = {
       id: t.id,
       points: t.poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' '),
+      poly: t.poly,
       ...c,
       shaded: px >= 10,
       glow: [t.labelCenter[0], t.labelCenter[1], Math.max(t.inRadius * 1.6, t.equivRadius * 0.8)],
@@ -126,6 +133,53 @@ export function glassScene(pieces: SvgPiece[], sizePx: number, freeSlot = false)
     else tiles.push(tile)
   }
   return { tiles, free, view, ring, radius: R }
+}
+
+export interface LightRay {
+  /** Quadrilatère du rayon (unités monde). */
+  points: string
+  /** Ligne du dégradé : du verre vers le bas. */
+  from: Point
+  to: Point
+  /** Couleur du verre traversé (rgb). */
+  color: string
+}
+
+/**
+ * Rayons de lumière sous le vitrail, comme sur la page (lib/glass.ts, drawBehind) : sept faisceaux qui partent du bas
+ * du disque, s'évasent en tombant, chacun de la couleur du verre qu'il traverse. Déterministes (pas d'aléa) pour
+ * l'impression. `length` : longueur, en rayons du disque.
+ */
+export function lightRays(scene: GlassScene, length = 2.6): LightRay[] {
+  const R = scene.radius
+  const all = scene.free ? [...scene.tiles, scene.free] : scene.tiles
+  const widths = [1.0, 0.8, 1.2, 0.9, 1.15, 0.75, 1.0]
+  return widths.map((w, k) => {
+    const ang = ((28 + k * (124 / 6)) * Math.PI) / 180
+    const hx = Math.cos(ang) * R * 0.9
+    const hy = Math.sin(ang) * R * 0.9
+    const hit = scene.tiles.find(t => pointInPolygon(t.poly, hx, hy)) ?? all[0]
+    const P: Point = [Math.cos(ang) * R * 0.96, Math.sin(ang) * R * 0.96]
+    let dx = Math.cos(ang) * 0.42
+    let dy = 1
+    const L = Math.hypot(dx, dy)
+    dx /= L
+    dy /= L
+    const nx = -dy
+    const ny = dx
+    const len = R * length
+    const w0 = R * 0.09 * w
+    const w1 = R * 0.4 * w
+    const E: Point = [P[0] + dx * len, P[1] + dy * len]
+    const f = (n: number) => n.toFixed(1)
+    const pts: Point[] = [
+      [P[0] + nx * w0, P[1] + ny * w0],
+      [E[0] + nx * w1, E[1] + ny * w1],
+      [E[0] - nx * w1, E[1] - ny * w1],
+      [P[0] - nx * w0, P[1] - ny * w0],
+    ]
+    return { points: pts.map(([x, y]) => `${f(x)},${f(y)}`).join(' '), from: P, to: E, color: hit?.mid ?? 'rgb(240,178,74)' }
+  })
 }
 
 /**

@@ -9,7 +9,7 @@ import { publicLink } from '@/lib/links'
 import { useIdentity } from '@/lib/useOrg'
 import { clampLocale } from '@/lib/identity-shared'
 import { DEFAULT_GLASSES } from '@/lib/theme'
-import { glassScene, type GlassScene, type SvgPiece } from '@/lib/glassSvg'
+import { glassScene, lightRays, type GlassScene, type SvgPiece } from '@/lib/glassSvg'
 import Signature from '@/components/Signature'
 import type { Snapshot } from '@/lib/types'
 import type { Locale } from '@/i18n/config'
@@ -81,9 +81,23 @@ function PosterGlass({ scene, label, veiled }: { scene: GlassScene; label: strin
   const { view, radius: R, ring, free } = scene
   const words = label.toUpperCase().split(' ')
   const fs = free ? free.inRadius * (words.some(w => w.length >= 7) ? 0.26 : 0.32) : 0
+  const rays = lightRays(scene, 3.2)
   return (
-    <svg viewBox={`${-view * 1.12} ${-view * 1.12} ${view * 2.24} ${view * 2.24}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', display: 'block' }} aria-hidden="true">
+    // Les rayons débordent sous le vitrail (overflow visible) : ils passent derrière le titre, l'affiche les coupe en bas
+    <svg
+      viewBox={`${-view * 1.12} ${-view * 1.12} ${view * 2.24} ${view * 2.24}`}
+      preserveAspectRatio="xMidYMid meet"
+      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible' }}
+      aria-hidden="true"
+    >
       <defs>
+        {rays.map((r, i) => (
+          <linearGradient key={i} id={`affiche-r${i}`} gradientUnits="userSpaceOnUse" x1={r.from[0]} y1={r.from[1]} x2={r.to[0]} y2={r.to[1]}>
+            <stop offset="0" stopColor={r.color} stopOpacity={veiled ? 0.1 : 0.26} />
+            <stop offset="0.45" stopColor={r.color} stopOpacity={veiled ? 0.04 : 0.1} />
+            <stop offset="1" stopColor={r.color} stopOpacity="0" />
+          </linearGradient>
+        ))}
         <radialGradient id="affiche-halo">
           <stop offset="0.75" stopColor="#F0B24A" stopOpacity="0.28" />
           <stop offset="1" stopColor="#F0B24A" stopOpacity="0" />
@@ -98,6 +112,10 @@ function PosterGlass({ scene, label, veiled }: { scene: GlassScene; label: strin
           ) : null,
         )}
       </defs>
+      {/* Lumière du vitrail sur le papier : rayons colorés, sous le verre */}
+      {rays.map((r, i) => (
+        <polygon key={i} points={r.points} fill={`url(#affiche-r${i})`} />
+      ))}
       <circle r={view * 1.12} fill="url(#affiche-halo)" />
       <circle r={R} fill={veiled ? PAPER : '#050408'} />
       {/* Aucun don encore : le vitrail d'attente est voilé (on ne montre pas une communauté qui n'existe pas encore) */}
