@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config'
 import { DEFAULT_GLASSES } from './theme'
 import { CONFIG, brandFor } from './config'
+import { platformUrl } from './tenant'
 
 // Gabarit des courriels : une version HTML (mise en page en tableaux et styles en ligne, pour tous les logiciels de courriel)
 // et une version texte du même contenu. Le contenu vient de messages/*.json (espace « courriel »).
@@ -55,11 +56,11 @@ const LOGO_MAX_W = 280
  * cellules de tableau (aucune image à charger) et le nom en texte. Remplacer ici quand le logo sera choisi.
  */
 function platformHeader(locale: Locale): string {
-  const bars = GLASS.map(([color]) => `<td width="5" bgcolor="${color}" style="width:5px;height:24px;background:${color};border-radius:3px;font-size:0;line-height:0">&nbsp;</td>`).join(
-    '<td width="3" style="width:3px;font-size:0;line-height:0">&nbsp;</td>',
-  )
-  return `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${bars}<td style="padding-left:12px;font-family:${SERIF};font-size:22px;font-weight:500;letter-spacing:-0.01em;color:${TEXT}">${escapeHtml(CONFIG.brand.name)}</td></tr></table>
-<div style="font-family:${SERIF};font-size:14px;font-style:italic;color:${GOLD};padding-top:6px">${escapeHtml(brandFor(locale).slogan)}</div>`
+  // Logo en PNG (Gmail et Outlook bloquent le SVG), 2× la taille affichée. Images bloquées : le texte de remplacement
+  // prend la police et la couleur du nom.
+  const logo = `${platformUrl()}/brand/donivers-courriel.png`
+  return `<img src="${escapeHtml(logo)}" alt="${escapeHtml(CONFIG.brand.name)}" width="142" height="28" style="display:block;width:142px;height:28px;border:0;outline:none;text-decoration:none;font-family:${SERIF};font-size:22px;color:${TEXT}">
+<div style="font-family:${SERIF};font-size:14px;font-style:italic;color:${GOLD};padding-top:8px">${escapeHtml(brandFor(locale).slogan)}</div>`
 }
 
 function orgHeader(h: EmailHeader): string {
