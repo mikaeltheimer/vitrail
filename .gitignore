@@ -10,3 +10,8 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Généré par next dev (les règles du dépôt sont dans CLAUDE.md)
+AGENTS.md
+# Notes personnelles des agents
+CLAUDE.local.md
