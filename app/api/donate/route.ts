@@ -9,6 +9,7 @@ import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { cleanChannel, defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
 import { feeFor } from '@/lib/fees'
+import { questionsOf } from '@/lib/identity'
 
 export const runtime = 'nodejs'
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     const donor = await resolveToken(body.token, tenant.org.id)
     if (!donor) return errorResponse(request, err('lienExpire'), 400)
     email = donor.email
-    profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl, quoteConsent: donor.quoteConsent }
+    profile = { showName: donor.showName, name: donor.name, message: donor.message, photoUrl: donor.photoUrl, quoteConsent: donor.quoteConsent, question: donor.question }
     color = donor.color
   } else {
     // Le courriel est demandé par Stripe au paiement (un champ de moins ici) ; accepté s'il est fourni (anciens liens, tests)
@@ -52,7 +53,11 @@ export async function POST(request: NextRequest) {
     } else {
       email = null
     }
-    const p = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent }, tenant.org.id)
+    const p = validateProfile(
+      { showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent, question: body.question },
+      tenant.org.id,
+      await questionsOf(tenant.org),
+    )
     if (!p.ok) return errorResponse(request, p.error)
     profile = p.value
     const c = validateColor(body.color)

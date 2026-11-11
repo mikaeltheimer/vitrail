@@ -19,7 +19,8 @@
     "conditionsCourt": "Conditions",
     "aCompleter": "À COMPLÉTER",
     "propulsePar": "propulsé par",
-    "signatureLien": "{brand} : créez le vitrail de votre organisme (nouvel onglet)"
+    "signatureLien": "{brand} : créez le vitrail de votre organisme (nouvel onglet)",
+    "autreQuestion": "Une autre question"
   },
   "erreurs": {
     "courrielRequis": "Courriel requis.",
@@ -1265,6 +1266,8 @@
       "why": "Pourquoi donner",
       "vitrailTitle": "Titre du vitrail",
       "question": "Question du témoignage",
+      "question2": "Deuxième question (facultative)",
+      "question3": "Troisième question (facultative)",
       "placeholder": "Pistes pour le témoignage",
       "logo": "Logo",
       "icon": "Icône"
@@ -1274,7 +1277,9 @@
       "about": "Panneau « À propos ». Facultative : vide, la section est masquée.",
       "why": "Panneau de don, panneau « À propos » et appel à donner du grand écran.",
       "vitrailTitle": "Panneau « À propos », grand écran et page de don.",
-      "question": "Panneau de don, page du donateur et courriel de reçu.",
+      "question": "Panneau de don, page du donateur et courriel de reçu. Jusqu’à trois questions : chaque donateur en voit une, tirée au hasard, et peut en demander une autre.",
+      "question2": "Une deuxième question, tirée au hasard avec les autres dans le panneau de don.",
+      "question3": "Une troisième question, tirée au hasard avec les autres dans le panneau de don.",
       "placeholder": "Texte grisé du champ de témoignage.",
       "logo": "Panneau « À propos », page de don, grand écran, aperçu des liens partagés.",
       "icon": "En-tête du vitrail et panneau de don. Sans icône : vos initiales."

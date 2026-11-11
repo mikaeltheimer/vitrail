@@ -149,6 +149,27 @@ async function main() {
   check('console', surfaceOf('lac.donivers.test', '/admin') === 'console' && surfaceOf('lac.donivers.test', '/api/admin/identite') === 'console')
   check('page d\'organisme', surfaceOf('lac.donivers.test', '/vitrail') === 'org' && surfaceOf('lac.donivers.test', '/adminx') === 'org')
   check('initiales', orgInitials("École d'art de Sutton") === 'ÉS' && orgInitials('Lake Theatre') === 'LT' && orgInitials('Photogravie') === 'P')
+  console.log('Questions du témoignage')
+  {
+    const rq = shared.resolveQuestions
+    const stored = { fr: { question: 'Pourquoi ?', question2: 'Un souvenir ?', question3: '' }, en: { question: 'Why?' } }
+    check('les questions de la langue, vides retirées', JSON.stringify(rq(stored, ['fr', 'en'], 'fr', 'neutre')) === JSON.stringify(['Pourquoi ?', 'Un souvenir ?']))
+    check('une langue avec sa propre première question ne reprend pas celles de l’autre', JSON.stringify(rq(stored, ['fr', 'en'], 'en', 'neutral')) === JSON.stringify(['Why?']))
+    check('langue sans question : celles de la langue principale', JSON.stringify(rq({ fr: { question: 'A ?', question2: 'B ?' } }, ['fr', 'en'], 'en', 'x')) === JSON.stringify(['A ?', 'B ?']))
+    check('aucune question : la question neutre', JSON.stringify(rq({}, ['fr'], 'fr', 'neutre')) === JSON.stringify(['neutre']))
+    check('doublons retirés', rq({ fr: { question: 'A', question2: 'A' } }, ['fr'], 'fr', 'x').length === 1)
+    const { cleanQuestion, validateProfile } = await import('../lib/validate')
+    check('question acceptée seulement si c’est une des questions de l’organisme', cleanQuestion(' Pourquoi ? ', ['Pourquoi ?']) === 'Pourquoi ?' && cleanQuestion('Achetez ici', ['Pourquoi ?']) === null && cleanQuestion(42, ['42']) === null)
+    const v = validateProfile({ message: 'Merci', question: 'Pourquoi ?' }, undefined, ['Pourquoi ?'])
+    check('profil : la question suit le témoignage', v.ok && v.value.question === 'Pourquoi ?')
+    const w = validateProfile({ message: '', question: 'Pourquoi ?' }, undefined, ['Pourquoi ?'])
+    check('profil sans témoignage : pas de question', w.ok && w.value.question === null)
+    seed()
+    tables.organizations[0].texts = { fr: { name: 'École', question: 'Pourquoi ?', question2: 'Un souvenir ?' }, en: { question: 'Why?' } }
+    const qs = await id.questionsOf({ id: 'ecole', practiceOf: null })
+    check('toutes les questions de l’organisme, dans toutes ses langues', qs.length === 3 && qs.includes('Why?') && qs.includes('Un souvenir ?'), qs)
+  }
+
   done()
 }
 main().catch(e => {

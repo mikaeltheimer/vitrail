@@ -68,6 +68,8 @@ interface Card {
   fresh: boolean
   name: string | null
   message: string | null
+  /** La question à laquelle répond le témoignage (surtitre au-dessus des guillemets). */
+  question: string | null
   color: string
   photoUrl: string | null
   /** Bord gauche de la légende, en px : juste à droite du morceau, qu'un fil relie à elle. */
@@ -343,11 +345,12 @@ export default function Ecran() {
         spot = id
         needs = true
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide })
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, question: message ? p?.question ?? null : null, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide })
         link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now(), center: lay.center }
         const rich = !!(p?.name || p?.photoUrl || message)
-        // Le temps de lire le témoignage en entier
-        const reading = Math.min(READ_MAX_MS, (message?.length ?? 0) * READ_MS_PER_CHAR)
+        // Le temps de lire le témoignage en entier (et sa question)
+        const question = message ? p?.question ?? '' : ''
+        const reading = Math.min(READ_MAX_MS, ((message?.length ?? 0) + question.length) * READ_MS_PER_CHAR)
         timer = setTimeout(next, (isFresh ? HOLD_MS + 2000 : rich ? HOLD_MS : HOLD_BARE_MS) + reading)
       })
     }
@@ -754,10 +757,14 @@ export default function Ecran() {
                 <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? tc('anonyme')}</div>
               </div>
             </div>
+            {/* La question à laquelle répond le témoignage : un surtitre, comme « Merci à » (la personne reste au premier plan) */}
+            {card.message && card.question && (
+              <div style={{ marginTop: '1.1em', fontSize: '0.85em', letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.35, color: 'rgba(244,239,230,0.55)', textWrap: 'balance' }}>{card.question}</div>
+            )}
             {card.message && (
               <div
                 style={{
-                  marginTop: '0.9em',
+                  marginTop: card.question ? '0.35em' : '0.9em',
                   fontSize: card.message.length > 340 ? '1.12em' : card.wide ? '1.25em' : '1.45em',
                   lineHeight: 1.5,
                   color: 'rgba(244,239,230,0.95)',

@@ -332,7 +332,7 @@ function DemoCard() {
     <section className="space-y-2.5">
       <h2 className="text-lg font-bold">Vitrail de démonstration</h2>
       <div className="card space-y-3 text-sm">
-        <p className="muted">Fondation Pleine Lumière : organisme fictif, en lecture seule (aucun don, aucun signalement). Les textes et les noms sont dans lib/demo-data.ts.</p>
+        <p className="muted">Centre communautaire du Village : organisme fictif, en lecture seule (aucun don, aucun signalement). Les textes et les noms sont dans lib/demo-data.ts.</p>
         {error && <p style={{ color: '#F58FA3' }}>{error}</p>}
         {d && !d.exists && <p>La démo n’existe pas encore sur cette base.</p>}
         {d?.exists && (

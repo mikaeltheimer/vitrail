@@ -6,7 +6,7 @@ import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
 import { newPhotoStatus } from './settings'
 import type { Tenant } from './tenant'
-import { hasLocaleColumn, hasTestimonialColumns } from './schema'
+import { hasLocaleColumn, hasMessageQuestion, hasTestimonialColumns } from './schema'
 import type { Locale } from '@/i18n/config'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
@@ -112,6 +112,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
       insert.message_status = i.profile.message ? await newPhotoStatus(i.organizationId) : 'approved'
       insert.quote_consent = i.profile.quoteConsent
     }
+    if (i.profile.message && i.profile.question && (await hasMessageQuestion())) insert.message_question = i.profile.question
     if (i.locale && (await hasLocaleColumn())) insert.locale = i.locale
     const { data, error } = await db
       .from('donors')
@@ -177,6 +178,8 @@ export async function updateDonorProfile(
     if (profile.message !== previousMessage) patch.message_status = profile.message ? await newPhotoStatus(orgId) : 'approved'
     patch.quote_consent = profile.quoteConsent
   }
+  // La question suit le témoignage : changée seulement quand le témoignage change (l'équipe qui corrige un nom ne l'efface pas)
+  if (profile.message !== previousMessage && (await hasMessageQuestion())) patch.message_question = profile.message ? (profile.question ?? null) : null
   const { error } = await getDb().from('donors').update(patch).eq('id', donorId).eq('organization_id', orgId)
   if (error) throw error
   // L'ancienne photo, remplacée ou retirée, quitte le stockage (après la mise à jour, jamais avant)
@@ -215,6 +218,8 @@ export interface DonorView {
   /** Le témoignage attend l'approbation de l'équipe. */
   messagePending: boolean
   quoteConsent: boolean
+  /** La question à laquelle répond son témoignage (null : aucune, ou écrit avant qu'on la garde). */
+  question: string | null
   color: string
   totalCents: number
 }
@@ -230,7 +235,7 @@ export async function resolveToken(token: string, orgId: string): Promise<DonorV
 
 export async function getDonorView(donorId: string, orgId: string): Promise<DonorView | null> {
   const db = getDb()
-  const extra = (await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''
+  const extra = ((await hasTestimonialColumns()) ? ',message_status,quote_consent' : '') + ((await hasMessageQuestion()) ? ',message_question' : '')
   const { data } = await db.from('donors').select(`id,email,display_name,show_name,message,photo_url,photo_status,color${extra}`).eq('id', donorId).eq('organization_id', orgId).maybeSingle()
   const d = data as unknown as (DonorPublicRow & { email: string; quote_consent?: boolean }) | null
   if (!d) return null
@@ -246,14 +251,16 @@ export async function getDonorView(donorId: string, orgId: string): Promise<Dono
     photoPending: d.photo_status === 'pending',
     messagePending: d.message_status === 'pending',
     quoteConsent: !!d.quote_consent,
+    question: d.message ? (d.message_question ?? null) : null,
     color: d.color,
     totalCents: Number(t?.total_cents ?? 0),
   }
 }
 
 /** Ajoute ou remplace le témoignage d'un morceau, sans toucher au reste (bandeau de remerciement, lien reçu par courriel). */
-export async function updateTestimonial(donor: DonorView, message: string | null, quoteConsent: boolean): Promise<{ pending: boolean }> {
+export async function updateTestimonial(donor: DonorView, message: string | null, quoteConsent: boolean, question: string | null = null): Promise<{ pending: boolean }> {
   const patch: Record<string, unknown> = { message, updated_at: new Date().toISOString() }
+  if (message !== donor.message && (await hasMessageQuestion())) patch.message_question = message ? question : null
   let pending = false
   if (await hasTestimonialColumns()) {
     if (message !== donor.message) {
@@ -293,6 +300,8 @@ interface DonorPublicRow {
   photo_status: string
   /** Absent tant que la migration des témoignages n'est pas passée. */
   message_status?: string
+  /** Absent tant que la migration de la question n'est pas passée. */
+  message_question?: string | null
   color: string
   hidden: boolean
 }
@@ -304,7 +313,7 @@ interface DonorPublicRow {
 export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
   const db = getDb()
   const { org, vitrail } = tenant
-  const ms = (await hasTestimonialColumns()) ? ',message_status' : ''
+  const ms = ((await hasTestimonialColumns()) ? ',message_status' : '') + ((await hasMessageQuestion()) ? ',message_question' : '')
 
   const [totals, donors, vtRes, recentRes] = await Promise.all([
     fetchWhere<{ donor_id: string; total_cents: number | string }>('vitrail_donor_totals', 'donor_id,total_cents', 'vitrail_id', vitrail.id, 'donor_id'),
@@ -326,14 +335,18 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
   const totalByDonor = new Map(totals.map(t => [t.donor_id, Number(t.total_cents)]))
   const pieces: Piece[] = donors
     .filter(d => !d.hidden && (totalByDonor.get(d.id) ?? 0) > 0)
-    .map(d => ({
-      id: d.id,
-      name: d.show_name ? d.display_name : null,
-      message: d.message_status === 'pending' ? null : d.message,
-      photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
-      color: d.color,
-      amountCents: totalByDonor.get(d.id) ?? 0,
-    }))
+    .map(d => {
+      const message = d.message_status === 'pending' ? null : d.message
+      return {
+        id: d.id,
+        name: d.show_name ? d.display_name : null,
+        message,
+        question: message ? (d.message_question ?? null) : null,
+        photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
+        color: d.color,
+        amountCents: totalByDonor.get(d.id) ?? 0,
+      }
+    })
     .sort((a, b) => (a.id < b.id ? -1 : 1))
 
   const totalCents = Number(vtRes.data?.total_cents ?? 0)

@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
           name: m.name || ANON_LABEL,
           message: m.message || null,
           quoteConsent: m.quote === '1' && !!m.message,
+          // Posée par notre serveur à la création du paiement, après vérification contre les questions de l'organisme
+          question: m.message && m.question ? m.question.slice(0, 120) : null,
           // Seulement une photo rangée chez CET organisme (jamais celle d'un autre)
           photoUrl: isOrgPhotoUrl(m.photo, org.id) ? m.photo : null,
         },

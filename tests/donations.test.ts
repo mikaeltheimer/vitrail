@@ -110,6 +110,25 @@ async function main() {
   check('un don suivant sans la case ne retire pas le consentement', !!zed().mailing_consent_at && !zed().mailing_withdrawn_at)
   const none = await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'yan@x.ca', profile, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_mail3333' })
   check('case non cochée : aucun consentement', !tables.donors.find(d => d.id === none.donorId)!.mailing_consent_at)
+
+  console.log('Question du témoignage')
+  const { getDonorView, updateTestimonial, updateDonorProfile } = await import('../lib/donations')
+  const told = await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'eve@x.ca', profile: { ...profile, message: 'Le cœur du village.', question: 'Pourquoi ?' }, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_q1111111' })
+  const eve = () => tables.donors.find(d => d.id === told.donorId)!
+  check('la question est gardée avec le témoignage', eve().message_question === 'Pourquoi ?')
+  const quiet = await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'max@x.ca', profile: { ...profile, question: 'Pourquoi ?' }, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_q2222222' })
+  check('sans témoignage, aucune question', !tables.donors.find(d => d.id === quiet.donorId)!.message_question)
+  tables.vitrail_donor_totals.push({ vitrail_id: 'permA', organization_id: 'orgA', donor_id: told.donorId, total_cents: 1000 })
+  const snapQ = await getSnapshot(tenantA)
+  check('le morceau porte la question de son témoignage', snapQ.pieces.find(p => p.id === told.donorId)?.question === 'Pourquoi ?')
+  const view = (await getDonorView(told.donorId, 'orgA'))!
+  check('la page du donateur connaît la question', view.question === 'Pourquoi ?')
+  await updateDonorProfile('orgA', told.donorId, { showName: true, name: 'Ève', message: 'Le cœur du village.', photoUrl: null, quoteConsent: false, question: null }, undefined, null, 'Le cœur du village.')
+  check('nom corrigé, même témoignage : la question reste', eve().message_question === 'Pourquoi ?')
+  await updateTestimonial((await getDonorView(told.donorId, 'orgA'))!, 'Un souvenir de concert.', false, 'Un souvenir ?')
+  check('nouveau témoignage : nouvelle question', eve().message_question === 'Un souvenir ?')
+  await updateTestimonial((await getDonorView(told.donorId, 'orgA'))!, null, false, 'Un souvenir ?')
+  check('témoignage retiré : question retirée', eve().message_question === null)
   done()
 }
 main().catch(e => { console.error(e); process.exit(1) })

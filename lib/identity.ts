@@ -115,6 +115,13 @@ export async function getIdentity(org: Pick<OrgRow, 'id' | 'practiceOf'>): Promi
   return value
 }
 
+/** Toutes les questions du témoignage d'un organisme, dans toutes ses langues (pour accepter celle que le donateur a vue). */
+export async function questionsOf(org: Pick<OrgRow, 'id' | 'practiceOf'>): Promise<string[]> {
+  const identity = await getIdentity(org).catch(() => null)
+  if (!identity) return []
+  return [...new Set(identity.locales.flatMap(l => identity.texts[l]?.testimonial.questions ?? []))]
+}
+
 /** Identité de l'organisme d'un courriel ; à défaut (organisme inconnu), une identité neutre au nom de la plateforme. */
 export async function identityOrNeutral(organizationId: string | null | undefined): Promise<Identity> {
   const org = organizationId ? await getOrg(organizationId).catch(() => null) : null

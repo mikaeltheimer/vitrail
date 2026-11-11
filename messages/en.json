@@ -19,7 +19,8 @@
     "conditionsCourt": "Terms",
     "aCompleter": "TO COMPLETE",
     "propulsePar": "powered by",
-    "signatureLien": "{brand}: create your organization’s stained glass (new tab)"
+    "signatureLien": "{brand}: create your organization’s stained glass (new tab)",
+    "autreQuestion": "Another question"
   },
   "erreurs": {
     "courrielRequis": "Email address required.",
@@ -1265,6 +1266,8 @@
       "why": "Why give",
       "vitrailTitle": "Stained glass title",
       "question": "Testimonial question",
+      "question2": "Second question (optional)",
+      "question3": "Third question (optional)",
       "placeholder": "Testimonial prompts",
       "logo": "Logo",
       "icon": "Icon"
@@ -1274,7 +1277,9 @@
       "about": "“About” panel. Optional: if empty, the section is hidden.",
       "why": "Donation panel, “About” panel and the call to give on the big screen.",
       "vitrailTitle": "“About” panel, big screen and donation page.",
-      "question": "Donation panel, donor page and receipt email.",
+      "question": "Donation panel, donor page and receipt email. Up to three questions: each donor sees one, drawn at random, and can ask for another.",
+      "question2": "A second question, drawn at random with the others in the donation panel.",
+      "question3": "A third question, drawn at random with the others in the donation panel.",
       "placeholder": "Greyed text in the testimonial field.",
       "logo": "“About” panel, donation page, big screen, link previews.",
       "icon": "Stained glass header and donation panel. Without an icon: your initials."

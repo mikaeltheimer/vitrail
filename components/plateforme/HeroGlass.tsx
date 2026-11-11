@@ -7,7 +7,7 @@ import { GLASS_COLORS } from '@/lib/config'
 import type { Piece } from '@/lib/types'
 
 // Le vitrail de l'accueil : le rendu réel (le même que sur la page d'un organisme).
-// Avec la démo (Fondation Pleine Lumière), sur un grand écran : l'écran de projection de la démo lui-même, intégré
+// Avec la démo (Centre communautaire du Village), sur un grand écran : l'écran de projection de la démo lui-même, intégré
 // (/ecran?embed : le même cycle, sans encart d'appel ni QR). Sur téléphone, ou si le visiteur demande moins
 // d'animations : le vitrail de la démo, dont les derniers dons sont rejoués un par un. Un clic ouvre la démo.
 // Sans démo (base neuve) : des morceaux anonymes générés ici.

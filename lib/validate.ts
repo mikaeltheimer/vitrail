@@ -75,13 +75,29 @@ export interface DonorProfileInput {
   photoUrl: string | null
   /** Le donateur permet à l'organisme de citer son témoignage ailleurs (Loi 25 : consentement explicite, jamais par défaut). */
   quoteConsent: boolean
+  /** La question à laquelle répond le témoignage (une des questions de l'organisme), ou null. */
+  question?: string | null
+}
+
+/**
+ * La question montrée au donateur, acceptée seulement si elle est l'une des questions actuelles de l'organisme (sinon
+ * n'importe qui pourrait afficher son propre texte en guise de question sur l'écran d'un organisme).
+ */
+export function cleanQuestion(input: unknown, allowed: readonly string[]): string | null {
+  if (typeof input !== 'string') return null
+  const v = input.trim()
+  return v && allowed.includes(v) ? v : null
 }
 
 /**
  * Nom, message et photo d'un profil. Le nom est facultatif (« Anonyme ») ; message et photo restent possibles sans nom.
  * La photo doit être rangée chez l'organisme `orgId` (sans organisme : pas de photo acceptée).
  */
-export function validateProfile(raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown; quoteConsent?: unknown }, orgId?: string): Result<DonorProfileInput> {
+export function validateProfile(
+  raw: { showName?: unknown; name?: unknown; message?: unknown; photoPath?: unknown; quoteConsent?: unknown; question?: unknown },
+  orgId?: string,
+  questions: readonly string[] = [],
+): Result<DonorProfileInput> {
   const showName = raw.showName === true
   let name: Result<string> = { ok: true, value: ANON_LABEL }
   if (showName) {
@@ -92,5 +108,8 @@ export function validateProfile(raw: { showName?: unknown; name?: unknown; messa
   if (!message.ok) return message
   const photo = orgId ? validatePhotoPath(raw.photoPath, orgId) : raw.photoPath == null || raw.photoPath === '' ? { ok: true as const, value: null } : { ok: false as const, error: err('photoInvalide') }
   if (!photo.ok) return photo
-  return { ok: true, value: { showName, name: name.value, message: message.value, photoUrl: photo.value, quoteConsent: raw.quoteConsent === true && !!message.value } }
+  return {
+    ok: true,
+    value: { showName, name: name.value, message: message.value, photoUrl: photo.value, quoteConsent: raw.quoteConsent === true && !!message.value, question: message.value ? cleanQuestion(raw.question, questions) : null },
+  }
 }

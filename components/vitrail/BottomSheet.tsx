@@ -128,6 +128,9 @@ export default function BottomSheet({
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 20px 20px' }}>
+        {piece.message && piece.question && (
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.5, color: 'rgba(244,239,230,0.5)', marginBottom: '6px' }}>{piece.question}</div>
+        )}
         {piece.message && (
           <div style={{ fontStyle: piece.message.length > 140 ? 'normal' : 'italic', color: piece.message.length > 140 ? 'rgba(255,248,235,0.92)' : c, fontSize: '15px', lineHeight: 1.6, marginBottom: '16px', padding: '12px', background: `${c}11`, borderRadius: '8px', borderLeft: `3px solid ${c}` }}>« {piece.message} »</div>
         )}

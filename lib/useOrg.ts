@@ -13,7 +13,7 @@ const EMPTY: OrgTexts = {
   about: '',
   why: '',
   vitrailTitle: '',
-  testimonial: { question: '', cta: '', placeholder: '', lead: '', consent: '' },
+  testimonial: { question: '', questions: [], cta: '', placeholder: '', lead: '', consent: '' },
 }
 
 export function useOrg(): OrgTexts {
