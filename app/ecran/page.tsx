@@ -3,7 +3,8 @@
 // Écran de projection : la rosace du vitrail en ligne, en visite automatique.
 // La caméra va d'un morceau à l'autre (au hasard, sans répétition avant que tous soient passés), le met en lumière,
 // et une carte montre son contenu : photo, nom, message. Jamais de montant : la taille du verre en dit assez.
-// Un nouveau don passe en premier ; toutes les quelques visites, retour au vitrail entier avec un appel à donner.
+// Seuls les morceaux qui ont quelque chose à montrer (nom, photo ou message) entrent dans la visite (lib/stageDeck.ts).
+// Un nouveau don passe en premier, quel que soit son contenu (un don anonyme sans rien d'autre : cette fois seulement) ; toutes les quelques visites, retour au vitrail entier avec un appel à donner.
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
 // ?embed (la démo dans la vitrine) : le même cycle dans un cadre, sans encart d'appel, sans QR ni en-tête, texte agrandi
@@ -27,6 +28,7 @@ import { ImageCache } from '@/lib/images'
 import { drawScene, paintInitials, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
+import { buildTour, stageTier } from '@/lib/stageDeck'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgLogo } from '@/components/OrgBrand'
 
@@ -222,23 +224,24 @@ export default function Ecran() {
       return { cam, cardLeft, linkFrom: W / 2 + (xi - cam.x) * zoom, center: sx }
     }
 
-    // Visite sans répétition : chaque morceau passe une fois par tour, et jamais un morceau vu parmi les derniers
-    // (même à la jointure de deux tours). Les témoignages ouvrent chaque tour (tirage pondéré) : ce sont eux qu'on
-    // s'arrête pour lire, mais ils ne reviennent pas plus souvent que les autres.
+    // Visite sans répétition : chaque morceau admissible passe une fois par tour, et jamais un morceau vu parmi les
+    // derniers (même à la jointure de deux tours). Les rangs (photo et message, photo ou message, nom seul) sont
+    // entrelacés régulièrement sur tout le tour ; les morceaux sans rien à montrer n'y entrent jamais.
     const recent: string[] = []
+    /** Morceaux du vitrail qui ont quelque chose à montrer (nom, photo ou message). */
+    const eligible = (id: string) => {
+      const p = list.find(x => x.id === id)
+      return !!p && tiles.has(id) && stageTier(p, CONFIG.showMessagesOnScreen) !== null
+    }
+    const eligibleCount = () => [...tiles.keys()].filter(eligible).length
     const remember = (id: string) => {
       recent.push(id)
-      const keep = Math.max(0, Math.min(12, tiles.size - 1))
+      // La moitié du vitrail au plus : avec « tous sauf un », un petit vitrail rejouerait le tour précédent dans le même ordre
+      const keep = Math.max(0, Math.min(12, Math.floor(eligibleCount() / 2)))
       while (recent.length > keep) recent.shift()
     }
-    const newDeck = (): string[] => {
-      const told = new Set(list.filter(p => (p.message?.length ?? 0) >= 40).map(p => p.id))
-      // Tirage pondéré (Efraimidis–Spirakis) : clé = aléa^(1/poids), triée ; poids 3 pour un témoignage
-      return [...tiles.keys()]
-        .map(id => ({ id, key: Math.pow(Math.random(), 1 / (told.has(id) ? 3 : 1)) }))
-        .sort((x, y) => x.key - y.key) // pop() prend la plus grande clé en premier
-        .map(x => x.id)
-    }
+    // pop() prend le dernier : le tour est rangé à l'envers
+    const newDeck = (): string[] => buildTour(list.filter(p => tiles.has(p.id)), CONFIG.showMessagesOnScreen).reverse()
     const pickNext = (): string | null => {
       while (priority.length) {
         const id = priority.shift()!
@@ -248,7 +251,7 @@ export default function Ecran() {
           return id
         }
       }
-      deck = deck.filter(id => tiles.has(id) && !cycleSeen.has(id))
+      deck = deck.filter(id => eligible(id) && !cycleSeen.has(id))
       if (!deck.length) deck = newDeck().filter(id => !cycleSeen.has(id))
       // Le prochain qui n'a pas été vu récemment (le début d'un nouveau tour peut retomber sur la fin du précédent)
       for (let i = deck.length - 1; i >= 0; i--) {
@@ -283,13 +286,23 @@ export default function Ecran() {
       needs = true
       // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant). Elle vient après CTA_EVERY morceaux,
       // ou plus tôt quand tous les morceaux ont déjà été montrés dans ce cycle (petit vitrail)
-      const unseen = [...tiles.keys()].some(id => !cycleSeen.has(id))
-      const due = performance.now() - lastCtaAt >= CTA_EVERY_MS
+      // Seuls les morceaux admissibles comptent : un petit vitrail revient à la pause dès qu'il les a tous montrés,
+      // et un vitrail sans aucun morceau à montrer reste sur la pause (ou, intégré, sur le vitrail entier)
+      const unseen = [...tiles.keys()].some(id => eligible(id) && !cycleSeen.has(id))
+      const pending = priority.some(id => tiles.has(id))
+      const nothing = !pending && !unseen && eligibleCount() === 0
+      const due = performance.now() - lastCtaAt >= CTA_EVERY_MS || nothing
       // Intégré : jamais d'encart d'appel ; quand tout a été vu, un nouveau tour commence simplement
+      if (isEmbed() && nothing) {
+        flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
+          timer = setTimeout(next, 5000)
+        })
+        return
+      }
       if (isEmbed() && hops > 0 && !unseen) {
         hops = 0
         cycleSeen.clear()
-      } else if (!isEmbed() && (due || (hops > 0 && !unseen)) && !priority.some(id => tiles.has(id))) {
+      } else if (!isEmbed() && (due || (hops > 0 && !unseen)) && !pending) {
         hops = 0
         cycleSeen.clear()
         flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {

@@ -87,9 +87,9 @@ export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED
         }
       }
     }
-    // Un témoignage pour environ un donateur sur trois (davantage chez les nommés), dans sa langue, sans répétition
+    // Un témoignage pour plus de la moitié des donateurs nommés (rarement chez les anonymes), dans sa langue, sans répétition
     const pool = english ? testimonialsEn : testimonialsFr
-    const message = pool.length && r.chance(named ? 0.36 : 0.12) ? pool.splice(Math.floor(r.next() * pool.length), 1)[0] : null
+    const message = pool.length && r.chance(named ? 0.55 : 0.12) ? pool.splice(Math.floor(r.next() * pool.length), 1)[0] : null
     const times = r.chance(0.12) ? r.int(2, 3) : 1
     const donations = Array.from({ length: times }, () => ({ amountCents: amount(), at: new Date(when()).toISOString() })).sort((a, b) => a.at.localeCompare(b.at))
     out.push({
