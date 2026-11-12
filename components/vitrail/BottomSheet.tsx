@@ -10,7 +10,9 @@ import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
 import type { RankedPiece } from './types'
 import { donorNameFamily } from '@/lib/fonts'
-import { useOrdinal } from '@/lib/useI18n'
+import { ArrivalBadge, useSinceDate } from './Arrival'
+import { reportStyle } from './DetailPanel'
+import { ShareIcon } from './icons'
 
 const MONO = "'DM Sans', sans-serif"
 
@@ -39,7 +41,7 @@ export default function BottomSheet({
   const t = useTranslations('vitrail.fiche')
   const tn = useTranslations('vitrail.nav')
   const tc = useTranslations('commun')
-  const ordinal = useOrdinal()
+  const sinceDate = useSinceDate()
   const [share, setShare] = useState(false)
   const [report, setReport] = useState(false)
   const drag = useRef<{ y: number; dy: number } | null>(null)
@@ -119,9 +121,9 @@ export default function BottomSheet({
           <PiecePortrait id={piece.id} color={c} photoUrl={piece.photoUrl} tile={tile} size={64} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontFamily: donorNameFamily(), fontSize: '18px', fontWeight: 600, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{piece.name ?? tc('anonyme')}</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{t('morceauDuVitrail')}</span>
-              <span style={{ padding: '2px 8px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '12px', fontFamily: MONO, fontSize: '11px', color: c }}>{ordinal(piece.rank)}</span>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 8px', minWidth: 0 }}>
+              <ArrivalBadge piece={piece} own={own} small />
+              {piece.since && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>{t('depuisCourt', { date: sinceDate(piece.since) })}</span>}
             </div>
           </div>
         </div>
@@ -146,14 +148,14 @@ export default function BottomSheet({
           </button>
         </div>
         {!local && (
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           <button onClick={() => setShare(true)} style={btn}>
-            <span>🔗</span>
+            <ShareIcon />
             <span>{own ? t('partagerMien') : t('partager')}</span>
           </button>
           {!own && (
-            <button onClick={() => setReport(true)} aria-label={t('signaler')} style={{ ...btn, flex: '0 0 auto', padding: '12px 16px', background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.7)', fontSize: '16px' }}>
-              ⚑
+            <button onClick={() => setReport(true)} style={{ ...reportStyle, marginTop: '10px', alignSelf: 'center' }}>
+              {t('signalerCe')}
             </button>
           )}
         </div>

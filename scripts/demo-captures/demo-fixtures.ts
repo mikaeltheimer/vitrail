@@ -4,6 +4,7 @@
 import { DEMO_NAME, DEMO_SLUG } from '../../lib/demo-data'
 import { generateDemoDonors, type DemoDonor } from '../../lib/demo'
 import type { Piece, RecentDonation, Snapshot } from '../../lib/types'
+import { arrivalOrder } from '../../lib/arrival'
 import type { ConsoleData, DonationRow, DonorRow } from '../../components/console/types'
 
 /** Moment fixe : les captures ne changent pas d'une exécution à l'autre (sauf « il y a … », relatif à l'heure de la capture). */
@@ -26,8 +27,9 @@ function donors(now: number): DemoDonor[] {
 /** Le vitrail de la démo, comme le renvoie /api/vitrail. */
 export function demoSnapshot(now = Date.now()): Snapshot {
   const list = donors(now)
+  const arrivals = arrivalOrder(list.flatMap(d => d.donations.map((x, i) => ({ donation_id: `${id(d)}-${i}`, donor_id: id(d), created_at: x.at }))))
   const pieces: Piece[] = list
-    .map(d => ({ id: id(d), name: d.showName ? d.displayName : null, message: d.message, question: d.message ? d.question : null, photoUrl: null, color: d.color, amountCents: total(d) }))
+    .map(d => ({ id: id(d), name: d.showName ? d.displayName : null, message: d.message, question: d.message ? d.question : null, photoUrl: null, color: d.color, amountCents: total(d), ...arrivals.get(id(d)) }))
     .sort((a, b) => (a.id < b.id ? -1 : 1))
   const recent: RecentDonation[] = list
     .flatMap(d => d.donations.map((x, i) => ({ id: `${id(d)}-${i}`, donorId: id(d), name: d.showName ? d.displayName : null, message: d.message, photoUrl: null, amountCents: x.amountCents, at: x.at })))

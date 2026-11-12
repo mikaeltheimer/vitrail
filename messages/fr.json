@@ -211,8 +211,8 @@
   "vitrail": {
     "canvasAria": "Le vitrail de dons",
     "ajouter": "Ajouter mon morceau",
-    "rencontrer": "✦ Rencontrer quelqu'un",
-    "rencontrerTitre": "S'envoler vers quelqu'un du vitrail",
+    "hasard": "✦ Un morceau au hasard",
+    "hasardTitre": "Aller vers un morceau du vitrail, au hasard",
     "trouver": "Trouver mon morceau",
     "touchez": "Touchez encore pour afficher",
     "vide": "Le vitrail attend sa première pièce.",
@@ -245,8 +245,8 @@
       "toutVoir": "Tout voir",
       "dezoomer": "Dézoomer",
       "zoomer": "Zoomer",
-      "plusGrand": "Morceau plus grand (←)",
-      "plusPetit": "Morceau plus petit (→)",
+      "avant": "Morceau arrivé avant (←)",
+      "apres": "Morceau arrivé après (→)",
       "prec": "← Préc.",
       "suiv": "Suiv. →",
       "hasard": "✦ Au hasard"
@@ -285,15 +285,16 @@
     },
     "fiche": {
       "titre": "Détails du morceau",
-      "rang": "{rang} sur {total}",
-      "rangVotre": "{rang} sur {total} · votre morceau",
-      "rangSurvol": "{rang} morceau du vitrail",
-      "unMorceau": "Un morceau du vitrail",
+      "arrivee": "{rang} morceau",
+      "arriveePremier": "Premier morceau du vitrail",
+      "arriveePalier": "{rang} morceau du vitrail",
+      "arriveeVotre": "Votre morceau · {rang}",
+      "depuis": "Dans le vitrail depuis le {date}",
+      "depuisCourt": "depuis le {date}",
       "partagerMien": "Partager mon morceau",
       "partagerCe": "Partager ce morceau",
       "partager": "Partager",
-      "signaler": "Signaler",
-      "morceauDuVitrail": "Morceau du vitrail"
+      "signalerCe": "Signaler ce morceau"
     },
     "partage": {
       "texteMien": "J'ai mon morceau de verre dans le vitrail : {org}. Ajoutez le vôtre!",

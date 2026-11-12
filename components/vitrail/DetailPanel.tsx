@@ -10,15 +10,16 @@ import { ReportDialog } from './ReportDialog'
 import { ShareDialog } from './ShareDialog'
 import type { RankedPiece } from './types'
 import { donorNameFamily } from '@/lib/fonts'
-import { useOrdinal } from '@/lib/useI18n'
+import { ArrivalBadge, useSinceDate } from './Arrival'
+import { ShareIcon } from './icons'
 
 const MONO = "'DM Sans', sans-serif"
 const divider = { height: '1px', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)', margin: '24px 0' }
 
-export default function DetailPanel({ piece, tile, count, own, local = false, onClose }: { piece: RankedPiece; tile: Tile | null; count: number; totalCents?: number; own: boolean; /** Morceau d'essai de la démonstration (n'existe que dans l'onglet) : rien à partager ni à signaler. */ local?: boolean; onClose: () => void }) {
+export default function DetailPanel({ piece, tile, own, local = false, onClose }: { piece: RankedPiece; tile: Tile | null; own: boolean; /** Morceau d'essai de la démonstration (n'existe que dans l'onglet) : rien à partager ni à signaler. */ local?: boolean; onClose: () => void }) {
   const t = useTranslations('vitrail.fiche')
   const tc = useTranslations('commun')
-  const ordinal = useOrdinal()
+  const sinceDate = useSinceDate()
   const [share, setShare] = useState(false)
   const [report, setReport] = useState(false)
   const c = piece.color
@@ -58,9 +59,8 @@ export default function DetailPanel({ piece, tile, count, own, local = false, on
 
         <div style={{ textAlign: 'center', marginBottom: '12px' }}>
           <h2 style={{ fontFamily: donorNameFamily(), fontSize: '22px', fontWeight: 600, marginBottom: '8px', color: '#F4EFE6' }}>{piece.name ?? tc('anonyme')}</h2>
-          <span style={{ display: 'inline-block', padding: '4px 12px', background: `${c}22`, border: `1px solid ${c}44`, borderRadius: '20px', fontFamily: MONO, fontSize: '12px', color: c }}>
-            {t(own ? 'rangVotre' : 'rang', { rang: ordinal(piece.rank), total: count })}
-          </span>
+          <ArrivalBadge piece={piece} own={own} />
+          {piece.since && <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: '10px 0 0' }}>{t('depuis', { date: sinceDate(piece.since) })}</p>}
         </div>
 
         {piece.message && (
@@ -81,17 +81,16 @@ export default function DetailPanel({ piece, tile, count, own, local = false, on
 
         <div style={divider} />
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>{t('unMorceau')}</p>
           {!local && (
-          <button onClick={() => setShare(true)} style={{ ...actionStyle, marginTop: '16px' }}>
-            <span>🔗</span>
+          <button onClick={() => setShare(true)} style={actionStyle}>
+            <ShareIcon />
             <span>{own ? t('partagerMien') : t('partagerCe')}</span>
           </button>
           )}
           {!own && !local && (
-            <button onClick={() => setReport(true)} style={{ ...actionStyle, marginTop: '8px', background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.7)' }}>
-              <span>⚑</span>
-              <span>{t('signaler')}</span>
+            // Discret : la fiche d'une personne n'a pas à commencer par la méfiance
+            <button onClick={() => setReport(true)} style={reportStyle}>
+              {t('signalerCe')}
             </button>
           )}
         </div>
@@ -116,4 +115,18 @@ const actionStyle: React.CSSProperties = {
   justifyContent: 'center',
   gap: '8px',
   width: '100%',
+}
+
+/** Signaler : un lien gris, pas un bouton rouge. */
+export const reportStyle: React.CSSProperties = {
+  marginTop: '14px',
+  padding: '4px',
+  background: 'none',
+  border: 0,
+  color: 'rgba(255,255,255,0.4)',
+  fontSize: '12px',
+  fontFamily: MONO,
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
+  cursor: 'pointer',
 }

@@ -84,8 +84,6 @@ export default async function PlateformePage() {
   const heroDemo: HeroDemo | null = demo
     ? {
         pieces: demo.snapshot.pieces,
-        // Les derniers dons, du plus ancien au plus récent, un seul par donateur
-        replay: [...new Set([...demo.snapshot.recent].reverse().map(d => d.donorId))].slice(-10),
         url: demo.links.vitrail,
         screenUrl: locale === 'en' ? demo.links.screen : demo.links.ecran,
         name: demoName,
@@ -97,7 +95,7 @@ export default async function PlateformePage() {
       <main>
         <section className="mx-auto flex max-w-[1160px] flex-wrap items-center gap-16 px-6 pb-24 pt-12">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
-            <span className="self-start rounded-full border px-3 py-1 text-[13px] font-bold uppercase tracking-wider" style={{ color: '#3DB5A6', borderColor: 'rgba(61,181,166,0.5)' }}>
+            <span className="self-start rounded-full border px-3 py-1 text-[13px] font-bold uppercase tracking-wider" style={{ color: '#F0B24A', borderColor: 'rgba(240,178,74,0.5)' }}>
               {t('hero.beta')}
             </span>
             <h1 className="m-0 text-[clamp(40px,5vw,64px)] leading-[1.05]" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>

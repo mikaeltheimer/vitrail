@@ -211,8 +211,8 @@
   "vitrail": {
     "canvasAria": "The donation stained glass",
     "ajouter": "Add my piece",
-    "rencontrer": "✦ Meet someone",
-    "rencontrerTitre": "Fly to someone in the stained glass",
+    "hasard": "✦ A random piece",
+    "hasardTitre": "Go to a piece of the stained glass, at random",
     "trouver": "Find my piece",
     "touchez": "Tap again to open",
     "vide": "The stained glass is waiting for its first piece.",
@@ -245,8 +245,8 @@
       "toutVoir": "See all",
       "dezoomer": "Zoom out",
       "zoomer": "Zoom in",
-      "plusGrand": "Larger piece (←)",
-      "plusPetit": "Smaller piece (→)",
+      "avant": "Piece that arrived before (←)",
+      "apres": "Piece that arrived after (→)",
       "prec": "← Prev",
       "suiv": "Next →",
       "hasard": "✦ Random"
@@ -285,15 +285,16 @@
     },
     "fiche": {
       "titre": "Piece details",
-      "rang": "{rang} of {total}",
-      "rangVotre": "{rang} of {total} · your piece",
-      "unMorceau": "A piece of the stained glass",
+      "arrivee": "{rang} piece",
+      "arriveePremier": "First piece of the stained glass",
+      "arriveePalier": "{rang} piece of the stained glass",
+      "arriveeVotre": "Your piece · {rang}",
+      "depuis": "In the stained glass since {date}",
+      "depuisCourt": "since {date}",
       "partagerMien": "Share my piece",
       "partagerCe": "Share this piece",
       "partager": "Share",
-      "signaler": "Report",
-      "morceauDuVitrail": "Piece of the stained glass",
-      "rangSurvol": "{rang} piece in the stained glass"
+      "signalerCe": "Report this piece"
     },
     "partage": {
       "texteMien": "I have my piece of glass in the stained glass: {org}. Add yours!",

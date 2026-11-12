@@ -11,6 +11,10 @@ export interface Piece {
   photoUrl: string | null
   color: string
   amountCents: number
+  /** Numéro d'arrivée dans ce vitrail (1 = premier donateur), selon le premier don ; ne change pas quand d'autres se retirent. */
+  arrival?: number
+  /** Date du premier don dans ce vitrail (ISO). */
+  since?: string
 }
 
 export interface RecentDonation {

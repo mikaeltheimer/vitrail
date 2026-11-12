@@ -97,7 +97,9 @@ function saveLocalPieces(list: LocalPiece[]) {
 /** L'instantané du serveur, plus les morceaux d'essai du visiteur (version distincte : le pavage est recalculé). */
 function withLocalPieces(s: Snapshot, local: LocalPiece[]): Snapshot {
   if (!local.length) return s
-  const pieces: Piece[] = local.map(({ id, name, message, photoUrl, color, amountCents }) => ({ id, name, message, photoUrl, color, amountCents }))
+  // Les morceaux d'essai arrivent après ceux du vitrail
+  const last = s.pieces.reduce((n, p) => Math.max(n, p.arrival ?? 0), 0)
+  const pieces: Piece[] = local.map(({ id, name, message, photoUrl, color, amountCents, at }, i) => ({ id, name, message, photoUrl, color, amountCents, arrival: last + i + 1, since: at }))
   const recent: RecentDonation[] = [...local].reverse().map(p => ({ id: p.id, donorId: p.id, name: p.name, message: p.message, photoUrl: p.photoUrl, amountCents: p.amountCents, at: p.at }))
   const sum = local.reduce((n, p) => n + p.amountCents, 0)
   return {
@@ -364,7 +366,7 @@ function Vitrail() {
       layerKey = ''
       flyTo(homeCam(), 800)
     }
-    // Navigation par rang (1 = le plus grand)
+    // Navigation dans l'ordre d'arrivée (1 = le premier arrivé)
     const step = (dir: 1 | -1) => {
       const n = w.ranked.length
       if (!n) return
@@ -373,7 +375,7 @@ function Vitrail() {
       const p = w.ranked[next - 1]
       if (p) select(p.id, w.mobile ? w.sheetOpen : true)
     }
-    // « Rencontrer quelqu'un » : de préférence avec une photo ou un message, jamais les derniers vus
+    // « Un morceau au hasard » : de préférence avec une photo ou un message, jamais les derniers vus
     const pickSomeone = (): RankedPiece | null => {
       const real = w.ranked.filter(p => p.id !== w.selected)
       if (!real.length) return null
@@ -906,8 +908,9 @@ function Vitrail() {
         }
         if (s.version === version) return
         version = s.version
-        const sorted = [...s.pieces].sort((a, b) => b.amountCents - a.amountCents || (a.id < b.id ? -1 : 1))
-        const rankedList: RankedPiece[] = sorted.map((p, i) => ({ ...p, rank: i + 1 }))
+        // Ordre d'arrivée (jamais par montant : ce serait un palmarès des dons)
+        const sorted = [...s.pieces].sort((a, b) => (a.arrival ?? Infinity) - (b.arrival ?? Infinity) || (a.id < b.id ? -1 : 1))
+        const rankedList: RankedPiece[] = sorted.map((p, i) => ({ ...p, rank: i + 1, arrival: p.arrival ?? i + 1 }))
         w.base = s.pieces
         w.ranked = rankedList
         w.byId = new Map(rankedList.map(p => [p.id, p]))
@@ -1166,7 +1169,7 @@ function Vitrail() {
               onClick={() => api.current.meet()}
               style={{ position: 'fixed', left: '16px', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 120, padding: '11px 16px', borderRadius: '999px', border: '1px solid rgba(240,178,74,0.5)', background: 'rgba(12,10,18,0.85)', backdropFilter: 'blur(6px)', color: GOLD, fontFamily: MONO, fontSize: '13px', fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
             >
-              {t('rencontrer')}
+              {t('hasard')}
             </button>
           )}
         </>
@@ -1176,8 +1179,8 @@ function Vitrail() {
       {!mobile && count > 0 && (
         <>
           <DesktopSearch ranked={ranked} bottom={mine ? 348 : 302} onPick={id => api.current.select(id, true)} />
-          <SideButton bottom={mine ? 302 : 256} gold onClick={() => api.current.meet()} title={t('rencontrerTitre')}>
-            {t('rencontrer')}
+          <SideButton bottom={mine ? 302 : 256} gold onClick={() => api.current.meet()} title={t('hasardTitre')}>
+            {t('hasard')}
           </SideButton>
           {mine && (
             <SideButton bottom={256} color={mine.color} onClick={() => api.current.select(mine.id, true)}>
@@ -1197,7 +1200,7 @@ function Vitrail() {
             onPrev={() => api.current.step(-1)}
             onNext={() => api.current.step(1)}
           />
-          {piece && <DetailPanel piece={piece} tile={tile} count={count} totalCents={totalCents} own={piece.id === mine?.id || piece.id.startsWith(DEMO_PREFIX)} local={piece.id.startsWith(DEMO_PREFIX)} onClose={() => api.current.home()} />}
+          {piece && <DetailPanel piece={piece} tile={tile} own={piece.id === mine?.id || piece.id.startsWith(DEMO_PREFIX)} local={piece.id.startsWith(DEMO_PREFIX)} onClose={() => api.current.home()} />}
         </>
       )}
 
@@ -1736,7 +1739,7 @@ function Header({
                 >
                   <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{ordinal(p.rank)}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{ordinal(p.arrival)}</span>
                 </button>
               ))}
               {q && results.length === 0 && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, padding: '12px 4px' }}>{t('personne')}</p>}
@@ -1860,7 +1863,7 @@ function DesktopSearch({ ranked, bottom, onPick }: { ranked: RankedPiece[]; bott
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
               </span>
-              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{ordinal(p.rank)}</span>
+              <span style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{ordinal(p.arrival)}</span>
             </button>
           ))}
         </div>
@@ -1982,10 +1985,10 @@ function NavigationPanel({
         </button>
       </div>
       <div style={{ padding: '0 10px 10px 10px', display: 'flex', gap: '6px' }}>
-        <button onClick={onPrev} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('plusGrand')}>
+        <button onClick={onPrev} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('avant')}>
           <span>{tn('prec')}</span>
         </button>
-        <button onClick={onNext} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('plusPetit')}>
+        <button onClick={onNext} style={{ ...navBtn, flex: 1 }} onMouseOver={e => hoverBtn(e, true)} onMouseOut={e => hoverBtn(e, false)} title={tn('apres')}>
           <span>{tn('suiv')}</span>
         </button>
       </div>
