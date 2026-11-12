@@ -1,6 +1,6 @@
--- Donivers — schéma complet de la base (état au 2026-11-09 : migrations jusqu'à 2026-11-20-provenance-demandes.sql comprise ;
--- la 19 ne touche que des données ; la colonne access_requests.source de la 20 a été reportée à la main, définitions
--- relevées sur donivers-test : régénérer le fichier à la prochaine migration).
+-- Donivers — schéma complet de la base (état au 2026-11-11 : migrations jusqu'à 2026-11-21-question-temoignage.sql comprise ;
+-- la 19 ne touche que des données). Régénéré par un rejeu complet : schema.sql d'avant l'étape 3 (cd7c01d), puis toutes les
+-- migrations à partir de 2026-11-06, dans l'ordre de leur nom.
 --
 -- Sert à créer un projet Supabase NEUF en une fois (SQL Editor, ou psql). Une base déjà en service se met à jour avec les
 -- fichiers de supabase/migrations/, dans l'ordre de leur nom ; l'histoire et les raisons de chaque choix sont dans leurs
@@ -145,9 +145,11 @@ CREATE TABLE public.donors (
     mailing_consent_locale text,
     mailing_withdrawn_at timestamp with time zone,
     erased_at timestamp with time zone,
+    message_question text,
     CONSTRAINT donors_email_check CHECK ((email = lower(email))),
     CONSTRAINT donors_locale_check CHECK ((locale = ANY (ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT donors_mailing_consent_locale_check CHECK ((mailing_consent_locale = ANY (ARRAY['fr'::text, 'en'::text]))),
+    CONSTRAINT donors_message_question_check CHECK ((char_length(message_question) <= 120)),
     CONSTRAINT donors_message_status_check CHECK ((message_status = ANY (ARRAY['approved'::text, 'pending'::text]))),
     CONSTRAINT donors_photo_status_check CHECK ((photo_status = ANY (ARRAY['approved'::text, 'pending'::text])))
 );
