@@ -173,6 +173,8 @@ export default function Affiche({ poster }: { poster: Record<Locale, PosterTexts
   const [place, setPlace] = useState(() => params.get('lieu') || t('suggestions.accueil'))
   const [choice, setChoice] = useState<Locale | 'both'>(bilingual ? 'both' : offered[0])
   const [format, setFormat] = useState<Format>(params.get('format') === 'tabloid' ? 'tabloid' : 'lettre')
+  // ?apercu : l'affiche seule, pleine largeur, sans réglages (vignette des outils de la démo)
+  const apercu = params.has('apercu')
   const [origin, setOrigin] = useState('')
   const [qr, setQr] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -269,7 +271,7 @@ export default function Affiche({ poster }: { poster: Record<Locale, PosterTexts
   const qrSize = format === 'tabloid' ? (two ? '22cqi' : '24cqi') : two ? '19cqi' : '21cqi'
 
   return (
-    <main className="affiche-page min-h-screen px-4 py-6">
+    <main className={apercu ? 'affiche-page' : 'affiche-page min-h-screen px-4 py-6'} style={apercu ? { background: PAPER } : undefined}>
       <style>{`
         @page { size: ${size.page}; margin: 0; }
         @media print {
@@ -282,7 +284,7 @@ export default function Affiche({ poster }: { poster: Record<Locale, PosterTexts
       `}</style>
 
       {/* Réglages (invisibles à l'impression) */}
-      <section className="no-print mx-auto mb-6 max-w-xl space-y-3">
+      <section className="no-print mx-auto mb-6 max-w-xl space-y-3" hidden={apercu}>
         <h1 className="text-xl font-bold">{t('titrePage')}</h1>
         <p className="muted text-sm">{t('aide')}</p>
         <label className="block text-sm font-semibold" htmlFor="place">
@@ -346,11 +348,11 @@ export default function Affiche({ poster }: { poster: Record<Locale, PosterTexts
         className="poster mx-auto flex flex-col text-center"
         lang={main}
         style={{
-          width: `min(100%, ${format === 'tabloid' ? '7.6in' : '8.5in'})`,
+          width: apercu ? '100%' : `min(100%, ${format === 'tabloid' ? '7.6in' : '8.5in'})`,
           aspectRatio: `${size.w} / ${size.h}`,
           background: PAPER,
           color: INK,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          boxShadow: apercu ? 'none' : '0 20px 60px rgba(0,0,0,0.5)',
           containerType: 'inline-size',
           overflow: 'hidden',
         }}

@@ -390,7 +390,7 @@ export default function ClaimPanel({
               top: isMobile ? "auto" : "72px",
               bottom: isMobile ? 0 : "auto",
               width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
-              maxHeight: isMobile ? "50vh" : "calc(100vh - 72px - 16px)",
+              maxHeight: isMobile ? "50vh" : "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)",
               alignContent: "start",
               overflowY: "auto",
               background: "rgba(20,18,29, 0.95)",

@@ -329,7 +329,6 @@
       "creation": "Created by <lien>{studio}</lien>."
     },
     "ferme": "This stained glass opens soon: donations are not open yet.",
-    "demoBadge": "Demonstration: fictional donors and donations",
     "demoDon": {
       "surtitre": "Demonstration",
       "titre": "Your piece is in the stained glass.",
@@ -342,6 +341,46 @@
       "chargement": "Loading…",
       "erreur": "The preview could not be loaded. Try again.",
       "courrielNote": "Preview of the real template, nothing is sent. The button leads to the donor's personal page (name, testimonial, photo, removal); it is disabled here."
+    },
+    "demoOutils": {
+      "bandeau": "<b>Demonstration:</b> the organization, donors and donations are fictional.",
+      "bandeauCourt": "<b>Demo:</b> it's all fictional.",
+      "bouton": "See the organization's tools",
+      "boutonCourt": "The tools",
+      "surtitre": "Demonstration",
+      "titre": "The organization's tools",
+      "intro": "With its stained glass, every organization gets these tools, ready to use. Here, they show the demo's fictional stained glass.",
+      "ecran": {
+        "titre": "Projection screen",
+        "texte": "Made for a TV or a projector during an event: pieces and testimonials scroll by, and every new donation appears live.",
+        "ouvrir": "Open the screen"
+      },
+      "partage": {
+        "titre": "Share image",
+        "texte": "What people see when the stained glass link is shared on Facebook or in a messaging app: the real stained glass, up to date.",
+        "ouvrir": "See the full-size image",
+        "alt": "Share image of the demonstration stained glass"
+      },
+      "affiche": {
+        "titre": "Printable poster",
+        "texte": "The real stained glass, with an empty spot for the next piece and a QR code that leads to the donation. Letter or tabloid (11 × 17).",
+        "lettre": "Letter",
+        "tabloid": "Tabloid (11 × 17)"
+      },
+      "courriel": {
+        "titre": "Thank-you email",
+        "texte": "Sent to the donor right after their donation, in the organization's name, with a link to add their name, testimonial or photo.",
+        "ouvrir": "Read the email"
+      },
+      "console": {
+        "titre": "Organization console",
+        "texte": "For the team, on phone or computer: live donations, what needs attention, and moderation of photos and testimonials.",
+        "accueil": "Home",
+        "moderation": "Moderation",
+        "accueilAlt": "Screenshot of the console's home tab, made with the demo's fictional data",
+        "moderationAlt": "Screenshot of moderation in the console, made with the demo's fictional data"
+      },
+      "note": "Previews made with the demo's fictional data. Nothing is sent, nothing is saved."
     }
   },
   "claim": {
@@ -683,6 +722,8 @@
       "litigeDetailSansDate": "Respond in Stripe right away, or the dispute is lost.",
       "repondre": "Respond",
       "aModerer": "To approve: {photos, plural, one {# photo} other {# photos}} and {messages, plural, one {# testimonial} other {# testimonials}}",
+      "aModererPhotos": "To approve: {count, plural, one {# photo} other {# photos}}",
+      "aModererTemoignages": "To approve: {count, plural, one {# testimonial} other {# testimonials}}",
       "aModererDetail": "They only appear on the screen once you approve them.",
       "aModererDetailLive": "They are waiting for a decision.",
       "moderer": "Moderate",

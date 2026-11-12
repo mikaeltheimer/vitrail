@@ -25,6 +25,10 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 - K1 : moteur de la commission. K2 : affichage (carte « Votre forfait », Réglages › Paiements, export), acceptation des conditions dans la console, avis au 100e donateur.
 - Lancement de l'École : Stripe réel, coordonnées juridiques, `PAYMENT_MODE=stripe`, purge des dons de démo, « Mettre en ligne », forfait Supabase Pro.
 
+## Règles qui durent
+
+- **Captures du tiroir des outils de la démo** (`public/demo/console-*.png` et `public/demo/ecran-*.jpg`) : relancer `npm run captures:demo` après tout changement visible de la console (Accueil, Modération, barre d'onglets, textes) ou de l'écran de projection, et committer les images avec le changement. Le script rend les vraies pages avec les données fictives de la démo, sans base.
+
 ## Après le lancement (à répartir)
 
 - L1 Paiement anticipé du solde · L2 Campagnes (création, clôture, fusion) · L3 Pro : facturation annuelle · L4 Remerciement personnalisé · L5 Domaine d'expéditeur · L6 Message d'impact · L7 Reçus fiscaux (avocat ; statut d'organisme de bienfaisance requis) · L8 Forme du vitrail (prototype sur 10 logos) · L9 Infolettre, rapports, rôles.
@@ -32,6 +36,7 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Terminé récemment
 
-- `schema.sql` régénéré par rejeu complet (migrations jusqu'à la 22) ; migration 22 : droits des fonctions de déclencheur alignés sur `schema.sql` (à appliquer par Mika sur donivers-test puis en production).
+- Outils de la démo : bandeau « tout est fictif » et tiroir des outils de l'organisme sur /vitrail de la démo (écran, console, image de partage, affiche, courriel) ; captures par `npm run captures:demo`.
+- `schema.sql` régénéré par rejeu complet (migrations jusqu'à la 22) ; migration 22 : droits des fonctions de déclencheur alignés sur `schema.sql` (appliquée sur donivers-test et en production le 11 nov.).
 
 - Bilingue, multi-organismes, Stripe Connect, comptes, atelier, vitrine, démo, marque (palette, logo, signature), image de partage, affiche « La place libre », vitrine au nouveau modèle d'affaires (`09b7269`).

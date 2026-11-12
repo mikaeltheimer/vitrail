@@ -62,7 +62,8 @@ export default function Accueil({
     todos.push({
       key: 'moderation',
       icon: 'image',
-      title: t('aModerer', { photos, messages }),
+      // Seulement ce qui attend (pas de « 0 photo et 2 témoignages »)
+      title: photos && messages ? t('aModerer', { photos, messages }) : photos ? t('aModererPhotos', { count: photos }) : t('aModererTemoignages', { count: messages }),
       detail: data.photoModeration === 'moderation' ? t('aModererDetail') : t('aModererDetailLive'),
       action: t('moderer'),
       onClick: () => setTab('moderation'),

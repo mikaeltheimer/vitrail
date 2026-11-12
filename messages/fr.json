@@ -329,7 +329,6 @@
       "creation": "Une création de <lien>{studio}</lien>."
     },
     "ferme": "Ce vitrail ouvrira bientôt : les dons ne sont pas encore ouverts.",
-    "demoBadge": "Démonstration : donateurs et dons fictifs",
     "demoDon": {
       "surtitre": "Démonstration",
       "titre": "Votre morceau est dans le vitrail.",
@@ -342,6 +341,46 @@
       "chargement": "Chargement…",
       "erreur": "L'aperçu n'a pas pu être chargé. Réessayez.",
       "courrielNote": "Aperçu du vrai gabarit, sans envoi. Le bouton mène à la page personnelle du donateur (nom, témoignage, photo, retrait) ; il est désactivé ici."
+    },
+    "demoOutils": {
+      "bandeau": "<b>Démonstration :</b> l'organisme, les donateurs et les dons sont fictifs.",
+      "bandeauCourt": "<b>Démo :</b> tout est fictif.",
+      "bouton": "Voir les outils de l'organisme",
+      "boutonCourt": "Les outils",
+      "surtitre": "Démonstration",
+      "titre": "Les outils de l'organisme",
+      "intro": "Avec son vitrail, chaque organisme reçoit ces outils, prêts à l'emploi. Ici, ils montrent le vitrail fictif de la démo.",
+      "ecran": {
+        "titre": "Écran de projection",
+        "texte": "Fait pour une télé ou un projecteur, pendant un événement : les morceaux et les témoignages défilent, et chaque nouveau don apparaît en direct.",
+        "ouvrir": "Ouvrir l'écran"
+      },
+      "partage": {
+        "titre": "Image de partage",
+        "texte": "Ce qu'on voit quand le lien du vitrail est partagé sur Facebook ou dans une messagerie : le vrai vitrail, à jour.",
+        "ouvrir": "Voir l'image en grand",
+        "alt": "Image de partage du vitrail de démonstration"
+      },
+      "affiche": {
+        "titre": "Affiche à imprimer",
+        "texte": "Le vrai vitrail, avec une place libre pour le prochain morceau et un code QR qui mène au don. En format lettre ou tabloïd (11 × 17).",
+        "lettre": "Lettre",
+        "tabloid": "Tabloïd (11 × 17)"
+      },
+      "courriel": {
+        "titre": "Courriel de remerciement",
+        "texte": "Envoyé au donateur juste après son don, au nom de l'organisme, avec un lien pour ajouter son nom, son témoignage ou sa photo.",
+        "ouvrir": "Lire le courriel"
+      },
+      "console": {
+        "titre": "Console de l'organisme",
+        "texte": "Pour l'équipe, sur téléphone comme sur ordinateur : les dons en direct, ce qui demande attention, la modération des photos et des témoignages.",
+        "accueil": "Accueil",
+        "moderation": "Modération",
+        "accueilAlt": "Capture de l'accueil de la console, faite avec les données fictives de la démo",
+        "moderationAlt": "Capture de la modération dans la console, faite avec les données fictives de la démo"
+      },
+      "note": "Aperçus faits avec les données fictives de la démo. Rien n'est envoyé, rien n'est enregistré."
     }
   },
   "claim": {
@@ -683,6 +722,8 @@
       "litigeDetailSansDate": "Répondez dans Stripe sans tarder, sinon le litige est perdu.",
       "repondre": "Répondre",
       "aModerer": "À approuver : {photos, plural, one {# photo} other {# photos}} et {messages, plural, one {# témoignage} other {# témoignages}}",
+      "aModererPhotos": "À approuver : {count, plural, one {# photo} other {# photos}}",
+      "aModererTemoignages": "À approuver : {count, plural, one {# témoignage} other {# témoignages}}",
       "aModererDetail": "Ils n’apparaissent sur l’écran qu’après votre accord.",
       "aModererDetailLive": "Ils attendent une décision.",
       "moderer": "Modérer",

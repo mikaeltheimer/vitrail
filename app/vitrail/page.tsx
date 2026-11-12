@@ -21,10 +21,9 @@ import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
 import Ticker from '@/components/vitrail/Ticker'
 import type { RankedPiece } from '@/components/vitrail/types'
-import { CONFIG } from '@/lib/config'
 import { FALLBACK_GLASS } from '@/lib/theme'
 import { INTL_TAG, type Locale } from '@/i18n/config'
-import { useOrg } from '@/lib/useOrg'
+import { useIdentity, useOrg } from '@/lib/useOrg'
 import { useMoney, useOrdinal, useSceneText } from '@/lib/useI18n'
 import { ensureFonts } from '@/lib/fonts'
 import { Ambience, glassColors, type GlassColors } from '@/lib/glass'
@@ -37,6 +36,7 @@ import ScaleBadge from '@/components/ScaleBadge'
 import { OrgMark } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
 import { useAtelier } from '@/components/atelier/Atelier'
+import { DEMO_BANNER_HEIGHT, DemoBanner, DemoToolsDrawer, EMAIL_PREVIEW_CENTS } from '@/components/vitrail/DemoTools'
 
 const HEADER_HEIGHT = 56
 const MONO = "'DM Sans', sans-serif"
@@ -226,6 +226,15 @@ function Vitrail() {
   const localRef = useRef<LocalPiece[]>([])
   const [demoWelcome, setDemoWelcome] = useState<{ paidCents: number } | null>(null)
   const [emailOpen, setEmailOpen] = useState<{ paidCents: number } | null>(null)
+  // Démonstration : le bandeau « tout est fictif » (connu dès le premier rendu par l'identité) et le tiroir des outils
+  const identity = useIdentity()
+  const showcase = !!identity?.showcase || !!snap?.showcase
+  const bannerH = showcase ? DEMO_BANNER_HEIGHT : 0
+  const [toolsOpen, setToolsOpen] = useState(false)
+  // Le bandeau change la hauteur du cadre : le moteur se remesure
+  useEffect(() => {
+    if (bannerH) window.dispatchEvent(new Event('resize'))
+  }, [bannerH])
 
   const setSheetOpen = useCallback((v: boolean) => {
     wRef.current.sheetOpen = v
@@ -285,7 +294,8 @@ function Vitrail() {
     const resize = () => {
       const atHome = !w.selected && !w.claim && Math.abs(w.cam.zoom - w.baseZoom) < 1e-9
       w.W = window.innerWidth
-      w.H = window.innerHeight - HEADER_HEIGHT
+      // Hauteur du cadre du vitrail (sous l'en-tête, et sous le bandeau de la démo s'il y en a un)
+      w.H = canvas.parentElement?.clientHeight || window.innerHeight - HEADER_HEIGHT
       w.mobile = window.innerWidth < 768
       setMobile(w.mobile)
       const touch = navigator.maxTouchPoints > 0
@@ -1053,7 +1063,6 @@ function Vitrail() {
   const totalCents = snap?.totalCents ?? 0
   const count = ranked.length
   const claimLabel = t('ajouter')
-  const showcase = !!snap?.showcase
   const closed = snap?.mode === 'off' && !showcase
   const atelier = useAtelier()
   const atelierBar = !!atelier
@@ -1070,7 +1079,8 @@ function Vitrail() {
   useEffect(() => {
     const el = titleRef.current
     if (!el) return
-    const measure = () => setTitleBottom(Math.round(el.getBoundingClientRect().bottom))
+    // Mesuré dans le cadre de la page : sur la démo, tout est placé sous le bandeau
+    const measure = () => setTitleBottom(Math.round(el.getBoundingClientRect().bottom) - bannerH)
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
@@ -1079,7 +1089,7 @@ function Vitrail() {
       ro.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [hasSnap, mobile, atelierBar, atelierBarHeight])
+  }, [hasSnap, mobile, atelierBar, atelierBarHeight, bannerH])
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -1091,7 +1101,10 @@ function Vitrail() {
   ))
 
   return (
-    <div className="h-screen overflow-hidden" style={{ background: '#0B0A12' }}>
+    <>
+    {showcase && <DemoBanner mobile={mobile} open={toolsOpen} onOpen={() => setToolsOpen(o => !o)} />}
+    {/* Sur la démo, toute la page (éléments fixes compris : le cadre leur sert de repère) passe sous le bandeau */}
+    <div className="h-screen overflow-hidden" style={{ background: '#0B0A12', ...(bannerH ? { position: 'fixed', inset: `${bannerH}px 0 0 0`, height: 'auto', transform: 'translateZ(0)', ['--demo-bandeau' as string]: `${bannerH}px` } : {}) }}>
       <Header
         mobile={mobile}
         count={count}
@@ -1177,6 +1190,7 @@ function Vitrail() {
             polygons={polygons}
             onPanTo={(x, y) => api.current.panTo(x, y)}
             getCam={() => wRef.current.cam}
+            getViewH={() => wRef.current.H}
             onReset={() => api.current.home()}
             onZoomIn={() => api.current.zoomBy(1.5)}
             onZoomOut={() => api.current.zoomBy(1 / 1.5)}
@@ -1209,7 +1223,6 @@ function Vitrail() {
         </div>
       )}
 
-      {!mobile && !claimOpen && <HoverCard piece={hoveredPiece} />}
 
       {/* ── Derniers dons  ── */}
       {closedNotice && (
@@ -1264,7 +1277,6 @@ function Vitrail() {
           onClose={() => setDemoWelcome(null)}
         />
       )}
-      {emailOpen && <DemoEmailPreview paidCents={emailOpen.paidCents} onClose={() => setEmailOpen(null)} />}
 
       {/* ── Nouveau don pendant la visite ── */}
       {toast && !claimOpen && !welcome && !demoWelcome && (
@@ -1307,11 +1319,6 @@ function Vitrail() {
             }}
           >
             <Editable field="vitrailTitle">{org.vitrailTitle}</Editable>
-            {showcase && (
-              <span className="font-sans" style={{ display: 'block', marginTop: 8, fontSize: 13, fontWeight: 600, letterSpacing: '0.02em', color: '#F0B24A' }}>
-                {t('demoBadge')}
-              </span>
-            )}
           </h1>
         </>
       )}
@@ -1335,6 +1342,11 @@ function Vitrail() {
         </div>
       )}
     </div>
+    {/* Hors du cadre de la page : placés d'après la position de la souris, ou par-dessus tout (bandeau compris) */}
+    {!mobile && !claimOpen && <HoverCard piece={hoveredPiece} />}
+    {showcase && toolsOpen && <DemoToolsDrawer mobile={mobile} onClose={() => !emailOpen && setToolsOpen(false)} onEmail={() => setEmailOpen({ paidCents: EMAIL_PREVIEW_CENTS })} />}
+    {emailOpen && <DemoEmailPreview paidCents={emailOpen.paidCents} onClose={() => setEmailOpen(null)} />}
+    </>
   )
 }
 
@@ -1395,7 +1407,7 @@ function WelcomeCard({ welcome, isMobile, topOffset = 0, onClose, onPublished }:
     <div style={{ position: 'fixed', left: isMobile ? 12 : '50%', right: isMobile ? 12 : 'auto', top: HEADER_HEIGHT + 14 + topOffset, transform: isMobile ? 'none' : 'translateX(-50%)', zIndex: 420, width: isMobile ? 'auto' : 'min(92vw, 480px)' }}>
       <div
         className="tv-banner-in"
-        style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(20,18,29,0.97)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 0 40px rgba(240,178,74,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'DM Sans', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - 120px)', overflowY: 'auto' }}
+        style={{ position: 'relative', display: 'grid', gap: 8, padding: '16px 18px', borderRadius: 14, background: 'rgba(20,18,29,0.97)', border: '1px solid rgba(240,178,74,0.55)', boxShadow: '0 0 40px rgba(240,178,74,0.18), 0 14px 40px rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)', fontFamily: "'DM Sans', sans-serif", maxHeight: isMobile ? '62vh' : 'calc(100vh - var(--demo-bandeau, 0px) - 120px)', overflowY: 'auto' }}
       >
         {welcome.state !== 'wait' && (
           <button onClick={onClose} aria-label={tc('fermer')} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 0, color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>
@@ -1533,7 +1545,7 @@ function DemoEmailPreview({ paidCents, onClose }: { paidCents: number; onClose: 
   // Les liens du courriel portent un jeton fictif : on les rend inertes plutôt que de mener à « lien expiré »
   const srcDoc = mail && mail !== 'error' ? mail.html.replace('</head>', '<style>a{pointer-events:none;cursor:default}</style></head>') : ''
   return (
-    <div className="fixed inset-0 z-[900] flex items-end justify-center p-3 sm:items-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-[2200] flex items-end justify-center p-3 sm:items-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
@@ -1898,6 +1910,7 @@ function NavigationPanel({
   polygons,
   onPanTo,
   getCam,
+  getViewH,
   onReset,
   onZoomIn,
   onZoomOut,
@@ -1908,6 +1921,7 @@ function NavigationPanel({
   polygons: React.ReactNode
   onPanTo: (x: number, y: number) => void
   getCam: () => Cam
+  getViewH: () => number
   onReset: () => void
   onZoomIn: () => void
   onZoomOut: () => void
@@ -1927,7 +1941,7 @@ function NavigationPanel({
     const start = { mx: e.clientX, my: e.clientY, camX: cam.x, camY: cam.y }
     // Clic hors du cadre : on y va tout de suite, puis on peut faire glisser
     const vw = (window.innerWidth / cam.zoom) * scale
-    const vh = ((window.innerHeight - HEADER_HEIGHT) / cam.zoom) * scale
+    const vh = (getViewH() / cam.zoom) * scale
     const vx = mapW / 2 + cam.x * scale - vw / 2
     const vy = mapH / 2 + cam.y * scale - vh / 2
     const mx = e.clientX - rect.left
