@@ -8,7 +8,6 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
-| Mika | Écran : visite sans morceaux vides ; question gardée avec le témoignage (jusqu'à 3 questions) ; démo « Centre communautaire du Village » — migration `2026-11-21-question-temoignage`, K1 prendra la suivante | `mika/cycle-ecran` | `app/ecran/page.tsx`, `lib/stageDeck.ts`, `lib/demo-data.ts`, `components/vitrail/QuestionPicker.tsx`, `lib/donations.ts`, `lib/identity-shared.ts` |
 | Mika | Étape K1 : moteur de la nouvelle commission (seuil de 100 donateurs, plafond de 495 $) — démarre après l'accord sur le modèle d'affaires | `mika/k1-commission` | `lib/platform-fee.ts`, `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, migration 21 |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)
