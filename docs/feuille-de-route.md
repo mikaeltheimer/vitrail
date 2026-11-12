@@ -8,6 +8,7 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
+| Mika | Changement d'adresse du vitrail (console › Plus) : libre en brouillon, 2 changements une fois en ligne, anciennes adresses gardées et redirigées | `mika/adresse-vitrail` | `lib/org-address.ts`, `components/console/Adresse.tsx`, `app/api/admin/route.ts`, migration `2026-11-24-changer-adresse.sql` (le 23 reste à K1) |
 | Mika | Étape K1 : moteur de la nouvelle commission (seuil de 100 donateurs, plafond de 495 $) — démarre après l'accord sur le modèle d'affaires | `mika/k1-commission` | `lib/platform-fee.ts`, `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, migration `2026-11-23-…` (21 et 22 déjà prises) |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)

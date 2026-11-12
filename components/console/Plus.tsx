@@ -5,9 +5,10 @@ import { useLocale, useTranslations } from 'next-intl'
 import type { Act, ConsoleData, Role } from './types'
 import { GREEN, RED, Section, useDay, useTime } from './ui'
 import MonVitrail from './MonVitrail'
+import Adresse from './Adresse'
 
 // « Plus » (propriétaire seulement) : Mon vitrail, puis les réglages : paiements, équipe, courriels, données.
-export default function Plus({ data, act, open }: { data: ConsoleData; act: Act; open: (action: string, sameTab?: boolean) => Promise<void> }) {
+export default function Plus({ data, act, open, onError }: { data: ConsoleData; act: Act; open: (action: string, sameTab?: boolean) => Promise<void>; onError: (text: string) => void }) {
   const t = useTranslations('console.plus')
   const ready = data.stripe.ready
   return (
@@ -40,6 +41,8 @@ export default function Plus({ data, act, open }: { data: ConsoleData; act: Act;
           </div>
         </div>
       </Section>}
+
+      {data.address && !data.org.practice && <Adresse address={data.address} onError={onError} />}
 
       {data.team && !data.org.practice && <Team team={data.team} meId={data.me.accountId} act={act} />}
 

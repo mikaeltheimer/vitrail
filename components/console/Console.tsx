@@ -131,7 +131,7 @@ export default function Console() {
         {data && tab === 'dons' && <Dons data={data} act={c.act} donorId={donorId} setDonorId={setDonorId} cashOpen={cashOpen} setCashOpen={setCashOpen} />}
         {data && tab === 'moderation' && <Moderation data={data} act={c.act} notify={c.notifyDonor} setNotify={c.setNotifyDonor} />}
         {data && tab === 'diffuser' && <Diffuser data={data} />}
-        {data && tab === 'plus' && owner && <Plus data={data} act={c.act} open={c.open} />}
+        {data && tab === 'plus' && owner && <Plus data={data} act={c.act} open={c.open} onError={text => c.setToast({ ok: false, text })} />}
       </main>
     </div>
   )

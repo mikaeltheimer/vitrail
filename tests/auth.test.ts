@@ -1,5 +1,5 @@
 import { check, done, mocks } from './helpers'
-import { reset, tables } from './fake-db'
+import { reset, rpcs, tables } from './fake-db'
 
 // ── Témoins de la requête (next/headers) et next/server simulés ────────────────
 const jar = new Map<string, string>()
@@ -129,12 +129,29 @@ async function main() {
   check('bénévole : modération permise', res.status === 200)
   res = await call('GET', 'musee.donivers.test')
   check('bénévole de A : console de B refusée', res.status === 403)
+  res = await call('POST', 'ecole.donivers.test', { action: 'changeAddress', slug: 'theatre' })
+  check('bénévole : changer l\'adresse refusé (403)', res.status === 403)
+  res = await call('POST', 'ecole.donivers.test', { action: 'checkAddress', slug: 'theatre' })
+  check('bénévole : vérifier une adresse refusé (403)', res.status === 403)
+  res = await call('GET', 'ecole.donivers.test')
+  check('bénévole : pas d\'adresse dans la console', (res.body as { address?: unknown }).address === null)
 
   jar.set(SESSION_COOKIE, anaToken)
   res = await call('POST', 'ecole.donivers.test', { action: 'inviteMember', email: 'Eve@X.ca', role: 'volunteer' })
   check('propriétaire : invitation envoyée par courriel', res.status === 200 && sent.some(x => x.kind === 'invitation' && x.to === 'eve@x.ca'))
   res = await call('POST', 'ecole.donivers.test', { action: 'inviteMember', email: 'bob@x.ca' })
   check('déjà dans l\'équipe : refusé', res.status === 400)
+  res = await call('GET', 'ecole.donivers.test')
+  check('propriétaire : adresse dans la console', (res.body as { address?: { current: string; domain: string } }).address?.current === 'ecole' && (res.body as { address: { domain: string } }).address.domain === 'donivers.test')
+  res = await call('POST', 'ecole.donivers.test', { action: 'checkAddress', slug: 'musee' })
+  check('propriétaire : adresse d\'un autre organisme « pris »', res.status === 200 && (res.body as { state: string }).state === 'pris')
+  rpcs.change_org_slug = () => 'ok'
+  res = await call('POST', 'ecole.donivers.test', { action: 'changeAddress', slug: 'theatre' })
+  check('propriétaire : changement, la console continue à la nouvelle adresse', res.status === 200 && (res.body as { url: string }).url === 'https://theatre.donivers.test/admin')
+  rpcs.change_org_slug = () => 'limite'
+  res = await call('POST', 'ecole.donivers.test', { action: 'changeAddress', slug: 'theatre' })
+  check('limite atteinte : refusé (400)', res.status === 400)
+  delete rpcs.change_org_slug
 
   console.log('Équipe')
   check('dernier propriétaire : impossible à retirer', !(await auth.removeMember('orgA', anaId)).ok)

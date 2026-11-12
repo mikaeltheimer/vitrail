@@ -44,6 +44,8 @@ export interface DonationRow {
 }
 
 export interface ConsoleData {
+  /** Adresse du vitrail (Plus) : propriétaire de l'organisme réel seulement, sinon null. */
+  address?: { current: string; draft: boolean; changesLeft: number | null; max: number; previous: string[]; domain: string } | null
   org: { name: string; slug: string; status: 'draft' | 'live' | 'suspended'; practice: boolean }
   /** Console de l'autre côté : l'entraînement depuis l'organisme réel, et inversement. */
   switchUrl: string | null
