@@ -124,7 +124,7 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit, 
   return (
     <section
       aria-label={t('titre')}
-      style={{ position: 'fixed', left: 24, top, zIndex: 120, width: 340, maxHeight: `calc(100dvh - ${top}px - 24px)`, overflowY: 'auto', boxSizing: 'border-box', background: 'rgba(12,10,18,0.94)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 16, backdropFilter: 'blur(10px)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
+      style={{ position: 'fixed', left: 24, top, zIndex: 120, width: 340, maxHeight: `calc(100dvh - var(--demo-bandeau, 0px) - ${top}px - 24px)`, overflowY: 'auto', boxSizing: 'border-box', background: 'rgba(12,10,18,0.94)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 16, backdropFilter: 'blur(10px)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
     >
       {list}
     </section>
