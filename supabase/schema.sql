@@ -1,4 +1,4 @@
--- Donivers — schéma complet de la base (état au 2026-11-11 : migrations jusqu'à 2026-11-21-question-temoignage.sql comprise ;
+-- Donivers — schéma complet de la base (état au 2026-11-11 : migrations jusqu'à 2026-11-22-droits-declencheurs.sql comprise ;
 -- la 19 ne touche que des données). Régénéré par un rejeu complet : schema.sql d'avant l'étape 3 (cd7c01d), puis toutes les
 -- migrations à partir de 2026-11-06, dans l'ordre de leur nom.
 --
