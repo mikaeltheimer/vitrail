@@ -8,7 +8,7 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
-| Mika | Étape K1 : moteur de la nouvelle commission (seuil de 100 donateurs, plafond de 495 $) — démarre après l'accord sur le modèle d'affaires | `mika/k1-commission` | `lib/platform-fee.ts`, `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, migration 21 |
+| Mika | Étape K1 : moteur de la nouvelle commission (seuil de 100 donateurs, plafond de 495 $) — démarre après l'accord sur le modèle d'affaires | `mika/k1-commission` | `lib/platform-fee.ts`, `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, migration `2026-11-23-…` (21 et 22 déjà prises) |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)
 
@@ -31,5 +31,7 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 - Plus petits : suppression demandée par le donateur depuis `/m`, nettoyage des photos sans don, animation de chargement, retrait des vérifications de schéma devenues inutiles (`lib/schema.ts`).
 
 ## Terminé récemment
+
+- `schema.sql` régénéré par rejeu complet (migrations jusqu'à la 22) ; migration 22 : droits des fonctions de déclencheur alignés sur `schema.sql` (à appliquer par Mika sur donivers-test puis en production).
 
 - Bilingue, multi-organismes, Stripe Connect, comptes, atelier, vitrine, démo, marque (palette, logo, signature), image de partage, affiche « La place libre », vitrine au nouveau modèle d'affaires (`09b7269`).
