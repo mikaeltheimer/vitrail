@@ -8,7 +8,6 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
-| Mika | Fiche du morceau : numéro et date d'arrivée (paliers ✦) au lieu du rang par montant, navigation dans l'ordre d'arrivée, « Un morceau au hasard », « Signaler » discret ; vitrail de la vitrine fixe sur téléphone, badge bêta ambre | `mika/vitrail-fiche` | `lib/arrival.ts`, `lib/donations.ts`, `components/vitrail/*`, `app/vitrail/page.tsx`, `components/plateforme/HeroGlass.tsx` |
 | Mika | Étape K1 : moteur de la nouvelle commission (seuil de 100 donateurs, plafond de 495 $) — démarre après l'accord sur le modèle d'affaires | `mika/k1-commission` | `lib/platform-fee.ts`, `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, migration `2026-11-23-…` (21 et 22 déjà prises) |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)
@@ -37,6 +36,8 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Terminé récemment
 
+- Fiche du morceau (#5) : numéro et date d'arrivée (paliers ✦) au lieu du rang par montant, navigation dans l'ordre d'arrivée, « Un morceau au hasard », « Signaler » discret ; vitrail de la vitrine fixe sur téléphone.
+- Vitrine nuit puis papier : sections alternées, vitrail de la démo et rayons de l'affiche au passage, cadre « Essayez-le », bande des garanties ; sur téléphone, le vitrail suit le titre.
 - Outils de la démo : bandeau « tout est fictif » et tiroir des outils de l'organisme sur /vitrail de la démo (écran, console, image de partage, affiche, courriel) ; captures par `npm run captures:demo`.
 - `schema.sql` régénéré par rejeu complet (migrations jusqu'à la 22) ; migration 22 : droits des fonctions de déclencheur alignés sur `schema.sql` (appliquée sur donivers-test et en production le 11 nov.).
 
