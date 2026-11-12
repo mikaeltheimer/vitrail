@@ -1,18 +1,19 @@
 'use client'
 
-// Aperçu au survol (ordinateur) : nom, photo, montant et message d'un morceau, sans cliquer.
+// Aperçu au survol (ordinateur) : nom, photo, arrivée et message d'un morceau, sans cliquer.
 // La position suit la souris directement dans le DOM : aucun rendu React à chaque mouvement.
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import type { RankedPiece } from './types'
-import { useOrdinal } from '@/lib/useI18n'
+import { AMBRE, useArrivalLabel, useSinceDate } from './Arrival'
 import { donorNameFamily } from '@/lib/fonts'
 
 export function HoverCard({ piece }: { piece: RankedPiece | null }) {
   const t = useTranslations('vitrail.fiche')
   const tc = useTranslations('commun')
-  const ordinal = useOrdinal()
+  const arrivalLabel = useArrivalLabel()
+  const sinceDate = useSinceDate()
   const ref = useRef<HTMLDivElement>(null)
   const pos = useRef({ x: -1000, y: -1000 })
   const [ready, setReady] = useState<RankedPiece | null>(null)
@@ -46,6 +47,8 @@ export function HoverCard({ piece }: { piece: RankedPiece | null }) {
 
   if (!shown) return null
   const color = shown.color
+  const label = arrivalLabel(shown, false)
+  const milestone = label.milestone
   return (
     <div
       ref={ref}
@@ -60,8 +63,10 @@ export function HoverCard({ piece }: { piece: RankedPiece | null }) {
       )}
       <div className="grid min-w-0 content-start gap-0.5">
         <div className="truncate text-sm font-bold" style={{ fontFamily: donorNameFamily() }}>{shown.name ?? tc('anonyme')}</div>
-        <div className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          {t('rangSurvol', { rang: ordinal(shown.rank) })}
+        <div className="text-xs" style={{ color: milestone ? AMBRE : 'rgba(255,255,255,0.6)' }}>
+          {milestone && <span aria-hidden="true">✦ </span>}
+          {label.text}
+          {shown.since && ` · ${t('depuisCourt', { date: sinceDate(shown.since) })}`}
         </div>
         {shown.message && (
           <div className="text-xs italic" style={{ color: 'rgba(255,255,255,0.82)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>

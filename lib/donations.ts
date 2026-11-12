@@ -10,6 +10,7 @@ import { hasLocaleColumn, hasMessageQuestion, hasTestimonialColumns } from './sc
 import type { Locale } from '@/i18n/config'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
+import { arrivalOrder, type ArrivalRow } from './arrival'
 
 export type DonationSource = 'stripe' | 'cash' | 'seed' | 'demo'
 
@@ -315,7 +316,7 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
   const { org, vitrail } = tenant
   const ms = ((await hasTestimonialColumns()) ? ',message_status' : '') + ((await hasMessageQuestion()) ? ',message_question' : '')
 
-  const [totals, donors, vtRes, recentRes] = await Promise.all([
+  const [totals, donors, vtRes, recentRes, arrivals] = await Promise.all([
     fetchWhere<{ donor_id: string; total_cents: number | string }>('vitrail_donor_totals', 'donor_id,total_cents', 'vitrail_id', vitrail.id, 'donor_id'),
     fetchWhere<DonorPublicRow>('donors', `id,display_name,show_name,message,photo_url,photo_status,color,hidden${ms}`, 'organization_id', org.id, 'id'),
     db.from('vitrail_totals').select('total_cents,donations_count').eq('vitrail_id', vitrail.id).maybeSingle(),
@@ -328,6 +329,8 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
       .gt('net_cents', 0)
       .order('created_at', { ascending: false })
       .limit(30),
+    // Ordre d'arrivée : tous les dons du vitrail (pagination stable par identifiant, tri par date ensuite)
+    fetchWhere<ArrivalRow>('vitrail_donations', 'donation_id,donor_id,created_at', 'vitrail_id', vitrail.id, 'donation_id').then(arrivalOrder),
   ])
   if (vtRes.error) throw vtRes.error
   if (recentRes.error) throw recentRes.error
@@ -345,6 +348,7 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
         photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
         color: d.color,
         amountCents: totalByDonor.get(d.id) ?? 0,
+        ...arrivals.get(d.id),
       }
     })
     .sort((a, b) => (a.id < b.id ? -1 : 1))

@@ -9,13 +9,12 @@ import type { Piece } from '@/lib/types'
 // Le vitrail de l'accueil : le rendu réel (le même que sur la page d'un organisme).
 // Avec la démo (Centre communautaire du Village), sur un grand écran : l'écran de projection de la démo lui-même, intégré
 // (/ecran?embed : le même cycle, sans encart d'appel ni QR). Sur téléphone, ou si le visiteur demande moins
-// d'animations : le vitrail de la démo, dont les derniers dons sont rejoués un par un. Un clic ouvre la démo.
+// d'animations : le vitrail de la démo, fixe et complet. (Un rejeu don par don redessinait tout le pavage à chaque
+// morceau, la graine venant de l'ensemble des identifiants : un saut, pas une arrivée.) Un clic ouvre la démo.
 // Sans démo (base neuve) : des morceaux anonymes générés ici.
 
 export interface HeroDemo {
   pieces: Piece[]
-  /** Donateurs des derniers dons, du plus ancien au plus récent : ce sont eux qu'on rejoue. */
-  replay: string[]
   url: string
   /** L'écran de projection de la démo (sans ?embed). */
   screenUrl: string
@@ -30,7 +29,6 @@ const embedUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}embed`
 
 const AMOUNTS = [1000, 1500, 2000, 2500, 2500, 3000, 4000, 5000, 5000, 7500, 10000, 15000, 25000, 50000]
 const STEP_MS = 3200
-const REST_MS = 9000
 
 /** Suite pseudo-aléatoire fixe : le même vitrail à chaque visite (et au rendu serveur). */
 function seeded(seed: number) {
@@ -53,17 +51,11 @@ function makePieces(n: number, start = 0): Piece[] {
   }))
 }
 
-/** Les morceaux visibles après `shown` dons rejoués (les autres morceaux à rejouer sont retirés). */
-function demoFrame(demo: HeroDemo, shown: number): Piece[] {
-  const hidden = new Set(demo.replay.slice(shown))
-  return demo.pieces.filter(p => !hidden.has(p.id))
-}
-
 export default function HeroGlass({ demo }: { demo?: HeroDemo | null }) {
   const t = useTranslations('plateforme.hero')
-  const total = demo ? demo.replay.length : 0
-  // Premier rendu : la démo sans ses derniers dons, qui s'ajoutent ensuite un par un
-  const [pieces, setPieces] = useState<Piece[]>(() => (demo ? demoFrame(demo, 0) : makePieces(48)))
+  // Sans démo seulement : des morceaux anonymes qui s'ajoutent
+  const [generated, setGenerated] = useState<Piece[]>(() => makePieces(48))
+  const pieces = demo ? demo.pieces : generated
   const [size, setSize] = useState(420)
   const [wide, setWide] = useState(false)
 
@@ -84,36 +76,11 @@ export default function HeroGlass({ demo }: { demo?: HeroDemo | null }) {
     const fit = () => setSize(Math.max(260, Math.min(460, window.innerWidth - 48)))
     fit()
     window.addEventListener('resize', fit)
-    // Respecter « réduire les animations » : le vitrail reste fixe et complet
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const full = setTimeout(() => demo && setPieces(demo.pieces), 0)
-      return () => {
-        clearTimeout(full)
-        window.removeEventListener('resize', fit)
-      }
-    }
-    let shown = 0
+    // La démo reste fixe ; sans démo, des morceaux s'ajoutent (sauf si le visiteur demande moins d'animations)
+    if (demo || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return () => window.removeEventListener('resize', fit)
     let timer: ReturnType<typeof setTimeout>
     const tick = () => {
-      if (document.hidden) {
-        timer = setTimeout(tick, STEP_MS)
-        return
-      }
-      if (demo) {
-        if (shown >= total) {
-          // Tout est rejoué : un temps de repos, puis on recommence
-          shown = 0
-          timer = setTimeout(() => {
-            setPieces(demoFrame(demo, 0))
-            timer = setTimeout(tick, STEP_MS)
-          }, REST_MS)
-          return
-        }
-        shown++
-        setPieces(demoFrame(demo, shown))
-      } else {
-        setPieces(p => (p.length >= 120 ? makePieces(48) : [...p, ...makePieces(1, p.length)]))
-      }
+      if (!document.hidden) setGenerated(p => (p.length >= 120 ? makePieces(48) : [...p, ...makePieces(1, p.length)]))
       timer = setTimeout(tick, STEP_MS)
     }
     timer = setTimeout(tick, STEP_MS)
@@ -121,7 +88,7 @@ export default function HeroGlass({ demo }: { demo?: HeroDemo | null }) {
       clearTimeout(timer)
       window.removeEventListener('resize', fit)
     }
-  }, [demo, total])
+  }, [demo])
 
   if (!demo) {
     return (

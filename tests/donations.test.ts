@@ -94,6 +94,8 @@ async function main() {
   check('le morceau masqué n\'est pas affiché mais son argent compte', sp.totalCents === 7900)
   check('derniers dons : ceux du vitrail, sans le donateur masqué', sp.recent.length === 1 && sp.recent[0].id === 'n1' && sp.recent[0].name === 'Ana')
   check('aucun morceau d\'un autre organisme', !sp.pieces.some(p => p.id === 'dB'))
+  check('arrivée : le morceau d\'Ana est le 1er, avec la date de son premier don', sp.pieces[0].arrival === 1 && sp.pieces[0].since === '2026-11-05T10:00:00Z')
+  check('arrivée : le donateur masqué garde son numéro (2e) sans être affiché', !sp.pieces.some(p => p.arrival === 2))
   check('l\'événement est toujours présent, sans objectif', sp.event?.goalCents === 0 && sp.event?.id === 'permA')
   const gala = await getSnapshot({ ...tenantA, vitrail: { ...(tenantA.vitrail as object), id: 'gala', kind: 'campaign', slug: 'gala-2027', name: 'Gala', goalCents: 500000 } as never })
   check('campagne : ses propres dons seulement', gala.pieces.length === 1 && gala.pieces[0].amountCents === 2000 && gala.totalCents === 2000)

@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
     "captures:demo": "tsx scripts/demo-captures/capture.ts",
-    "test": "tsx tests/reserved.test.ts && tsx tests/donations.test.ts && tsx tests/connect.test.ts && tsx tests/auth.test.ts && tsx tests/signup.test.ts && tsx tests/identity.test.ts && tsx tests/erase.test.ts && tsx tests/photos.test.ts && tsx tests/langues.test.ts && tsx tests/demo.test.ts && tsx tests/palette.test.ts && tsx tests/stageDeck.test.ts"
+    "test": "tsx tests/reserved.test.ts && tsx tests/donations.test.ts && tsx tests/connect.test.ts && tsx tests/auth.test.ts && tsx tests/signup.test.ts && tsx tests/identity.test.ts && tsx tests/erase.test.ts && tsx tests/photos.test.ts && tsx tests/langues.test.ts && tsx tests/demo.test.ts && tsx tests/palette.test.ts && tsx tests/stageDeck.test.ts && tsx tests/arrival.test.ts"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
