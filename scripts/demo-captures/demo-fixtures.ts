@@ -37,7 +37,8 @@ export function demoSnapshot(now = Date.now()): Snapshot {
   return {
     version: 'demo-captures',
     at: new Date(now).toISOString(),
-    mode: 'demo',
+    // Comme en ligne : la démo n'ouvre jamais de paiement (paymentModeFor), seul « Démonstration » s'affiche
+    mode: 'off',
     showcase: true,
     event: { id: 'demo', name: DEMO_NAME, goalCents: 0, totalCents },
     totalCents,

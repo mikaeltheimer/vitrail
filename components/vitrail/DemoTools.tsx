@@ -8,7 +8,7 @@ import { useEscape } from '@/lib/useEscape'
 // Vitrail de démonstration seulement : un bandeau toujours visible (« tout est fictif ») et le tiroir des outils que
 // l'organisme reçoit avec son vitrail (écran, image de partage, affiche, courriel de remerciement, console).
 // Tout ce que montre le tiroir est fait des données fictives de la démo : les vraies pages de la démo (/ecran, /affiche,
-// /api/og, /api/demo/courriel), et des captures fixes de la console (scripts/console-captures, jamais de vraies données).
+// /api/og, /api/demo/courriel), et des captures fixes de l'écran et de la console (scripts/demo-captures, jamais de vraies données).
 
 export const DEMO_BANNER_HEIGHT = 36
 const GOLD = '#F0B24A'
@@ -171,7 +171,9 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
 
   const intro = <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.45, color: 'rgba(244,239,230,0.7)' }}>{t('intro')}</p>
   const screen = locale === 'en' ? '/screen' : '/ecran'
-  const shot = (name: 'accueil' | 'moderation') => `/demo/console-${name}-${locale === 'en' ? 'en' : 'fr'}.png`
+  // Captures fixes (npm run captures:demo)
+  const shotLocale = locale === 'en' ? 'en' : 'fr'
+  const shot = (name: 'accueil' | 'moderation') => `/demo/console-${name}-${shotLocale}.png`
 
   return (
     <>
@@ -221,11 +223,25 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
               </a>
             }
           >
-            <ScaledFrame src={`${screen}?embed`} width={1280} height={720} title={t('ecran.titre')} />
+            {/* Une image fixe : l'expérience complète, c'est la page /ecran elle-même */}
+            <a href={screen} target="_blank" rel="noopener" tabIndex={-1} style={{ display: 'block' }}>
+              <img src={`/demo/ecran-${shotLocale}.jpg`} alt={t('ecran.alt')} width={1600} height={900} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
+            </a>
+          </Card>
+
+          <Card n={2} title={t('console.titre')} text={t('console.texte')}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start', padding: '14px 14px 12px', background: 'linear-gradient(180deg, #1a1722, #0f0d15)' }}>
+              <Thumb href={shot('accueil')} label={t('console.accueil')}>
+                <img src={shot('accueil')} alt={t('console.accueilAlt')} width={390} height={844} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
+              </Thumb>
+              <Thumb href={shot('moderation')} label={t('console.moderation')}>
+                <img src={shot('moderation')} alt={t('console.moderationAlt')} width={390} height={844} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
+              </Thumb>
+            </div>
           </Card>
 
           <Card
-            n={2}
+            n={3}
             title={t('partage.titre')}
             text={t('partage.texte')}
             actions={
@@ -237,7 +253,7 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
             <img src={`/api/og?lang=${locale}`} alt={t('partage.alt')} width={1200} height={630} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
           </Card>
 
-          <Card n={3} title={t('affiche.titre')} text={t('affiche.texte')}>
+          <Card n={4} title={t('affiche.titre')} text={t('affiche.texte')}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start', padding: '14px 14px 12px', background: 'linear-gradient(180deg, #1a1722, #0f0d15)' }}>
               <Thumb href="/affiche?format=lettre" label={t('affiche.lettre')}>
                 <ScaledFrame src="/affiche?format=lettre&apercu" width={816} height={1056} title={t('affiche.lettre')} />
@@ -249,7 +265,7 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
           </Card>
 
           <Card
-            n={4}
+            n={5}
             title={t('courriel.titre')}
             text={t('courriel.texte')}
             actions={
@@ -261,17 +277,6 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
             <div style={{ position: 'relative' }}>
               {mail ? <ScaledFrame srcDoc={mail} width={600} height={430} title={t('courriel.titre')} /> : <div style={{ aspectRatio: '600 / 430' }} />}
               <div aria-hidden style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 48, background: 'linear-gradient(180deg, rgba(11,10,18,0), #0B0A12)' }} />
-            </div>
-          </Card>
-
-          <Card n={5} title={t('console.titre')} text={t('console.texte')}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start', padding: '14px 14px 12px', background: 'linear-gradient(180deg, #1a1722, #0f0d15)' }}>
-              <Thumb href={shot('accueil')} label={t('console.accueil')}>
-                <img src={shot('accueil')} alt={t('console.accueilAlt')} width={390} height={844} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
-              </Thumb>
-              <Thumb href={shot('moderation')} label={t('console.moderation')}>
-                <img src={shot('moderation')} alt={t('console.moderationAlt')} width={390} height={844} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
-              </Thumb>
             </div>
           </Card>
           <p style={{ margin: '2px 4px 0', fontSize: 12, lineHeight: 1.45, color: 'rgba(244,239,230,0.5)' }}>{t('note')}</p>

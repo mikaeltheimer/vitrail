@@ -352,8 +352,9 @@
       "intro": "With its stained glass, every organization gets these tools, ready to use. Here, they show the demo's fictional stained glass.",
       "ecran": {
         "titre": "Projection screen",
-        "texte": "Made for a TV or a projector during an event: pieces and testimonials scroll by, and every new donation appears live.",
-        "ouvrir": "Open the screen"
+        "texte": "Made for a TV or a projector during an event: pieces and testimonials scroll by, and every new donation appears live. Open it to see it in motion.",
+        "ouvrir": "Open the screen",
+        "alt": "The projection screen of the demonstration stained glass"
       },
       "partage": {
         "titre": "Share image",

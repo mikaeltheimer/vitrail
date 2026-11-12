@@ -352,8 +352,9 @@
       "intro": "Avec son vitrail, chaque organisme reçoit ces outils, prêts à l'emploi. Ici, ils montrent le vitrail fictif de la démo.",
       "ecran": {
         "titre": "Écran de projection",
-        "texte": "Fait pour une télé ou un projecteur, pendant un événement : les morceaux et les témoignages défilent, et chaque nouveau don apparaît en direct.",
-        "ouvrir": "Ouvrir l'écran"
+        "texte": "Fait pour une télé ou un projecteur, pendant un événement : les morceaux et les témoignages défilent, et chaque nouveau don apparaît en direct. Ouvrez-le pour le voir en mouvement.",
+        "ouvrir": "Ouvrir l'écran",
+        "alt": "L'écran de projection du vitrail de démonstration"
       },
       "partage": {
         "titre": "Image de partage",
