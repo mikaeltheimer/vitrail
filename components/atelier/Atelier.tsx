@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocale, useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import { OrgIdentityProvider, useIdentityContext } from '@/components/OrgIdentity'
-import { TEXT_FIELDS, TEXT_MAX, clampLocale, resolveTexts, type Defaults, type Identity, type OrgTexts, type StoredTexts, type TextField } from '@/lib/identity-shared'
+import { QUESTION_FIELDS, TEXT_FIELDS, TEXT_MAX, clampLocale, resolveTexts, type Defaults, type Identity, type OrgTexts, type StoredTexts, type TextField } from '@/lib/identity-shared'
 import type { Locale } from '@/i18n/config'
 
 // L'ATELIER : sur le vitrail d'entraînement, le propriétaire personnalise son vitrail EN CONTEXTE. Mode « Modifier » :
@@ -343,20 +343,15 @@ function TextSheet({ field, draft, pageLocale, setText, onClose }: { field: Text
     <Sheet title={t(`champs.${field}`)} onClose={onClose} closeLabel={t('fermer')}>
       <p className="muted text-xs">{t(`ou.${field}`)}</p>
       {order.map(l => {
-        const v = draft.texts[l]?.[field] ?? ''
-        const fallback = l !== primary ? draft.texts[primary]?.[field] : undefined
+        // La question du témoignage s'édite avec ses deux questions facultatives : chaque donateur en voit une au hasard
+        const fields: readonly TextField[] = field === 'question' ? QUESTION_FIELDS : [field]
         return (
-          <label key={l} className="block space-y-1">
+          <div key={l} className="space-y-2">
             {draft.locales.length > 1 && <span className="block text-xs font-semibold uppercase tracking-wide">{l === 'fr' ? t('francais') : t('anglais')}</span>}
-            {AREA.includes(field) ? (
-              <textarea className="field min-h-[110px]" lang={l} maxLength={TEXT_MAX[field]} value={v} placeholder={fallback || t('videNeutre')} onChange={e => setText(l, field, e.target.value)} autoFocus={l === pageLocale} onFocus={e => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)} />
-            ) : (
-              <input className="field" lang={l} maxLength={TEXT_MAX[field]} value={v} placeholder={fallback || t('videNeutre')} onChange={e => setText(l, field, e.target.value)} autoFocus={l === pageLocale} onFocus={e => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)} />
-            )}
-            <span className="muted block text-right text-xs">
-              {v.length} / {TEXT_MAX[field]}
-            </span>
-          </label>
+            {fields.map(f => (
+              <TextInput key={f} field={f} locale={l} label={fields.length > 1 && f !== 'question' ? t(`champs.${f}`) : null} draft={draft} primary={primary} autoFocus={l === pageLocale && f === field} setText={setText} />
+            ))}
+          </div>
         )
       })}
       <p className="muted text-xs">{t('brouillonNote')}</p>
@@ -364,10 +359,40 @@ function TextSheet({ field, draft, pageLocale, setText, onClose }: { field: Text
   )
 }
 
+function TextInput({ field, locale: l, label, draft, primary, autoFocus, setText }: { field: TextField; locale: Locale; label: string | null; draft: Draft; primary: Locale; autoFocus: boolean; setText: (l: Locale, f: TextField, v: string) => void }) {
+  const t = useTranslations('atelier')
+  const v = draft.texts[l]?.[field] ?? ''
+  const fallback = l !== primary ? draft.texts[primary]?.[field] : undefined
+  // Les questions facultatives n'ont pas de texte neutre : vides, elles ne sont simplement pas posées
+  const placeholder = fallback || (field === 'question2' || field === 'question3' ? '' : t('videNeutre'))
+  const common = {
+    lang: l,
+    maxLength: TEXT_MAX[field],
+    value: v,
+    placeholder,
+    autoFocus,
+    onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length),
+  }
+  return (
+    <label className="block space-y-1">
+      {label && <span className="muted block text-xs">{label}</span>}
+      {AREA.includes(field) ? (
+        <textarea className="field min-h-[110px]" {...common} onChange={e => setText(l, field, e.target.value)} />
+      ) : (
+        <input className="field" {...common} onChange={e => setText(l, field, e.target.value)} />
+      )}
+      <span className="muted block text-right text-xs">
+        {v.length} / {TEXT_MAX[field]}
+      </span>
+    </label>
+  )
+}
+
 function AllTexts({ draft, onPick, onClose }: { draft: Draft; onPick: (f: EditTarget) => void; onClose: () => void }) {
   const t = useTranslations('atelier')
   const primary = draft.locales[0]
-  const items: EditTarget[] = ['logo', 'icon', ...TEXT_FIELDS]
+  // Les questions facultatives s'éditent avec la première (même fenêtre)
+  const items: EditTarget[] = ['logo', 'icon', ...TEXT_FIELDS.filter(f => f !== 'question2' && f !== 'question3')]
   return (
     <Sheet title={t('tousLesTextes')} onClose={onClose} closeLabel={t('fermer')}>
       <ul className="space-y-1">

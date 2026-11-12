@@ -5,6 +5,8 @@ export interface Piece {
   /** Null si le donateur n'a pas consenti à l'affichage de son nom. */
   name: string | null
   message: string | null
+  /** La question à laquelle répond le témoignage ; null s'il n'y en a pas (ou témoignage écrit avant qu'on la garde). */
+  question?: string | null
   /** Adresse de la photo, ou null (jamais sans consentement d'affichage). */
   photoUrl: string | null
   color: string

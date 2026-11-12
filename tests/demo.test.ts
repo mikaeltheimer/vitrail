@@ -33,7 +33,11 @@ async function main() {
   check('courriels inexistants (.invalid) et uniques', a.every(d => d.email.endsWith('@demo.invalid')) && new Set(a.map(d => d.email)).size === a.length)
   const messages = a.map(d => d.message).filter((m): m is string => !!m)
   check('témoignages sans répétition', new Set(messages).size === messages.length && messages.length > 40, messages.length)
-  check('témoignage dans la langue du donateur', a.every(d => !d.message || (d.locale === 'en' ? TESTIMONIALS_EN : TESTIMONIALS_FR).includes(d.message)))
+  check('témoignage dans la langue du donateur', a.every(d => !d.message || (d.locale === 'en' ? TESTIMONIALS_EN : TESTIMONIALS_FR).some(x => x.text === d.message)))
+  const { DEMO_TEXTS } = await import('../lib/demo-data')
+  const asked = (l: 'fr' | 'en') => [DEMO_TEXTS[l]!.question, DEMO_TEXTS[l]!.question2, DEMO_TEXTS[l]!.question3]
+  check('chaque témoignage a sa question, dans la langue du donateur', a.every(d => (d.message ? !!d.question && asked(d.locale).includes(d.question) : d.question === null)))
+  check('les trois questions servent', new Set(a.map(d => d.question).filter(Boolean)).size >= 5)
   const all = a.flatMap(d => d.donations)
   check('toutes les dates avant la génération, sur six semaines', all.every(n => Date.parse(n.at) < NOW && NOW - Date.parse(n.at) < 43 * 86_400_000))
   check('des dons récents (dernières 24 h) pour « Derniers dons »', all.some(n => NOW - Date.parse(n.at) < 86_400_000))
@@ -51,7 +55,7 @@ async function main() {
   tables.organization_slugs = []
   const s1 = await demo.generateDemo(NOW)
   const org = tables.organizations.find(o => o.showcase)
-  check('organisme de démonstration créé', !!org && org.status === 'live' && org.name_fr === 'Fondation Pleine Lumière')
+  check('organisme de démonstration créé', !!org && org.status === 'live' && org.name_fr === 'Centre communautaire du Village')
   check('adresse « demo »', tables.organization_slugs.some(s => s.slug === 'demo' && s.organization_id === org!.id))
   check('vitrail permanent', tables.vitraux.filter(v => v.organization_id === org!.id && v.kind === 'permanent').length === 1)
   check('donateurs et dons créés', s1.donors === demo.DEMO_DONORS && tables.donations.filter(n => n.organization_id === org!.id).length >= demo.DEMO_DONORS)
@@ -77,7 +81,7 @@ async function main() {
   const before = JSON.stringify(tables)
   const r1 = await ask('demo.donivers.test', 'montant=2575&lang=fr')
   const m1 = (await r1.json()) as { subject?: string; fromName?: string; html?: string }
-  check('démo : le reçu, rendu sans envoi', r1.status === 200 && !!m1.subject?.includes('Fondation Pleine Lumière') && !!m1.html?.includes('25,75'), m1.subject)
+  check('démo : le reçu, rendu sans envoi', r1.status === 200 && !!m1.subject?.includes('Centre communautaire du Village') && !!m1.html?.includes('25,75'), m1.subject)
   check('démo : lien au jeton fictif, sur l’adresse de la démo', !!m1.html?.includes('https://demo.donivers.test/m/demonstration?lang=fr'))
   const r2 = await ask('demo.donivers.test', 'montant=2575&lang=en')
   const m2 = (await r2.json()) as { html?: string }

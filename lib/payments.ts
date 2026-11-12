@@ -116,6 +116,7 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       name: req.profile.name,
       message: req.profile.message ?? '', // ≤ 500 caractères (limite Stripe par valeur)
       quote: req.profile.quoteConsent ? '1' : '0',
+      question: req.profile.message ? (req.profile.question ?? '') : '', // ≤ 120 caractères, déjà vérifiée (lib/validate.ts)
       photo: req.profile.photoUrl ?? '',
       color: req.color,
       channel: req.channel ?? '',

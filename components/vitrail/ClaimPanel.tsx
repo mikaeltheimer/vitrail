@@ -21,6 +21,7 @@ import { currentGlass } from "@/lib/theme";
 import { feeFor } from "@/lib/fees";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
+import { AnotherQuestion, useQuestionPicker } from "./QuestionPicker";
 import { OrgMark } from '@/components/OrgBrand';
 import Editable from '@/components/atelier/Editable';
 
@@ -71,6 +72,8 @@ export interface DemoDonation {
   paidCents: number;
   name: string | null;
   message: string | null;
+  /** La question à laquelle répond le témoignage. */
+  question: string | null;
   photoSrc: string | null;
   color: string;
 }
@@ -177,6 +180,8 @@ export default function ClaimPanel({
   const [quoteConsent, setQuoteConsent] = useState(
     saved?.quoteConsent ?? false,
   );
+  // Une des questions de l'organisme, au hasard ; c'est elle qu'on enregistre avec le témoignage
+  const picker = useQuestionPicker(org.testimonial.questions);
   // Liste d'envoi de l'organisme : jamais cochée d'avance (consentement exprès, loi anti-pourriel)
   const [mailing, setMailing] = useState(saved?.mailing ?? false);
   const [photo, setPhoto] = useState<{
@@ -331,6 +336,7 @@ export default function ClaimPanel({
                 name: showName ? name.trim() : "",
                 message: message.trim(),
                 quoteConsent: quoteConsent && !!message.trim(),
+                question: message.trim() ? picker.question : null,
                 color,
                 photoPath: photo.path ?? undefined,
               }),
@@ -438,6 +444,7 @@ export default function ClaimPanel({
               paidCents: payCents,
               name: showName ? name.trim() : null,
               message: message.trim() || null,
+              question: message.trim() ? picker.question : null,
               photoSrc: photo.src,
               color,
             })
@@ -663,7 +670,7 @@ export default function ClaimPanel({
                   lineHeight: 1.3,
                 }}
               >
-                <Editable field="question">{org.testimonial.question}</Editable>
+                <Editable field="question">{picker.question}</Editable>
               </div>
               <div style={{ fontSize: "14px", color: GOLD, marginTop: "2px" }}>
                 {org.testimonial.cta}
@@ -676,6 +683,7 @@ export default function ClaimPanel({
               onConsent={setQuoteConsent}
               rows={3}
             />
+            {picker.canChange && <AnotherQuestion onClick={picker.next} />}
           </div>
 
           {/* ---------- Le morceau ---------- */}

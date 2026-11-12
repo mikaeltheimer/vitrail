@@ -5,7 +5,8 @@ import { PHOTO_BUCKET, donorPhotoDir, orgOfPhotoPath, pathFromPublicUrl, publicP
 import { forgetTenantCache, getOrg, getPermanentVitrail, orgUrl } from './tenant'
 import { getSnapshot } from './donations'
 import type { Snapshot } from './types'
-import { forgetIdentity } from './identity'
+import { forgetIdentity, QUESTION_FIELDS } from './identity'
+import { hasMessageQuestion } from './schema'
 import {
   DEMO_NAME, DEMO_SLUG, DEMO_TEXTS, FIRST_NAMES_EN, FIRST_NAMES_FR, LAST_NAMES_EN, LAST_NAMES_FR, TESTIMONIALS_EN, TESTIMONIALS_FR,
 } from './demo-data'
@@ -49,6 +50,8 @@ export interface DemoDonor {
   displayName: string
   showName: boolean
   message: string | null
+  /** La question à laquelle répond le témoignage (dans la langue du donateur), ou null. */
+  question: string | null
   locale: 'fr' | 'en'
   color: string
   /** Dons, du plus ancien au plus récent : montant (cents) et date. */
@@ -87,9 +90,11 @@ export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED
         }
       }
     }
-    // Un témoignage pour environ un donateur sur trois (davantage chez les nommés), dans sa langue, sans répétition
+    // Un témoignage pour plus de la moitié des donateurs nommés (rarement chez les anonymes), dans sa langue, sans répétition
     const pool = english ? testimonialsEn : testimonialsFr
-    const message = pool.length && r.chance(named ? 0.36 : 0.12) ? pool.splice(Math.floor(r.next() * pool.length), 1)[0] : null
+    const told = pool.length && r.chance(named ? 0.55 : 0.12) ? pool.splice(Math.floor(r.next() * pool.length), 1)[0] : null
+    const message = told?.text ?? null
+    const question = told ? (DEMO_TEXTS[english ? 'en' : 'fr']?.[QUESTION_FIELDS[told.q - 1]] ?? null) : null
     const times = r.chance(0.12) ? r.int(2, 3) : 1
     const donations = Array.from({ length: times }, () => ({ amountCents: amount(), at: new Date(when()).toISOString() })).sort((a, b) => a.at.localeCompare(b.at))
     out.push({
@@ -98,6 +103,7 @@ export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED
       displayName,
       showName: displayName !== ANON_LABEL,
       message,
+      question,
       locale: english ? 'en' : 'fr',
       color: r.pick(VALID_COLORS),
       donations,
@@ -202,12 +208,15 @@ export async function generateDemo(now = Date.now()): Promise<DemoState> {
   const shuffled = [...photos].sort(() => r.next() - 0.5)
   const named = donors.filter(d => d.showName)
   const withPhoto = new Map(named.slice(0, shuffled.length).map((d, i) => [d.index, shuffled[i]]))
+  // La question de chaque témoignage, si la migration est passée (sinon les témoignages s'affichent sans question)
+  const withQuestion = await hasMessageQuestion()
   const rows = donors.map(d => ({
     organization_id: orgId,
     email: d.email,
     display_name: d.displayName,
     show_name: d.showName,
     message: d.message,
+    ...(withQuestion ? { message_question: d.question } : {}),
     message_status: 'approved',
     quote_consent: !!d.message,
     photo_url: withPhoto.get(d.index) ?? null,

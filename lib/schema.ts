@@ -24,6 +24,16 @@ export async function hasTestimonialColumns(): Promise<boolean> {
   return cache.ok
 }
 
+/** Question du témoignage (migration 2026-11-21-question-temoignage.sql) : donors.message_question. */
+let questionCache: { ok: boolean; at: number } | null = null
+export async function hasMessageQuestion(): Promise<boolean> {
+  if (questionCache && Date.now() - questionCache.at < 60_000) return questionCache.ok
+  const { error } = await getDb().from('donors').select('message_question').limit(1)
+  if (error) console.error('Migration de la question du témoignage absente : lancez supabase/migrations/2026-11-21-question-temoignage.sql')
+  questionCache = { ok: !error, at: Date.now() }
+  return questionCache.ok
+}
+
 /** Journal des courriels (migration 2026-11-05-journal-courriels.sql) : table email_log. */
 let emailLogCache: { ok: boolean; at: number } | null = null
 export async function hasEmailLog(): Promise<boolean> {

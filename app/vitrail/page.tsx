@@ -16,6 +16,7 @@ import Signature from '@/components/Signature'
 import BottomSheet from '@/components/vitrail/BottomSheet'
 import ClaimPanel, { type ClaimDraft, type DemoDonation } from '@/components/vitrail/ClaimPanel'
 import TestimonialField from '@/components/vitrail/TestimonialField'
+import { AnotherQuestion, useQuestionPicker } from '@/components/vitrail/QuestionPicker'
 import DetailPanel from '@/components/vitrail/DetailPanel'
 import { HoverCard } from '@/components/vitrail/HoverCard'
 import Ticker from '@/components/vitrail/Ticker'
@@ -1010,7 +1011,7 @@ function Vitrail() {
   // Démonstration : le morceau entre dans le vitrail de l'onglet, avec le même vol qu'après un vrai paiement
   const onDemoDonate = useCallback(async (d: DemoDonation) => {
     const id = `${DEMO_PREFIX}${crypto.randomUUID()}`
-    const piece: LocalPiece = { id, name: d.name, message: d.message, photoUrl: d.photoSrc, color: d.color, amountCents: d.amountCents, paidCents: d.paidCents, at: new Date().toISOString() }
+    const piece: LocalPiece = { id, name: d.name, message: d.message, question: d.question, photoUrl: d.photoSrc, color: d.color, amountCents: d.amountCents, paidCents: d.paidCents, at: new Date().toISOString() }
     localRef.current = [...localRef.current, piece]
     saveLocalPieces(localRef.current)
     setMyId(id)
@@ -1361,6 +1362,7 @@ function WelcomeCard({ welcome, isMobile, topOffset = 0, onClose, onPublished }:
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [copied, setCopied] = useState(false)
+  const picker = useQuestionPicker(org.testimonial.questions)
   const token = welcome.state === 'ok' ? welcome.token : ''
   const editUrl = typeof window !== 'undefined' && token ? `${window.location.origin}/m/${token}` : ''
 
@@ -1369,7 +1371,7 @@ function WelcomeCard({ welcome, isMobile, topOffset = 0, onClose, onPublished }:
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch('/api/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'testimonial', message: text, quoteConsent: consent }) })
+      const res = await fetch('/api/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, action: 'testimonial', message: text, quoteConsent: consent, question: picker.question }) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(typeof data.error === 'string' && data.error ? data.error : t('erreur'))
       setPending(!!data.pending)
@@ -1428,9 +1430,10 @@ function WelcomeCard({ welcome, isMobile, topOffset = 0, onClose, onPublished }:
             {asking && (
               <>
                 <p style={{ ...welcomeText, marginTop: 4 }}>
-                  <b style={{ color: '#F4EFE6' }}>{org.testimonial.question}</b> <span style={{ color: GOLD }}>{org.testimonial.cta}</span> {org.testimonial.lead}
+                  <b style={{ color: '#F4EFE6' }}>{picker.question}</b> <span style={{ color: GOLD }}>{org.testimonial.cta}</span> {org.testimonial.lead}
                 </p>
                 <TestimonialField value={text} onChange={setText} consent={consent} onConsent={setConsent} rows={isMobile ? 3 : 4} />
+                {picker.canChange && <AnotherQuestion onClick={picker.next} />}
                 {error && <p style={{ margin: 0, fontSize: 13, color: '#f87171' }}>{error}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
                   <button onClick={publish} disabled={!text.trim() || busy} style={{ ...goldButtonStyle, flex: 1, opacity: text.trim() && !busy ? 1 : 0.45, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed' }}>

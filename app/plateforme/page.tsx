@@ -76,7 +76,7 @@ export default async function PlateformePage() {
   const band = 'border-y'
   const bandStyle = { background: '#110F19', borderColor: 'rgba(244,239,230,0.08)' }
 
-  // La démo (Fondation Pleine Lumière), si elle existe sur cette base : vitrail de l'accueil et section « Essayez-le »
+  // La démo (Centre communautaire du Village), si elle existe sur cette base : vitrail de l'accueil et section « Essayez-le »
   const h = await headers()
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost'
   const demo = await demoForVitrine(new Request(`https://${host}/plateforme`, { headers: h }))

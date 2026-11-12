@@ -66,6 +66,10 @@ export default function DetailPanel({ piece, tile, count, own, local = false, on
         {piece.message && (
           <>
             <div style={divider} />
+            {/* La question à laquelle répond le témoignage : surtitre discret */}
+            {piece.question && (
+              <div style={{ fontFamily: MONO, fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.5, color: 'rgba(244,239,230,0.5)', textAlign: piece.message.length > 140 ? 'left' : 'center', textWrap: 'balance', marginBottom: '10px' }}>{piece.question}</div>
+            )}
             {piece.message.length > 140 ? (
               // Témoignage : se lit comme un texte, aligné à gauche
               <div style={{ color: 'rgba(255,248,235,0.92)', lineHeight: 1.65, fontSize: '15px', padding: '2px 4px 2px 14px', borderLeft: `3px solid ${c}` }}>{piece.message}</div>

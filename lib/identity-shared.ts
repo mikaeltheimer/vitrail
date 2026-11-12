@@ -12,7 +12,8 @@ export interface OrgTexts {
   about: string
   why: string
   vitrailTitle: string
-  testimonial: { question: string; cta: string; placeholder: string; lead: string; consent: string }
+  /** `question` : la première ; `questions` : toutes (1 à 3), dans l'ordre, tirées au hasard au moment de collecter. */
+  testimonial: { question: string; questions: string[]; cta: string; placeholder: string; lead: string; consent: string }
 }
 
 export const LEGAL_KEYS = ['entity', 'neq', 'address', 'officerName', 'officerEmail', 'officerPhone', 'retention'] as const
@@ -39,12 +40,14 @@ export interface Identity {
 }
 
 /** Champs que l'organisme rédige, par langue. */
-export const TEXT_FIELDS = ['name', 'about', 'why', 'vitrailTitle', 'question', 'placeholder'] as const
+export const TEXT_FIELDS = ['name', 'about', 'why', 'vitrailTitle', 'question', 'question2', 'question3', 'placeholder'] as const
+/** Les questions du témoignage : la première est exigée (sinon le texte neutre), les deux autres sont facultatives. */
+export const QUESTION_FIELDS = ['question', 'question2', 'question3'] as const satisfies readonly TextField[]
 export type TextField = (typeof TEXT_FIELDS)[number]
 export type StoredTexts = Partial<Record<Locale, Partial<Record<TextField, string>>>>
 
 /** Longueurs maximales (caractères). */
-export const TEXT_MAX: Record<TextField, number> = { name: 80, about: 1200, why: 400, vitrailTitle: 60, question: 120, placeholder: 160 }
+export const TEXT_MAX: Record<TextField, number> = { name: 80, about: 1200, why: 400, vitrailTitle: 60, question: 120, question2: 120, question3: 120, placeholder: 160 }
 export const LEGAL_MAX: Record<LegalKey, number> = { entity: 200, neq: 40, address: 200, officerName: 120, officerEmail: 120, officerPhone: 40, retention: 1500 }
 
 /** Une langue que l'organisme offre : celle demandée si elle l'est, sinon sa langue principale. */
@@ -62,7 +65,19 @@ export function parseLocales(value: unknown): Locale[] {
 export const ALL_LOCALES = LOCALES
 
 /** Textes neutres de la plateforme, dans une langue, pour un nom d'organisme donné. */
-export type Defaults = (locale: Locale, org: string) => Omit<OrgTexts, 'name' | 'url'>
+export type Defaults = (locale: Locale, org: string) => Omit<OrgTexts, 'name' | 'url' | 'testimonial'> & { testimonial: Omit<OrgTexts['testimonial'], 'questions'> }
+
+/**
+ * Les questions d'une langue : celles de cette langue si elle a sa propre première question, sinon celles de la langue
+ * principale (jamais un mélange des deux), sinon la question neutre.
+ */
+export function resolveQuestions(stored: StoredTexts, locales: Locale[], locale: Locale, fallback: string): string[] {
+  const primary = locales[0] ?? 'fr'
+  const list = (l: Locale) => QUESTION_FIELDS.map(f => (stored[l]?.[f] ?? '').trim()).filter(Boolean)
+  const own = (stored[locale]?.question ?? '').trim() ? list(locale) : []
+  const out = own.length ? own : (stored[primary]?.question ?? '').trim() ? list(primary) : []
+  return out.length ? [...new Set(out)] : [fallback]
+}
 
 /**
  * Textes d'une langue : le champ de cette langue, sinon celui de la langue principale, sinon le texte neutre.
@@ -79,7 +94,10 @@ export function resolveTexts(stored: StoredTexts, locales: Locale[], fallbackNam
     about: pick('about'),
     why: pick('why') || d.why,
     vitrailTitle: pick('vitrailTitle') || d.vitrailTitle,
-    testimonial: { ...d.testimonial, question: pick('question') || d.testimonial.question, placeholder: pick('placeholder') || d.testimonial.placeholder },
+    testimonial: (() => {
+      const questions = resolveQuestions(stored, locales, locale, d.testimonial.question)
+      return { ...d.testimonial, question: questions[0], questions, placeholder: pick('placeholder') || d.testimonial.placeholder }
+    })(),
   }
 }
 

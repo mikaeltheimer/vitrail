@@ -1,5 +1,6 @@
 'use client'
 
+import { AnotherQuestion, useQuestionPicker } from '@/components/vitrail/QuestionPicker'
 import { currentGlass } from '@/lib/theme'
 import { useEffect, useState } from 'react'
 import TestimonialField from '@/components/vitrail/TestimonialField'
@@ -39,6 +40,9 @@ export default function ManagePage() {
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
   const [quoteConsent, setQuoteConsent] = useState(false)
+  // La question de son témoignage actuel (s'il en a une), sinon une au hasard
+  const [savedQuestion, setSavedQuestion] = useState<string | null>(null)
+  const picker = useQuestionPicker(org.testimonial.questions, savedQuestion)
   const [mailing, setMailing] = useState(false)
   const [mailingSaved, setMailingSaved] = useState(false)
   const [messagePending, setMessagePending] = useState(false)
@@ -62,6 +66,7 @@ export default function ManagePage() {
         setName(d.name)
         setMessage(d.message)
         setQuoteConsent(!!d.quoteConsent)
+        setSavedQuestion(typeof d.question === 'string' ? d.question : null)
         setMailing(!!d.mailing)
         setMessagePending(!!d.messagePending)
         setColor(currentGlass(d.color) ?? d.color)
@@ -85,7 +90,7 @@ export default function ManagePage() {
       const res = await fetch('/api/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'update', showName, name, message, quoteConsent, color, ...(photoChanged ? { photoPath: photo.path ?? '' } : {}) }),
+        body: JSON.stringify({ token, action: 'update', showName, name, message, quoteConsent, question: picker.question, color, ...(photoChanged ? { photoPath: photo.path ?? '' } : {}) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(typeof data.error === 'string' && data.error ? data.error : t('erreurInattendue'))
@@ -136,11 +141,12 @@ export default function ManagePage() {
       <form onSubmit={save} className="space-y-5">
         {/* Le témoignage d'abord : c'est souvent pour lui qu'on revient avec ce lien */}
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold">{org.testimonial.question}</h2>
+          <h2 className="text-lg font-semibold">{picker.question}</h2>
           <p className="text-sm" style={{ color: '#F0B24A' }}>
             {org.testimonial.cta} <span className="muted">{org.testimonial.lead}</span>
           </p>
           <TestimonialField value={message} onChange={setMessage} consent={quoteConsent} onConsent={setQuoteConsent} rows={5} />
+          {picker.canChange && <AnotherQuestion onClick={picker.next} />}
           {messagePending && <p className="muted text-xs">{t('temoignageAttente')}</p>}
         </section>
 

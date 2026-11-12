@@ -6,7 +6,8 @@ import { grantMailingConsent, isSubscribed, withdrawMailingConsent } from '@/lib
 import { localeOf } from '@/lib/i18n'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { requireTenant } from '@/lib/tenant'
-import { validateColor, validateMessage, validateProfile } from '@/lib/validate'
+import { cleanQuestion, validateColor, validateMessage, validateProfile } from '@/lib/validate'
+import { questionsOf } from '@/lib/identity'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +22,11 @@ export async function POST(request: NextRequest) {
   if (!donor) return errorResponse(request, err('lienExpire'), 401)
 
   if (body.action === 'update') {
-    const profile = validateProfile({ showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent }, orgId)
+    const profile = validateProfile(
+      { showName: body.showName, name: body.name, message: body.message, photoPath: body.photoPath, quoteConsent: body.quoteConsent, question: body.question },
+      orgId,
+      await questionsOf(t.tenant.org),
+    )
     if (!profile.ok) return errorResponse(request, profile.error)
     // photoPath absent = on garde la photo actuelle ; vide = on la retire ; un chemin = nouvelle photo
     if (body.photoPath === undefined) profile.value.photoUrl = donor.photoUrl
@@ -34,7 +39,8 @@ export async function POST(request: NextRequest) {
   if (body.action === 'testimonial') {
     const message = validateMessage(body.message)
     if (!message.ok) return errorResponse(request, message.error)
-    const { pending } = await updateTestimonial(donor, message.value, body.quoteConsent === true)
+    const question = message.value ? cleanQuestion(body.question, await questionsOf(t.tenant.org)) : null
+    const { pending } = await updateTestimonial(donor, message.value, body.quoteConsent === true, question)
     return NextResponse.json({ ok: true, pending })
   }
 
@@ -51,6 +57,7 @@ export async function POST(request: NextRequest) {
     donorId: donor.id,
     messagePending: donor.messagePending,
     quoteConsent: donor.quoteConsent,
+    question: donor.question,
     showName: donor.showName,
     name: donor.showName ? donor.name : '',
     message: donor.message ?? '',
