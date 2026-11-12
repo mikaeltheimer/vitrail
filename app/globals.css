@@ -232,3 +232,43 @@ button.card:focus-visible,
 .tv-panel {
   opacity: calc(1 - 0.65 * var(--zoom, 0));
 }
+
+/* ── Vitrine : alternance nuit et papier ──
+   Les sections « papier » redéfinissent les couleurs : cartes, boutons et textes atténués suivent d'eux-mêmes. */
+:root {
+  --lead: #d9d3e3; /* paragraphes d'introduction, sur la nuit */
+}
+.papier {
+  --bg: #fbf8f1;
+  --panel: #ffffff;
+  --line: rgba(26, 23, 32, 0.1);
+  --text: #1a1720;
+  --muted: #5e5868;
+  --lead: #3a3442;
+  background: var(--bg);
+  color: var(--text);
+}
+.papier .card {
+  position: relative;
+  box-shadow: 0 1px 2px rgba(26, 23, 32, 0.04), 0 10px 30px rgba(26, 23, 32, 0.06);
+}
+@media (hover: hover) {
+  .papier .btn-ghost:not(:disabled):hover {
+    background: rgba(26, 23, 32, 0.05);
+    border-color: rgba(26, 23, 32, 0.3);
+  }
+}
+/* Héros : sur téléphone, le vitrail vient juste après le titre (visible dès l'ouverture) ; sur ordinateur, à droite */
+.vitrine-hero {
+  display: grid;
+  grid-template-areas: 'tete' 'vitrail' 'corps';
+  gap: 28px;
+}
+@media (min-width: 900px) {
+  .vitrine-hero {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: 'tete vitrail' 'corps vitrail';
+    column-gap: 64px;
+    row-gap: 24px;
+  }
+}

@@ -7,6 +7,7 @@ import HeroGlass, { type HeroDemo } from '@/components/plateforme/HeroGlass'
 import { demoForVitrine } from '@/lib/demo'
 import { DEMO_TEXTS } from '@/lib/demo-data'
 import RequestForm from '@/components/plateforme/RequestForm'
+import LightSpill from '@/components/plateforme/LightSpill'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
 import { PRICING, pricingExampleCents } from '@/lib/platform-fee'
@@ -73,8 +74,6 @@ export default async function PlateformePage() {
     return { key, donors, avg, fee, capped: fee >= P.capCents }
   })
   const dot = (c: string) => <span aria-hidden="true" className="mt-[10px] h-2 w-2 flex-none rounded-full" style={{ background: c }} />
-  const band = 'border-y'
-  const bandStyle = { background: '#110F19', borderColor: 'rgba(244,239,230,0.08)' }
 
   // La démo (Centre communautaire du Village), si elle existe sur cette base : vitrail de l'accueil et section « Essayez-le »
   const h = await headers()
@@ -92,16 +91,22 @@ export default async function PlateformePage() {
 
   return (
     <PlatformShell>
-      <main>
-        <section className="mx-auto flex max-w-[1160px] flex-wrap items-center gap-16 px-6 pb-24 pt-12">
-          <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
+      <main className="overflow-x-clip">
+        {/* Héros : nuit. Sur téléphone, titre, vitrail, puis le texte (le vitrail se voit dès l'ouverture). */}
+        <section className="vitrine-hero mx-auto max-w-[1160px] px-6 pb-20 pt-4 md:pb-24 md:pt-12">
+          <div className="flex min-w-0 flex-col gap-5 md:self-end" style={{ gridArea: 'tete' }}>
             <span className="self-start rounded-full border px-3 py-1 text-[13px] font-bold uppercase tracking-wider" style={{ color: '#F0B24A', borderColor: 'rgba(240,178,74,0.5)' }}>
               {t('hero.beta')}
             </span>
-            <h1 className="m-0 text-[clamp(40px,5vw,64px)] leading-[1.05]" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+            <h1 className="m-0 text-[clamp(36px,5vw,64px)] leading-[1.05]" style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>
               {t('hero.titre')}
             </h1>
-            <p className="m-0 max-w-[34em] text-[20px]" style={{ color: '#D9D3E3' }}>
+          </div>
+          <div className="flex min-w-0 items-center justify-center" style={{ gridArea: 'vitrail' }}>
+            <HeroGlass demo={heroDemo} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-6 md:self-start" style={{ gridArea: 'corps' }}>
+            <p className="m-0 max-w-[34em] text-[18px] md:text-[20px]" style={{ color: 'var(--lead)' }}>
               {t('hero.texte', { brand })}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -114,45 +119,48 @@ export default async function PlateformePage() {
             </div>
             <p className="muted m-0 text-sm">{t('hero.pour')}</p>
           </div>
-          <div className="flex min-w-0 flex-[1_1_380px] justify-center">
-            <HeroGlass demo={heroDemo} />
-          </div>
         </section>
 
         {demo && (
-          <section id="essai" className="mx-auto flex max-w-[1160px] flex-col gap-8 px-6 pb-20">
-            <div className="flex max-w-[720px] flex-col gap-3">
-              <H2>{t('essai.titre')}</H2>
-              <p className="m-0 text-[19px]" style={{ color: '#D9D3E3' }}>
-                {t('essai.intro', { org: demoName })}
-              </p>
-            </div>
-            <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
-              <article className="card flex flex-col gap-3 !rounded-[20px] !p-7" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
-                <h3 className="m-0 text-[22px]">{t('essai.vitrailTitre')}</h3>
-                <p className="muted m-0 flex-1">{t('essai.vitrailTexte')}</p>
-                <a href={demo.links.vitrail} target="_blank" rel="noreferrer" className="btn !w-auto self-start !rounded-full !px-6 no-underline">
-                  {t('essai.vitrailBouton')}
-                </a>
-              </article>
-              <article className="card flex flex-col gap-3 !rounded-[20px] !p-7">
-                <h3 className="m-0 text-[22px]">{t('essai.ecranTitre')}</h3>
-                <p className="muted m-0 flex-1">{t('essai.ecranTexte')}</p>
-                <div className="flex flex-wrap gap-2">
-                  <a href={demo.links.ecran} target="_blank" rel="noreferrer" lang="fr" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
-                    {t('essai.ecranFr')}
+          <section id="essai" className="mx-auto max-w-[1160px] px-6 pb-20">
+            {/* Un cadre à part : ici, on essaie (la démo), on ne lit plus seulement */}
+            <div className="flex flex-col gap-8 rounded-[28px] border p-6 md:p-12" style={{ background: 'linear-gradient(180deg, #17142199, #0F0D1799)', borderColor: 'rgba(240,178,74,0.25)', boxShadow: '0 0 80px rgba(240,178,74,0.06)', ['--panel' as string]: '#1C1928' }}>
+              <div className="flex max-w-[720px] flex-col gap-3">
+                <H2>{t('essai.titre')}</H2>
+                <p className="m-0 text-[19px]" style={{ color: 'var(--lead)' }}>
+                  {t('essai.intro', { org: demoName })}
+                </p>
+              </div>
+              <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+                <article className="card flex flex-col gap-3 !rounded-[20px] !p-7" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
+                  <h3 className="m-0 text-[22px]">{t('essai.vitrailTitre')}</h3>
+                  <p className="muted m-0 flex-1">{t('essai.vitrailTexte')}</p>
+                  <a href={demo.links.vitrail} target="_blank" rel="noreferrer" className="btn !w-auto self-start !rounded-full !px-6 no-underline">
+                    {t('essai.vitrailBouton')}
                   </a>
-                  <a href={demo.links.screen} target="_blank" rel="noreferrer" lang="en" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
-                    {t('essai.ecranEn')}
-                  </a>
-                </div>
-              </article>
+                </article>
+                <article className="card flex flex-col gap-3 !rounded-[20px] !p-7">
+                  <h3 className="m-0 text-[22px]">{t('essai.ecranTitre')}</h3>
+                  <p className="muted m-0 flex-1">{t('essai.ecranTexte')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <a href={demo.links.ecran} target="_blank" rel="noreferrer" lang="fr" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                      {t('essai.ecranFr')}
+                    </a>
+                    <a href={demo.links.screen} target="_blank" rel="noreferrer" lang="en" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                      {t('essai.ecranEn')}
+                    </a>
+                  </div>
+                </article>
+              </div>
             </div>
           </section>
         )}
 
-        <section id="comment" className={band} style={bandStyle}>
-          <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 py-20">
+        {/* Papier : la lumière du vitrail se pose sur la page */}
+        <LightSpill pieces={demo?.snapshot.pieces} />
+        <div className="papier">
+        <section id="comment" className="relative z-10">
+          <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 pb-20 pt-12">
             <H2>{t('comment.titre')}</H2>
             <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
               {(
@@ -163,7 +171,8 @@ export default async function PlateformePage() {
                 ] as const
               ).map(([n, c, k]) => (
                 <article key={k} className="card flex flex-col gap-3 !rounded-[20px] !p-7">
-                  <span className="text-[36px] leading-none" style={{ fontFamily: 'var(--font-display)', color: c }}>
+                  {/* Un verre numéroté : la couleur reste lisible sur le papier, le chiffre est à l'encre */}
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full text-[24px] leading-none" style={{ fontFamily: 'var(--font-display)', background: c, color: '#1A1720', boxShadow: `0 6px 18px ${c}55` }}>
                     {n}
                   </span>
                   <h3 className="m-0 text-[20px]">{t(`comment.${k}Titre`)}</h3>
@@ -183,7 +192,7 @@ export default async function PlateformePage() {
             <ul className="m-0 flex list-none flex-col gap-3 p-0">
               {(['l1', 'l2', 'l3', 'l4', 'l5'] as const).map(k => (
                 <li key={k} className="flex gap-3">
-                  {dot('#F0B24A')}
+                  {dot('#B07A1F')}
                   {t(`donateurs.${k}`)}
                 </li>
               ))}
@@ -197,7 +206,7 @@ export default async function PlateformePage() {
             <ul className="m-0 flex list-none flex-col gap-3 p-0">
               {(['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7'] as const).map(k => (
                 <li key={k} className="flex gap-3">
-                  {dot('#3DB5A6')}
+                  {dot('#1FA978')}
                   {t(`equipe.${k}`)}
                 </li>
               ))}
@@ -205,11 +214,13 @@ export default async function PlateformePage() {
           </div>
         </section>
 
-        <section id="tarifs" className={band} style={bandStyle}>
+        </div>
+
+        <section id="tarifs">
           <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 py-20">
             <div className="flex max-w-[760px] flex-col gap-3">
               <H2>{t('tarifs.titre', { gratuit: P.freeDonors })}</H2>
-              <p className="m-0 text-[20px]" style={{ color: '#D9D3E3' }}>
+              <p className="m-0 text-[20px]" style={{ color: 'var(--lead)' }}>
                 {t('tarifs.sousTitre', { taux: pct(P.rate, locale), plafond: money(P.capCents) })}
               </p>
             </div>
@@ -223,7 +234,7 @@ export default async function PlateformePage() {
                   <span className="text-[44px] leading-none" style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: ph.accent ? '#F0B24A' : undefined }}>
                     {ph.value}
                   </span>
-                  <span style={{ color: '#D9D3E3' }}>{ph.text}</span>
+                  <span style={{ color: 'var(--lead)' }}>{ph.text}</span>
                   {ph.example && <span className="muted text-sm">{ph.example}</span>}
                 </li>
               ))}
@@ -254,16 +265,16 @@ export default async function PlateformePage() {
               </div>
             </div>
 
-            <div className="grid gap-x-10 gap-y-6 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]" style={{ color: '#D9D3E3' }}>
+            <div className="grid gap-x-10 gap-y-6 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]" style={{ color: 'var(--lead)' }}>
               <div className="flex flex-col gap-1.5">
-                <h3 className="m-0 text-[18px]" style={{ color: '#F4EFE6' }}>
+                <h3 className="m-0 text-[18px]" style={{ color: 'var(--text)' }}>
                   {t('tarifs.stripeTitre')}
                 </h3>
                 <p className="m-0">{t('tarifs.stripe', { pct: pct(CONFIG.feePercent, locale), fixe: money(CONFIG.feeFixedCents) })}</p>
                 <p className="m-0">{t('tarifs.direct', { brand })}</p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <h3 className="m-0 text-[18px]" style={{ color: '#F4EFE6' }}>
+                <h3 className="m-0 text-[18px]" style={{ color: 'var(--text)' }}>
                   {t('tarifs.gratuitTitre')}
                 </h3>
                 <p className="m-0">{t('tarifs.gratuitTexte')}</p>
@@ -276,17 +287,22 @@ export default async function PlateformePage() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-[1160px] gap-8 px-6 py-20 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-          {(['quebec', 'loi', 'stripe', 'langues'] as const).map(k => (
+        <div className="papier">
+        {/* Garanties : une bande à part, entre deux filets, chaque engagement marqué d'un verre */}
+        <section className="mx-auto max-w-[1160px] px-6 pt-16">
+          <div className="grid gap-8 border-y py-10 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]" style={{ borderColor: 'var(--line)' }}>
+          {(['quebec', 'loi', 'stripe', 'langues'] as const).map((k, i) => (
             <div key={k} className="flex flex-col gap-2">
+              <span aria-hidden="true" className="mb-1 h-1.5 w-8 rounded-full" style={{ background: ['#1FA978', '#9450CC', '#F0B24A', '#5CC0F5'][i] }} />
               <h3 className="m-0 text-[18px]">{t(`garanties.${k}Titre`)}</h3>
               <p className="muted m-0">{t(`garanties.${k}`, { brand })}</p>
             </div>
           ))}
+          </div>
         </section>
 
-        <section id="questions" className={band} style={bandStyle}>
-          <div className="mx-auto flex max-w-[820px] flex-col gap-4 px-6 py-20">
+        <section id="questions">
+          <div className="mx-auto flex max-w-[820px] flex-col gap-4 px-6 pb-20 pt-16">
             <div className="mb-4">
               <H2>{t('faq.titre')}</H2>
             </div>
@@ -299,10 +315,12 @@ export default async function PlateformePage() {
           </div>
         </section>
 
+        </div>
+
         <section id="invitation" className="mx-auto flex max-w-[1160px] flex-wrap gap-12 px-6 py-20">
           <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-4">
             <H2>{t('demande.titre')}</H2>
-            <p className="m-0 text-[19px]" style={{ color: '#D9D3E3' }}>
+            <p className="m-0 text-[19px]" style={{ color: 'var(--lead)' }}>
               {t('demande.intro')}
             </p>
             <p className="muted m-0">{t('demande.deja')}</p>
