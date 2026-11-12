@@ -1,47 +1,72 @@
 import { DEFAULT_GLASSES } from '@/lib/theme'
+import { glassScene, lightRays, type SvgPiece } from '@/lib/glassSvg'
 
-// Passage de la nuit au papier : la lumière du vitrail traverse et se pose sur la page, comme sur l'affiche.
-// Une bande qui passe en douceur de la nuit au papier, puis des rayons aux couleurs des cinq verres qui naissent dans
-// la nuit et s'étalent sur le papier, derrière le contenu de la section suivante. Fixes : un éclairage, pas une animation.
+// Passage de la nuit au papier : la lumière d'un vitrail rond tombe sur la page, comme sur l'affiche « La place libre ».
+// Même forme et même style que ses rayons (lightRays, lib/glassSvg.ts) : sept rayons partis du bas du disque, qui
+// s'élargissent en s'éloignant ; dégradé du bord du vitrail vers rien. Avec `pieces` : le vrai vitrail (celui de la
+// démo) est dessiné, posé dans la nuit au-dessus du papier ; sans : seuls les rayons, la source hors champ.
 
-const RAYS = [
-  { x: 9, top: 2.2, bottom: 15, glass: 'violet', o: 0.3 },
-  { x: 22, top: 2.8, bottom: 19, glass: 'ciel', o: 0.34 },
-  { x: 35, top: 1.8, bottom: 12, glass: 'ambre', o: 0.4 },
-  { x: 49, top: 3, bottom: 21, glass: 'rose', o: 0.32 },
-  { x: 62, top: 2, bottom: 14, glass: 'jade', o: 0.3 },
-  { x: 75, top: 2.6, bottom: 18, glass: 'ambre', o: 0.36 },
-  { x: 89, top: 2.2, bottom: 15, glass: 'ciel', o: 0.3 },
-] as const
+const LENGTH = 3.2
+const RAY_GLASSES = ['violet', 'ciel', 'ambre', 'rose', 'jade', 'ambre', 'ciel'] as const
 
-/** Hauteur de la bande de passage ; les rayons continuent dessous, sur le papier. */
-const BAND = 'h-[120px] md:h-[170px]'
-
-export default function LightSpill() {
+export default function LightSpill({ pieces }: { pieces?: SvgPiece[] | null }) {
   const color = (id: string) => DEFAULT_GLASSES.find(g => g.id === id)?.value ?? '#F0B24A'
+  // Une scène de référence pour la géométrie ; le vrai pavage seulement s'il y a des morceaux à montrer
+  const scene = pieces?.length ? glassScene(pieces, 600) : null
+  const geo = scene ?? glassScene(DEFAULT_GLASSES.map((g, i) => ({ id: `rayon-${i}`, color: g.value, amountCents: 1 })), 600)!
+  const R = geo.radius
+  const rays = lightRays(geo, LENGTH).map((r, i) => (scene ? r : { ...r, color: color(RAY_GLASSES[i]) }))
+  // Cadre : avec le vitrail, depuis le haut du disque ; sans, depuis juste au-dessus du bas du disque
+  const X0 = -2.2 * R
+  const Y0 = scene ? -geo.view * 1.04 : 0.35 * R
+  const W = 4.4 * R
+  const H = (LENGTH + 0.75) * R - Y0
   return (
-    <div aria-hidden="true" className={`pointer-events-none relative z-0 ${BAND}`} style={{ background: 'linear-gradient(to bottom, #0B0A12 0%, #0B0A12 12%, #3a3540 45%, #b9b2aa 75%, #FBF8F1 100%)' }}>
-      <svg className="absolute left-0 top-0 h-[520px] w-full md:h-[680px]" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <defs>
-          {RAYS.map((r, i) => (
-            <linearGradient key={i} id={`rayon-${i}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor={color(r.glass)} stopOpacity="0" />
-              <stop offset="0.12" stopColor={color(r.glass)} stopOpacity={r.o * 1.6} />
-              <stop offset="0.35" stopColor={color(r.glass)} stopOpacity={r.o} />
-              <stop offset="1" stopColor={color(r.glass)} stopOpacity="0" />
-            </linearGradient>
+    <div aria-hidden="true" className={`pointer-events-none relative z-0 ${scene ? 'h-[250px] md:h-[380px]' : 'h-[150px] md:h-[200px]'}`} style={{ background: `linear-gradient(to bottom, #0B0A12 0%, #0B0A12 ${scene ? 45 : 30}%, #FBF8F1 100%)` }}>
+      {/* Plus large que l'écran sur téléphone : on n'y voit que les rayons du milieu */}
+      <div className={`absolute left-1/2 top-0 -translate-x-1/2 ${scene ? 'w-[120%] max-w-[760px] md:w-[54%]' : 'w-[190%] max-w-[1180px] md:w-[86%]'}`}>
+        <svg
+          viewBox={`${X0} ${Y0} ${W} ${H}`}
+          className="block h-auto w-full"
+          // Sans le vitrail, le haut des rayons se fond dans la nuit au lieu d'y être coupé net
+          style={scene ? undefined : { maskImage: 'linear-gradient(to bottom, transparent 0%, #000 38%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 38%)' }}
+        >
+          <defs>
+            {rays.map((r, i) => (
+              <linearGradient key={i} id={`rayon-${i}`} gradientUnits="userSpaceOnUse" x1={r.from[0]} y1={r.from[1]} x2={r.to[0]} y2={r.to[1]}>
+                <stop offset="0" stopColor={r.color} stopOpacity="0.26" />
+                <stop offset="0.45" stopColor={r.color} stopOpacity="0.1" />
+                <stop offset="1" stopColor={r.color} stopOpacity="0" />
+              </linearGradient>
+            ))}
+            {scene?.tiles.map((t, i) =>
+              t.shaded ? (
+                <radialGradient key={t.id} id={`passage-g${i}`} gradientUnits="userSpaceOnUse" cx={t.glow[0]} cy={t.glow[1]} r={t.glow[2]}>
+                  <stop offset="0" stopColor={t.core} stopOpacity="0.9" />
+                  <stop offset="0.55" stopColor={t.mid} />
+                  <stop offset="1" stopColor={t.mid} stopOpacity="0" />
+                </radialGradient>
+              ) : null,
+            )}
+          </defs>
+          {rays.map((r, i) => (
+            <polygon key={i} points={r.points} fill={`url(#rayon-${i})`} />
           ))}
-        </defs>
-        {RAYS.map((r, i) => {
-          // Légèrement inclinés, comme une lumière haute venue de la gauche
-          const t0 = r.x + 5 - r.top / 2
-          const t1 = r.x + 5 + r.top / 2
-          const b0 = r.x - 3 - r.bottom / 2
-          const b1 = r.x - 3 + r.bottom / 2
-          // Sur téléphone, un rayon sur deux : sinon des rayures plutôt que de la lumière
-          return <polygon key={i} className={i % 2 ? 'hidden md:inline' : undefined} points={`${t0},0 ${t1},0 ${b1},100 ${b0},100`} fill={`url(#rayon-${i})`} />
-        })}
-      </svg>
+          {scene && (
+            <g>
+              <circle r={R} fill="#050408" />
+              {scene.tiles.map((t, i) => (
+                <g key={t.id}>
+                  <polygon points={t.points} fill={t.shaded ? t.base : t.mid} />
+                  {t.shaded && <polygon points={t.points} fill={`url(#passage-g${i})`} />}
+                  <polygon points={t.points} fill="none" stroke="#050408" strokeWidth={t.lead} strokeLinejoin="round" />
+                </g>
+              ))}
+              <circle r={R + scene.ring / 2} fill="none" stroke="#050408" strokeWidth={scene.ring} />
+            </g>
+          )}
+        </svg>
+      </div>
     </div>
   )
 }

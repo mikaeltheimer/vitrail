@@ -91,7 +91,7 @@ export default async function PlateformePage() {
 
   return (
     <PlatformShell>
-      <main>
+      <main className="overflow-x-clip">
         {/* Héros : nuit. Sur téléphone, titre, vitrail, puis le texte (le vitrail se voit dès l'ouverture). */}
         <section className="vitrine-hero mx-auto max-w-[1160px] px-6 pb-20 pt-4 md:pb-24 md:pt-12">
           <div className="flex min-w-0 flex-col gap-5 md:self-end" style={{ gridArea: 'tete' }}>
@@ -122,42 +122,45 @@ export default async function PlateformePage() {
         </section>
 
         {demo && (
-          <section id="essai" className="mx-auto flex max-w-[1160px] flex-col gap-8 px-6 pb-20">
-            <div className="flex max-w-[720px] flex-col gap-3">
-              <H2>{t('essai.titre')}</H2>
-              <p className="m-0 text-[19px]" style={{ color: 'var(--lead)' }}>
-                {t('essai.intro', { org: demoName })}
-              </p>
-            </div>
-            <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
-              <article className="card flex flex-col gap-3 !rounded-[20px] !p-7" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
-                <h3 className="m-0 text-[22px]">{t('essai.vitrailTitre')}</h3>
-                <p className="muted m-0 flex-1">{t('essai.vitrailTexte')}</p>
-                <a href={demo.links.vitrail} target="_blank" rel="noreferrer" className="btn !w-auto self-start !rounded-full !px-6 no-underline">
-                  {t('essai.vitrailBouton')}
-                </a>
-              </article>
-              <article className="card flex flex-col gap-3 !rounded-[20px] !p-7">
-                <h3 className="m-0 text-[22px]">{t('essai.ecranTitre')}</h3>
-                <p className="muted m-0 flex-1">{t('essai.ecranTexte')}</p>
-                <div className="flex flex-wrap gap-2">
-                  <a href={demo.links.ecran} target="_blank" rel="noreferrer" lang="fr" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
-                    {t('essai.ecranFr')}
+          <section id="essai" className="mx-auto max-w-[1160px] px-6 pb-20">
+            {/* Un cadre à part : ici, on essaie (la démo), on ne lit plus seulement */}
+            <div className="flex flex-col gap-8 rounded-[28px] border p-6 md:p-12" style={{ background: 'linear-gradient(180deg, #17142199, #0F0D1799)', borderColor: 'rgba(240,178,74,0.25)', boxShadow: '0 0 80px rgba(240,178,74,0.06)', ['--panel' as string]: '#1C1928' }}>
+              <div className="flex max-w-[720px] flex-col gap-3">
+                <H2>{t('essai.titre')}</H2>
+                <p className="m-0 text-[19px]" style={{ color: 'var(--lead)' }}>
+                  {t('essai.intro', { org: demoName })}
+                </p>
+              </div>
+              <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+                <article className="card flex flex-col gap-3 !rounded-[20px] !p-7" style={{ borderColor: 'rgba(240,178,74,0.45)' }}>
+                  <h3 className="m-0 text-[22px]">{t('essai.vitrailTitre')}</h3>
+                  <p className="muted m-0 flex-1">{t('essai.vitrailTexte')}</p>
+                  <a href={demo.links.vitrail} target="_blank" rel="noreferrer" className="btn !w-auto self-start !rounded-full !px-6 no-underline">
+                    {t('essai.vitrailBouton')}
                   </a>
-                  <a href={demo.links.screen} target="_blank" rel="noreferrer" lang="en" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
-                    {t('essai.ecranEn')}
-                  </a>
-                </div>
-              </article>
+                </article>
+                <article className="card flex flex-col gap-3 !rounded-[20px] !p-7">
+                  <h3 className="m-0 text-[22px]">{t('essai.ecranTitre')}</h3>
+                  <p className="muted m-0 flex-1">{t('essai.ecranTexte')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <a href={demo.links.ecran} target="_blank" rel="noreferrer" lang="fr" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                      {t('essai.ecranFr')}
+                    </a>
+                    <a href={demo.links.screen} target="_blank" rel="noreferrer" lang="en" className="btn btn-ghost !w-auto !rounded-full !px-6 no-underline">
+                      {t('essai.ecranEn')}
+                    </a>
+                  </div>
+                </article>
+              </div>
             </div>
           </section>
         )}
 
         {/* Papier : la lumière du vitrail se pose sur la page */}
-        <LightSpill />
+        <LightSpill pieces={demo?.snapshot.pieces} />
         <div className="papier">
         <section id="comment" className="relative z-10">
-          <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 pb-20 pt-6">
+          <div className="mx-auto flex max-w-[1160px] flex-col gap-10 px-6 pb-20 pt-12">
             <H2>{t('comment.titre')}</H2>
             <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
               {(
@@ -285,17 +288,21 @@ export default async function PlateformePage() {
         </section>
 
         <div className="papier">
-        <section className="mx-auto grid max-w-[1160px] gap-8 px-6 pb-4 pt-20 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-          {(['quebec', 'loi', 'stripe', 'langues'] as const).map(k => (
+        {/* Garanties : une bande à part, entre deux filets, chaque engagement marqué d'un verre */}
+        <section className="mx-auto max-w-[1160px] px-6 pt-16">
+          <div className="grid gap-8 border-y py-10 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]" style={{ borderColor: 'var(--line)' }}>
+          {(['quebec', 'loi', 'stripe', 'langues'] as const).map((k, i) => (
             <div key={k} className="flex flex-col gap-2">
+              <span aria-hidden="true" className="mb-1 h-1.5 w-8 rounded-full" style={{ background: ['#1FA978', '#9450CC', '#F0B24A', '#5CC0F5'][i] }} />
               <h3 className="m-0 text-[18px]">{t(`garanties.${k}Titre`)}</h3>
               <p className="muted m-0">{t(`garanties.${k}`, { brand })}</p>
             </div>
           ))}
+          </div>
         </section>
 
         <section id="questions">
-          <div className="mx-auto flex max-w-[820px] flex-col gap-4 px-6 py-20">
+          <div className="mx-auto flex max-w-[820px] flex-col gap-4 px-6 pb-20 pt-16">
             <div className="mb-4">
               <H2>{t('faq.titre')}</H2>
             </div>
