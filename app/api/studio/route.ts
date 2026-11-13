@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
 
 // Section Studio de la vitrine (comptes is_studio seulement) : demandes d'invitation, invitations à créer un organisme,
 // Parcours des organismes et TOTAUX par organisme (lib/studio-stats.ts). JAMAIS de donateur ni de don pris un par un :
-// l'accès à une console passe par l'invitation de l'organisme.
+// l'accès à une console passe par l'invitation de l'organisme. Seule exception voulue : le nom et le courriel des
+// PROPRIÉTAIRES, pour que Studio puisse écrire à son client (relation de service, jamais d'envoi groupé).
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status }) // i18n-ok : section Studio (FR)
 
@@ -23,19 +24,27 @@ export async function GET(request: NextRequest) {
   if (!me) return fail('Réservé à Studio Existence.', 403) // i18n-ok : section Studio (FR)
   const db = getDb()
   const now = Date.now()
-  const [reqs, allReqs, invs, orgs, slugs, accounts, stats] = await Promise.all([
+  const [reqs, allReqs, invs, orgs, slugs, accounts, owners, stats] = await Promise.all([
     db.from('access_requests').select('id,org_name,name,email,message,locale,source,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
     db.from('access_requests').select('source,created_at').limit(5000),
     db.from('invitations').select('id,email,org_name,locale,created_at,expires_at,accepted_at,revoked_at').is('organization_id', null).order('created_at', { ascending: false }).limit(500),
     db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,legal,created_at,went_live_at').is('practice_of', null).eq('showcase', false).order('created_at', { ascending: false }).limit(500),
     db.from('organization_slugs').select('slug,organization_id').eq('is_current', true),
-    db.from('accounts').select('last_login_at').limit(10000),
+    db.from('accounts').select('id,email,name,last_login_at').limit(10000),
+    // Contact des propriétaires (relation de service entre Studio et l'organisme, pas des donateurs)
+    db.from('memberships').select('organization_id,account_id').eq('role', 'owner').limit(5000),
     orgStats(db, now).then(
       data => ({ data, error: null }),
       (error: { message?: string }) => ({ data: null, error }),
     ),
   ])
-  for (const r of [reqs, allReqs, invs, orgs, slugs, accounts, stats]) if (r.error) return fail(r.error.message || 'Erreur.', 500) // i18n-ok : section Studio (FR)
+  for (const r of [reqs, allReqs, invs, orgs, slugs, accounts, owners, stats]) if (r.error) return fail(r.error.message || 'Erreur.', 500) // i18n-ok : section Studio (FR)
+  const accountById = new Map((accounts.data ?? []).map(a => [a.id as string, { email: a.email as string, name: (a.name as string) || '' }]))
+  const ownersOf = new Map<string, { email: string; name: string }[]>()
+  for (const m of owners.data ?? []) {
+    const a = accountById.get(m.account_id as string)
+    if (a) ownersOf.set(m.organization_id as string, [...(ownersOf.get(m.organization_id as string) ?? []), a])
+  }
   const slugOf = new Map((slugs.data ?? []).map(s => [s.organization_id as string, s.slug as string]))
   const invitations: (InvitationLite & { createdAt: string })[] = (invs.data ?? []).map(i => ({
     id: i.id as string,
@@ -50,6 +59,7 @@ export async function GET(request: NextRequest) {
     const org = toStudioOrg(o, slug, stats.data?.get(o.id as string))
     return {
       ...org,
+      owners: ownersOf.get(o.id as string) ?? [],
       links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request) } : null,
     }
   })
