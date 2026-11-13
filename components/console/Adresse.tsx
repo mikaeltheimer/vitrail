@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import type { ConsoleData } from './types'
 import { GREEN, RED, Section, Sheet } from './ui'
 
-// Plus › Adresse du vitrail (propriétaire, organisme réel). Règles : lib/org-address.ts. Le nombre de changements
+// Réglages › Adresse et site web (propriétaire, organisme réel). Règles : lib/org-address.ts. Le nombre de changements
 // restants est rappelé juste avant de valider (décision du 12 novembre 2026).
 
 type Address = NonNullable<ConsoleData['address']>

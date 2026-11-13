@@ -4,13 +4,15 @@ import { randomBytes } from 'node:crypto'
 import { createInvitation, normalizeEmail, tokenHash, CREATE_INVITATION_DAYS } from '@/lib/auth'
 import { getDb } from '@/lib/db'
 import { sendOrgInvitation } from '@/lib/email'
-import { platformUrl } from '@/lib/tenant'
+import { orgUrl, platformUrl } from '@/lib/tenant'
+import { WINDOW_DAYS, buildFunnel, buildTodo, orgStats, platformTotals, toStudioOrg, type InvitationLite, type RequestLite } from '@/lib/studio-stats'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // Section Studio de la vitrine (comptes is_studio seulement) : demandes d'invitation, invitations à créer un organisme,
-// liste des organismes et de leur état. JAMAIS de donateurs ni de dons : l'accès à une console passe par l'organisme.
+// Parcours des organismes et TOTAUX par organisme (lib/studio-stats.ts). JAMAIS de donateur ni de don pris un par un :
+// l'accès à une console passe par l'invitation de l'organisme.
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status }) // i18n-ok : section Studio (FR)
 
@@ -20,35 +22,49 @@ export async function GET(request: NextRequest) {
   const me = await studio(request)
   if (!me) return fail('Réservé à Studio Existence.', 403) // i18n-ok : section Studio (FR)
   const db = getDb()
-  const [reqs, invs, orgs, slugs] = await Promise.all([
-    db.from('access_requests').select('id,org_name,name,email,message,locale,source,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
-    db.from('invitations').select('id,email,org_name,locale,created_at,expires_at,accepted_at,revoked_at').is('organization_id', null).order('created_at', { ascending: false }).limit(200),
-    db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,created_at,terms_accepted_by').is('practice_of', null).order('created_at', { ascending: false }).limit(500),
-    db.from('organization_slugs').select('slug,organization_id').eq('is_current', true),
-  ])
-  for (const r of [reqs, invs, orgs, slugs]) if (r.error) return fail(r.error.message, 500)
-  const slugOf = new Map((slugs.data ?? []).map(s => [s.organization_id as string, s.slug as string]))
   const now = Date.now()
+  const [reqs, allReqs, invs, orgs, slugs, accounts, stats] = await Promise.all([
+    db.from('access_requests').select('id,org_name,name,email,message,locale,source,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
+    db.from('access_requests').select('source,created_at').limit(5000),
+    db.from('invitations').select('id,email,org_name,locale,created_at,expires_at,accepted_at,revoked_at').is('organization_id', null).order('created_at', { ascending: false }).limit(500),
+    db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,legal,created_at,went_live_at').is('practice_of', null).eq('showcase', false).order('created_at', { ascending: false }).limit(500),
+    db.from('organization_slugs').select('slug,organization_id').eq('is_current', true),
+    db.from('accounts').select('last_login_at').limit(10000),
+    orgStats(db, now).then(
+      data => ({ data, error: null }),
+      (error: { message?: string }) => ({ data: null, error }),
+    ),
+  ])
+  for (const r of [reqs, allReqs, invs, orgs, slugs, accounts, stats]) if (r.error) return fail(r.error.message || 'Erreur.', 500) // i18n-ok : section Studio (FR)
+  const slugOf = new Map((slugs.data ?? []).map(s => [s.organization_id as string, s.slug as string]))
+  const invitations: (InvitationLite & { createdAt: string })[] = (invs.data ?? []).map(i => ({
+    id: i.id as string,
+    email: i.email as string,
+    orgName: i.org_name as string | null,
+    createdAt: i.created_at as string,
+    expiresAt: i.expires_at as string,
+    state: i.accepted_at ? 'accepted' : i.revoked_at ? 'revoked' : new Date(i.expires_at as string).getTime() <= now ? 'expired' : 'pending',
+  }))
+  const organizations = (orgs.data ?? []).map(o => {
+    const slug = slugOf.get(o.id as string) ?? ''
+    const org = toStudioOrg(o, slug, stats.data?.get(o.id as string))
+    return {
+      ...org,
+      links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request), image: orgUrl(slug, '/api/og', request) } : null,
+    }
+  })
+  const since = now - WINDOW_DAYS * 86_400_000
+  const logins = (accounts.data ?? []).map(a => a.last_login_at as string | null)
   return NextResponse.json({
     me: { email: me.email, name: me.name },
     requests: reqs.data ?? [],
-    invitations: (invs.data ?? []).map(i => ({
-      id: i.id,
-      email: i.email,
-      orgName: i.org_name,
-      createdAt: i.created_at,
-      expiresAt: i.expires_at,
-      state: i.accepted_at ? 'accepted' : i.revoked_at ? 'revoked' : new Date(i.expires_at as string).getTime() <= now ? 'expired' : 'pending',
-    })),
-    organizations: (orgs.data ?? []).map(o => ({
-      id: o.id,
-      name: o.name_fr,
-      slug: slugOf.get(o.id as string) ?? '',
-      status: o.status,
-      showcase: !!o.showcase,
-      stripeReady: o.stripe_ready,
-      createdAt: o.created_at,
-    })),
+    invitations,
+    organizations,
+    todo: buildTodo((reqs.data ?? []) as RequestLite[], invitations, organizations, now),
+    totals: platformTotals(organizations),
+    funnel: buildFunnel((allReqs.data ?? []) as { source: string | null; created_at: string }[], invitations.map(i => ({ created_at: i.createdAt })), organizations, now),
+    accounts: { total: logins.length, active: logins.filter(d => !!d && new Date(d).getTime() > since).length },
+    windowDays: WINDOW_DAYS,
   })
 }
 

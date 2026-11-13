@@ -11,7 +11,7 @@ import BrandFooter from '@/components/BrandFooter'
 import ShowcaseLegal from '@/components/ShowcaseLegal'
 import { Items, Section, legalTags } from '@/components/Legal'
 
-// Conditions d'utilisation. Les passages [À COMPLÉTER] sont les coordonnées que l'organisme n'a pas encore remplies (Mon vitrail) ou sont à confirmer par l'organisme.
+// Conditions d'utilisation. Les passages [À COMPLÉTER] sont les coordonnées que l'organisme n'a pas encore remplies (Réglages › Coordonnées juridiques) ou sont à confirmer par l'organisme.
 // Point de départ, pas un avis juridique : à faire revoir par un avocat avant l'ouverture à d'autres organismes.
 // Textes : messages/fr.json et en.json, espace « conditions ».
 

@@ -2,7 +2,7 @@ import { getDb } from './db'
 import { PRACTICE_SUFFIX, orgSlugProblem } from './hosts'
 import { forgetTenantCache } from './tenant'
 
-// Changer l'adresse (sous-domaine) d'un organisme depuis sa console (Plus › Adresse du vitrail, propriétaire seulement).
+// Changer l'adresse (sous-domaine) d'un organisme depuis sa console (Réglages › Adresse et site web, propriétaire seulement).
 // Décisions du 12 novembre 2026 :
 // - en brouillon : changements libres, l'ancienne adresse est libérée (rien n'a été imprimé) ;
 // - en ligne : l'ancienne adresse reste à l'organisme pour toujours et redirige vers l'actuelle (QR imprimés) ;
