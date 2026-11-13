@@ -38,7 +38,7 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Terminé récemment
 
-- Vitrine, anglais : « donation » au lieu de « gift », « stained-glass window » pour l'objet, et une quinzaine de tournures corrigées (glossaire de `docs/i18n.md`).
+- Anglais : « donation » au lieu de « gift », « stained glass » en nom de matière (jamais « a stained glass », pas de « window »), « atelier » → « sandbox », tournures de la vitrine corrigées ; glossaire de `docs/i18n.md` à jour.
 - Console : changement d'adresse du vitrail (Réglages › Adresse et site web ; libre en brouillon, 2 changements une fois en ligne, anciennes adresses gardées et redirigées ; migration 24, fonction `change_org_slug`) et « Plus » devenu « Réglages », menu groupé avec un écran par sujet (#7).
 - Fiche du morceau (#5) : numéro et date d'arrivée (paliers ✦) au lieu du rang par montant, navigation dans l'ordre d'arrivée, « Un morceau au hasard », « Signaler » discret ; vitrail de la vitrine fixe sur téléphone.
 - Vitrine nuit puis papier : sections alternées, vitrail de la démo et rayons de l'affiche au passage, cadre « Essayez-le », bande des garanties ; sur téléphone, le vitrail suit le titre.

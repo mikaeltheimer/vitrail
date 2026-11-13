@@ -75,7 +75,7 @@
     "dejaDansEquipe": "This person is already on the team.",
     "pasDansEquipe": "This person isn’t on the team.",
     "dernierProprietaire": "You can’t remove the last owner.",
-    "pasDansAtelier": "Not available in the Workshop: switch to the organization’s console.",
+    "pasDansAtelier": "Not available in the sandbox: switch to the organization’s console.",
     "donateurInconnu": "Donor not found.",
     "donateurSansCourriel": "This donor has no email address.",
     "morceauxDifferents": "Choose two different pieces.",
@@ -117,7 +117,7 @@
     "expediteurLong": "Sender name too long ({max} characters at most).",
     "reponseInvalide": "Invalid reply-to address.",
     "exportInconnu": "Unknown export.",
-    "dansAtelier": "Customization happens in the Workshop.",
+    "dansAtelier": "Customization happens in the sandbox.",
     "languesChoisir": "Choose one or two languages.",
     "textesInvalides": "Invalid texts.",
     "langueInconnue": "Unknown language.",
@@ -129,7 +129,7 @@
     "imageLourde": "Image too large ({max} KB at most).",
     "imageIllisible": "Unreadable image: please send a PNG, JPEG or SVG.",
     "imageDimensions": "Invalid image dimensions.",
-    "demoLectureSeule": "This is a demonstration stained glass: nothing is saved here."
+    "demoLectureSeule": "This stained glass is a demonstration: nothing is saved here."
   },
   "photo": {
     "alt": "Your photo",
@@ -156,7 +156,7 @@
     "aide": "Shown with your piece, here and on the big screen."
   },
   "don": {
-    "intro": "Every donation becomes a piece of glass in the stained-glass window.",
+    "intro": "Every donation becomes a piece of glass in the stained glass.",
     "dejaDonne": "{count, plural, one {1 person already has their piece} other {# people already have their piece}}",
     "sur": "of {montant}",
     "annule": "The payment was cancelled. Nothing was charged.",
@@ -338,7 +338,7 @@
     "demoDon": {
       "surtitre": "Demonstration",
       "titre": "Your piece is in the stained glass.",
-      "texte": "It only exists in this tab: nobody else sees it, and it will disappear when you close it. On a real stained glass, the donor would now receive this email:",
+      "texte": "It only exists in this tab: nobody else sees it, and it will disappear when you close it. For a real organization, the donor would now receive this email:",
       "voirCourriel": "See the thank-you email",
       "retirer": "Remove my test pieces",
       "courrielTitre": "The email the donor would receive",
@@ -415,7 +415,7 @@
     "erreurInattendue": "Unexpected error. Please try again.",
     "listeEnvoi": "I agree to receive news from {org} by email (campaigns, events). I can unsubscribe at any time.",
     "demoVitrine": "Demonstration: go ahead and try it. Nothing is charged or saved; your piece only exists in this tab.",
-    "piedDemo": "On a real stained glass, payment happens on Stripe (card, Apple Pay, Google Pay), which asks for the donor's email; then back to their piece.",
+    "piedDemo": "For a real organization, payment happens on Stripe (card, Apple Pay, Google Pay), which asks for the donor's email; then back to their piece.",
     "demoPaiement": {
       "titre": "Payment (demonstration)",
       "texte": "Here, a real donor would pay on Stripe (card, Apple Pay or Google Pay) and give their email to receive a thank-you and the link to their piece.",
@@ -532,7 +532,7 @@
     "voirConditions": "See also our <terms>terms of use</terms>.",
     "qui": {
       "titre": "Who we are",
-      "texte": "This fundraiser is run by {org} (<entity>exact legal name, Québec enterprise number (NEQ)</entity>), located at <address>mailing address</address>. Each donation becomes a piece of glass shown on a digital stained-glass window, on site and online.",
+      "texte": "This fundraiser is run by {org} (<entity>exact legal name, Québec enterprise number (NEQ)</entity>), located at <address>mailing address</address>. Each donation becomes a piece of glass shown in digital stained glass, on site and online.",
       "plateforme": "The {brand} platform is operated by {studioName} (NEQ {neq}), {studioAddress}, which processes your information on the organization's behalf. You can reach it at {studioEmail}."
     },
     "responsable": {
@@ -600,7 +600,7 @@
     "intro": "By using this site or making a donation, you accept these terms. They are in addition to our <privacy>privacy policy</privacy>.",
     "service": {
       "titre": "The service",
-      "texte": "{brand} is a giving platform designed and operated by {studioName} (NEQ {neq}), {studioAddress}. Each donation goes to the beneficiary organization: {org} (<entity>exact legal name, Québec enterprise number (NEQ)</entity>). The platform receives donations and displays them on a digital stained-glass window, on site and online."
+      "texte": "{brand} is a giving platform designed and operated by {studioName} (NEQ {neq}), {studioAddress}. Each donation goes to the beneficiary organization: {org} (<entity>exact legal name, Québec enterprise number (NEQ)</entity>). The platform receives donations and displays them as digital stained glass, on site and online."
     },
     "dons": {
       "titre": "Donations",
@@ -752,12 +752,12 @@
       "toutVoir": "See all",
       "aucunDon": "No donations yet. Share the link or show the screen to receive the first ones.",
       "anonyme": "Anonymous",
-      "etatEntrainement": "Workshop",
+      "etatEntrainement": "Sandbox",
       "etatBrouillon": "Not live yet",
       "voirVitrail": "View my stained glass",
-      "voirEntrainement": "Open the workshop",
+      "voirEntrainement": "Open the sandbox",
       "atelierTitre": "Customize my stained glass",
-      "atelierAide": "Name, texts, logo and languages: edit them in the workshop, right where they appear, then publish."
+      "atelierAide": "Name, texts, logo and languages: edit them in the sandbox, right where they appear, then publish."
     },
     "dons": {
       "ajouterComptant": "Add a cash donation",
@@ -927,10 +927,10 @@
       "purgeConfirmer": "Delete all demo donations? This can’t be undone.",
       "purgeOk": "Demo donations deleted.",
       "viderTitre": "Start fresh",
-      "viderAide": "Deletes all pretend donations in the workshop, and the pieces left with no donation. Your texts and logo stay.",
-      "vider": "Empty the workshop",
-      "viderConfirmer": "Delete all pretend donations in the workshop?",
-      "viderOk": "Workshop emptied."
+      "viderAide": "Deletes all pretend donations in the sandbox, and the pieces left with no donation. Your texts and logo stay.",
+      "vider": "Empty the sandbox",
+      "viderConfirmer": "Delete all pretend donations in the sandbox?",
+      "viderOk": "Sandbox emptied."
     },
     "equipe": {
       "aide": "A volunteer moderates and adds cash donations. An owner can also refund, manage Stripe and the team.",
@@ -956,7 +956,7 @@
         "donnees": "Data"
       },
       "lignes": {
-        "atelier": "Customize in the workshop",
+        "atelier": "Customize in the sandbox",
         "adresse": "Address and website",
         "juridique": "Legal details",
         "equipe": "Team",
@@ -1020,10 +1020,10 @@
       "fait": "Address changed."
     },
     "entrainement": {
-      "bandeau": "Workshop.",
+      "bandeau": "Sandbox.",
       "bandeauAide": "Pretend donations, no real payment. Customize your stained glass here, then publish.",
       "quitter": "Back to the real stained glass",
-      "ouvrir": "Workshop"
+      "ouvrir": "Sandbox"
     },
     "demarrage": {
       "titre": "Getting started",
@@ -1033,9 +1033,9 @@
       "stripePret": "Your Stripe account is ready.",
       "stripeConnecter": "Connect Stripe",
       "stripeTerminer": "Finish Stripe sign-up",
-      "sExercer": "Customize and practise in the workshop",
-      "sExercerAide": "Your name, texts and logo, edited in place, then published. Also make pretend donations, project the screen, moderate: the workshop stays available after going live.",
-      "ouvrirEntrainement": "Open the workshop",
+      "sExercer": "Customize and practise in the sandbox",
+      "sExercerAide": "Your name, texts and logo, edited in place, then published. Also make pretend donations, project the screen, moderate: the sandbox stays available after going live.",
+      "ouvrirEntrainement": "Open the sandbox",
       "enLigne": "Go live",
       "enLigneAide": "Your stained glass then accepts real donations.",
       "enLigneAttente": "Possible once Stripe is ready and the legal details are filled in.",
@@ -1072,8 +1072,8 @@
       "enregistre": "Saved.",
       "erreur": "Something went wrong.",
       "nonEnregistre": "Unsaved changes",
-      "dansAtelier": "Here in the workshop, customize your stained glass directly on the page (“Edit” button). Legal details and emails are set in the organization’s console.",
-      "ouvrirAtelier": "Customize in the workshop",
+      "dansAtelier": "Here in the sandbox, customize your stained glass directly on the page (“Edit” button). Legal details and emails are set in the organization’s console.",
+      "ouvrirAtelier": "Customize in the sandbox",
       "neq": "NEQ or charity registration number",
       "neqExemple": "E.g.: 1234567890, or 123456789 RR 0001",
       "neqAide": "Optional, but recommended: it identifies the organization unambiguously.",
@@ -1098,24 +1098,24 @@
     "hero": {
       "beta": "Beta · invitation only",
       "titre": "Your community, finally visible.",
-      "texte": "Behind every donation there’s someone: a parent, a neighbour, a former volunteer, everyone who believes in what you do. With {brand}, they take their place in a stained-glass window that grows with every donation, with their name, their face and their words, if they wish. Your organization gains a place of its own, online and on the big screen, where people can see who it touches and why they care. And when you can see a community, you want to find your place in it.",
+      "texte": "Behind every donation there’s someone: a parent, a neighbour, a former volunteer, everyone who believes in what you do. With {brand}, they take their place in your stained glass, which grows with every donation, with their name, their face and their words, if they wish. Your organization gains a place of its own, online and on the big screen, where people can see who it touches and why they care. And when you can see a community, you want to find your place in it.",
       "demander": "Request an invitation",
       "voir": "See how it works",
       "pour": "For non-profits, schools, cultural venues and causes in Québec. In French and English.",
-      "illustration": "A stained-glass window made of coloured pieces; a new piece is added every few seconds",
+      "illustration": "Stained glass made of coloured pieces; a new piece is added every few seconds",
       "direct": "A new donation, a new piece, live",
       "essayer": "Try the demo",
-      "demoLegende": "{org} · demo stained-glass window",
+      "demoLegende": "{org} · demo stained glass",
       "demoExplorer": "Explore the demo →",
-      "demoOuvrir": "Open the {org} demo stained-glass window",
+      "demoOuvrir": "Open the {org} demo stained glass",
       "demoEcran": "{org} demo projection screen"
     },
     "essai": {
       "titre": "Try it",
       "intro": "{org} is a fictional organization: 200 made-up donors, their words and their pieces of glass. Everything works just as it will for you, and you can add your own piece, without paying anything.",
-      "vitrailTitre": "The stained-glass window",
+      "vitrailTitre": "The stained glass",
       "vitrailTexte": "What your community sees on their phones: tap a piece to find out who gave and why, search for a name, add your own.",
-      "vitrailBouton": "Open the window",
+      "vitrailBouton": "Open the stained glass",
       "ecranTitre": "The projection screen",
       "ecranTexte": "What plays on the big screen during your events: pieces come up one by one, with the QR code to give on the spot. Full screen: press F.",
       "ecranFr": "French screen",
@@ -1123,7 +1123,7 @@
     },
     "comment": {
       "titre": "How it works",
-      "e1Titre": "Create your stained-glass window",
+      "e1Titre": "Create your stained glass",
       "e1": "Your name, your logo, your words and a web address of your own. Connect your Stripe account to receive donations: no technical skills needed.",
       "e2Titre": "Invite people to give",
       "e2": "Share the link, print QR codes for your venues and show the stained glass on a big screen during your event.",
@@ -1147,7 +1147,7 @@
       "l3": "Cash donations added to the stained glass",
       "l4": "Where donations come from: which QR code, which link",
       "l5": "A team of volunteers with limited access",
-      "l6": "A workshop to customize your stained glass and train the team, risk-free",
+      "l6": "A sandbox to customize your stained glass and train the team, risk-free",
       "l7": "The list of donors who agree to receive your news"
     },
     "tarifs": {
@@ -1175,7 +1175,7 @@
       "direct": "The money goes straight to your Stripe account: it never passes through {brand}.",
       "gratuitTitre": "Always free",
       "gratuitTexte": "Exporting your data, donors’ right to remove their content, refunds, moderation. If a donation is refunded, our commission is returned to you pro rata.",
-      "bientot": "Coming soon: campaign windows ({taux} per donation, up to {campagne} per campaign) and {brand} Pro ({pro} per year)."
+      "bientot": "Coming soon: stained glass for campaigns ({taux} per donation, up to {campagne} per campaign) and {brand} Pro ({pro} per year)."
     },
     "garanties": {
       "quebecTitre": "Made in Québec",
@@ -1190,20 +1190,20 @@
     "faq": {
       "titre": "Questions",
       "q1": "Do we need a Stripe account already?",
-      "r1": "No. You create it from your console in a few steps guided by Stripe. In the meantime, you can customize your stained glass and practise in the workshop.",
+      "r1": "No. You create it from your console in a few steps guided by Stripe. In the meantime, you can customize your stained glass and practise in the sandbox.",
       "q2": "What about donors who’d rather keep a low profile?",
       "r2": "No one has to be seen. Each person chooses to display their name or stay anonymous, to add a message and a photo or not, and can remove everything at any time. An anonymous donation still gets its piece: it’s part of the community too.",
       "q3": "Do we need to hold an event?",
       "r3": "No. The stained glass is online at all times. The projection screen is a bonus for your evening events and exhibitions.",
       "q4": "Who decides what is shown?",
-      "r4": "You do. You can approve each photo and message before it appears, and hide a piece in one tap.",
+      "r4": "You do. You can approve each photo and testimonial before it appears, and hide a piece in one tap.",
       "q5": "What about official tax receipts?",
       "r5": "Donors get a payment receipt by email. Official tax receipts are still issued by your organization, if it is a registered charity.",
       "q6": "Why invitation only?",
       "r6": "{brand} is in beta. We personally support the first organizations before opening sign-up to everyone."
     },
     "demande": {
-      "titre": "Want a stained-glass window for your organization?",
+      "titre": "Would your organization like its own stained glass?",
       "intro": "Tell us who you are. We’ll reply personally, with your invitation.",
       "deja": "Already invited? Follow the link you received by email.",
       "organisme": "Organization",
@@ -1294,7 +1294,7 @@
       "accepte": "I have read and accept the terms of use on behalf of {org}, and I am authorized to do so.",
       "creer": "Create my stained glass",
       "creation": "Creating…",
-      "note": "Your stained glass opens when you put it live. Until then, customize it and practise in the workshop."
+      "note": "Your stained glass opens when you put it live. Until then, customize it and practise in the sandbox."
     },
     "continuer": "Continue",
     "erreurs": {
@@ -1326,7 +1326,7 @@
     "consent": "{org} may quote my testimonial in its communications (website, social media, annual report)."
   },
   "atelier": {
-    "titre": "Workshop",
+    "titre": "Sandbox",
     "console": "Dashboard",
     "modifier": "Edit",
     "terminer": "Done",
@@ -1342,15 +1342,15 @@
     "erreur": "Something went wrong.",
     "fermer": "Close",
     "compris": "Got it",
-    "introTitre": "Welcome to the workshop",
-    "intro1": "The workshop is a copy of your stained glass, for your team only: make pretend donations, project the screen, try moderation. Nothing here is real.",
+    "introTitre": "Welcome to the sandbox",
+    "intro1": "The sandbox is a copy of your stained glass, for your team only: make pretend donations, project the screen, try moderation. Nothing here is real.",
     "intro2": "It is also where you customize your stained glass: with “Edit”, click a text, the logo or the icon outlined in dashes. You see the result right away, in place.",
-    "intro3": "Your changes stay in the workshop until you click “Publish”: they then go to your real stained glass.",
+    "intro3": "Your changes stay in the sandbox until you click “Publish”: they then go to your real stained glass.",
     "modifierChamp": "Edit: {champ}",
     "francais": "French",
     "anglais": "English",
     "videNeutre": "Empty: the platform’s neutral text",
-    "brouillonNote": "Saved in the workshop. Visible on your real stained glass once published.",
+    "brouillonNote": "Saved in the sandbox. Visible on your real stained glass once published.",
     "rempli": "Written",
     "neutre": "Neutral text",
     "languesAide": "The languages of your pages and of your emails to donors. With a single language, the language button disappears.",
@@ -1394,7 +1394,7 @@
     },
     "textes": "Texts",
     "annulerCourt": "Discard",
-    "moderationTitre": "In the workshop, you are the team.",
+    "moderationTitre": "In the sandbox, you are the team.",
     "moderationTexte": "Moderation is on: this donation awaits your approval before it appears. Approve it in the console; the stained glass will update by itself.",
     "modererMaintenant": "Moderate now",
     "aModerer": "{count, plural, one {# to moderate} other {# to moderate}}"
@@ -1450,7 +1450,7 @@
     }
   },
   "demoJuridique": {
-    "titre": "A demonstration stained glass",
+    "titre": "Demonstration stained glass",
     "texte": "{org} is a fictional organization. This stained glass shows what {brand} looks like: its donors, testimonials and donations are made up, you can’t donate here, and it collects no personal information. No privacy policy or terms of use apply to it.",
     "contact": "{brand} is designed and operated by {studio}. Questions: <courriel>{email}</courriel>."
   },
@@ -1549,7 +1549,7 @@
         {
           "titre": "11. If you are a donor",
           "blocs": [
-            "If you gave through a {brand} stained glass, the organization behind it is responsible for your information and its policy applies; it is linked at the bottom of its stained glass. {studio} processes the information on its behalf, under a contract that requires it to use the information only to run the stained glass, to protect it, and to destroy or return it when the service ends.",
+            "If you gave through stained glass on {brand}, the organization behind it is responsible for your information and its policy applies; it is linked at the bottom of its stained glass. {studio} processes the information on its behalf, under a contract that requires it to use the information only to run the stained glass, to protect it, and to destroy or return it when the service ends.",
             "You may also write to us at {email}: we will forward your request to the organization."
           ]
         },
@@ -1587,7 +1587,7 @@
         {
           "titre": "2. The service",
           "blocs": [
-            "{brand} lets the organization receive donations online, each becoming a piece of a stained glass shown on a public page and on a projection screen, and manage its campaign from a console.",
+            "{brand} lets the organization receive donations online, each becoming a piece of stained glass shown on a public page and on a projection screen, and manage its campaign from a console.",
             "The service is a beta, offered by invitation. It evolves: we may add, change or remove features. We give the organization advance notice of any change that significantly reduces what it uses."
           ]
         },
