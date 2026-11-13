@@ -8,6 +8,7 @@ import { useMoney } from '@/lib/useI18n'
 import type { ConsoleData } from './types'
 import { one } from './types'
 import type { Tab } from './Console'
+import type { Screen } from './Plus'
 import { Icon, RED, GREEN, Section, useAgo, useDay } from './ui'
 
 interface Todo {
@@ -29,7 +30,7 @@ export default function Accueil({
   open,
 }: {
   data: ConsoleData
-  setTab: (t: Tab) => void
+  setTab: (t: Tab, screen?: Screen | null) => void
   openDonor: (id: string) => void
   openCash: () => void
   open: (action: string, sameTab?: boolean) => Promise<void>
@@ -223,7 +224,7 @@ export default function Accueil({
 }
 
 /** Organisme en brouillon : les étapes avant la mise en ligne (le propriétaire seul peut connecter Stripe et mettre en ligne). */
-function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void>; setTab: (t: Tab) => void }) {
+function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void>; setTab: (t: Tab, screen?: Screen | null) => void }) {
   const t = useTranslations('console.demarrage')
   const owner = data.me.role === 'owner'
   const ready = data.stripe.ready
@@ -271,7 +272,7 @@ function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: s
               <span className="muted block text-[13px]">{missing === 0 ? t('monVitrailOk') : t('monVitrailAide', { count: missing })}</span>
             </span>
             {owner && (
-              <button className="btn btn-ghost" onClick={() => setTab('plus')}>
+              <button className="btn btn-ghost" onClick={() => setTab('plus', 'juridique')}>
                 {t('ouvrirMonVitrail')}
               </button>
             )}

@@ -81,7 +81,18 @@ const UNIQUE: Record<string, string[]> = {
   invitations: ['token_hash'],
   organization_slugs: ['slug'],
 }
+/** Fonctions SQL simulées (db.rpc) : le test en installe une ; la vraie est éprouvée en SQL. */
+export const rpcs: Record<string, (args: Record<string, unknown>) => unknown> = {}
 export const fakeDb = {
+  async rpc(name: string, args: Record<string, unknown>) {
+    const fn = rpcs[name]
+    if (!fn) return { data: null, error: { code: 'PGRST202', message: `Could not find the function public.${name}` } }
+    try {
+      return { data: fn(args), error: null }
+    } catch (e) {
+      return { data: null, error: e as { code?: string; message: string } }
+    }
+  },
   from(table: string) {
     const q = new Query(table)
     // le code appelle .single() après insert().select() : on l'expose
@@ -89,4 +100,4 @@ export const fakeDb = {
     return q
   },
 }
-export const reset = () => { for (const k of Object.keys(tables)) delete tables[k]; calls.length = 0 }
+export const reset = () => { for (const k of Object.keys(tables)) delete tables[k]; for (const k of Object.keys(rpcs)) delete rpcs[k]; calls.length = 0 }

@@ -8,28 +8,30 @@ import Accueil from './Accueil'
 import Dons from './Dons'
 import Moderation from './Moderation'
 import Diffuser from './Diffuser'
-import Plus from './Plus'
+import Plus, { SCREENS, needsAttention, type Screen } from './Plus'
 import LanguageSwitch from '@/components/LanguageSwitch'
 
 export type Tab = 'accueil' | 'dons' | 'moderation' | 'diffuser' | 'plus'
 const TABS: Tab[] = ['accueil', 'dons', 'moderation', 'diffuser', 'plus']
 
-// Console de l'organisme, rangée par tâche (Accueil, Dons, Modération, Diffuser, Plus). Pensée pour le téléphone :
-// barre d'onglets en bas sur petit écran, en haut sur grand écran. Le bénévole n'a pas « Plus » (Mon vitrail, Réglages).
-// L'onglet est dans l'adresse (#dons) : un lien ou un retour arrière ramène au même endroit.
+// Console de l'organisme, rangée par tâche (Accueil, Dons, Modération, Diffuser, Réglages). Pensée pour le téléphone :
+// barre d'onglets en bas sur petit écran, en haut sur grand écran. Le bénévole n'a pas Réglages (identifiant « plus »).
+// L'onglet est dans l'adresse (#dons, #plus/juridique) : un lien ou un retour arrière ramène au même endroit.
 export default function Console() {
   const t = useTranslations('console')
   const c = useConsole()
   const { data } = c
   const owner = data?.me.role === 'owner'
   const [tab, setTabState] = useState<Tab>('accueil')
+  const [screen, setScreen] = useState<Screen | null>(null)
   const [donorId, setDonorId] = useState<string | null>(null)
   const [cashOpen, setCashOpen] = useState(false)
 
   useEffect(() => {
     const read = () => {
-      const h = window.location.hash.slice(1) as Tab
+      const [h, sub] = window.location.hash.slice(1).split('/') as [Tab, Screen | undefined]
       setTabState(TABS.includes(h) ? h : 'accueil')
+      setScreen(h === 'plus' && sub && SCREENS.includes(sub) ? sub : null)
     }
     const first = setTimeout(read, 0)
     window.addEventListener('hashchange', read)
@@ -40,9 +42,10 @@ export default function Console() {
       window.removeEventListener('popstate', read)
     }
   }, [])
-  const setTab = (next: Tab) => {
-    window.history.pushState(null, '', next === 'accueil' ? window.location.pathname : `#${next}`)
+  const setTab = (next: Tab, sub: Screen | null = null) => {
+    window.history.pushState(null, '', next === 'accueil' ? window.location.pathname : `#${next}${next === 'plus' && sub ? `/${sub}` : ''}`)
     setTabState(next)
+    setScreen(next === 'plus' ? sub : null)
     window.scrollTo({ top: 0 })
   }
 
@@ -57,7 +60,8 @@ export default function Console() {
 
   const visible = TABS.filter(x => x !== 'plus' || owner)
   const label: Record<Tab, string> = { accueil: t('onglets.accueil'), dons: t('onglets.dons'), moderation: t('onglets.moderation'), diffuser: t('onglets.diffuser'), plus: t('onglets.plus') }
-  const icon: Record<Tab, 'accueil' | 'dons' | 'moderation' | 'diffuser' | 'plus'> = { accueil: 'accueil', dons: 'dons', moderation: 'moderation', diffuser: 'diffuser', plus: 'plus' }
+  const icon: Record<Tab, string> = { accueil: 'accueil', dons: 'dons', moderation: 'moderation', diffuser: 'diffuser', plus: 'reglages' }
+  const attention = !!data && owner && needsAttention(data)
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-5 md:pb-12">
@@ -105,6 +109,7 @@ export default function Console() {
           >
             <Icon name={icon[x]} />
             {label[x]}
+            {x === 'plus' && attention && <span aria-hidden="true" className="absolute left-[calc(50%+8px)] top-2.5 h-2 w-2 rounded-full md:static md:ml-0.5" style={{ background: 'var(--accent)' }} />}
             {x === 'moderation' && pending > 0 && (
               <span
                 aria-label={t('enAttente', { count: pending })}
@@ -131,7 +136,7 @@ export default function Console() {
         {data && tab === 'dons' && <Dons data={data} act={c.act} donorId={donorId} setDonorId={setDonorId} cashOpen={cashOpen} setCashOpen={setCashOpen} />}
         {data && tab === 'moderation' && <Moderation data={data} act={c.act} notify={c.notifyDonor} setNotify={c.setNotifyDonor} />}
         {data && tab === 'diffuser' && <Diffuser data={data} />}
-        {data && tab === 'plus' && owner && <Plus data={data} act={c.act} open={c.open} />}
+        {data && tab === 'plus' && owner && <Plus data={data} act={c.act} open={c.open} onError={text => c.setToast({ ok: false, text })} screen={screen} go={s => setTab('plus', s)} />}
       </main>
     </div>
   )

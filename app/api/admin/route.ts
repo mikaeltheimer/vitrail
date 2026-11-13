@@ -23,6 +23,8 @@ import { err, failer, internalError, money } from '@/lib/errors'
 import { notifyModeration } from '@/lib/moderation'
 import type { ModerationEvent } from '@/lib/email'
 import { localeOf } from '@/lib/i18n'
+import { addressInfo, changeAddress, checkAddress } from '@/lib/org-address'
+import { platformDomain } from '@/lib/hosts'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -83,8 +85,10 @@ export async function GET(request: NextRequest) {
   }
   const vitrailTotals = new Map((vitrailTotalsRes.data ?? []).map(x => [x.vitrail_id as string, x]))
 
-  const [team, orgs, mailingRows, logRows] = await Promise.all([
+  const [team, address, orgs, mailingRows, logRows] = await Promise.all([
     t.role === 'owner' ? teamOf(orgId) : Promise.resolve(null),
+    // Adresse du vitrail (Plus) : propriétaire de l'organisme réel seulement
+    t.role === 'owner' && !t.tenant.org.practiceOf && !t.tenant.org.showcase ? addressInfo(orgId) : Promise.resolve(null),
     organizationsOf(t.account.id, request),
     fetchWhere<{ id: string; mailing_consent_at: string | null; mailing_withdrawn_at: string | null }>('donors', 'id,mailing_consent_at,mailing_withdrawn_at', 'organization_id', orgId, 'id').catch(() => []),
     (await hasEmailLog())
@@ -127,10 +131,14 @@ export async function GET(request: NextRequest) {
       goalCents: perm.kind === 'campaign' && perm.goalCents > 0 ? perm.goalCents : null,
     },
     bounces,
+    // Dons de démonstration encore présents (Réglages › Données : la ligne n'apparaît que s'il y en a)
+    demoDonations: allDonations.filter(d => d.source === 'demo').length,
     mailingCount: (mailingRows as { mailing_consent_at: string | null; mailing_withdrawn_at: string | null }[]).filter(d => d.mailing_consent_at && !d.mailing_withdrawn_at).length,
     me: { name: t.account.name, email: t.account.email, role: t.role, accountId: t.account.id },
     orgs: orgs.filter(o => o.id !== orgId),
     team,
+    // Le domaine affiché après l'adresse : celui de la plateforme, sinon (prévisualisation) l'hôte de la requête
+    address: address ? { ...address, domain: platformDomain() || (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim().replace(/:\d+$/, '') } : null,
     mode: paymentModeFor(t.tenant.org),
     stripe: { accountId: t.tenant.org.stripeAccountId, ready: t.tenant.org.stripeReady },
     photoModeration: moderation,
@@ -168,9 +176,10 @@ export async function GET(request: NextRequest) {
 const OWNER_ONLY = new Set([
   'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
   'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail', 'goLive', 'eraseDonor',
+  'checkAddress', 'changeAddress',
 ])
 // Ce qui n'a pas de sens dans l'entraînement : l'argent réel, Stripe, l'équipe (c'est celle de l'organisme réel)
-const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive'])
+const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive', 'checkAddress', 'changeAddress'])
 
 /** Le vitrail de l'atelier, ouvert en mode Modifier. */
 async function atelierUrl(org: { id: string; slug: string; practiceOf: string | null }, request: NextRequest): Promise<string | null> {
@@ -499,6 +508,23 @@ export async function POST(request: NextRequest) {
     case 'revokeInvitation': {
       await revokeInvitation(orgId, str(b.invitationId))
       return NextResponse.json({ ok: true })
+    }
+
+    // Adresse du vitrail : vérification pendant la saisie, puis changement (règles dans lib/org-address.ts)
+    case 'checkAddress': {
+      if (t.tenant.org.showcase) return fail('impossibleIci')
+      return NextResponse.json({ state: await checkAddress(orgId, b.slug) })
+    }
+
+    case 'changeAddress': {
+      if (t.tenant.org.showcase) return fail('impossibleIci')
+      const r = await changeAddress(orgId, b.slug)
+      if (!r.ok) {
+        const key = ({ forme: 'adresseVitrailForme', reserve: 'adresseVitrailReservee', pris: 'adresseVitrailPrise', meme: 'adresseVitrailMeme', limite: 'adresseVitrailLimite', impossible: 'impossibleIci' } as const)[r.error]
+        return fail(key)
+      }
+      // La console continue à la nouvelle adresse (la session vaut pour toute la plateforme)
+      return NextResponse.json({ ok: true, slug: r.slug, url: orgUrl(r.slug, '/admin', request) })
     }
 
     // Il n'y a plus d'« événement en cours » : le vitrail permanent est toujours celui de l'organisme

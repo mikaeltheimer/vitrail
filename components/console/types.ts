@@ -44,6 +44,8 @@ export interface DonationRow {
 }
 
 export interface ConsoleData {
+  /** Adresse du vitrail (Plus) : propriétaire de l'organisme réel seulement, sinon null. */
+  address?: { current: string; draft: boolean; changesLeft: number | null; max: number; previous: string[]; domain: string } | null
   org: { name: string; slug: string; status: 'draft' | 'live' | 'suspended'; practice: boolean }
   /** Console de l'autre côté : l'entraînement depuis l'organisme réel, et inversement. */
   switchUrl: string | null
@@ -68,6 +70,8 @@ export interface ConsoleData {
   reports: { id: number; donor_id: string; reason: string | null; created_at: string }[]
   disputes: { id: string; amount_cents: number; fee_cents: number | null; dispute_due_by: string | null; created_at: string }[]
   bounces: { donorId: string; email: string; status: string; at: string }[]
+  /** Dons de démonstration encore présents. */
+  demoDonations?: number
   mailingCount: number
   channels: { channel: string; visits: number; donations: number; totalCents: number }[]
   donors: DonorRow[]
