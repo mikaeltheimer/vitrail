@@ -10,7 +10,7 @@ import type { Funnel, PlatformTotals, Stage, StudioOrg, TodoItem } from '@/lib/s
 // une fiche par organisme ; les chiffres de la plateforme dans leur onglet. Des TOTAUX, jamais des personnes.
 // Plus tard : passer à la piste A (tableau, une ligne par organisme) au-delà d'environ 8 organismes en ligne.
 
-type Org = StudioOrg & { links: { vitrail: string; ecran: string; affiche: string; image: string } | null }
+type Org = StudioOrg & { links: { vitrail: string; ecran: string; affiche: string } | null }
 interface Data {
   me: { email: string; name: string }
   requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; source: string | null; created_at: string }[]
@@ -425,26 +425,7 @@ function OrgSheet({ o, windowDays, onClose }: { o: Org; windowDays: number; onCl
   const s = o.stats
   const status = o.stage === 'en-ligne' ? `En ligne depuis le ${day(o.wentLiveAt ?? o.createdAt)}` : o.stage === 'pret' ? 'Brouillon, prêt à lancer' : o.stage === 'suspendu' ? 'Suspendu' : `Brouillon : il manque ${missing(o.blockers)}`
   return (
-    <section id="fiche" className="card grid scroll-mt-6 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]" aria-label={`Fiche de ${o.name}`} style={{ borderColor: STAGE_COLOR[o.stage] }}>
-      <div className="space-y-3">
-        {o.links && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={o.links.image}
-            alt={`Image de partage du vitrail de ${o.name}`}
-            className="w-full rounded-xl"
-            style={{ aspectRatio: '1200 / 630', background: 'var(--bg)' }}
-            onError={e => { e.currentTarget.style.visibility = 'hidden' }}
-          />
-        )}
-        {o.links && (
-          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <a className="underline" href={o.links.vitrail} target="_blank" rel="noreferrer">Vitrail</a>
-            <a className="underline" href={o.links.ecran} target="_blank" rel="noreferrer">Écran</a>
-            <a className="underline" href={o.links.affiche} target="_blank" rel="noreferrer">Affiche</a>
-          </p>
-        )}
-      </div>
+    <section id="fiche" className="card scroll-mt-6" aria-label={`Fiche de ${o.name}`} style={{ borderColor: STAGE_COLOR[o.stage] }}>
       <div className="min-w-0 space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -452,6 +433,13 @@ function OrgSheet({ o, windowDays, onClose }: { o: Org; windowDays: number; onCl
             <p className="muted text-sm">
               {o.slug} · <span style={{ color: STAGE_COLOR[o.stage] }}>{status}</span> · inscrit le {day(o.createdAt)}
             </p>
+            {o.links && (
+              <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm">
+                <a className="underline" href={o.links.vitrail} target="_blank" rel="noreferrer">Vitrail</a>
+                <a className="underline" href={o.links.ecran} target="_blank" rel="noreferrer">Écran</a>
+                <a className="underline" href={o.links.affiche} target="_blank" rel="noreferrer">Affiche</a>
+              </p>
+            )}
           </div>
           <button className="muted underline" onClick={onClose}>Fermer</button>
         </div>

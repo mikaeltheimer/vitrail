@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const org = toStudioOrg(o, slug, stats.data?.get(o.id as string))
     return {
       ...org,
-      links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request), image: orgUrl(slug, '/api/og', request) } : null,
+      links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request) } : null,
     }
   })
   const since = now - WINDOW_DAYS * 86_400_000
