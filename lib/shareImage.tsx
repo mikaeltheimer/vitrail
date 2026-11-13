@@ -116,7 +116,7 @@ export interface PlatformShare {
 const HEADERS = { 'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=3600' }
 
 export async function shareImage(p: OrgShare | PlatformShare): Promise<ImageResponse> {
-  const [fontList, small, full] = await Promise.all([fonts(), brandFile('donivers-logo-creme-petit.svg'), brandFile('donivers-logo-creme.svg')])
+  const [fontList, logo] = await Promise.all([fonts(), brandFile('donivers-logo-creme.svg')])
   const disc = await Disc({ pieces: p.pieces, size: 470, waitingFor: p.kind === 'org' ? p.name : null })
   const column = { position: 'absolute' as const, left: 72, top: 64, bottom: 60, width: 520, display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between' }
 
@@ -131,12 +131,12 @@ export async function shareImage(p: OrgShare | PlatformShare): Promise<ImageResp
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(244,239,230,0.6)', fontSize: 20 }}>
           <span>{p.poweredBy}</span>
-          {small && <img src={small.src} height={28} width={Math.round(28 * small.ratio)} alt="" />}
+          {logo && <img src={logo.src} height={28} width={Math.round(28 * logo.ratio)} alt="" />}
         </div>
       </div>
     ) : (
       <div style={column}>
-        {full ? <img src={full.src} height={64} width={Math.round(64 * full.ratio)} alt="" /> : <div style={{ fontFamily: 'Fraunces', fontSize: 48 }}>donivers</div>}
+        {logo ? <img src={logo.src} height={64} width={Math.round(64 * logo.ratio)} alt="" /> : <div style={{ fontFamily: 'Fraunces', fontSize: 48 }}>donivers</div>}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontFamily: 'Fraunces', fontSize: 70, lineHeight: 1.04 }}>{p.titre}</div>
           <div style={{ fontSize: 28, color: 'rgba(244,239,230,0.78)', marginTop: 22, lineHeight: 1.3 }}>{p.descriptor}</div>
