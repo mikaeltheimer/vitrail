@@ -1,8 +1,10 @@
 # Génère le logo de Donivers (fichiers SVG et PNG dans public/brand/).
 #
-# Symbole : un disque de verre découpé comme le vrai vitrail (coupes droites en T, jamais vers le centre : il ne doit
-# pas ressembler à un camembert), dans les cinq verres de la palette et la lueur, plomb nuit. Version « petite »
-# (4 pièces, plomb épais) pour 32 px et moins. Découpage déterministe : graine 7 (« équilibré », choisi le 9 nov. 2026).
+# Symbole « B » (choisi le 13 nov. 2026) : un disque de verre découpé comme le vrai vitrail (coupes droites en T, jamais
+# vers le centre : il ne doit pas ressembler à un camembert) en 5 pièces, une par verre (violet, jade, ambre, ciel, rose),
+# plomb nuit fin (2 sur 100, anneau 2,6), chaque pièce éclairée comme le vitrail (fond profond, cœur lumineux : mêmes
+# formules que glowPalette et glow() dans lib/glass.ts). Un seul symbole à toutes les tailles (lisible de 24 à 160 px).
+# Découpage déterministe : graine 3.
 # Mot : « donivers » en Fraunces vectorisée (opsz 144, wght 520, SOFT 100, WONK 0) ; un éclat d'ambre remplace le point
 # du i, à la place et à l'écart exacts du point d'origine (détaché de la lettre).
 #
@@ -10,7 +12,7 @@
 #   npm i --prefix /tmp/fraunces @fontsource-variable/fraunces
 #   pip install fonttools brotli cairosvg
 # Usage : python3 scripts/logo.py /tmp/fraunces/node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2
-import math, random, sys, pathlib
+import colorsys, math, random, sys, pathlib
 import cairosvg
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
@@ -48,16 +50,53 @@ def gen(seed, n):
         else: pcs.append(p)
     return pcs
 def adj(a, b): return sum(1 for p in a for q in b if abs(p[0] - q[0]) + abs(p[1] - q[1]) < 0.6) >= 2
-def pieces(n, names=('violet', 'jade', 'ambre', 'ciel', 'rose', 'ambre')):
-    pcs = gen(7, n); idx = sorted(range(n), key=lambda k: area(pcs[k]))
-    col = {idx[0]: 'glow'}
-    for c, k in zip(names, reversed(idx[1:])): col[k] = c
-    assert not [(i, j) for i in range(n) for j in range(i + 1, n) if col[i] == col[j] and adj(pcs[i], pcs[j])], 'deux verres pareils se touchent'
-    return [(GL[col[k]], ' '.join(f'{x:.2f},{y:.2f}' for x, y in p)) for k, p in enumerate(pcs)]
-FULL, SMALL = pieces(7), pieces(4)
-def symbol(parts, lead, ring, mono=None):
-    b = ''.join(f'<polygon points="{p}" fill="{mono or c}" stroke="{NIGHT if not mono else "none"}" stroke-width="{lead}" stroke-linejoin="round"/>' for c, p in parts)
-    return b + f'<circle cx="50" cy="50" r="{47 - ring / 2 + 0.5:.2f}" fill="none" stroke="{NIGHT}" stroke-width="{ring}"/>'
+def hsl_of(hexc):
+    r, g, b = [int(hexc[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    return h * 360, s * 100, l * 100
+def hex_of(h, s, l):
+    r, g, b = colorsys.hls_to_rgb(h / 360, max(0, min(100, l)) / 100, s / 100)
+    return '#%02x%02x%02x' % (round(r * 255), round(g * 255), round(b * 255))
+def inscribed(p):
+    # centre et rayon du plus grand cercle inscrit (grille 41 × 41), comme labelCenter
+    xs, ys = [q[0] for q in p], [q[1] for q in p]
+    def inside(x, y):
+        c = False
+        for i in range(len(p)):
+            a, b = p[i], p[i - 1]
+            if (a[1] > y) != (b[1] > y) and x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]: c = not c
+        return c
+    def dseg(x, y, a, b):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        t = max(0, min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy + 1e-9)))
+        return math.hypot(x - a[0] - t * dx, y - a[1] - t * dy)
+    best = (0, cen(p))
+    for i in range(41):
+        for j in range(41):
+            x = min(xs) + (max(xs) - min(xs)) * i / 40; y = min(ys) + (max(ys) - min(ys)) * j / 40
+            if inside(x, y):
+                d = min(dseg(x, y, p[k], p[k - 1]) for k in range(len(p)))
+                if d > best[0]: best = (d, (x, y))
+    return best
+PIECES = gen(3, 5)
+_idx = sorted(range(5), key=lambda k: area(PIECES[k]))
+COLORS = {k: c for c, k in zip(('violet', 'jade', 'ambre', 'ciel', 'rose'), reversed(_idx))}  # la plus grande violette, la plus petite rose
+assert not [(i, j) for i in range(5) for j in range(i + 1, 5) if COLORS[i] == COLORS[j] and adj(PIECES[i], PIECES[j])], 'deux verres pareils se touchent'
+def symbol(lead=2, ring=2.6, uid='g', mono=False):
+    # uid : préfixe des dégradés, différent pour chaque symbole d'un même document
+    defs, body = '', ''
+    for k, p in enumerate(PIECES):
+        pts = ' '.join(f'{x:.2f},{y:.2f}' for x, y in p)
+        lead_line = f'<polygon points="{pts}" fill="none" stroke="{NIGHT}" stroke-width="{lead}" stroke-linejoin="round"/>'
+        if mono:
+            body += lead_line
+            continue
+        h, s, l = hsl_of(GL[COLORS[k]]); ir, (cx, cy) = inscribed(p); r = max(ir * 1.6, math.sqrt(area(p) / math.pi) * 0.8)
+        defs += (f'<radialGradient id="{uid}{k}" gradientUnits="userSpaceOnUse" cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}">'
+                 f'<stop offset="0" stop-color="{hex_of(h, s, min(88, l + 16))}"/><stop offset="0.55" stop-color="{hex_of(h, s, max(18, l))}"/>'
+                 f'<stop offset="1" stop-color="{hex_of(h, s, max(14, l * 0.62))}"/></radialGradient>')
+        body += f'<polygon points="{pts}" fill="url(#{uid}{k})"/>' + lead_line
+    return (f'<defs>{defs}</defs>' if defs else '') + body + f'<circle cx="50" cy="50" r="{47 - ring / 2 + 0.5:.2f}" fill="none" stroke="{NIGHT}" stroke-width="{ring}"/>'
 
 # ── Mot ─────────────────────────────────────────────────────────────────────────
 f = instantiateVariableFont(TTFont(sys.argv[1]), AXES); gs = f.getGlyphSet(); cmap = f.getBestCmap(); UPM = f['head'].unitsPerEm
@@ -89,25 +128,23 @@ def svgdoc(w, h, body, vb):
 
 OUT.mkdir(parents=True, exist_ok=True)
 files = {}
-files['donivers-symbole.svg'] = svgdoc(100, 100, symbol(FULL, 3.4, 4.2), '0 0 100 100')
-files['donivers-symbole-petit.svg'] = svgdoc(100, 100, symbol(SMALL, 7, 8), '0 0 100 100')
-files['donivers-symbole-mono-creme.svg'] = svgdoc(100, 100, f'<circle cx="50" cy="50" r="47" fill="{CREAM}"/>' + ''.join(f'<polygon points="{p}" fill="none" stroke="{NIGHT}" stroke-width="3.4" stroke-linejoin="round"/>' for _, p in FULL) + f'<circle cx="50" cy="50" r="45.4" fill="none" stroke="{NIGHT}" stroke-width="4.2"/>', '0 0 100 100')
+files['donivers-symbole.svg'] = svgdoc(100, 100, symbol(uid='s'), '0 0 100 100')
+# Une couleur : plomb un peu plus épais, pour qu'il se lise sans couleur
+files['donivers-symbole-mono-creme.svg'] = svgdoc(100, 100, f'<circle cx="50" cy="50" r="47" fill="{CREAM}"/>' + symbol(lead=2.6, ring=3, mono=True), '0 0 100 100')
 pad = 20; H = TOP - DESC
 for name, col in [('creme', CREAM), ('encre', INK)]:
     files[f'donivers-mot-{name}.svg'] = svgdoc(round(WW / 10), round((H + 2 * pad) / 10), f'<g transform="translate(0,{TOP + pad:.1f})">{word(col)}</g>', f'0 0 {WW:.0f} {H + 2 * pad:.0f}')
     # Logo horizontal : symbole d'un diamètre de 1,3 fois la hauteur du d, centré un peu sous le milieu du d
     D = ASC * 1.3; gap = D * 0.26; cy = -ASC * 0.47
     top = min(cy - D / 2, -TOP); bottom = max(cy + D / 2, -DESC); Hh = bottom - top + 2 * pad; base = pad - top
-    # Deux versions : symbole complet (au-delà de 40 px de haut), petit symbole (en-têtes, courriels)
-    for suffix, parts, lead, ring in [('', FULL, 3.4, 4.2), ('-petit', SMALL, 7, 8)]:
-        sym = f'<g transform="translate(0,{base + cy - D / 2:.1f}) scale({D / 100:.3f})">{symbol(parts, lead, ring)}</g>'
-        files[f'donivers-logo-{name}{suffix}.svg'] = svgdoc(round((D + gap + WW) / 10), round(Hh / 10), sym + f'<g transform="translate({D + gap:.1f},{base:.1f})">{word(col)}</g>', f'0 0 {D + gap + WW:.0f} {Hh:.0f}')
+    sym = f'<g transform="translate(0,{base + cy - D / 2:.1f}) scale({D / 100:.3f})">{symbol(uid="l")}</g>'
+    files[f'donivers-logo-{name}.svg'] = svgdoc(round((D + gap + WW) / 10), round(Hh / 10), sym + f'<g transform="translate({D + gap:.1f},{base:.1f})">{word(col)}</g>', f'0 0 {D + gap + WW:.0f} {Hh:.0f}')
+for old in ('donivers-symbole-petit.svg', 'donivers-logo-creme-petit.svg', 'donivers-logo-encre-petit.svg'): (OUT / old).unlink(missing_ok=True)  # anciens petits symboles (4 pièces)
 for n, s in files.items(): (OUT / n).write_text(s)
-# Icônes (PNG) : favicon 32 (petit symbole), Android 192/512, iPhone 180 (fond nuit, marge)
-cairosvg.svg2png(bytestring=files['donivers-symbole-petit.svg'].encode(), write_to=str(OUT / 'icon-32.png'), output_width=32, output_height=32)
-for s in (192, 512): cairosvg.svg2png(bytestring=files['donivers-symbole.svg'].encode(), write_to=str(OUT / f'icon-{s}.png'), output_width=s, output_height=s)
-apple = svgdoc(180, 180, f'<rect width="100" height="100" fill="{NIGHT}"/><g transform="translate(12,12) scale(0.76)">{symbol(FULL, 3.4, 4.2)}</g>', '0 0 100 100')
+# Icônes (PNG) : favicon 32, Android 192/512, iPhone 180 (fond nuit, marge)
+for s in (32, 192, 512): cairosvg.svg2png(bytestring=files['donivers-symbole.svg'].encode(), write_to=str(OUT / f'icon-{s}.png'), output_width=s, output_height=s)
+apple = svgdoc(180, 180, f'<rect width="100" height="100" fill="{NIGHT}"/><g transform="translate(12,12) scale(0.76)">{symbol(uid='a')}</g>', '0 0 100 100')
 cairosvg.svg2png(bytestring=apple.encode(), write_to=str(OUT / 'apple-touch-icon.png'), output_width=180, output_height=180)
 # Courriel : logo horizontal crème en PNG (Gmail et Outlook bloquent le SVG), 2× la taille affichée (28 px de haut)
-cairosvg.svg2png(bytestring=files['donivers-logo-creme-petit.svg'].encode(), write_to=str(OUT / 'donivers-courriel.png'), output_height=112)
+cairosvg.svg2png(bytestring=files['donivers-logo-creme.svg'].encode(), write_to=str(OUT / 'donivers-courriel.png'), output_height=112)
 print('public/brand :', ', '.join(sorted(p.name for p in OUT.iterdir())))

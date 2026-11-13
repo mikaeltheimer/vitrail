@@ -50,10 +50,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description: t('meta.description', { org, slogan: brandFor(locale).slogan }),
     robots: { index: false },
-    // Icône d'onglet : celle de l'organisme s'il en a téléversé une, sinon celle de Donivers (petit symbole à 32 px)
+    // Icône d'onglet : celle de l'organisme s'il en a téléversé une, sinon le symbole de Donivers
     icons: identity?.iconUrl
       ? { icon: identity.iconUrl, apple: identity.iconUrl }
-      : { icon: [{ url: '/brand/donivers-symbole-petit.svg', type: 'image/svg+xml' }, { url: '/brand/icon-32.png', sizes: '32x32', type: 'image/png' }], apple: '/brand/apple-touch-icon.png' },
+      : { icon: [{ url: '/brand/donivers-symbole.svg', type: 'image/svg+xml' }, { url: '/brand/icon-32.png', sizes: '32x32', type: 'image/png' }], apple: '/brand/apple-touch-icon.png' },
     openGraph: { title, type: 'website', locale: INTL_TAG[locale].replace('-', '_'), images: [{ url: surface === 'platform' ? `/api/og?plateforme&lang=${locale}` : `/api/og?lang=${locale}`, width: 1200, height: 630, alt: title }] },
   }
 }

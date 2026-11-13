@@ -5,7 +5,7 @@ import { CONFIG } from '@/lib/config'
 import { useBrandHref } from '@/lib/useOrg'
 
 /**
- * Signature de la plateforme sur les pages d'un organisme : « propulsé par » + logo (petit symbole et mot).
+ * Signature de la plateforme sur les pages d'un organisme : « propulsé par » + logo (symbole et mot).
  * Règle : Donivers signe, l'organisme parle. Toujours plus petite que l'organisme, sous lui ou après lui, au même endroit
  * d'une page à l'autre ; jamais dans le contenu (témoignages, appel à donner, remerciements).
  *
@@ -36,7 +36,7 @@ export default function Signature({
     <>
       {!compact && <span style={{ fontSize: `max(11px, calc(${h} * 0.62))`, color: tone === 'dark' ? `rgba(26,23,32,${opacity})` : `rgba(244,239,230,${opacity})`, whiteSpace: 'nowrap' }}>{t('propulsePar')}</span>}
       {/* eslint-disable-next-line @next/next/no-img-element -- SVG statique (public/brand, scripts/logo.py) */}
-      <img src={tone === 'dark' ? '/brand/donivers-logo-encre-petit.svg' : '/brand/donivers-logo-creme-petit.svg'} alt={CONFIG.brand.name} style={{ height: h, width: 'auto', display: 'block', opacity: Math.min(1, opacity + 0.25) }} />
+      <img src={tone === 'dark' ? '/brand/donivers-logo-encre.svg' : '/brand/donivers-logo-creme.svg'} alt={CONFIG.brand.name} style={{ height: h, width: 'auto', display: 'block', opacity: Math.min(1, opacity + 0.25) }} />
     </>
   )
   const base: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: `calc(${h} * 0.35)`, lineHeight: 1, textDecoration: 'none', ...style }
