@@ -657,7 +657,7 @@
       "dons": "Dons",
       "moderation": "Modération",
       "diffuser": "Diffuser",
-      "plus": "Plus"
+      "plus": "Réglages"
     },
     "enAttente": "{count, plural, one {# élément en attente} other {# éléments en attente}}",
     "chargement": "Chargement…",
@@ -910,8 +910,6 @@
       "provenanceAide": "Les dons comptants et d’amorçage ne sont pas comptés ici."
     },
     "plus": {
-      "monVitrail": "Mon vitrail",
-      "paiements": "Paiements",
       "stripeEtat": "Compte Stripe :",
       "stripePret": "prêt à recevoir des dons",
       "stripeATerminer": "inscription à terminer",
@@ -924,7 +922,6 @@
       "tableauStripe": "Ouvrir le tableau de bord Stripe",
       "verifierStripe": "Vérifier l’état du compte",
       "stripeVerifie": "État du compte Stripe mis à jour.",
-      "donnees": "Dons de démonstration",
       "purgeAide": "Avant l’ouverture : supprime tous les dons faits en mode démo, et les morceaux qui n’ont plus aucun don.",
       "purge": "Supprimer les dons de démo",
       "purgeConfirmer": "Supprimer tous les dons de démonstration ? C’est définitif.",
@@ -936,7 +933,6 @@
       "viderOk": "Atelier vidé."
     },
     "equipe": {
-      "titre": "Équipe",
       "aide": "Le bénévole modère et ajoute des dons comptants. Le propriétaire peut aussi rembourser, gérer Stripe et l’équipe.",
       "retirer": "Retirer",
       "retirerConfirmer": "Retirer {email} de l’équipe ? Cette personne perd tout accès à cet organisme.",
@@ -949,6 +945,49 @@
       "langue": "Langue de l’invitation",
       "inviter": "Inviter",
       "envoyee": "Invitation envoyée à {email}."
+    },
+    "reglages": {
+      "retour": "Réglages",
+      "chargement": "Chargement…",
+      "groupes": {
+        "vitrail": "Mon vitrail",
+        "organisme": "Organisme",
+        "argent": "Argent",
+        "donnees": "Données"
+      },
+      "lignes": {
+        "atelier": "Personnaliser dans l’atelier",
+        "adresse": "Adresse et site web",
+        "juridique": "Coordonnées juridiques",
+        "equipe": "Équipe",
+        "courriels": "Courriels aux donateurs",
+        "paiements": "Paiements (Stripe)",
+        "demo": "Dons de démonstration"
+      },
+      "ecrans": {
+        "adresse": "Adresse et site web",
+        "juridique": "Coordonnées juridiques",
+        "equipe": "Équipe",
+        "courriels": "Courriels aux donateurs",
+        "paiements": "Paiements",
+        "demo": "Dons de démonstration"
+      },
+      "etats": {
+        "atelierEnAttente": "Des changements attendent d’être publiés",
+        "atelierPublie": "Publié le {date}",
+        "atelierPublieSansDate": "Publié",
+        "atelierJamais": "Nom, textes, logo et langues",
+        "juridiqueManque": "{count, plural, one {# manque avant la mise en ligne} other {# manquent avant la mise en ligne}}",
+        "juridiqueComplet": "Complètes",
+        "equipe": "{count, plural, one {# personne} other {# personnes}}",
+        "equipeInvitations": "{count, plural, one {# personne} other {# personnes}} · {invites, plural, one {# invitation en attente} other {# invitations en attente}}",
+        "courrielsRebonds": "{count, plural, one {# adresse en rebond} other {# adresses en rebond}}",
+        "courrielsExpediteur": "Expéditeur : {name}",
+        "stripePret": "Prêt à recevoir des dons",
+        "stripeATerminer": "Inscription à terminer",
+        "stripeNonConnecte": "Non connecté",
+        "demo": "{count, plural, one {# don à supprimer avant l’ouverture} other {# dons à supprimer avant l’ouverture}}"
+      }
     },
     "adresse": {
       "titre": "Adresse du vitrail",
@@ -1009,20 +1048,16 @@
       "ouvrirMonVitrail": "Remplir les coordonnées"
     },
     "monVitrail": {
-      "titre": "Mon vitrail",
       "ouvrirReel": "Ouvrir la console de l’organisme",
-      "chargement": "Chargement…",
       "manque": "{count, plural, one {# coordonnée juridique manque} other {# coordonnées juridiques manquent}} avant la mise en ligne.",
       "complet": "Tout ce qu’exige la mise en ligne est rempli.",
       "site": "Site web",
       "siteAide": "Facultatif. Lien affiché dans l’en-tête et le panneau « À propos ».",
-      "courriels": "Courriels aux donateurs",
       "courrielsAide": "Ils partent de l’adresse de la plateforme, avec le nom ci-dessous. Les réponses des donateurs vont à l’adresse de réponse.",
       "expediteur": "Nom de l’expéditeur",
       "expediteurAide": "Vide : le nom de l’organisme.",
       "repondre": "Adresse de réponse",
       "repondreAide": "Vide : le courriel du responsable des renseignements personnels.",
-      "juridique": "Coordonnées juridiques",
       "juridiqueAide": "Reprises par vos pages Confidentialité et Conditions. La Loi 25 exige un responsable des renseignements personnels joignable : ces champs sont obligatoires avant la mise en ligne.",
       "entity": "Raison sociale",
       "entityExemple": "Ex. : Les Amis du parc inc.",
@@ -1038,11 +1073,6 @@
       "erreur": "Une erreur est survenue.",
       "nonEnregistre": "Modifications non enregistrées",
       "dansAtelier": "Ici, dans l’atelier, personnalisez votre vitrail directement sur la page (bouton « Modifier »). Les coordonnées juridiques et les courriels se règlent dans la console de l’organisme.",
-      "atelierTitre": "Nom, textes, logo et langues : dans l’atelier",
-      "atelierAide": "Vous les modifiez directement sur votre vitrail d’atelier, à l’endroit où ils apparaissent, puis vous les publiez. Ici, seulement ce qui ne se voit pas sur le vitrail.",
-      "brouillonEnAttente": "Des changements attendent d’être publiés dans l’atelier.",
-      "publieLe": "Dernière publication : {date}.",
-      "jamaisPublie": "Rien n’a encore été publié : votre vitrail affiche votre nom et des textes neutres.",
       "ouvrirAtelier": "Personnaliser dans l’atelier",
       "neq": "NEQ ou numéro d’organisme de bienfaisance",
       "neqExemple": "Ex. : 1234567890, ou 123456789 RR 0001",

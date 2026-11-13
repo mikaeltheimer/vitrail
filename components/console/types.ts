@@ -70,6 +70,8 @@ export interface ConsoleData {
   reports: { id: number; donor_id: string; reason: string | null; created_at: string }[]
   disputes: { id: string; amount_cents: number; fee_cents: number | null; dispute_due_by: string | null; created_at: string }[]
   bounces: { donorId: string; email: string; status: string; at: string }[]
+  /** Dons de démonstration encore présents. */
+  demoDonations?: number
   mailingCount: number
   channels: { channel: string; visits: number; donations: number; totalCents: number }[]
   donors: DonorRow[]

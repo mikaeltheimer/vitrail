@@ -657,7 +657,7 @@
       "dons": "Donations",
       "moderation": "Moderation",
       "diffuser": "Share",
-      "plus": "More"
+      "plus": "Settings"
     },
     "enAttente": "{count, plural, one {# item waiting} other {# items waiting}}",
     "chargement": "Loading…",
@@ -910,8 +910,6 @@
       "provenanceAide": "Cash and seed donations aren’t counted here."
     },
     "plus": {
-      "monVitrail": "My stained glass",
-      "paiements": "Payments",
       "stripeEtat": "Stripe account:",
       "stripePret": "ready to receive donations",
       "stripeATerminer": "sign-up to finish",
@@ -924,7 +922,6 @@
       "tableauStripe": "Open the Stripe dashboard",
       "verifierStripe": "Check the account status",
       "stripeVerifie": "Stripe account status updated.",
-      "donnees": "Demo donations",
       "purgeAide": "Before opening: deletes all donations made in demo mode, and the pieces left with no donation.",
       "purge": "Delete demo donations",
       "purgeConfirmer": "Delete all demo donations? This can’t be undone.",
@@ -936,7 +933,6 @@
       "viderOk": "Workshop emptied."
     },
     "equipe": {
-      "titre": "Team",
       "aide": "A volunteer moderates and adds cash donations. An owner can also refund, manage Stripe and the team.",
       "retirer": "Remove",
       "retirerConfirmer": "Remove {email} from the team? This person loses all access to this organization.",
@@ -949,6 +945,49 @@
       "langue": "Invitation language",
       "inviter": "Invite",
       "envoyee": "Invitation sent to {email}."
+    },
+    "reglages": {
+      "retour": "Settings",
+      "chargement": "Loading…",
+      "groupes": {
+        "vitrail": "My stained glass",
+        "organisme": "Organization",
+        "argent": "Money",
+        "donnees": "Data"
+      },
+      "lignes": {
+        "atelier": "Customize in the workshop",
+        "adresse": "Address and website",
+        "juridique": "Legal details",
+        "equipe": "Team",
+        "courriels": "Emails to donors",
+        "paiements": "Payments (Stripe)",
+        "demo": "Demo donations"
+      },
+      "ecrans": {
+        "adresse": "Address and website",
+        "juridique": "Legal details",
+        "equipe": "Team",
+        "courriels": "Emails to donors",
+        "paiements": "Payments",
+        "demo": "Demo donations"
+      },
+      "etats": {
+        "atelierEnAttente": "Changes are waiting to be published",
+        "atelierPublie": "Published on {date}",
+        "atelierPublieSansDate": "Published",
+        "atelierJamais": "Name, texts, logo and languages",
+        "juridiqueManque": "{count, plural, one {# missing before going live} other {# missing before going live}}",
+        "juridiqueComplet": "Complete",
+        "equipe": "{count, plural, one {# person} other {# people}}",
+        "equipeInvitations": "{count, plural, one {# person} other {# people}} · {invites, plural, one {# pending invitation} other {# pending invitations}}",
+        "courrielsRebonds": "{count, plural, one {# bouncing address} other {# bouncing addresses}}",
+        "courrielsExpediteur": "Sender: {name}",
+        "stripePret": "Ready to receive donations",
+        "stripeATerminer": "Sign-up to finish",
+        "stripeNonConnecte": "Not connected",
+        "demo": "{count, plural, one {# donation to delete before opening} other {# donations to delete before opening}}"
+      }
     },
     "adresse": {
       "titre": "Stained-glass address",
@@ -1009,20 +1048,16 @@
       "ouvrirMonVitrail": "Fill in the legal details"
     },
     "monVitrail": {
-      "titre": "My stained glass",
       "ouvrirReel": "Open the organization’s console",
-      "chargement": "Loading…",
       "manque": "{count, plural, one {# legal detail is missing} other {# legal details are missing}} before going live.",
       "complet": "Everything required to go live is filled in.",
       "site": "Website",
       "siteAide": "Optional. Link shown in the header and the “About” panel.",
-      "courriels": "Emails to donors",
       "courrielsAide": "They are sent from the platform’s address, with the name below. Donor replies go to the reply-to address.",
       "expediteur": "Sender name",
       "expediteurAide": "Empty: the organization’s name.",
       "repondre": "Reply-to address",
       "repondreAide": "Empty: the privacy officer’s email.",
-      "juridique": "Legal details",
       "juridiqueAide": "Used by your Privacy and Terms pages. Quebec’s Law 25 requires a reachable privacy officer: these fields are required before going live.",
       "entity": "Legal name",
       "entityExemple": "E.g.: Friends of the Park Inc.",
@@ -1038,11 +1073,6 @@
       "erreur": "Something went wrong.",
       "nonEnregistre": "Unsaved changes",
       "dansAtelier": "Here in the workshop, customize your stained glass directly on the page (“Edit” button). Legal details and emails are set in the organization’s console.",
-      "atelierTitre": "Name, texts, logo and languages: in the workshop",
-      "atelierAide": "You edit them directly on your workshop stained glass, where they appear, then publish them. Here, only what does not show on the stained glass.",
-      "brouillonEnAttente": "Changes are waiting to be published in the workshop.",
-      "publieLe": "Last published: {date}.",
-      "jamaisPublie": "Nothing published yet: your stained glass shows your name and neutral texts.",
       "ouvrirAtelier": "Customize in the workshop",
       "neq": "NEQ or charity registration number",
       "neqExemple": "E.g.: 1234567890, or 123456789 RR 0001",

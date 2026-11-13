@@ -131,6 +131,8 @@ export async function GET(request: NextRequest) {
       goalCents: perm.kind === 'campaign' && perm.goalCents > 0 ? perm.goalCents : null,
     },
     bounces,
+    // Dons de démonstration encore présents (Réglages › Données : la ligne n'apparaît que s'il y en a)
+    demoDonations: allDonations.filter(d => d.source === 'demo').length,
     mailingCount: (mailingRows as { mailing_consent_at: string | null; mailing_withdrawn_at: string | null }[]).filter(d => d.mailing_consent_at && !d.mailing_withdrawn_at).length,
     me: { name: t.account.name, email: t.account.email, role: t.role, accountId: t.account.id },
     orgs: orgs.filter(o => o.id !== orgId),
