@@ -10,7 +10,7 @@ import type { Funnel, PlatformTotals, Stage, StudioOrg, TodoItem } from '@/lib/s
 // une fiche par organisme ; les chiffres de la plateforme dans leur onglet. Des TOTAUX, jamais des personnes.
 // Plus tard : passer à la piste A (tableau, une ligne par organisme) au-delà d'environ 8 organismes en ligne.
 
-type Org = StudioOrg & { links: { vitrail: string; ecran: string; affiche: string } | null }
+type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string } | null }
 interface Data {
   me: { email: string; name: string }
   requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; source: string | null; created_at: string }[]
@@ -36,6 +36,8 @@ const money = (c: number) => new Intl.NumberFormat('fr-CA', { style: 'currency',
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString('fr-CA')} ${n > 1 ? many : one}`
 const MISSING: Record<string, string> = { stripe: 'Stripe', juridique: 'les coordonnées juridiques' }
 /** « Stripe et les coordonnées juridiques » (phrase) ; « Stripe, coordonnées juridiques » (court, pour les cartes). */
+/** Lien « Écrire » vers un propriétaire, sujet prérempli : relation de service, jamais d'envoi groupé. */
+const mailto = (email: string, org: string) => `mailto:${email}?subject=${encodeURIComponent(`Donivers · ${org}`)}`
 const missing = (b: string[], short = false) => (short ? b.map(k => (k === 'stripe' ? 'Stripe' : 'coordonnées juridiques')).join(', ') : b.map(k => MISSING[k] ?? k).join(' et '))
 
 /** « il y a 3 jours », « hier », « aujourd’hui », « dans 2 jours ». */
@@ -319,6 +321,7 @@ function TodoRow({
   onOpen: (id: string) => void
 }) {
   const sourceName = (slug: string | null) => (slug ? orgs.find(o => o.slug === slug)?.name ?? slug : null)
+  const owner = (orgId: string) => orgs.find(o => o.id === orgId)?.owners[0]?.email
   let color = AMBRE
   let body: ReactNode = null
   let actions: ReactNode = null
@@ -352,7 +355,12 @@ function TodoRow({
       break
     case 'pas-pret':
       body = <><b>{t.name}</b> · inscrit il y a {t.days} jours, toujours pas prêt : il manque {missing(t.blockers)}</>
-      actions = <button className="underline" onClick={() => onOpen(t.orgId)}>Fiche</button>
+      actions = (
+        <>
+          {owner(t.orgId) && <a className="underline" href={mailto(owner(t.orgId)!, t.name)}>Écrire</a>}
+          <button className="underline" onClick={() => onOpen(t.orgId)}>Fiche</button>
+        </>
+      )
       break
     case 'courriels':
       color = ROSE
@@ -442,6 +450,17 @@ function OrgSheet({ o, windowDays, onClose }: { o: Org; windowDays: number; onCl
             )}
           </div>
           <button className="muted underline" onClick={onClose}>Fermer</button>
+        </div>
+        <div className="space-y-1 border-t pt-4 text-sm" style={{ borderColor: 'var(--line)' }}>
+          <div className="muted text-[13px]">{o.owners.length > 1 ? 'Propriétaires' : 'Propriétaire'}</div>
+          {!o.owners.length && <p className="muted">Aucun propriétaire : l’organisme n’a plus de compte propriétaire.</p>}
+          {o.owners.map(p => (
+            <p key={p.email} className="flex flex-wrap items-baseline gap-x-3">
+              {p.name && <span>{p.name}</span>}
+              <span className="muted">{p.email}</span>
+              <a className="underline" href={mailto(p.email, o.name)}>Écrire</a>
+            </p>
+          ))}
         </div>
         <div className="space-y-1.5">
           <div className="flex justify-between text-sm">
