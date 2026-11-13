@@ -1,5 +1,5 @@
 // Briques des pages juridiques (/confidentialite, /conditions) : mise en page, passages à compléter et balises des messages.
-// Les textes viennent de messages/*.json (espaces confidentialite et conditions) ; les coordonnées de l'organisme, de la base (Mon vitrail).
+// Les textes viennent de messages/*.json (espaces confidentialite et conditions) ; les coordonnées de l'organisme, de la base (Réglages › Coordonnées juridiques).
 
 /* eslint-disable react/display-name -- fonctions de rendu de balises next-intl, pas des composants */
 import type { ReactNode } from 'react'

@@ -1,4 +1,4 @@
-import { missingForLaunch, type LegalInfo } from './identity-shared'
+import { launchBlockers } from './launch'
 import { createHash, randomInt } from 'node:crypto'
 import { getDb } from './db'
 import {
@@ -251,9 +251,10 @@ export async function goLive(orgId: string): Promise<{ ok: true } | { ok: false;
   if (error) throw error
   if (!org || org.practice_of) return { ok: false, error: 'entrainement' }
   if (org.status !== 'draft') return { ok: false, error: 'deja' }
-  if (!org.stripe_ready) return { ok: false, error: 'stripe' }
-  // Loi 25 : les coordonnées juridiques (dont le responsable des renseignements personnels) avant d'ouvrir au public
-  if (missingForLaunch((org.legal ?? {}) as Partial<LegalInfo>).length) return { ok: false, error: 'juridique' }
+  // Loi 25 : les coordonnées juridiques (dont le responsable des renseignements personnels) avant d'ouvrir au public.
+  // Même définition que « Prêt à lancer » dans Studio (lib/launch.ts).
+  const blockers = launchBlockers(org)
+  if (blockers.length) return { ok: false, error: blockers[0] }
   const { error: upErr } = await db.from('organizations').update({ status: 'live', went_live_at: new Date().toISOString() }).eq('id', orgId).eq('status', 'draft')
   if (upErr) throw upErr
   forgetTenantCache()

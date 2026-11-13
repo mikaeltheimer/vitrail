@@ -10,7 +10,7 @@ import BrandFooter from '@/components/BrandFooter'
 import ShowcaseLegal from '@/components/ShowcaseLegal'
 import { Items, Section, legalTags } from '@/components/Legal'
 
-// Politique de confidentialité (Loi 25, Québec). Les passages [À COMPLÉTER] sont les coordonnées que l'organisme n'a pas encore remplies (Mon vitrail) : à remplir par l'organisme
+// Politique de confidentialité (Loi 25, Québec). Les passages [À COMPLÉTER] sont les coordonnées que l'organisme n'a pas encore remplies (Réglages › Coordonnées juridiques) : à remplir par l'organisme
 // avant la mise en ligne publique. Ce texte est un point de départ, pas un avis juridique : à faire revoir par un avocat.
 // Textes : messages/fr.json et en.json, espace « confidentialite ».
 

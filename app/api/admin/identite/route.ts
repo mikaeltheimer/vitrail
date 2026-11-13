@@ -11,7 +11,7 @@ import { err, failer } from '@/lib/errors'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Mon vitrail (propriétaire) : les coordonnées administratives de l'organisme (site web, juridique, courriels).
+// Réglages de la console (propriétaire) : les coordonnées administratives de l'organisme (site web, juridique, courriels).
 // Ce qui se voit (langues, textes, logo, icône) se personnalise dans l'atelier, en contexte, puis se publie.
 // Messages d'erreur en français seulement (comme le reste de l'API de la console).
 

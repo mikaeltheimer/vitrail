@@ -1,6 +1,7 @@
--- Donivers — schéma complet de la base (état au 2026-11-12 : migrations jusqu'à 2026-11-24-changer-adresse.sql comprise ;
+-- Donivers — schéma complet de la base (état au 2026-11-12 : migrations jusqu'à 2026-11-25-studio-totaux.sql comprise ;
 -- la 19 ne touche que des données ; le 23 est réservé à K1). Mis à jour par pg_dump d'une base construite avec ce fichier
--- puis la migration 24. Dernier rejeu complet (11 nov.) : schema.sql d'avant l'étape 3 (cd7c01d), puis toutes les migrations
+-- puis la migration 25 (comparaison des deux pg_dump : seule la fonction studio_org_stats s'ajoute).
+-- Dernier rejeu complet (11 nov.) : schema.sql d'avant l'étape 3 (cd7c01d), puis toutes les migrations
 -- à partir de 2026-11-06, dans l'ordre de leur nom.
 --
 -- Sert à créer un projet Supabase NEUF en une fois (SQL Editor, ou psql). Une base déjà en service se met à jour avec les
@@ -714,6 +715,100 @@ ALTER TABLE public.vitraux ENABLE ROW LEVEL SECURITY;
 
 --
 
+
+-- Après les tables : le corps de cette fonction SQL est vérifié à sa création.
+CREATE FUNCTION public.studio_org_stats(p_since timestamp with time zone) RETURNS TABLE(organization_id uuid, donors bigint, donors_since bigint, donations bigint, donations_since bigint, net_cents bigint, net_since_cents bigint, offline_net_cents bigint, fee_cents bigint, fee_since_cents bigint, disputes_open bigint, last_donation_at timestamp with time zone, owners bigint, volunteers bigint, last_login_at timestamp with time zone, bounces bigint, bounces_since bigint, complaints bigint, complaints_since bigint)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  with orgs as (
+    select o.id from public.organizations o where o.practice_of is null and not o.showcase
+  ),
+  d as (
+    select
+      d.organization_id,
+      d.donor_id,
+      d.created_at,
+      d.source,
+      d.dispute_status,
+      greatest(d.amount_cents - d.refunded_cents - d.dispute_lost_cents, 0)::bigint as net,
+      (d.platform_fee_cents - d.platform_fee_refunded_cents)::bigint as fee
+    from public.donations d
+    join orgs on orgs.id = d.organization_id
+    where d.source in ('stripe', 'cash', 'seed')
+  ),
+  dons as (
+    select
+      d.organization_id,
+      count(distinct d.donor_id) as donors,
+      count(*) as donations,
+      count(*) filter (where d.created_at > p_since) as donations_since,
+      coalesce(sum(d.net), 0)::bigint as net_cents,
+      coalesce(sum(d.net) filter (where d.created_at > p_since), 0)::bigint as net_since_cents,
+      coalesce(sum(d.net) filter (where d.source in ('cash', 'seed')), 0)::bigint as offline_net_cents,
+      coalesce(sum(d.fee), 0)::bigint as fee_cents,
+      coalesce(sum(d.fee) filter (where d.created_at > p_since), 0)::bigint as fee_since_cents,
+      count(*) filter (where d.dispute_status = 'open') as disputes_open,
+      max(d.created_at) as last_donation_at
+    from d
+    group by d.organization_id
+  ),
+  -- Nouveaux donateurs de la fenêtre : premier don compté postérieur à p_since
+  premiers as (
+    select d.organization_id, count(*) as donors_since
+    from (select d.organization_id, d.donor_id, min(d.created_at) as first_at from d group by d.organization_id, d.donor_id) d
+    where d.first_at > p_since
+    group by d.organization_id
+  ),
+  membres as (
+    select
+      m.organization_id,
+      count(*) filter (where m.role = 'owner') as owners,
+      count(*) filter (where m.role = 'volunteer') as volunteers,
+      max(a.last_login_at) as last_login_at
+    from public.memberships m
+    join orgs on orgs.id = m.organization_id
+    join public.accounts a on a.id = m.account_id
+    group by m.organization_id
+  ),
+  courriels as (
+    select
+      e.organization_id,
+      count(*) filter (where e.status = 'bounced') as bounces,
+      count(*) filter (where e.status = 'bounced' and e.updated_at > p_since) as bounces_since,
+      count(*) filter (where e.status = 'complained') as complaints,
+      count(*) filter (where e.status = 'complained' and e.updated_at > p_since) as complaints_since
+    from public.email_log e
+    join orgs on orgs.id = e.organization_id
+    where e.status in ('bounced', 'complained')
+    group by e.organization_id
+  )
+  select
+    orgs.id,
+    coalesce(dons.donors, 0),
+    coalesce(premiers.donors_since, 0),
+    coalesce(dons.donations, 0),
+    coalesce(dons.donations_since, 0),
+    coalesce(dons.net_cents, 0),
+    coalesce(dons.net_since_cents, 0),
+    coalesce(dons.offline_net_cents, 0),
+    coalesce(dons.fee_cents, 0),
+    coalesce(dons.fee_since_cents, 0),
+    coalesce(dons.disputes_open, 0),
+    dons.last_donation_at,
+    coalesce(membres.owners, 0),
+    coalesce(membres.volunteers, 0),
+    membres.last_login_at,
+    coalesce(courriels.bounces, 0),
+    coalesce(courriels.bounces_since, 0),
+    coalesce(courriels.complaints, 0),
+    coalesce(courriels.complaints_since, 0)
+  from orgs
+  left join dons on dons.organization_id = orgs.id
+  left join premiers on premiers.organization_id = orgs.id
+  left join membres on membres.organization_id = orgs.id
+  left join courriels on courriels.organization_id = orgs.id
+$$;
 
 -- ── Accès : serveur seulement (service_role) ──────────────────────────────────────────────────────────────────────────────
 -- Supabase accorde par défaut tous les droits à anon et authenticated sur ce qui est créé dans « public » : on les retire.

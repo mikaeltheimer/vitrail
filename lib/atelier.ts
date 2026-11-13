@@ -8,7 +8,7 @@ import { err, type AppError } from './errors'
 
 // L'ATELIER : le vitrail d'entraînement sert aussi à personnaliser le vitrail. On y modifie un BROUILLON de l'identité
 // (langues, textes, logo, icône), visible seulement dans l'atelier ; « Publier » le fait passer sur le vrai vitrail.
-// Les coordonnées juridiques, le site web et les courriels se règlent dans la console (Mon vitrail), sans brouillon.
+// Les coordonnées juridiques, le site web et les courriels se règlent dans la console (Réglages), sans brouillon.
 //
 // organizations.draft (organisme réel) = null (aucun changement en cours) ou
 //   { locales, texts, logo_path, icon_path, logoSize, iconSize } : copie complète, partie de la version publiée.
