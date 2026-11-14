@@ -45,6 +45,11 @@ interface Props {
   /** Mode démo (pas de clé Stripe) : aucun paiement, aucun courriel ; on le dit clairement. */
   demo?: boolean;
   isMobile: boolean;
+  /**
+   * Téléphone : hauteur laissée libre au-dessus du panneau (en-tête + vignette du vitrail où se forme le morceau), en px.
+   * Le panneau prend le reste de l'écran au plus : les textes y sont grands, et on fait moins défiler.
+   */
+  mobileTop?: number;
   panelRef?: RefObject<HTMLDivElement | null>;
   /** 'overlay' : panneau posé sur le vitrail ; 'page' : la même chose en pleine page (formulaire mobile /don). */
   variant?: "overlay" | "page";
@@ -115,6 +120,9 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+/** En-tête (56 px) + vignette du vitrail (180 px). */
+export const MOBILE_TOP = 56 + 180;
+
 const MIN = CONFIG.minAmountCents / 100;
 const MAX = CONFIG.maxAmountCents / 100;
 
@@ -144,6 +152,7 @@ export default function ClaimPanel({
   typicalCents,
   demo,
   isMobile,
+  mobileTop = MOBILE_TOP,
   panelRef,
   onDraftChange,
   onClose,
@@ -382,7 +391,7 @@ export default function ClaimPanel({
           ? pageStyle
           : {
               // Ordinateur : ancré à droite (comme la fiche d'un morceau), le morceau est cadré à gauche.
-              // Téléphone : en bas, sur la moitié de l'écran au plus, le morceau est cadré au-dessus.
+              // Téléphone : en bas, jusqu'à mobileTop du haut ; le morceau est cadré au-dessus, dans la vignette.
               position: "fixed",
               zIndex: 160,
               left: isMobile ? 0 : "auto",
@@ -390,7 +399,7 @@ export default function ClaimPanel({
               top: isMobile ? "auto" : "72px",
               bottom: isMobile ? 0 : "auto",
               width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
-              maxHeight: isMobile ? "50vh" : "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)",
+              maxHeight: isMobile ? `calc(100% - ${mobileTop}px)` : "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)",
               alignContent: "start",
               overflowY: "auto",
               background: "rgba(20,18,29, 0.95)",
@@ -416,7 +425,7 @@ export default function ClaimPanel({
           gap: "12px",
         }}
       >
-        <h2 className="font-display" style={{ margin: 0, fontSize: "20px" }}>
+        <h2 className="font-display" style={{ margin: 0, fontSize: "24px" }}>
           {confirming
             ? t("demoPaiement.titre")
             : agrandir
@@ -456,7 +465,7 @@ export default function ClaimPanel({
         <p
           style={{
             margin: 0,
-            fontSize: "14px",
+            fontSize: "17px",
             color: "rgba(255,255,255,0.8)",
             lineHeight: 1.45,
           }}
@@ -485,7 +494,7 @@ export default function ClaimPanel({
         </Editable>
         <span
           style={{
-            fontSize: "13px",
+            fontSize: "16px",
             lineHeight: 1.45,
             color: "rgba(255,255,255,0.85)",
           }}
@@ -574,7 +583,7 @@ export default function ClaimPanel({
             display: "flex",
             gap: "8px",
             alignItems: "flex-start",
-            fontSize: "13px",
+            fontSize: "16px",
             color: "rgba(255,255,255,0.75)",
             cursor: "pointer",
           }}
@@ -594,7 +603,7 @@ export default function ClaimPanel({
             display: "flex",
             gap: "8px",
             alignItems: "flex-start",
-            fontSize: "13px",
+            fontSize: "16px",
             color: "rgba(255,255,255,0.75)",
             cursor: "pointer",
           }}
@@ -615,7 +624,7 @@ export default function ClaimPanel({
           gridTemplateColumns: "1fr auto",
           gap: "5px 12px",
           margin: 0,
-          fontSize: "13px",
+          fontSize: "16px",
         }}
       >
         <dt style={dtStyle}>{t("part")}</dt>
@@ -643,7 +652,7 @@ export default function ClaimPanel({
               autoComplete="nickname"
             />
             {name.trim().length === 1 && (
-              <span style={{ fontSize: "12px", color: "#f87171" }}>
+              <span style={{ fontSize: "15px", color: "#f87171" }}>
                 {t("nomCourt")}
               </span>
             )}
@@ -664,7 +673,7 @@ export default function ClaimPanel({
             <div>
               <div
                 style={{
-                  fontSize: "16px",
+                  fontSize: "18px",
                   fontWeight: 700,
                   color: "#F4EFE6",
                   lineHeight: 1.3,
@@ -672,7 +681,7 @@ export default function ClaimPanel({
               >
                 <Editable field="question">{picker.question}</Editable>
               </div>
-              <div style={{ fontSize: "14px", color: GOLD, marginTop: "2px" }}>
+              <div style={{ fontSize: "17px", color: GOLD, marginTop: "2px" }}>
                 {org.testimonial.cta}
               </div>
             </div>
@@ -771,7 +780,7 @@ export default function ClaimPanel({
       )}
 
       {error && (
-        <p style={{ margin: 0, fontSize: "13px", color: "#f87171" }}>{error}</p>
+        <p style={{ margin: 0, fontSize: "16px", color: "#f87171" }}>{error}</p>
       )}
       {(demo || showcase) && (
         <p
@@ -779,7 +788,7 @@ export default function ClaimPanel({
             margin: 0,
             padding: "8px 10px",
             borderRadius: "8px",
-            fontSize: "12px",
+            fontSize: "15px",
             lineHeight: 1.45,
             color: "#FFE2A8",
             background: "rgba(240,178,74,0.08)",
@@ -809,7 +818,7 @@ export default function ClaimPanel({
         <Link
           href="/confidentialite"
           target="_blank"
-          style={{ color: "rgba(255,255,255,0.6)" }}
+          style={{ color: "rgba(255,255,255,0.82)" }}
         >
           {tc("confidentialiteCourt")}
         </Link>
@@ -817,7 +826,7 @@ export default function ClaimPanel({
         <Link
           href="/conditions"
           target="_blank"
-          style={{ color: "rgba(255,255,255,0.6)" }}
+          style={{ color: "rgba(255,255,255,0.82)" }}
         >
           {tc("conditionsCourt")}
         </Link>
@@ -875,11 +884,11 @@ function DemoCheckout({
           }}
         />
         <span style={{ display: "grid", gap: "2px" }}>
-          <span style={{ fontSize: "20px", fontWeight: 700, color: GOLD }}>{money(payCents)}</span>
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)" }}>{name ?? tc("anonyme")}</span>
+          <span style={{ fontSize: "24px", fontWeight: 700, color: GOLD }}>{money(payCents)}</span>
+          <span style={{ fontSize: "16px", color: "rgba(255,255,255,0.82)" }}>{name ?? tc("anonyme")}</span>
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: "rgba(255,255,255,0.85)" }}>
+      <p style={{ margin: 0, fontSize: "17px", lineHeight: 1.5, color: "rgba(255,255,255,0.85)" }}>
         {t("texte")}
       </p>
       <p
@@ -887,7 +896,7 @@ function DemoCheckout({
           margin: 0,
           padding: "10px 12px",
           borderRadius: "8px",
-          fontSize: "13px",
+          fontSize: "16px",
           lineHeight: 1.45,
           color: "#FFE2A8",
           background: "rgba(240,178,74,0.08)",
@@ -910,12 +919,12 @@ function DemoCheckout({
 
 // ---------- Styles ----------
 const labelStyle: CSSProperties = {
-  fontSize: "11px",
+  fontSize: "14px",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "rgba(255,255,255,0.55)",
+  color: "rgba(255,255,255,0.82)",
 };
-const dtStyle: CSSProperties = { color: "rgba(255,255,255,0.55)" };
+const dtStyle: CSSProperties = { color: "rgba(255,255,255,0.82)" };
 const monoStyle: CSSProperties = {
   margin: 0,
   fontFamily: "'DM Sans', sans-serif",
@@ -924,8 +933,8 @@ const monoStyle: CSSProperties = {
 };
 const hintStyle: CSSProperties = {
   margin: 0,
-  fontSize: "11px",
-  color: "rgba(255,255,255,0.45)",
+  fontSize: "14px",
+  color: "rgba(255,255,255,0.82)",
   lineHeight: 1.5,
 };
 const inputStyle: CSSProperties = {
@@ -946,7 +955,7 @@ const goldStyle: CSSProperties = {
   border: 0,
   borderRadius: "8px",
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: "15px",
+  fontSize: "17px",
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -957,16 +966,16 @@ const secondaryStyle: CSSProperties = {
   border: "1px solid rgba(255,255,255,0.15)",
   borderRadius: "8px",
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: "14px",
+  fontSize: "17px",
   cursor: "pointer",
 };
 const linkButtonStyle: CSSProperties = {
   background: "none",
   border: 0,
   padding: 0,
-  color: "rgba(255,255,255,0.7)",
+  color: "rgba(255,255,255,0.82)",
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: "13px",
+  fontSize: "16px",
   cursor: "pointer",
   textDecoration: "underline",
   textUnderlineOffset: "3px",
@@ -998,8 +1007,8 @@ const stickyBar: CSSProperties = {
 const closeStyle: CSSProperties = {
   background: "none",
   border: 0,
-  color: "rgba(255,255,255,0.5)",
-  fontSize: "22px",
+  color: "rgba(255,255,255,0.82)",
+  fontSize: "24px",
   cursor: "pointer",
   lineHeight: 1,
 };

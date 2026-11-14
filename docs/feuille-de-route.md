@@ -40,6 +40,7 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Terminé récemment
 
+- Panneau de don lisible (piste 2, validée par Mika le 14 nov.) : textes agrandis (14 px au moins, 16 à 17 px pour le texte courant et les champs, donc plus de zoom de Safari au toucher d'un champ), gris plus contrastés ; sur téléphone, le panneau monte jusqu'à une vignette de 180 px sous l'en-tête où le morceau reste cadré, titre du vitrail masqué pendant le don. Tous les organismes, vitrail et `/don`.
 - Écran jumelé de la démo (#12) : le QR de `/ecran` de la démo porte un code de séance ; les dons d'essai faits par ce QR n'apparaissent que sur cet écran (12 h, 60 par séance ; migration 26, table `demo_screen_pieces`, appliquée à donivers-test et en production le 14 nov.). Règles : migration d'ajout permise sur donivers-test avant la fusion (`CLAUDE.md`, section 4), numéro de migration pris au moment de l'écrire.
 - Anglais : « donation » au lieu de « gift », « stained glass » en nom de matière (jamais « a stained glass », pas de « window »), « atelier » → « sandbox », tournures de la vitrine corrigées ; glossaire de `docs/i18n.md` à jour.
 - Console : changement d'adresse du vitrail (Réglages › Adresse et site web ; libre en brouillon, 2 changements une fois en ligne, anciennes adresses gardées et redirigées ; migration 24, fonction `change_org_slug`) et « Plus » devenu « Réglages », menu groupé avec un écran par sujet (#7).

@@ -36,12 +36,12 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
         style={textareaStyle}
       />
       </Editable>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '12px', color: 'rgba(255,255,255,0.62)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '15px', color: 'rgba(255,255,255,0.82)' }}>
         <span>{t('aide')}</span>
         <span style={{ fontFamily: "'DM Sans', sans-serif", color: left < 40 ? '#F0B24A' : undefined, flexShrink: 0 }}>{left}</span>
       </div>
       {value.trim() && (
-        <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '12px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', lineHeight: 1.45 }}>
+        <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '15px', color: 'rgba(255,255,255,0.82)', cursor: 'pointer', lineHeight: 1.45 }}>
           <input type="checkbox" checked={consent} onChange={e => onConsent(e.target.checked)} style={{ accentColor: '#F0B24A', marginTop: '2px' }} />
           <span>{org.testimonial.consent}</span>
         </label>
