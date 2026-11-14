@@ -418,8 +418,9 @@
     "listeEnvoi": "I agree to receive news from {org} by email (campaigns, events). I can unsubscribe at any time.",
     "demoVitrine": "Demonstration: go ahead and try it. Nothing is charged or saved; your piece only exists in this tab.",
     "demoVitrineEcran": "Demonstration: go ahead and try it. Nothing is charged; your piece appears on the big screen for a few hours, then disappears.",
-    "voirMorceau": "See my piece",
-    "reprendre": "Continue",
+    "voirMorceau": "See my piece in the stained glass",
+    "tailleMontant": "The bigger your donation, the bigger your piece.",
+    "revenirDon": "Back to my donation",
     "piedDemo": "For a real organization, payment happens on Stripe (card, Apple Pay, Google Pay), which asks for the donor's email; then back to their piece.",
     "demoPaiement": {
       "titre": "Payment (demonstration)",

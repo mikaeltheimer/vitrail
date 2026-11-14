@@ -14,7 +14,7 @@ import LanguageSwitch from '@/components/LanguageSwitch'
 import AboutPanel from '@/components/vitrail/AboutPanel'
 import Signature from '@/components/Signature'
 import BottomSheet from '@/components/vitrail/BottomSheet'
-import ClaimPanel, { MOBILE_TOP, type ClaimDraft, type DemoDonation } from '@/components/vitrail/ClaimPanel'
+import ClaimPanel, { type ClaimDraft, type DemoDonation } from '@/components/vitrail/ClaimPanel'
 import TestimonialField from '@/components/vitrail/TestimonialField'
 import { AnotherQuestion, useQuestionPicker } from '@/components/vitrail/QuestionPicker'
 import DetailPanel from '@/components/vitrail/DetailPanel'
@@ -1300,7 +1300,6 @@ function Vitrail() {
           typicalCents={snap?.typicalCents ?? null}
           demo={snap?.mode === 'demo'}
           isMobile={mobile}
-          mobileTop={MOBILE_TOP + barOffset}
           pairedScreen={pairedScreen}
           panelRef={claimPanelRef}
           onDraftChange={onDraftChange}

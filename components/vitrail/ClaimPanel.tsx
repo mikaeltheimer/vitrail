@@ -45,11 +45,6 @@ interface Props {
   /** Mode démo (pas de clé Stripe) : aucun paiement, aucun courriel ; on le dit clairement. */
   demo?: boolean;
   isMobile: boolean;
-  /**
-   * Téléphone : hauteur laissée libre au-dessus du panneau (en-tête + vignette du vitrail où se forme le morceau), en px.
-   * Le panneau prend le reste de l'écran au plus : les textes y sont grands, et on fait moins défiler.
-   */
-  mobileTop?: number;
   /** Démo arrivée par le QR d'un écran (écran jumelé) : le morceau d'essai apparaît aussi sur le grand écran. */
   pairedScreen?: boolean;
   panelRef?: RefObject<HTMLDivElement | null>;
@@ -122,9 +117,6 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-/** En-tête (56 px) + vignette du vitrail (180 px). */
-export const MOBILE_TOP = 56 + 180;
-
 const MIN = CONFIG.minAmountCents / 100;
 const MAX = CONFIG.maxAmountCents / 100;
 
@@ -154,7 +146,6 @@ export default function ClaimPanel({
   typicalCents,
   demo,
   isMobile,
-  mobileTop = MOBILE_TOP,
   pairedScreen = false,
   panelRef,
   onDraftChange,
@@ -184,8 +175,19 @@ export default function ClaimPanel({
     localRef.current = el;
     if (panelRef) panelRef.current = el;
   };
-  // Téléphone : « Voir mon morceau » baisse le panneau (seul son en-tête reste) pour montrer le morceau dans le vitrail
+  // Téléphone : le formulaire occupe tout l'écran et ne bouge pas pendant la saisie (décision de Mika, 14 nov. : remplir
+  // correctement compte plus que voir son morceau en direct ; on le découvre une fois créé). « Voir mon morceau dans le
+  // vitrail » le replie, à la demande seulement, en une barre « Revenir à mon don » qui le rouvre où on en était.
   const [peek, setPeek] = useState(false);
+  const scrollBeforePeek = useRef(0);
+  const togglePeek = (on: boolean) => {
+    if (on) {
+      scrollBeforePeek.current = localRef.current?.scrollTop ?? 0;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setKeyboard(null);
+    }
+    setPeek(on);
+  };
   // Téléphone, pendant la saisie : sur iPhone, le clavier recouvre le bas de la page sans la redimensionner, et Safari
   // déplace la partie visible (visualViewport) sur la page : un panneau ancré en bas disparaissait sous le clavier. Pendant
   // la saisie, le panneau est donc ancré en HAUT de la partie visible et en prend toute la hauteur ; la vignette revient
@@ -200,7 +202,7 @@ export default function ClaimPanel({
       const typing = !!a && !!localRef.current?.contains(a) && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !["checkbox", "radio", "range", "file", "button"].includes(a.type)));
       // Pas de détection du clavier (sur iPhone, innerHeight suit déjà la partie visible) : pendant toute saisie, le
       // panneau épouse la partie visible ; sans clavier, elle couvre tout l'écran, ce qui convient aussi.
-      if (!typing) return setKeyboard(null);
+      if (!typing || peek) return setKeyboard(null);
       // Repère des éléments fixes : l'écran, ou le cadre « transform » de la page de la démo (sous son bandeau)
       let frameTop = 0;
       for (let el = localRef.current?.parentElement ?? null; el; el = el.parentElement) {
@@ -217,6 +219,7 @@ export default function ClaimPanel({
       clearTimeout(timer);
       timer = setTimeout(update, 120);
     };
+    update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     document.addEventListener("focusin", later);
@@ -228,9 +231,9 @@ export default function ClaimPanel({
       document.removeEventListener("focusin", later);
       document.removeEventListener("focusout", later);
     };
-  }, [overlayMobile]);
+  }, [overlayMobile, peek]);
   useEffect(() => {
-    if (peek && localRef.current) localRef.current.scrollTop = 0;
+    if (localRef.current) localRef.current.scrollTop = peek ? 0 : scrollBeforePeek.current;
   }, [peek]);
   const agrandir = !!(known && token);
   const [saved] = useState(readSaved);
@@ -448,27 +451,26 @@ export default function ClaimPanel({
           ? pageStyle
           : {
               // Ordinateur : ancré à droite (comme la fiche d'un morceau), le morceau est cadré à gauche.
-              // Téléphone : en bas, jusqu'à mobileTop du haut ; le morceau est cadré au-dessus, dans la vignette.
+              // Téléphone : plein écran (replié en barre pour « Voir mon morceau »).
               position: "fixed",
-              zIndex: 160,
+              // Téléphone, plein écran : par-dessus l'en-tête du vitrail (le panneau a son titre et sa croix)
+              zIndex: isMobile && !peek ? 1100 : 160,
               left: isMobile ? 0 : "auto",
               right: isMobile ? 0 : "16px",
-              top: !isMobile ? "72px" : keyboard ? `${keyboard.top}px` : "auto",
+              top: !isMobile ? "72px" : keyboard ? `${keyboard.top}px` : peek ? "auto" : 0,
               width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
               bottom: isMobile && !keyboard ? 0 : "auto",
               height: keyboard ? `${keyboard.height}px` : undefined,
               maxHeight: !isMobile
                 ? "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)"
-                : keyboard
-                ? "none"
                 : peek
-                ? "calc(124px + env(safe-area-inset-bottom, 0px))"
-                : `calc(100% - ${mobileTop}px)`,
+                ? "calc(80px + env(safe-area-inset-bottom, 0px))"
+                : "none",
               alignContent: "start",
               overflowY: peek ? "hidden" : "auto",
               background: "rgba(20,18,29, 0.95)",
               border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: keyboard ? 0 : isMobile ? "16px 16px 0 0" : "14px",
+              borderRadius: isMobile ? (peek ? "16px 16px 0 0" : 0) : "14px",
               padding: isMobile
                 ? "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))"
                 : "18px 20px",
@@ -481,15 +483,14 @@ export default function ClaimPanel({
             }
       }
     >
-      {/* Téléphone : poignée et titre restent en haut du panneau quand on y fait défiler le formulaire */}
-      <div style={overlayMobile ? stickyHeadStyle : { display: "contents" }}>
-      {/* Téléphone : poignée du panneau ; le baisser montre le morceau dans le vitrail, le remonter reprend le don */}
-      {overlayMobile && !confirming && !keyboard && (
-        <button onClick={() => setPeek((v) => !v)} aria-expanded={!peek} style={peekStyle}>
-          <span aria-hidden style={{ width: "40px", height: "4px", borderRadius: "2px", background: "rgba(255,255,255,0.35)" }} />
-          <span>{peek ? `▴ ${t("reprendre")}` : `▾ ${t("voirMorceau")}`}</span>
+      {/* Téléphone, formulaire replié : une seule barre pour y revenir */}
+      {overlayMobile && peek && (
+        <button onClick={() => togglePeek(false)} style={{ ...goldStyle, flex: "none", width: "100%" }}>
+          {t("revenirDon")}
         </button>
       )}
+      {/* Téléphone : le titre reste en haut du formulaire quand on le fait défiler */}
+      <div style={overlayMobile ? (peek ? { display: "none" } : stickyHeadStyle) : { display: "contents" }}>
       <div
         style={{
           display: "flex",
@@ -647,10 +648,14 @@ export default function ClaimPanel({
             {te("montantMin", { montant: money(CONFIG.minAmountCents) })}
           </p>
         )}
-        {typicalCents && (
-          <p style={hintStyle}>
-            {t("typique", { montant: money(typicalCents) })}
-          </p>
+        <p style={hintStyle}>
+          {t("tailleMontant")}
+          {typicalCents ? ` ${t("typique", { montant: money(typicalCents) })}` : ""}
+        </p>
+        {overlayMobile && !confirming && (
+          <button type="button" onClick={() => togglePeek(true)} style={peekStyle}>
+            {t("voirMorceau")}
+          </button>
         )}
         <label
           style={{
@@ -1001,7 +1006,7 @@ const monoStyle: CSSProperties = {
 };
 const hintStyle: CSSProperties = {
   margin: 0,
-  fontSize: "14px",
+  fontSize: "16px",
   color: "rgba(255,255,255,0.82)",
   lineHeight: 1.5,
 };
@@ -1088,19 +1093,18 @@ const stickyHeadStyle: CSSProperties = {
   display: "grid",
   gap: "8px",
   margin: "-16px -16px 0",
-  padding: "8px 16px 10px",
+  padding: "14px 16px 10px",
   background: "rgb(20,18,29)",
   borderBottom: "1px solid rgba(255,255,255,0.08)",
 };
 const peekStyle: CSSProperties = {
-  display: "grid",
-  justifyItems: "center",
-  gap: "6px",
-  padding: "0 0 2px",
-  background: "none",
-  border: 0,
-  color: "rgba(255,255,255,0.82)",
-  font: "600 15px 'DM Sans', sans-serif",
+  justifySelf: "start",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.3)",
+  borderRadius: "8px",
+  color: "#F4EFE6",
+  font: "600 16px 'DM Sans', sans-serif",
+  padding: "10px 14px",
   cursor: "pointer",
 };
 const closeStyle: CSSProperties = {
