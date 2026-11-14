@@ -39,7 +39,7 @@ export function AnotherQuestion({ onClick, style }: { onClick: () => void; style
         border: 0,
         padding: '2px 0',
         color: '#F0B24A',
-        fontSize: '13px',
+        fontSize: '16px',
         fontWeight: 600,
         textDecoration: 'underline',
         textUnderlineOffset: '3px',

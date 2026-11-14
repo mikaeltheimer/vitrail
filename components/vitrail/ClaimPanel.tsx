@@ -45,6 +45,8 @@ interface Props {
   /** Mode démo (pas de clé Stripe) : aucun paiement, aucun courriel ; on le dit clairement. */
   demo?: boolean;
   isMobile: boolean;
+  /** Démo arrivée par le QR d'un écran (écran jumelé) : le morceau d'essai apparaît aussi sur le grand écran. */
+  pairedScreen?: boolean;
   panelRef?: RefObject<HTMLDivElement | null>;
   /** 'overlay' : panneau posé sur le vitrail ; 'page' : la même chose en pleine page (formulaire mobile /don). */
   variant?: "overlay" | "page";
@@ -144,6 +146,7 @@ export default function ClaimPanel({
   typicalCents,
   demo,
   isMobile,
+  pairedScreen = false,
   panelRef,
   onDraftChange,
   onClose,
@@ -166,6 +169,72 @@ export default function ClaimPanel({
   const glassName = useGlassName();
   const locale = useLocale() as Locale;
   const page = variant === "page";
+  const overlayMobile = isMobile && !page;
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const setPanel = (el: HTMLDivElement | null) => {
+    localRef.current = el;
+    if (panelRef) panelRef.current = el;
+  };
+  // Téléphone : le formulaire occupe tout l'écran et ne bouge pas pendant la saisie (décision de Mika, 14 nov. : remplir
+  // correctement compte plus que voir son morceau en direct ; on le découvre une fois créé). « Voir mon morceau dans le
+  // vitrail » le replie, à la demande seulement, en une barre « Revenir à mon don » qui le rouvre où on en était.
+  const [peek, setPeek] = useState(false);
+  const scrollBeforePeek = useRef(0);
+  const togglePeek = (on: boolean) => {
+    if (on) {
+      scrollBeforePeek.current = localRef.current?.scrollTop ?? 0;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setKeyboard(null);
+    }
+    setPeek(on);
+  };
+  // Téléphone, pendant la saisie : sur iPhone, le clavier recouvre le bas de la page sans la redimensionner, et Safari
+  // déplace la partie visible (visualViewport) sur la page : un panneau ancré en bas disparaissait sous le clavier. Pendant
+  // la saisie, le panneau est donc ancré en HAUT de la partie visible et en prend toute la hauteur ; la vignette revient
+  // quand on quitte le champ.
+  const [keyboard, setKeyboard] = useState<{ top: number; height: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!overlayMobile || !vv) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const update = () => {
+      const a = document.activeElement as HTMLInputElement | null;
+      const typing = !!a && !!localRef.current?.contains(a) && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !["checkbox", "radio", "range", "file", "button"].includes(a.type)));
+      // Pas de détection du clavier (sur iPhone, innerHeight suit déjà la partie visible) : pendant toute saisie, le
+      // panneau épouse la partie visible ; sans clavier, elle couvre tout l'écran, ce qui convient aussi.
+      if (!typing || peek) return setKeyboard(null);
+      // Repère des éléments fixes : l'écran, ou le cadre « transform » de la page de la démo (sous son bandeau)
+      let frameTop = 0;
+      for (let el = localRef.current?.parentElement ?? null; el; el = el.parentElement) {
+        const cs = getComputedStyle(el);
+        if (cs.transform !== "none") {
+          frameTop = cs.position === "fixed" ? parseFloat(cs.top) || 0 : el.getBoundingClientRect().top;
+          break;
+        }
+      }
+      setKeyboard({ top: Math.round(vv.offsetTop - frameTop), height: Math.round(vv.height) });
+    };
+    // La sortie d'un champ précède l'entrée dans le suivant : on attend un instant avant de conclure
+    const later = () => {
+      clearTimeout(timer);
+      timer = setTimeout(update, 120);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    document.addEventListener("focusin", later);
+    document.addEventListener("focusout", later);
+    return () => {
+      clearTimeout(timer);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", later);
+      document.removeEventListener("focusout", later);
+    };
+  }, [overlayMobile, peek]);
+  useEffect(() => {
+    if (localRef.current) localRef.current.scrollTop = peek ? 0 : scrollBeforePeek.current;
+  }, [peek]);
   const agrandir = !!(known && token);
   const [saved] = useState(readSaved);
   const start = saved?.amount ?? (typicalCents ? typicalCents / 100 : 25);
@@ -376,26 +445,32 @@ export default function ClaimPanel({
 
   return (
     <div
-      ref={panelRef}
+      ref={setPanel}
       style={
         page
           ? pageStyle
           : {
               // Ordinateur : ancré à droite (comme la fiche d'un morceau), le morceau est cadré à gauche.
-              // Téléphone : en bas, sur la moitié de l'écran au plus, le morceau est cadré au-dessus.
+              // Téléphone : plein écran (replié en barre pour « Voir mon morceau »).
               position: "fixed",
-              zIndex: 160,
+              // Téléphone, plein écran : par-dessus l'en-tête du vitrail (le panneau a son titre et sa croix)
+              zIndex: isMobile && !peek ? 1100 : 160,
               left: isMobile ? 0 : "auto",
               right: isMobile ? 0 : "16px",
-              top: isMobile ? "auto" : "72px",
-              bottom: isMobile ? 0 : "auto",
+              top: !isMobile ? "72px" : keyboard ? `${keyboard.top}px` : peek ? "auto" : 0,
               width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
-              maxHeight: isMobile ? "50vh" : "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)",
+              bottom: isMobile && !keyboard ? 0 : "auto",
+              height: keyboard ? `${keyboard.height}px` : undefined,
+              maxHeight: !isMobile
+                ? "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)"
+                : peek
+                ? "calc(80px + env(safe-area-inset-bottom, 0px))"
+                : "none",
               alignContent: "start",
-              overflowY: "auto",
+              overflowY: peek ? "hidden" : "auto",
               background: "rgba(20,18,29, 0.95)",
               border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: isMobile ? "16px 16px 0 0" : "14px",
+              borderRadius: isMobile ? (peek ? "16px 16px 0 0" : 0) : "14px",
               padding: isMobile
                 ? "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))"
                 : "18px 20px",
@@ -408,6 +483,14 @@ export default function ClaimPanel({
             }
       }
     >
+      {/* Téléphone, formulaire replié : une seule barre pour y revenir */}
+      {overlayMobile && peek && (
+        <button onClick={() => togglePeek(false)} style={{ ...goldStyle, flex: "none", width: "100%" }}>
+          {t("revenirDon")}
+        </button>
+      )}
+      {/* Téléphone : le titre reste en haut du formulaire quand on le fait défiler */}
+      <div style={overlayMobile ? (peek ? { display: "none" } : stickyHeadStyle) : { display: "contents" }}>
       <div
         style={{
           display: "flex",
@@ -416,7 +499,7 @@ export default function ClaimPanel({
           gap: "12px",
         }}
       >
-        <h2 className="font-display" style={{ margin: 0, fontSize: "20px" }}>
+        <h2 className="font-display" style={{ margin: 0, fontSize: "24px" }}>
           {confirming
             ? t("demoPaiement.titre")
             : agrandir
@@ -430,6 +513,7 @@ export default function ClaimPanel({
             ×
           </button>
         )}
+      </div>
       </div>
 
       {confirming && onDemoDonate ? (
@@ -456,7 +540,7 @@ export default function ClaimPanel({
         <p
           style={{
             margin: 0,
-            fontSize: "14px",
+            fontSize: "17px",
             color: "rgba(255,255,255,0.8)",
             lineHeight: 1.45,
           }}
@@ -485,7 +569,7 @@ export default function ClaimPanel({
         </Editable>
         <span
           style={{
-            fontSize: "13px",
+            fontSize: "16px",
             lineHeight: 1.45,
             color: "rgba(255,255,255,0.85)",
           }}
@@ -564,17 +648,21 @@ export default function ClaimPanel({
             {te("montantMin", { montant: money(CONFIG.minAmountCents) })}
           </p>
         )}
-        {typicalCents && (
-          <p style={hintStyle}>
-            {t("typique", { montant: money(typicalCents) })}
-          </p>
+        <p style={hintStyle}>
+          {t("tailleMontant")}
+          {typicalCents ? ` ${t("typique", { montant: money(typicalCents) })}` : ""}
+        </p>
+        {overlayMobile && !confirming && (
+          <button type="button" onClick={() => togglePeek(true)} style={peekStyle}>
+            {t("voirMorceau")}
+          </button>
         )}
         <label
           style={{
             display: "flex",
             gap: "8px",
             alignItems: "flex-start",
-            fontSize: "13px",
+            fontSize: "16px",
             color: "rgba(255,255,255,0.75)",
             cursor: "pointer",
           }}
@@ -594,7 +682,7 @@ export default function ClaimPanel({
             display: "flex",
             gap: "8px",
             alignItems: "flex-start",
-            fontSize: "13px",
+            fontSize: "16px",
             color: "rgba(255,255,255,0.75)",
             cursor: "pointer",
           }}
@@ -615,7 +703,7 @@ export default function ClaimPanel({
           gridTemplateColumns: "1fr auto",
           gap: "5px 12px",
           margin: 0,
-          fontSize: "13px",
+          fontSize: "16px",
         }}
       >
         <dt style={dtStyle}>{t("part")}</dt>
@@ -631,40 +719,34 @@ export default function ClaimPanel({
       {!agrandir && (
         <>
           {/* ---------- Nom affiché : avant le témoignage (en dernier, on l'oubliait) ---------- */}
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={labelStyle}>{t("nomAffiche")}</span>
+          {/* Même encadré doré que le témoignage : ce sont les deux choses qui s'affichent sur le morceau */}
+          <label style={{ ...cardStyle, display: "grid", gap: "8px" }}>
+            <span>
+              <span style={cardTitleStyle}>{t("nomTitre")}</span>
+              <span style={{ display: "block", fontSize: "17px", color: GOLD, marginTop: "2px" }}>{t("nomAide")}</span>
+            </span>
             <input
               type="text"
               value={name}
               maxLength={CONFIG.nameMax}
               placeholder={t("nomPlaceholder")}
               onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
+              style={{ ...inputStyle, fontSize: "18px", padding: "14px" }}
               autoComplete="nickname"
             />
             {name.trim().length === 1 && (
-              <span style={{ fontSize: "12px", color: "#f87171" }}>
+              <span style={{ fontSize: "15px", color: "#f87171" }}>
                 {t("nomCourt")}
               </span>
             )}
           </label>
 
           {/* ---------- Témoignage : bien en vue, sous le nom (c'est ce qui rend le vitrail vivant) ---------- */}
-          <div
-            style={{
-              display: "grid",
-              gap: "8px",
-              padding: "14px",
-              borderRadius: "10px",
-              border: "1px solid rgba(240,178,74,0.45)",
-              background: "rgba(240,178,74,0.07)",
-              boxShadow: "0 0 24px rgba(240,178,74,0.08)",
-            }}
-          >
+          <div style={{ ...cardStyle, display: "grid", gap: "8px" }}>
             <div>
               <div
                 style={{
-                  fontSize: "16px",
+                  fontSize: "18px",
                   fontWeight: 700,
                   color: "#F4EFE6",
                   lineHeight: 1.3,
@@ -672,7 +754,7 @@ export default function ClaimPanel({
               >
                 <Editable field="question">{picker.question}</Editable>
               </div>
-              <div style={{ fontSize: "14px", color: GOLD, marginTop: "2px" }}>
+              <div style={{ fontSize: "17px", color: GOLD, marginTop: "2px" }}>
                 {org.testimonial.cta}
               </div>
             </div>
@@ -771,7 +853,7 @@ export default function ClaimPanel({
       )}
 
       {error && (
-        <p style={{ margin: 0, fontSize: "13px", color: "#f87171" }}>{error}</p>
+        <p style={{ margin: 0, fontSize: "16px", color: "#f87171" }}>{error}</p>
       )}
       {(demo || showcase) && (
         <p
@@ -779,14 +861,14 @@ export default function ClaimPanel({
             margin: 0,
             padding: "8px 10px",
             borderRadius: "8px",
-            fontSize: "12px",
+            fontSize: "15px",
             lineHeight: 1.45,
             color: "#FFE2A8",
             background: "rgba(240,178,74,0.08)",
             border: "1px dashed rgba(240,178,74,0.45)",
           }}
         >
-          {showcase ? t("demoVitrine") : t("demo")}
+          {showcase ? t(pairedScreen ? "demoVitrineEcran" : "demoVitrine") : t("demo")}
         </p>
       )}
 
@@ -809,7 +891,7 @@ export default function ClaimPanel({
         <Link
           href="/confidentialite"
           target="_blank"
-          style={{ color: "rgba(255,255,255,0.6)" }}
+          style={{ color: "rgba(255,255,255,0.82)" }}
         >
           {tc("confidentialiteCourt")}
         </Link>
@@ -817,7 +899,7 @@ export default function ClaimPanel({
         <Link
           href="/conditions"
           target="_blank"
-          style={{ color: "rgba(255,255,255,0.6)" }}
+          style={{ color: "rgba(255,255,255,0.82)" }}
         >
           {tc("conditionsCourt")}
         </Link>
@@ -875,11 +957,11 @@ function DemoCheckout({
           }}
         />
         <span style={{ display: "grid", gap: "2px" }}>
-          <span style={{ fontSize: "20px", fontWeight: 700, color: GOLD }}>{money(payCents)}</span>
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)" }}>{name ?? tc("anonyme")}</span>
+          <span style={{ fontSize: "24px", fontWeight: 700, color: GOLD }}>{money(payCents)}</span>
+          <span style={{ fontSize: "16px", color: "rgba(255,255,255,0.82)" }}>{name ?? tc("anonyme")}</span>
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5, color: "rgba(255,255,255,0.85)" }}>
+      <p style={{ margin: 0, fontSize: "17px", lineHeight: 1.5, color: "rgba(255,255,255,0.85)" }}>
         {t("texte")}
       </p>
       <p
@@ -887,7 +969,7 @@ function DemoCheckout({
           margin: 0,
           padding: "10px 12px",
           borderRadius: "8px",
-          fontSize: "13px",
+          fontSize: "16px",
           lineHeight: 1.45,
           color: "#FFE2A8",
           background: "rgba(240,178,74,0.08)",
@@ -910,12 +992,12 @@ function DemoCheckout({
 
 // ---------- Styles ----------
 const labelStyle: CSSProperties = {
-  fontSize: "11px",
+  fontSize: "14px",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "rgba(255,255,255,0.55)",
+  color: "rgba(255,255,255,0.82)",
 };
-const dtStyle: CSSProperties = { color: "rgba(255,255,255,0.55)" };
+const dtStyle: CSSProperties = { color: "rgba(255,255,255,0.82)" };
 const monoStyle: CSSProperties = {
   margin: 0,
   fontFamily: "'DM Sans', sans-serif",
@@ -924,8 +1006,8 @@ const monoStyle: CSSProperties = {
 };
 const hintStyle: CSSProperties = {
   margin: 0,
-  fontSize: "11px",
-  color: "rgba(255,255,255,0.45)",
+  fontSize: "16px",
+  color: "rgba(255,255,255,0.82)",
   lineHeight: 1.5,
 };
 const inputStyle: CSSProperties = {
@@ -946,7 +1028,7 @@ const goldStyle: CSSProperties = {
   border: 0,
   borderRadius: "8px",
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: "15px",
+  fontSize: "17px",
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -957,16 +1039,16 @@ const secondaryStyle: CSSProperties = {
   border: "1px solid rgba(255,255,255,0.15)",
   borderRadius: "8px",
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: "14px",
+  fontSize: "17px",
   cursor: "pointer",
 };
 const linkButtonStyle: CSSProperties = {
   background: "none",
   border: 0,
   padding: 0,
-  color: "rgba(255,255,255,0.7)",
+  color: "rgba(255,255,255,0.82)",
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: "13px",
+  fontSize: "16px",
   cursor: "pointer",
   textDecoration: "underline",
   textUnderlineOffset: "3px",
@@ -995,11 +1077,41 @@ const stickyBar: CSSProperties = {
   background: "linear-gradient(rgba(20,18,29,0), rgba(20,18,29,0.98) 30%)",
   borderRadius: "0 0 14px 14px",
 };
+/** Encadré doré du nom et du témoignage. */
+const cardStyle: CSSProperties = {
+  padding: "14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(240,178,74,0.45)",
+  background: "rgba(240,178,74,0.07)",
+  boxShadow: "0 0 24px rgba(240,178,74,0.08)",
+};
+const cardTitleStyle: CSSProperties = { display: "block", fontSize: "18px", fontWeight: 700, color: "#F4EFE6", lineHeight: 1.3 };
+const stickyHeadStyle: CSSProperties = {
+  position: "sticky",
+  top: "-16px",
+  zIndex: 2,
+  display: "grid",
+  gap: "8px",
+  margin: "-16px -16px 0",
+  padding: "14px 16px 10px",
+  background: "rgb(20,18,29)",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+};
+const peekStyle: CSSProperties = {
+  justifySelf: "start",
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.3)",
+  borderRadius: "8px",
+  color: "#F4EFE6",
+  font: "600 16px 'DM Sans', sans-serif",
+  padding: "10px 14px",
+  cursor: "pointer",
+};
 const closeStyle: CSSProperties = {
   background: "none",
   border: 0,
-  color: "rgba(255,255,255,0.5)",
-  fontSize: "22px",
+  color: "rgba(255,255,255,0.82)",
+  fontSize: "24px",
   cursor: "pointer",
   lineHeight: 1,
 };

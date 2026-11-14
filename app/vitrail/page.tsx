@@ -180,6 +180,8 @@ function Vitrail() {
   // Textes lus par le moteur (animations, instantanés), qui ne se relance pas à chaque changement de langue
   const fmtRef = useRef({ count: (n: number) => String(n), toast: (name: string | null) => name ?? '', anon: '', text: sceneText })
   const claimPanelRef = useRef<HTMLDivElement>(null)
+  // Téléphone, pendant un don : haut de la vignette où le morceau est cadré (sous l'en-tête et la barre de l'atelier)
+  const frameTopRef = useRef(HEADER_HEIGHT + 8)
   const sheetRef = useRef<HTMLDivElement>(null)
   const viewRects = useRef<Set<SVGRectElement>>(new Set())
   const images = useMemo(() => new ImageCache(), [])
@@ -223,6 +225,8 @@ function Vitrail() {
   const [intro, setIntro] = useState<IntroPhase>('off')
   const [introCta, setIntroCta] = useState(false)
   const [claimOpen, setClaimOpen] = useState(false)
+  // Démo : arrivé par le QR d'un écran (écran jumelé) ; le panneau le dit
+  const [pairedScreen, setPairedScreen] = useState(false)
   // Dons fermés (organisme pas encore en ligne) : « Donner » affiche un avis au lieu du panneau
   const closedRef = useRef(false)
   const [closedNotice, setClosedNotice] = useState(false)
@@ -261,7 +265,9 @@ function Vitrail() {
     preview: (draft: ClaimDraft, geometryChanged: boolean) => void
     openClaim: () => void
     closeClaim: () => void
-  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {} })
+    /** Recadre l'aperçu du morceau (le panneau a changé de taille). */
+    reframe: () => void
+  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {}, reframe: () => {} })
 
   // ═════════════════════════════════ Moteur : caméra, rendu, gestes ═════════════════════════════════
   useEffect(() => {
@@ -430,7 +436,7 @@ function Vitrail() {
       if (!tile) return
       framing = closeUp ? 'detail' : 'place'
       const panel = claimPanelRef.current
-      const free = w.mobile ? { left: 0, right: 0, top: 0, bottom: (panel?.offsetHeight ?? w.H * 0.5) + 12 } : { left: 260, right: (panel?.offsetWidth ?? 400) + 24, top: 0, bottom: 0 }
+      const free = w.mobile ? { left: 0, right: 0, top: frameTopRef.current, bottom: (panel?.offsetHeight ?? w.H * 0.5) + 12 } : { left: 260, right: (panel?.offsetWidth ?? 400) + 24, top: 0, bottom: 0 }
       const freeW = Math.max(120, w.W - free.left - free.right)
       const freeH = Math.max(120, w.H - free.top - free.bottom)
       const sx = (free.left - free.right) / 2
@@ -493,7 +499,10 @@ function Vitrail() {
       flyTo(homeCam(), 800)
     }
 
-    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim() }
+    const reframe = () => {
+      if (w.claim && w.previewOn) frameFor(framing === 'detail')
+    }
+    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim(), reframe }
 
     // ── Ouverture : travelling arrière d'un morceau moyen jusqu'au vitrail entier ──
     const endIntro = (hide: boolean) => {
@@ -898,7 +907,7 @@ function Vitrail() {
         const raw = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
         if (stop || !raw.pieces) return
         if (raw.showcase && first) {
-          rememberScreenCode()
+          setPairedScreen(!!rememberScreenCode())
           localRef.current = readLocalPieces()
           const last = localRef.current.at(-1)
           if (last) setMyId(last.id)
@@ -1085,6 +1094,27 @@ function Vitrail() {
   // sous l'en-tête (annonce d'un don, carte de bienvenue) descend d'autant, et le bouton d'ajout passe sous le titre
   // (qu'il ne doit pas couvrir : on le modifie d'un toucher).
   const barOffset = mobile && atelierBar && atelierBarHeight ? 62 + atelierBarHeight + 6 - HEADER_HEIGHT : 0
+  useEffect(() => {
+    frameTopRef.current = HEADER_HEIGHT + barOffset + 8
+  }, [barOffset])
+  // Le panneau change de taille (contenu, clavier, « Voir mon morceau ») : le morceau est recadré au-dessus
+  useEffect(() => {
+    const el = claimPanelRef.current
+    if (!claimOpen || !el) return
+    let raf = 0
+    let last = el.offsetHeight
+    const ro = new ResizeObserver(() => {
+      if (Math.abs(el.offsetHeight - last) < 24) return
+      last = el.offsetHeight
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => api.current.reframe())
+    })
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      cancelAnimationFrame(raf)
+    }
+  }, [claimOpen])
   // Bas du titre du vitrail (en haut à gauche) : les dons récents se rangent juste dessous
   const titleRef = useRef<HTMLHeadingElement>(null)
   const hasSnap = snap !== null
@@ -1270,6 +1300,7 @@ function Vitrail() {
           typicalCents={snap?.typicalCents ?? null}
           demo={snap?.mode === 'demo'}
           isMobile={mobile}
+          pairedScreen={pairedScreen}
           panelRef={claimPanelRef}
           onDraftChange={onDraftChange}
           onClose={() => api.current.closeClaim()}
@@ -1309,8 +1340,9 @@ function Vitrail() {
         </div>
       )}
 
-      {/* Titre du vitrail, en haut à gauche comme sur le grand écran (sous la barre de l'atelier sur téléphone) */}
-      {snap && (
+      {/* Titre du vitrail, en haut à gauche comme sur le grand écran (sous la barre de l'atelier sur téléphone).
+          Téléphone, pendant un don : masqué, la vignette au-dessus du panneau est pour le morceau */}
+      {snap && !(mobile && claimOpen && !atelierBar) && (
         <>
           <div aria-hidden style={{ position: 'fixed', left: 0, top: HEADER_HEIGHT, width: mobile ? '75vw' : '38em', height: mobile ? '9em' : '14em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.85) 0%, rgba(11,10,18,0.55) 45%, rgba(11,10,18,0) 72%)', pointerEvents: 'none', zIndex: 105 }} />
           <h1
