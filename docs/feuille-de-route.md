@@ -10,7 +10,6 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 |---|---|---|---|
 | Mika | Étape K1 : moteur de la nouvelle commission (seuil de 100 donateurs, plafond de 495 $) — démarre après l'accord sur le modèle d'affaires | `mika/k1-commission` | `lib/platform-fee.ts`, `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, migration : le numéro libre au moment de l'écrire (la 23 reste vide, voir « Règles qui durent ») |
 | Mika | Studio : page « Parcours » (à traiter, organismes par étape, fiche), onglet Chiffres, fonction SQL des totaux ; textes restés sur « Plus » / « Mon vitrail » | `mika/studio` | `app/studio`, `components/studio/`, `lib/studio-stats.ts`, `app/api/studio`, migration `2026-11-25-studio-totaux` |
-| Mika | Écran jumelé de la démo : les dons d'essai faits par le QR d'un écran de la démo apparaissent sur cet écran seulement | `mika/demo-ecran-jumele` | `app/api/demo/ecran`, `lib/demo-screen.ts`, `lib/demoPieces.ts`, `app/ecran/page.tsx`, `app/vitrail/page.tsx`, migration `2026-11-26-demo-ecran-jumele` |
 | Mika | Nouveau symbole « B » (5 pièces, plomb 2, lumière du vitrail), un seul symbole à toutes les tailles | `mika/logo-b` | `scripts/logo.py`, `public/brand/`, `components/plateforme/Brand.tsx`, `components/Signature.tsx`, `lib/shareImage.tsx`, `app/layout.tsx` |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)
@@ -41,6 +40,7 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Terminé récemment
 
+- Écran jumelé de la démo (#12) : le QR de `/ecran` de la démo porte un code de séance ; les dons d'essai faits par ce QR n'apparaissent que sur cet écran (12 h, 60 par séance ; migration 26, table `demo_screen_pieces`, appliquée à donivers-test et en production le 14 nov.). Règles : migration d'ajout permise sur donivers-test avant la fusion (`CLAUDE.md`, section 4), numéro de migration pris au moment de l'écrire.
 - Anglais : « donation » au lieu de « gift », « stained glass » en nom de matière (jamais « a stained glass », pas de « window »), « atelier » → « sandbox », tournures de la vitrine corrigées ; glossaire de `docs/i18n.md` à jour.
 - Console : changement d'adresse du vitrail (Réglages › Adresse et site web ; libre en brouillon, 2 changements une fois en ligne, anciennes adresses gardées et redirigées ; migration 24, fonction `change_org_slug`) et « Plus » devenu « Réglages », menu groupé avec un écran par sujet (#7).
 - Fiche du morceau (#5) : numéro et date d'arrivée (paliers ✦) au lieu du rang par montant, navigation dans l'ordre d'arrivée, « Un morceau au hasard », « Signaler » discret ; vitrail de la vitrine fixe sur téléphone.
