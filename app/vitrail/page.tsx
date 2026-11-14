@@ -31,7 +31,8 @@ import { useEscape } from '@/lib/useEscape'
 import { ImageCache } from '@/lib/images'
 import { drawScene, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
-import type { Piece, RecentDonation, Snapshot } from '@/lib/types'
+import type { Piece, Snapshot } from '@/lib/types'
+import { SCREEN_CODE_RE, withDemoPieces } from '@/lib/demoPieces'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgMark } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
@@ -72,8 +73,8 @@ const goldButtonStyle: React.CSSProperties = {
 }
 
 // ── Vitrail de démonstration : dons fictifs du visiteur (étape G) ──
-// Rien ne part au serveur : les morceaux vivent dans l'onglet (sessionStorage), survivent à un rechargement et disparaissent
-// à sa fermeture ; aucun autre visiteur ne les voit. Le serveur refuse de toute façon toute écriture sur la démo.
+// Les morceaux vivent dans l'onglet (sessionStorage), survivent à un rechargement et disparaissent à sa fermeture ; aucun
+// autre visiteur ne les voit. Le serveur refuse toute écriture sur la démo, sauf l'écran jumelé (plus bas).
 const DEMO_KEY = 'vitrail:demo-morceaux'
 const DEMO_PREFIX = 'essai-'
 type LocalPiece = Piece & { at: string; paidCents: number }
@@ -94,22 +95,28 @@ function saveLocalPieces(list: LocalPiece[]) {
     // Onglet plein (photos) : le morceau reste affiché jusqu'au prochain rechargement, sans plus
   }
 }
-/** L'instantané du serveur, plus les morceaux d'essai du visiteur (version distincte : le pavage est recalculé). */
-function withLocalPieces(s: Snapshot, local: LocalPiece[]): Snapshot {
-  if (!local.length) return s
-  // Les morceaux d'essai arrivent après ceux du vitrail
-  const last = s.pieces.reduce((n, p) => Math.max(n, p.arrival ?? 0), 0)
-  const pieces: Piece[] = local.map(({ id, name, message, photoUrl, color, amountCents, at }, i) => ({ id, name, message, photoUrl, color, amountCents, arrival: last + i + 1, since: at }))
-  const recent: RecentDonation[] = [...local].reverse().map(p => ({ id: p.id, donorId: p.id, name: p.name, message: p.message, photoUrl: p.photoUrl, amountCents: p.amountCents, at: p.at }))
-  const sum = local.reduce((n, p) => n + p.amountCents, 0)
-  return {
-    ...s,
-    version: `${s.version}+${local.map(p => p.id).join(',')}`,
-    totalCents: s.totalCents + sum,
-    donationsCount: s.donationsCount + local.length,
-    pieces: [...s.pieces, ...pieces],
-    recent: [...recent, ...s.recent].slice(0, Math.max(s.recent.length, recent.length)),
+// Écran jumelé : arrivé par le QR d'un écran de la démo (?ecran=<code>), le visiteur y envoie aussi ses dons d'essai,
+// et seul cet écran les affiche (lib/demo-screen.ts). Le code est gardé dans l'onglet, comme les morceaux.
+const SCREEN_KEY = 'vitrail:demo-ecran'
+function rememberScreenCode(): string | null {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get('ecran')
+    if (fromUrl && SCREEN_CODE_RE.test(fromUrl)) sessionStorage.setItem(SCREEN_KEY, fromUrl)
+    const kept = sessionStorage.getItem(SCREEN_KEY)
+    return kept && SCREEN_CODE_RE.test(kept) ? kept : null
+  } catch {
+    return null
   }
+}
+/** Envoie le don d'essai à l'écran jumelé ; un échec ne change rien au don dans l'onglet. */
+async function sendToScreen(code: string, d: DemoDonation) {
+  try {
+    await fetch('/api/demo/ecran', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, piece: { name: d.name, message: d.message, question: d.question, color: d.color, amountCents: d.amountCents, photo: d.photoSrc?.startsWith('data:') ? d.photoSrc : null } }),
+    })
+  } catch {}
 }
 
 type Cam = { x: number; y: number; zoom: number }
@@ -891,11 +898,12 @@ function Vitrail() {
         const raw = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
         if (stop || !raw.pieces) return
         if (raw.showcase && first) {
+          rememberScreenCode()
           localRef.current = readLocalPieces()
           const last = localRef.current.at(-1)
           if (last) setMyId(last.id)
         }
-        const s = raw.showcase ? withLocalPieces(raw, localRef.current) : raw
+        const s = raw.showcase ? withDemoPieces(raw, localRef.current) : raw
         setSnap(s)
         // La démonstration n'accepte aucun vrai don, mais son panneau fonctionne (dons fictifs, dans l'onglet)
         closedRef.current = s.mode === 'off' && !s.showcase
@@ -1028,6 +1036,8 @@ function Vitrail() {
     localRef.current = [...localRef.current, piece]
     saveLocalPieces(localRef.current)
     setMyId(id)
+    const screen = rememberScreenCode()
+    if (screen) void sendToScreen(screen, d)
     // Pendant le don, l'instantané met à jour les morceaux sans recalculer le pavage ; la fermeture du panneau le recalcule
     await reloadRef.current()
     api.current.closeClaim()
