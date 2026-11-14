@@ -186,9 +186,11 @@ export default function ClaimPanel({
   };
   // Téléphone : « Voir mon morceau » baisse le panneau (seul son en-tête reste) pour montrer le morceau dans le vitrail
   const [peek, setPeek] = useState(false);
-  // Téléphone, clavier ouvert : sur iPhone, il recouvre le bas de la page sans la redimensionner, et cachait le panneau.
-  // Le panneau remonte au-dessus du clavier et prend tout l'espace visible ; la vignette revient quand le clavier se ferme.
-  const [keyboard, setKeyboard] = useState<{ bottom: number; height: number } | null>(null);
+  // Téléphone, pendant la saisie : sur iPhone, le clavier recouvre le bas de la page sans la redimensionner, et Safari
+  // déplace la partie visible (visualViewport) sur la page : un panneau ancré en bas disparaissait sous le clavier. Pendant
+  // la saisie, le panneau est donc ancré en HAUT de la partie visible et en prend toute la hauteur ; la vignette revient
+  // quand on quitte le champ.
+  const [keyboard, setKeyboard] = useState<{ top: number; height: number } | null>(null);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!overlayMobile || !vv) return;
@@ -196,8 +198,19 @@ export default function ClaimPanel({
     const update = () => {
       const a = document.activeElement as HTMLInputElement | null;
       const typing = !!a && !!localRef.current?.contains(a) && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !["checkbox", "radio", "range", "file", "button"].includes(a.type)));
-      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-      setKeyboard(typing && inset > 80 ? { bottom: inset, height: Math.round(vv.height) } : null);
+      // Pas de détection du clavier (sur iPhone, innerHeight suit déjà la partie visible) : pendant toute saisie, le
+      // panneau épouse la partie visible ; sans clavier, elle couvre tout l'écran, ce qui convient aussi.
+      if (!typing) return setKeyboard(null);
+      // Repère des éléments fixes : l'écran, ou le cadre « transform » de la page de la démo (sous son bandeau)
+      let frameTop = 0;
+      for (let el = localRef.current?.parentElement ?? null; el; el = el.parentElement) {
+        const cs = getComputedStyle(el);
+        if (cs.transform !== "none") {
+          frameTop = cs.position === "fixed" ? parseFloat(cs.top) || 0 : el.getBoundingClientRect().top;
+          break;
+        }
+      }
+      setKeyboard({ top: Math.round(vv.offsetTop - frameTop), height: Math.round(vv.height) });
     };
     // La sortie d'un champ précède l'entrée dans le suivant : on attend un instant avant de conclure
     const later = () => {
@@ -440,21 +453,22 @@ export default function ClaimPanel({
               zIndex: 160,
               left: isMobile ? 0 : "auto",
               right: isMobile ? 0 : "16px",
-              top: isMobile ? "auto" : "72px",
+              top: !isMobile ? "72px" : keyboard ? `${keyboard.top}px` : "auto",
               width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
-              bottom: isMobile ? (keyboard?.bottom ?? 0) : "auto",
+              bottom: isMobile && !keyboard ? 0 : "auto",
+              height: keyboard ? `${keyboard.height}px` : undefined,
               maxHeight: !isMobile
                 ? "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)"
+                : keyboard
+                ? "none"
                 : peek
                 ? "calc(124px + env(safe-area-inset-bottom, 0px))"
-                : keyboard
-                ? `${keyboard.height - 8}px`
                 : `calc(100% - ${mobileTop}px)`,
               alignContent: "start",
               overflowY: peek ? "hidden" : "auto",
               background: "rgba(20,18,29, 0.95)",
               border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: isMobile ? "16px 16px 0 0" : "14px",
+              borderRadius: keyboard ? 0 : isMobile ? "16px 16px 0 0" : "14px",
               padding: isMobile
                 ? "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))"
                 : "18px 20px",
@@ -467,6 +481,8 @@ export default function ClaimPanel({
             }
       }
     >
+      {/* Téléphone : poignée et titre restent en haut du panneau quand on y fait défiler le formulaire */}
+      <div style={overlayMobile ? stickyHeadStyle : { display: "contents" }}>
       {/* Téléphone : poignée du panneau ; le baisser montre le morceau dans le vitrail, le remonter reprend le don */}
       {overlayMobile && !confirming && !keyboard && (
         <button onClick={() => setPeek((v) => !v)} aria-expanded={!peek} style={peekStyle}>
@@ -496,6 +512,7 @@ export default function ClaimPanel({
             ×
           </button>
         )}
+      </div>
       </div>
 
       {confirming && onDemoDonate ? (
@@ -697,15 +714,19 @@ export default function ClaimPanel({
       {!agrandir && (
         <>
           {/* ---------- Nom affiché : avant le témoignage (en dernier, on l'oubliait) ---------- */}
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={labelStyle}>{t("nomAffiche")}</span>
+          {/* Même encadré doré que le témoignage : ce sont les deux choses qui s'affichent sur le morceau */}
+          <label style={{ ...cardStyle, display: "grid", gap: "8px" }}>
+            <span>
+              <span style={cardTitleStyle}>{t("nomTitre")}</span>
+              <span style={{ display: "block", fontSize: "17px", color: GOLD, marginTop: "2px" }}>{t("nomAide")}</span>
+            </span>
             <input
               type="text"
               value={name}
               maxLength={CONFIG.nameMax}
               placeholder={t("nomPlaceholder")}
               onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
+              style={{ ...inputStyle, fontSize: "18px", padding: "14px" }}
               autoComplete="nickname"
             />
             {name.trim().length === 1 && (
@@ -716,17 +737,7 @@ export default function ClaimPanel({
           </label>
 
           {/* ---------- Témoignage : bien en vue, sous le nom (c'est ce qui rend le vitrail vivant) ---------- */}
-          <div
-            style={{
-              display: "grid",
-              gap: "8px",
-              padding: "14px",
-              borderRadius: "10px",
-              border: "1px solid rgba(240,178,74,0.45)",
-              background: "rgba(240,178,74,0.07)",
-              boxShadow: "0 0 24px rgba(240,178,74,0.08)",
-            }}
-          >
+          <div style={{ ...cardStyle, display: "grid", gap: "8px" }}>
             <div>
               <div
                 style={{
@@ -1061,12 +1072,31 @@ const stickyBar: CSSProperties = {
   background: "linear-gradient(rgba(20,18,29,0), rgba(20,18,29,0.98) 30%)",
   borderRadius: "0 0 14px 14px",
 };
+/** Encadré doré du nom et du témoignage. */
+const cardStyle: CSSProperties = {
+  padding: "14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(240,178,74,0.45)",
+  background: "rgba(240,178,74,0.07)",
+  boxShadow: "0 0 24px rgba(240,178,74,0.08)",
+};
+const cardTitleStyle: CSSProperties = { display: "block", fontSize: "18px", fontWeight: 700, color: "#F4EFE6", lineHeight: 1.3 };
+const stickyHeadStyle: CSSProperties = {
+  position: "sticky",
+  top: "-16px",
+  zIndex: 2,
+  display: "grid",
+  gap: "8px",
+  margin: "-16px -16px 0",
+  padding: "8px 16px 10px",
+  background: "rgb(20,18,29)",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+};
 const peekStyle: CSSProperties = {
   display: "grid",
   justifyItems: "center",
   gap: "6px",
-  margin: "-8px -16px 0",
-  padding: "0 16px 2px",
+  padding: "0 0 2px",
   background: "none",
   border: 0,
   color: "rgba(255,255,255,0.82)",

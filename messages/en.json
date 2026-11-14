@@ -406,6 +406,8 @@
     "verre": "Your glass",
     "nomAffiche": "Displayed name",
     "nomPlaceholder": "Leave blank to stay anonymous",
+    "nomTitre": "Your name",
+    "nomAide": "It will appear on your piece.",
     "nomCourt": "At least 2 letters.",
     "facultatifs": "Name and photo are optional: without a name, your piece is “Anonymous”.",
     "demo": "Demo mode: no Stripe key is configured. The piece is added right away, with no payment and no email.",

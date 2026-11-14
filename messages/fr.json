@@ -406,6 +406,8 @@
     "verre": "Votre verre",
     "nomAffiche": "Nom affiché",
     "nomPlaceholder": "Laissez vide pour rester anonyme",
+    "nomTitre": "Votre nom",
+    "nomAide": "Il s’affichera sur votre morceau.",
     "nomCourt": "Au moins 2 lettres.",
     "facultatifs": "Nom et photo sont facultatifs : sans nom, votre morceau est « Anonyme ».",
     "demo": "Mode démo : aucune clé Stripe n'est configurée. Le morceau est ajouté tout de suite, sans paiement ni courriel.",
