@@ -50,6 +50,8 @@ interface Props {
    * Le panneau prend le reste de l'écran au plus : les textes y sont grands, et on fait moins défiler.
    */
   mobileTop?: number;
+  /** Démo arrivée par le QR d'un écran (écran jumelé) : le morceau d'essai apparaît aussi sur le grand écran. */
+  pairedScreen?: boolean;
   panelRef?: RefObject<HTMLDivElement | null>;
   /** 'overlay' : panneau posé sur le vitrail ; 'page' : la même chose en pleine page (formulaire mobile /don). */
   variant?: "overlay" | "page";
@@ -153,6 +155,7 @@ export default function ClaimPanel({
   demo,
   isMobile,
   mobileTop = MOBILE_TOP,
+  pairedScreen = false,
   panelRef,
   onDraftChange,
   onClose,
@@ -175,6 +178,47 @@ export default function ClaimPanel({
   const glassName = useGlassName();
   const locale = useLocale() as Locale;
   const page = variant === "page";
+  const overlayMobile = isMobile && !page;
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const setPanel = (el: HTMLDivElement | null) => {
+    localRef.current = el;
+    if (panelRef) panelRef.current = el;
+  };
+  // Téléphone : « Voir mon morceau » baisse le panneau (seul son en-tête reste) pour montrer le morceau dans le vitrail
+  const [peek, setPeek] = useState(false);
+  // Téléphone, clavier ouvert : sur iPhone, il recouvre le bas de la page sans la redimensionner, et cachait le panneau.
+  // Le panneau remonte au-dessus du clavier et prend tout l'espace visible ; la vignette revient quand le clavier se ferme.
+  const [keyboard, setKeyboard] = useState<{ bottom: number; height: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!overlayMobile || !vv) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const update = () => {
+      const a = document.activeElement as HTMLInputElement | null;
+      const typing = !!a && !!localRef.current?.contains(a) && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !["checkbox", "radio", "range", "file", "button"].includes(a.type)));
+      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      setKeyboard(typing && inset > 80 ? { bottom: inset, height: Math.round(vv.height) } : null);
+    };
+    // La sortie d'un champ précède l'entrée dans le suivant : on attend un instant avant de conclure
+    const later = () => {
+      clearTimeout(timer);
+      timer = setTimeout(update, 120);
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    document.addEventListener("focusin", later);
+    document.addEventListener("focusout", later);
+    return () => {
+      clearTimeout(timer);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", later);
+      document.removeEventListener("focusout", later);
+    };
+  }, [overlayMobile]);
+  useEffect(() => {
+    if (peek && localRef.current) localRef.current.scrollTop = 0;
+  }, [peek]);
   const agrandir = !!(known && token);
   const [saved] = useState(readSaved);
   const start = saved?.amount ?? (typicalCents ? typicalCents / 100 : 25);
@@ -385,7 +429,7 @@ export default function ClaimPanel({
 
   return (
     <div
-      ref={panelRef}
+      ref={setPanel}
       style={
         page
           ? pageStyle
@@ -397,11 +441,17 @@ export default function ClaimPanel({
               left: isMobile ? 0 : "auto",
               right: isMobile ? 0 : "16px",
               top: isMobile ? "auto" : "72px",
-              bottom: isMobile ? 0 : "auto",
               width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
-              maxHeight: isMobile ? `calc(100% - ${mobileTop}px)` : "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)",
+              bottom: isMobile ? (keyboard?.bottom ?? 0) : "auto",
+              maxHeight: !isMobile
+                ? "calc(100vh - var(--demo-bandeau, 0px) - 72px - 16px)"
+                : peek
+                ? "calc(124px + env(safe-area-inset-bottom, 0px))"
+                : keyboard
+                ? `${keyboard.height - 8}px`
+                : `calc(100% - ${mobileTop}px)`,
               alignContent: "start",
-              overflowY: "auto",
+              overflowY: peek ? "hidden" : "auto",
               background: "rgba(20,18,29, 0.95)",
               border: "1px solid rgba(255,255,255,0.12)",
               borderRadius: isMobile ? "16px 16px 0 0" : "14px",
@@ -417,6 +467,13 @@ export default function ClaimPanel({
             }
       }
     >
+      {/* Téléphone : poignée du panneau ; le baisser montre le morceau dans le vitrail, le remonter reprend le don */}
+      {overlayMobile && !confirming && !keyboard && (
+        <button onClick={() => setPeek((v) => !v)} aria-expanded={!peek} style={peekStyle}>
+          <span aria-hidden style={{ width: "40px", height: "4px", borderRadius: "2px", background: "rgba(255,255,255,0.35)" }} />
+          <span>{peek ? `▴ ${t("reprendre")}` : `▾ ${t("voirMorceau")}`}</span>
+        </button>
+      )}
       <div
         style={{
           display: "flex",
@@ -795,7 +852,7 @@ export default function ClaimPanel({
             border: "1px dashed rgba(240,178,74,0.45)",
           }}
         >
-          {showcase ? t("demoVitrine") : t("demo")}
+          {showcase ? t(pairedScreen ? "demoVitrineEcran" : "demoVitrine") : t("demo")}
         </p>
       )}
 
@@ -1003,6 +1060,18 @@ const stickyBar: CSSProperties = {
   padding: "14px 16px max(14px, env(safe-area-inset-bottom))",
   background: "linear-gradient(rgba(20,18,29,0), rgba(20,18,29,0.98) 30%)",
   borderRadius: "0 0 14px 14px",
+};
+const peekStyle: CSSProperties = {
+  display: "grid",
+  justifyItems: "center",
+  gap: "6px",
+  margin: "-8px -16px 0",
+  padding: "0 16px 2px",
+  background: "none",
+  border: 0,
+  color: "rgba(255,255,255,0.82)",
+  font: "600 15px 'DM Sans', sans-serif",
+  cursor: "pointer",
 };
 const closeStyle: CSSProperties = {
   background: "none",

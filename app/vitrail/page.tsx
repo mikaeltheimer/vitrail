@@ -225,6 +225,8 @@ function Vitrail() {
   const [intro, setIntro] = useState<IntroPhase>('off')
   const [introCta, setIntroCta] = useState(false)
   const [claimOpen, setClaimOpen] = useState(false)
+  // Démo : arrivé par le QR d'un écran (écran jumelé) ; le panneau le dit
+  const [pairedScreen, setPairedScreen] = useState(false)
   // Dons fermés (organisme pas encore en ligne) : « Donner » affiche un avis au lieu du panneau
   const closedRef = useRef(false)
   const [closedNotice, setClosedNotice] = useState(false)
@@ -263,7 +265,9 @@ function Vitrail() {
     preview: (draft: ClaimDraft, geometryChanged: boolean) => void
     openClaim: () => void
     closeClaim: () => void
-  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {} })
+    /** Recadre l'aperçu du morceau (le panneau a changé de taille). */
+    reframe: () => void
+  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {}, reframe: () => {} })
 
   // ═════════════════════════════════ Moteur : caméra, rendu, gestes ═════════════════════════════════
   useEffect(() => {
@@ -495,7 +499,10 @@ function Vitrail() {
       flyTo(homeCam(), 800)
     }
 
-    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim() }
+    const reframe = () => {
+      if (w.claim && w.previewOn) frameFor(framing === 'detail')
+    }
+    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim(), reframe }
 
     // ── Ouverture : travelling arrière d'un morceau moyen jusqu'au vitrail entier ──
     const endIntro = (hide: boolean) => {
@@ -900,7 +907,7 @@ function Vitrail() {
         const raw = (await fetch('/api/vitrail', { cache: 'no-store' }).then(r => r.json())) as Snapshot
         if (stop || !raw.pieces) return
         if (raw.showcase && first) {
-          rememberScreenCode()
+          setPairedScreen(!!rememberScreenCode())
           localRef.current = readLocalPieces()
           const last = localRef.current.at(-1)
           if (last) setMyId(last.id)
@@ -1090,6 +1097,24 @@ function Vitrail() {
   useEffect(() => {
     frameTopRef.current = HEADER_HEIGHT + barOffset + 8
   }, [barOffset])
+  // Le panneau change de taille (contenu, clavier, « Voir mon morceau ») : le morceau est recadré au-dessus
+  useEffect(() => {
+    const el = claimPanelRef.current
+    if (!claimOpen || !el) return
+    let raf = 0
+    let last = el.offsetHeight
+    const ro = new ResizeObserver(() => {
+      if (Math.abs(el.offsetHeight - last) < 24) return
+      last = el.offsetHeight
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => api.current.reframe())
+    })
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      cancelAnimationFrame(raf)
+    }
+  }, [claimOpen])
   // Bas du titre du vitrail (en haut à gauche) : les dons récents se rangent juste dessous
   const titleRef = useRef<HTMLHeadingElement>(null)
   const hasSnap = snap !== null
@@ -1276,6 +1301,7 @@ function Vitrail() {
           demo={snap?.mode === 'demo'}
           isMobile={mobile}
           mobileTop={MOBILE_TOP + barOffset}
+          pairedScreen={pairedScreen}
           panelRef={claimPanelRef}
           onDraftChange={onDraftChange}
           onClose={() => api.current.closeClaim()}
