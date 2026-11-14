@@ -1,6 +1,7 @@
--- Donivers — schéma complet de la base (état au 2026-11-12 : migrations jusqu'à 2026-11-25-studio-totaux.sql comprise ;
--- la 19 ne touche que des données ; le 23 est réservé à K1). Mis à jour par pg_dump d'une base construite avec ce fichier
--- puis la migration 25 (comparaison des deux pg_dump : seule la fonction studio_org_stats s'ajoute).
+-- Donivers — schéma complet de la base (état au 2026-11-14 : migrations jusqu'à 2026-11-26-demo-ecran-jumele.sql comprise ;
+-- la 19 ne touche que des données ; la 23 n'existe pas). Mis à jour par pg_dump d'une base construite avec ce fichier
+-- puis la migration 26 (comparaison des deux pg_dump : seule la table demo_screen_pieces s'ajoute, avec sa clé, sa clé
+-- étrangère, ses deux index et RLS ; une base construite avec ce fichier seul donne le même pg_dump).
 -- Dernier rejeu complet (11 nov.) : schema.sql d'avant l'étape 3 (cd7c01d), puis toutes les migrations
 -- à partir de 2026-11-06, dans l'ordre de leur nom.
 --
@@ -160,6 +161,28 @@ CREATE TABLE public.accounts (
     last_login_at timestamp with time zone,
     CONSTRAINT accounts_email_check CHECK (((email = lower(email)) AND (POSITION(('@'::text) IN (email)) > 1))),
     CONSTRAINT accounts_name_check CHECK ((length(name) <= 80))
+);
+
+CREATE TABLE public.demo_screen_pieces (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    screen_code text NOT NULL,
+    name text,
+    message text,
+    question text,
+    color text NOT NULL,
+    amount_cents integer NOT NULL,
+    photo text,
+    has_photo boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT demo_screen_pieces_amount_cents_check CHECK ((amount_cents > 0)),
+    CONSTRAINT demo_screen_pieces_color_check CHECK ((char_length(color) <= 40)),
+    CONSTRAINT demo_screen_pieces_message_check CHECK ((char_length(message) <= 1000)),
+    CONSTRAINT demo_screen_pieces_name_check CHECK ((char_length(name) <= 60)),
+    CONSTRAINT demo_screen_pieces_photo_check CHECK (((char_length(photo) <= 1000000) AND (photo ~~ 'data:image/jpeg;base64,%'::text))),
+    CONSTRAINT demo_screen_pieces_photo_flag CHECK ((has_photo = (photo IS NOT NULL))),
+    CONSTRAINT demo_screen_pieces_question_check CHECK ((char_length(question) <= 300)),
+    CONSTRAINT demo_screen_pieces_screen_code_check CHECK ((screen_code ~ '^[a-z0-9]{12}$'::text))
 );
 
 CREATE TABLE public.donations (
@@ -485,6 +508,9 @@ ALTER TABLE ONLY public.accounts
 ALTER TABLE ONLY public.accounts
     ADD CONSTRAINT accounts_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.demo_screen_pieces
+    ADD CONSTRAINT demo_screen_pieces_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.donations
     ADD CONSTRAINT donations_pkey PRIMARY KEY (id);
 
@@ -556,6 +582,10 @@ ALTER TABLE ONLY public.vitraux
 
 CREATE INDEX access_requests_open_idx ON public.access_requests USING btree (created_at DESC) WHERE (handled_at IS NULL);
 
+CREATE INDEX demo_screen_pieces_created ON public.demo_screen_pieces USING btree (created_at);
+
+CREATE INDEX demo_screen_pieces_screen ON public.demo_screen_pieces USING btree (organization_id, screen_code, created_at);
+
 CREATE INDEX donations_created_idx ON public.donations USING btree (created_at DESC);
 
 CREATE INDEX donations_dispute_open_idx ON public.donations USING btree (organization_id) WHERE (dispute_status = 'open'::text);
@@ -604,6 +634,9 @@ CREATE TRIGGER vitraux_guard BEFORE UPDATE ON public.vitraux FOR EACH ROW EXECUT
 
 ALTER TABLE ONLY public.access_requests
     ADD CONSTRAINT access_requests_invitation_id_fkey FOREIGN KEY (invitation_id) REFERENCES public.invitations(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.demo_screen_pieces
+    ADD CONSTRAINT demo_screen_pieces_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.donations
     ADD CONSTRAINT donations_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.donors(id) ON DELETE RESTRICT;
@@ -680,6 +713,8 @@ ALTER TABLE ONLY public.vitraux
 ALTER TABLE public.access_requests ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.demo_screen_pieces ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 

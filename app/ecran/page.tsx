@@ -28,6 +28,7 @@ import { ImageCache } from '@/lib/images'
 import { drawScene, paintInitials, pieceMap, tilePieces, UNIVERSE_RADIUS, type PieceMap } from '@/lib/render'
 import { hitTile, type Tile } from '@/lib/tiling'
 import type { Piece, Snapshot } from '@/lib/types'
+import { newScreenCode, SCREEN_CODE_RE, withDemoPieces, type ScreenPiece } from '@/lib/demoPieces'
 import { buildTour, stageTier } from '@/lib/stageDeck'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgLogo } from '@/components/OrgBrand'
@@ -59,6 +60,32 @@ const EMBED_POLL_MS = 60_000
 /** Lu une fois côté navigateur, pour le moteur (hors rendu React). */
 const isEmbed = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed')
 const GOLD = '#F0B24A'
+// Démonstration : code de séance de cet écran (écran jumelé, lib/demo-screen.ts). Les dons d'essai faits par son QR
+// n'apparaissent que sur lui ; gardé dans l'onglet, il survit au rechargement périodique.
+const SCREEN_KEY = 'vitrail:ecran-seance'
+function screenCode(): string | null {
+  if (isEmbed()) return null
+  try {
+    const kept = sessionStorage.getItem(SCREEN_KEY)
+    if (kept && SCREEN_CODE_RE.test(kept)) return kept
+    const code = newScreenCode()
+    sessionStorage.setItem(SCREEN_KEY, code)
+    return code
+  } catch {
+    return null
+  }
+}
+/** Les dons d'essai de cet écran ; aucun si la lecture échoue (l'écran continue avec la démo seule). */
+async function screenPieces(code: string): Promise<ScreenPiece[]> {
+  try {
+    const res = await fetch(`/api/demo/ecran?code=${code}`, { cache: 'no-store' })
+    if (!res.ok) return []
+    const { pieces } = (await res.json()) as { pieces?: ScreenPiece[] }
+    return Array.isArray(pieces) ? pieces : []
+  } catch {
+    return []
+  }
+}
 const MONO = "'DM Sans', sans-serif"
 
 type Cam = { x: number; y: number; zoom: number }
@@ -91,6 +118,7 @@ export default function Ecran() {
   const engine = useRef<{ apply: (s: Snapshot) => void }>({ apply: () => {} })
 
   const [snap, setSnap] = useState<Snapshot | null>(null)
+  const showcase = !!snap?.showcase
   const [card, setCard] = useState<Card | null>(null)
   const [cardOut, setCardOut] = useState(false)
   const [cta, setCta] = useState(false)
@@ -612,7 +640,9 @@ export default function Ecran() {
         const org = new URLSearchParams(window.location.search).get('org')
         const res = await fetch(isEmbed() && org ? `/api/vitrail?org=${encodeURIComponent(org)}&embed` : '/api/vitrail', { cache: 'no-store' })
         if (!res.ok) throw new Error(String(res.status))
-        const s = (await res.json()) as Snapshot
+        let s = (await res.json()) as Snapshot
+        const code = s.showcase ? screenCode() : null
+        if (code) s = withDemoPieces(s, await screenPieces(code))
         failures = 0
         if (!stopped) {
           setOnline(true)
@@ -645,14 +675,16 @@ export default function Ecran() {
   useEffect(() => {
     // ?url= force une autre adresse (rare) ; sinon celle de l'organisme affiché
     const base = (new URLSearchParams(window.location.search).get('url') || window.location.origin).replace(/\/$/, '')
-    const url = publicLink('/vitrail?don&src=ecran', new URLSearchParams(window.location.search).get('url'))
+    // Démonstration : le QR porte le code de séance de cet écran, pour que les dons d'essai y apparaissent
+    const code = showcase ? screenCode() : null
+    const url = publicLink(`/vitrail?don&src=ecran${code ? `&ecran=${code}` : ''}`, new URLSearchParams(window.location.search).get('url'))
     QRCode.toDataURL(url, { margin: 1, width: 640, errorCorrectionLevel: 'M', color: { dark: '#0b0a10', light: '#ffffff' } })
       .then(d => {
         setQr(d)
         setTarget(base.replace(/^https?:\/\//, ''))
       })
       .catch(() => setQr(null))
-  }, [])
+  }, [showcase])
 
   // ── Écran toujours allumé, curseur caché, plein écran ──
   useEffect(() => {

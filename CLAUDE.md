@@ -42,7 +42,8 @@ Jusqu'au lancement de l'École d'art (4 décembre 2026), **Mika garde les paieme
 - **En local, on travaille sur sa propre base** (Supabase en local, `supabase start`, puis `supabase/schema.sql`), pas sur donivers-test : on peut la casser sans gêner personne.
 - **Une seule personne écrit des migrations à la fois** (Mika jusqu'au 4 décembre). Besoin d'une colonne ? On la demande.
 - Les fichiers de `supabase/migrations/` portent un numéro d'ordre en forme de date (`2026-11-21-…`), pas la date du jour : prendre le suivant de la liste.
-- Une migration n'est **jamais** appliquée à donivers-test depuis une branche non fusionnée. Mika l'applique à donivers-test, puis en production, au moment convenu dans la PR.
+- **donivers-test avant la fusion** (pour essayer l'aperçu d'une PR) : permis avec l'accord préalable de Mika pour cette PR, si la migration **ajoute seulement** (table, colonne, index, fonction) et se relance sans danger (`if not exists`, `create or replace`). Noter dans la PR « appliquée à donivers-test le … », et prévenir dans le fil commun (la base est partagée par tous les aperçus). Si la migration change ensuite, on applique la différence et on le note dans la PR ; si la PR est abandonnée, on retire ce qu'elle a ajouté (suppression confirmée par Mika dans l'outil Supabase). Une migration qui modifie ou retire quelque chose ne passe sur donivers-test qu'après la fusion.
+- **Production** : seulement après la fusion, avec l'accord explicite de Mika pour ce geste.
 - **Compatible avec le code précédent** : on ajoute d'abord (colonne, table) ; on retire seulement dans une PR suivante, une fois le nouveau code en production. Sinon un retour arrière Vercel casse le site.
 - `supabase/schema.sql` est **généré** à partir d'une base où toutes les migrations sont appliquées : régénéré seulement par la personne qui fusionne la migration, jamais à la main dans une PR ordinaire.
 - Les suppressions (table, colonne, contrainte) demandent une confirmation de Mika dans l'outil Supabase.
@@ -94,5 +95,5 @@ npx next build                # aucun avertissement attendu
 - Lire ce fichier et `docs/feuille-de-route.md` au début de chaque session.
 - Communiquer en français. Signaler les incertitudes ([Certain], [Likely], [Guessing]) plutôt que deviner.
 - Ne jamais demander ni afficher de secret.
-- Ne jamais pousser sur `main`, fusionner une PR, appliquer une migration hors de sa base locale, ou modifier Vercel, Stripe, Resend ou Supabase hébergé, sans l'accord explicite de Mika pour ce geste.
+- Ne jamais pousser sur `main`, fusionner une PR, appliquer une migration hors de sa base locale, ou modifier Vercel, Stripe, Resend ou Supabase hébergé, sans l'accord explicite de Mika pour ce geste. Exception : une migration d'ajout sur donivers-test, avec l'accord de Mika pour la PR (section 4).
 - Mettre à jour `docs/feuille-de-route.md` dans la PR quand une tâche commence ou se termine.
