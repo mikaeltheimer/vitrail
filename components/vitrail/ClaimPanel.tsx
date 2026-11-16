@@ -516,6 +516,9 @@ export default function ClaimPanel({
       </div>
       </div>
 
+      {/* Toujours là : on arrive parfois d'un code QR sans avoir vu le vitrail */}
+      <p style={{ margin: 0, fontSize: "16px", color: "rgba(255,255,255,0.72)", lineHeight: 1.45 }}>{t("public")}</p>
+
       {confirming && onDemoDonate ? (
         <DemoCheckout
           payCents={payCents}

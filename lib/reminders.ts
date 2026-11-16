@@ -109,7 +109,7 @@ export async function runReminders(opts: ReminderOptions = {}): Promise<Reminder
     else if (isErasedEmail(d.email)) skip('renseignements supprimés') // i18n-ok : console admin (FR)
     else if (!paid.has(id)) skip('aucun don payé') // i18n-ok : console admin (FR)
     else if (!baseUrls.get(d.organization_id)) skip('organisme non actif') // i18n-ok : console admin (FR)
-    else if (d.hidden) skip('morceau masqué') // i18n-ok : console admin (FR)
+    else if (d.hidden) skip('fragment masqué') // i18n-ok : console admin (FR)
     else if (d.message && d.message.trim()) skip('a déjà un témoignage') // i18n-ok : console admin (FR)
     else if (reminded.has(id)) skip('déjà rappelé') // i18n-ok : console admin (FR)
     else if (unreachable.has(id)) skip('adresse en rebond ou signalée') // i18n-ok : console admin (FR)

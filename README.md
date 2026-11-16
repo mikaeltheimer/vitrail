@@ -1,6 +1,6 @@
 # Donivers — le Donivers de l'École d'art de Sutton
 
-**Donivers** (don + univers) — *La plateforme de dons de votre communauté.* · *Chaque don, un morceau d'univers.* Un produit de Studio Existence. Chaque organisme a son donivers ; un donivers contient un ou plusieurs **vitraux** (le format visuel). Branding : voir « Marque » plus bas.
+**Donivers** (don + univers) — *La plateforme de dons de votre communauté.* · *Chaque don, un fragment d'univers.* Un produit de Studio Existence. Chaque organisme a son donivers ; un donivers contient un ou plusieurs **vitraux** (le format visuel). Branding : voir « Marque » plus bas.
 
 Un grand écran affiche le vitrail de l'école et se met à jour à chaque nouveau don. Un QR code permet de donner depuis son téléphone et de voir aussitôt son morceau de verre s'ajouter. Un seul vitrail cumulatif : chaque don est rattaché à un événement (total et objectif par événement).
 
@@ -113,7 +113,7 @@ Le vitrail en ligne (`/vitrail`) n'affiche plus non plus les montants des donate
 - **Palette** (`lib/theme.ts` et variables CSS de `app/globals.css`) : fond nuit `#0B0A12`, texte `#F4EFE6`, texte secondaire `#B8B2C4`, accent ambre `#F0B24A` (texte `#1A1208` dessus), lumière centrale `#FFE2A8`, cinq verres (ambre, rose `#E0657F`, turquoise `#3DB5A6`, indigo `#6A78E6`, violet `#A56BD9`). Les verres sont les seules couleurs fortes. Contrôle de contraste prêt pour la personnalisation par organisme (`onAccent`, `contrast`).
 - **Typographie** (auto-hébergée, aucune requête externe) : **Fraunces** 500 pour les titres (classe `font-display`, et les `h1`), italique 400 pour le slogan (classe `slogan`) ; **DM Sans** pour l'interface, les noms des donateurs et le texte sur le verre (`lib/fonts.ts`, `LABEL_STYLE` dans `lib/render.ts`).
 - **Couleurs des morceaux existants** : exécuter `supabase/migrations/2026-11-05-couleurs-donivers.sql` (les dix anciens verres → les cinq nouveaux).
-- **Mentions** : « Propulsé par Donivers · Chaque don, un morceau d'univers. » en pied de page (`components/BrandFooter.tsx`) ; Studio Existence seulement dans « À propos » et la confidentialité.
+- **Mentions** : « Propulsé par Donivers · Chaque don, un fragment d'univers. » en pied de page (`components/BrandFooter.tsx`) ; Studio Existence seulement dans « À propos » et la confidentialité.
 
 ## Le jour J
 

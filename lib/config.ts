@@ -10,7 +10,7 @@ export const CONFIG = {
   /** Marque de la plateforme (fixe pour tous les organismes). Le message de l'organisme passe toujours avant. */
   brand: {
     name: 'Donivers',
-    slogan: "Chaque don, un morceau d'univers.",
+    slogan: "Chaque don, un fragment d'univers.",
     studio: 'Studio Existence',
     studioUrl: 'https://studioexistence.com',
     /** Exploitant de la plateforme (fixe pour tous les organismes) : repris par la politique de confidentialité et les conditions. */

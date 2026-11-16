@@ -743,7 +743,7 @@ function DemoCard() {
         else {
           failed++
           const b = (await res.json().catch(() => ({}))) as { error?: string }
-          if (res.status === 409) { setError(b.error || 'Plus de morceau libre.'); break }
+          if (res.status === 409) { setError(b.error || 'Plus de fragment libre.'); break }
         }
       } catch {
         failed++
@@ -764,7 +764,7 @@ function DemoCard() {
         {d?.exists && (
           <>
             <p>
-              <b>{d.donors}</b> donateurs fictifs · <b>{money(d.totalCents)}</b> · <b>{d.photos}</b> photo(s), {d.namedWithoutPhoto} morceau(x) nommé(s) sans photo
+              <b>{d.donors}</b> donateurs fictifs · <b>{money(d.totalCents)}</b> · <b>{d.photos}</b> photo(s), {d.namedWithoutPhoto} fragment(s) nommé(s) sans photo
             </p>
             {d.links && (
               <p className="flex flex-wrap gap-x-4 gap-y-1">
