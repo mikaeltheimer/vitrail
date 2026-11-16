@@ -69,8 +69,17 @@ export interface RecordInput {
   providerRef: string | null
   /** Provenance (écran, affiche…), pour savoir quels emplacements font donner. */
   channel?: string | null
-  /** Commission de la plateforme sur ce don (cents), telle que prélevée par Stripe. */
+  /** Ce que Stripe prélève pour Donivers sur ce don (cents) : surplus de la contribution + part de l'organisme (S + P). */
   platformFeeCents?: number
+  /** Contribution facultative à Donivers (C), et ce qu'en garde Donivers une fois les frais estimés couverts (S). */
+  contribution?: {
+    cents: number
+    surplusCents: number
+    stripeFeeEstimatedCents: number | null
+    /** Suggestion montrée et version des tranches ; null si le bloc n'a pas été montré. */
+    suggestedCents: number | null
+    bracketsVersion: string | null
+  }
   /** Langue du donateur à ce don (pour ses courriels) ; absente = on ne la change pas (français pour un nouveau donateur). */
   locale?: Locale
   /** Case « recevoir les nouvelles de l'organisme » cochée à ce don. Non cochée ne retire rien (le retrait passe par le lien personnel). */
@@ -139,6 +148,13 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
   const row: Record<string, unknown> = { organization_id: i.organizationId, vitrail_id: i.vitrailId, donor_id: donor.id, amount_cents: i.amountCents, source: i.source, provider_ref: i.providerRef, channel: i.channel ?? null }
   if (i.feeCents) row.fee_cents = i.feeCents
   if (i.platformFeeCents) row.platform_fee_cents = i.platformFeeCents
+  if (i.contribution) {
+    row.donor_contribution_cents = i.contribution.cents
+    row.contribution_surplus_cents = Math.min(i.contribution.surplusCents, i.platformFeeCents ?? 0)
+    row.stripe_fee_estimated_cents = i.contribution.stripeFeeEstimatedCents
+    row.contribution_suggested_cents = i.contribution.suggestedCents
+    row.contribution_brackets_version = i.contribution.bracketsVersion
+  }
   let { data: donation, error: insertError } = await db.from('donations').insert(row).select('id').single()
   // Migration des frais pas encore passée : on enregistre le don quand même, sans les frais (jamais perdre un don)
   if (insertError && 'fee_cents' in row && /fee_cents/.test(insertError.message ?? '')) {

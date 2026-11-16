@@ -85,6 +85,7 @@
     "vitrailInconnu": "Vitrail inconnu.",
     "vitrailPermanent": "Le vitrail permanent est toujours celui de l’organisme ; chaque campagne a sa propre adresse.",
     "campagneNom": "Le nom de la campagne doit compter de {min} à {max} caractères.",
+    "campagnesBientot": "Les campagnes arrivent bientôt.",
     "campagneNomLettres": "Le nom doit contenir des lettres ou des chiffres.",
     "objectifNegatif": "L’objectif ne peut pas être négatif.",
     "stripeNonConfigure": "Les paiements ne sont pas encore configurés sur la plateforme. Prévenez Studio Existence.",
@@ -462,6 +463,7 @@
   "stripe": {
     "don": "Don — {org}",
     "frais": "Frais de transaction (couverts par vous)",
+    "contribution": "Frais de transaction et contribution à Donivers",
     "description": "Don — {org}"
   },
   "courriel": {

@@ -1,15 +1,13 @@
 import { getDb } from './db'
 import { estimateStripeFee, type StripeFeeEstimate } from './contribution'
 
-// Commission de la plateforme (Studio Existence) sur chaque don : un pourcentage du don, dégressif.
-// Le palier se mesure en commissions cumulées NETTES de l'organisme (à vie) : une commission rendue lors d'un
-// remboursement est retranchée. Un don qui franchit le seuil garde l'ancien taux ; le suivant prend le nouveau.
+// Commission de la plateforme (Studio Existence) : modèle du 10 novembre (100 donateurs gratuits, puis 2,8 % jusqu'à un
+// cumul de 495 $, puis 0 % pour toujours) et contribution facultative du donateur (16 novembre), qui fait avancer le cumul.
+// Spécification : claude/donivers-2026-11-16-contribution-donateur.md ; règlement sous verrou : settle_platform_fee (SQL).
 
 /**
- * Le modèle d'affaires affiché (vitrine, inscription, conditions) depuis le 10 novembre 2026 : gratuit jusqu'à 100 donateurs,
- * puis 2,8 % par don jusqu'à 495 $ de commissions cumulées, puis 0 % pour toujours ; campagnes 2,8 % jusqu'à 195 $ chacune ;
- * Pro à l'année. Source unique des chiffres affichés. Le calcul des paiements (plus bas) suit encore l'ancienne grille :
- * il passe à ce modèle à l'étape K1 (claude/donivers-plan-etape-k.md), avant le premier paiement réel.
+ * Le modèle d'affaires affiché (vitrine, inscription, conditions). Source unique des chiffres affichés ; les paiements
+ * suivent la grille de chaque organisme (parseBillingSchedule), dont la grille par défaut reprend ces chiffres.
  */
 export const PRICING = {
   /** Donateurs (adresses distinctes) avant la première commission. */
@@ -27,38 +25,6 @@ export const PRICING = {
 export function pricingExampleCents(donors: number, avgCents: number): number {
   return Math.min(PRICING.capCents, Math.max(0, donors - PRICING.freeDonors) * Math.round(avgCents * PRICING.rate))
 }
-
-export interface FeeSchedule {
-  /** Taux de base (0.028 = 2,8 %). */
-  rate: number
-  /** Commissions cumulées (en cents) à partir desquelles le taux réduit s'applique. */
-  tierAfterCents: number
-  /** Taux réduit (0.005 = 0,5 %). */
-  tierRate: number
-}
-
-export const DEFAULT_FEE_SCHEDULE: FeeSchedule = { rate: 0.028, tierAfterCents: 500_000, tierRate: 0.005 }
-
-/** Lit une grille venue de la base ; toute valeur invalide retombe sur la grille par défaut (jamais de NaN dans un paiement). */
-export function parseFeeSchedule(raw: unknown): FeeSchedule {
-  const r = (raw ?? {}) as Partial<Record<keyof FeeSchedule, unknown>>
-  const ok = (v: unknown, max: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max
-  return {
-    rate: ok(r.rate, 0.2) ? r.rate : DEFAULT_FEE_SCHEDULE.rate,
-    tierAfterCents: ok(r.tierAfterCents, 1e12) ? Math.round(r.tierAfterCents) : DEFAULT_FEE_SCHEDULE.tierAfterCents,
-    tierRate: ok(r.tierRate, 0.2) ? r.tierRate : DEFAULT_FEE_SCHEDULE.tierRate,
-  }
-}
-
-/** Commission (en cents) sur un don, selon la grille et les commissions déjà cumulées par l'organisme. */
-export function platformFeeCents(amountCents: number, schedule: FeeSchedule, cumulativeFeesCents: number): number {
-  const rate = cumulativeFeesCents >= schedule.tierAfterCents ? schedule.tierRate : schedule.rate
-  return Math.max(0, Math.round(amountCents * rate))
-}
-
-// ─── Nouveau modèle (K1 + contribution du donateur, 16 novembre 2026) ───────────────────────────────────────────────
-// Spécification : claude/donivers-2026-11-16-contribution-donateur.md, section 1 (fait foi), avec le plan K (seuil, verrous).
-// Pas encore branché sur les paiements : startCheckout utilise toujours l'ancienne grille ci-dessus jusqu'à la PR A2.
 
 /** Grille d'un organisme (organizations.fee_schedule). Une grille de l'ancienne forme, sans « model », vaut le modèle par défaut. */
 export type BillingSchedule =
@@ -172,8 +138,20 @@ export function computeDonationFees(i: {
   return { stripeFeeEstimatedCents: F, surplusCents: S, commissionCents: N, orgShareCents: P, applicationFeeCents: S + P, remainingCents: R, settlesNow }
 }
 
-export async function cumulativePlatformFees(orgId: string): Promise<number> {
-  const { data, error } = await getDb().from('organization_fee_totals').select('fees_cents').eq('organization_id', orgId).maybeSingle()
+const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+
+/** État de facturation au début du paiement (vue organization_billing : une seule définition, partagée avec Studio). */
+export async function billingStateOf(orgId: string): Promise<BillingState> {
+  const { data, error } = await getDb()
+    .from('organization_billing')
+    .select('donors_counted,cumul_cents,fee_threshold_reached_at,fee_settled_at')
+    .eq('organization_id', orgId)
+    .maybeSingle()
   if (error) throw error
-  return Number(data?.fees_cents ?? 0)
+  return {
+    donorsCounted: n(data?.donors_counted),
+    cumulCents: n(data?.cumul_cents),
+    thresholdReached: !!data?.fee_threshold_reached_at,
+    settled: !!data?.fee_settled_at,
+  }
 }

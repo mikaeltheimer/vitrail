@@ -2,6 +2,7 @@ import type Stripe from 'stripe'
 import { getDb } from './db'
 import { getStripe } from './payments'
 import { forgetTenantCache, type OrgRow } from './tenant'
+import { isProvince, type Province } from './tax'
 
 // Compte Stripe connecté d'un organisme, créé avec les « propriétés de contrôle » (pas un type hérité) :
 //   - paiements directs : l'argent va chez l'organisme ;
@@ -53,16 +54,31 @@ export async function startOnboarding(org: OrgRow, baseUrl: string): Promise<{ u
   return { url: link.url, accountId }
 }
 
-export async function setAccountReady(orgId: string, accountId: string, ready: boolean): Promise<void> {
-  const { error } = await getDb().from('organizations').update({ stripe_ready: ready }).eq('id', orgId).eq('stripe_account_id', accountId)
+/**
+ * Province de l'organisme selon son compte Stripe (adresse vérifiée par Stripe) : sert au taux des taxes comprises.
+ * Adresse de l'entreprise d'abord, sinon celle de la personne, sinon l'adresse de service. null si absente ou hors Canada.
+ */
+export function provinceOfAccount(a: Pick<Stripe.Account, 'country'> & { company?: { address?: { state?: string | null } | null } | null; individual?: { address?: { state?: string | null } | null } | null; business_profile?: { support_address?: { state?: string | null } | null } | null }): Province | null {
+  if (a.country && a.country !== 'CA') return null
+  for (const raw of [a.company?.address?.state, a.individual?.address?.state, a.business_profile?.support_address?.state]) {
+    const p = typeof raw === 'string' ? raw.trim().toUpperCase() : ''
+    if (isProvince(p)) return p
+  }
+  return null
+}
+
+export async function setAccountReady(orgId: string, accountId: string, ready: boolean, province: Province | null = null): Promise<void> {
+  // La province ne s'efface jamais : un événement sans adresse ne retire pas celle qu'on connaît
+  const { error } = await getDb().from('organizations').update({ stripe_ready: ready, ...(province ? { tax_province: province } : {}) }).eq('id', orgId).eq('stripe_account_id', accountId)
   if (error) throw error
   forgetTenantCache()
 }
 
 /** Relit l'état du compte chez Stripe et met `stripe_ready` à jour. */
 export async function refreshAccount(orgId: string, accountId: string): Promise<boolean> {
-  const ready = isAccountReady(await getStripe().accounts.retrieve(accountId))
-  await setAccountReady(orgId, accountId, ready)
+  const account = await getStripe().accounts.retrieve(accountId)
+  const ready = isAccountReady(account)
+  await setAccountReady(orgId, accountId, ready, provinceOfAccount(account))
   return ready
 }
 
