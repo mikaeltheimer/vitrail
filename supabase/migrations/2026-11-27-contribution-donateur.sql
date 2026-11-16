@@ -222,7 +222,9 @@ grant select on table public.organization_billing to service_role;
 -- plafond ne peuvent pas le dépasser à eux deux (D3 : correction au paiement, l'excédent est rendu par Stripe).
 --
 -- p_stripe_fee_actual (facultatif) : frais Stripe réels. S'ils dépassent l'estimation, le surplus réel est plus petit
--- et la différence est rendue à l'organisme : la contribution couvre toujours d'abord les frais réels. [À valider par Mika]
+-- et la différence est rendue à l'organisme : la contribution couvre toujours d'abord les frais réels (validé par Mika
+-- le 16 nov.). Des frais réels plus bas ne changent rien : Stripe ne permet pas d'augmenter la commission après coup ;
+-- un organisme au tarif réduit connu a sa propre estimation (fee_schedule.stripeFeeEstimate).
 --
 -- Renvoie l'excédent total à rendre chez Stripe (le webhook rend la différence avec ce qui l'est déjà), le surplus gardé,
 -- si ce don a acquitté l'organisme, et si le don était déjà réglé (rejeu). Idempotent.
