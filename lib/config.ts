@@ -10,7 +10,7 @@ export const CONFIG = {
   /** Marque de la plateforme (fixe pour tous les organismes). Le message de l'organisme passe toujours avant. */
   brand: {
     name: 'Donivers',
-    slogan: "Chaque don, un morceau d'univers.",
+    slogan: "Chaque don, un fragment d'univers.",
     studio: 'Studio Existence',
     studioUrl: 'https://studioexistence.com',
     /** Exploitant de la plateforme (fixe pour tous les organismes) : repris par la politique de confidentialité et les conditions. */
@@ -88,7 +88,7 @@ export interface BrandTexts {
 
 export const BRAND: Record<Locale, BrandTexts> = {
   fr: { descriptor: 'La collecte de fonds qui donne un visage à votre communauté.', slogan: CONFIG.brand.slogan, poweredBy: 'Propulsé par Donivers' },
-  en: { descriptor: 'Fundraising that puts a face on your community.', slogan: 'Every donation, a piece of the universe.', poweredBy: 'Powered by Donivers' },
+  en: { descriptor: 'Fundraising that puts a face on your community.', slogan: 'Every donation, a fragment of the universe.', poweredBy: 'Powered by Donivers' },
 }
 
 export const brandFor = (locale: Locale = DEFAULT_LOCALE): BrandTexts => BRAND[locale]

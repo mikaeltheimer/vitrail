@@ -13,7 +13,7 @@ export const DEMO_TEXTS: StoredTexts = {
     vitrailTitle: 'Gardons notre centre ouvert à tout le monde',
     why: 'Le Centre accueille tout le monde, toute l’année : repas partagés, ateliers pour les jeunes, chorale, marché d’hiver, aide aux devoirs. Vos dons gardent nos portes ouvertes et nos activités accessibles à tous les budgets.',
     about:
-      'Installé dans l’ancienne école du village depuis 1978, le Centre est l’endroit où le village se retrouve : repas du dimanche, aide aux devoirs, chorale, ateliers de création pour les jeunes, marché d’hiver, soirées de contes. Une petite équipe et une soixantaine de bénévoles le font vivre.\n\nCette année, il faut refaire la toiture et le chauffage, et la demande pour les repas et l’aide aux devoirs a doublé. Votre don finance ces travaux et ces activités ; il devient aussi un morceau de ce vitrail, qui grandit avec chaque personne qui s’y joint.',
+      'Installé dans l’ancienne école du village depuis 1978, le Centre est l’endroit où le village se retrouve : repas du dimanche, aide aux devoirs, chorale, ateliers de création pour les jeunes, marché d’hiver, soirées de contes. Une petite équipe et une soixantaine de bénévoles le font vivre.\n\nCette année, il faut refaire la toiture et le chauffage, et la demande pour les repas et l’aide aux devoirs a doublé. Votre don finance ces travaux et ces activités ; il devient aussi un fragment de ce vitrail, qui grandit avec chaque personne qui s’y joint.',
     question: 'Pourquoi soutenez-vous le Centre ?',
     question2: 'Qu’est-ce que le Centre change pour vous ?',
     question3: 'Quel souvenir gardez-vous du Centre ?',

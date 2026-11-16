@@ -43,6 +43,8 @@ const READ_MAX_MS = 20000
 const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise en page « témoignage »
 const CARD_EM = 28 // légende du morceau en scène (nom, témoignage)
 const CARD_WIDE_EM = 34 // … pour un long témoignage
+/** Hauteur réservée en bas au bandeau d'appel (marge du bas comprise) : le vitrail et la mise en scène se centrent au-dessus. */
+const BAND_EM = 9.6
 const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
 // Pause « Faites partie du vitrail » : à l'ouverture de l'écran, puis dès que CTA_EVERY_MS se sont écoulées depuis la
 // dernière (mesuré en temps, pas en morceaux : un morceau dure de 5 à 30 s selon son témoignage), ou plus tôt quand un
@@ -184,8 +186,19 @@ export default function Ecran() {
     let lastFrame = 0
     let raf = 0
 
-    const homeCam = (): Cam => ({ x: 0, y: 0, zoom: (Math.min(H * 0.88, W * 0.62)) / 2 / UNIVERSE_RADIUS })
-    const atHome = () => Math.abs(cam.zoom - base) < base * 1e-3 && Math.hypot(cam.x, cam.y) * cam.zoom < 1
+    // La scène : tout l'écran en mode intégré ; sinon la partie au-dessus du bandeau d'appel, toujours affiché en bas
+    const screenEm = () => Math.min(W * 0.011, H * 0.0195) * (isEmbed() ? EMBED_SCALE : 1) // taille de police de l'écran (classe .tv)
+    const sceneH = () => (isEmbed() ? H : H - screenEm() * BAND_EM)
+    /** De combien (en pixels) le centre de la scène est au-dessus du centre de l'écran. */
+    const lift = () => (H - sceneH()) / 2
+    const homeCam = (): Cam => {
+      const zoom = Math.min(sceneH() * 0.9, H * 0.88, W * 0.62) / 2 / UNIVERSE_RADIUS
+      return { x: 0, y: lift() / zoom, zoom }
+    }
+    const atHome = () => {
+      const home = homeCam()
+      return Math.abs(cam.zoom - base) < base * 1e-3 && Math.hypot(cam.x - home.x, cam.y - home.y) * cam.zoom < 1
+    }
 
     const resize = () => {
       W = window.innerWidth
@@ -227,7 +240,7 @@ export default function Ecran() {
      */
     const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number; center: number } => {
       const embedded = isEmbed()
-      const em = Math.min(W * 0.011, H * 0.0195) * (embedded ? EMBED_SCALE : 1) // taille de police de l'écran (classe .tv)
+      const em = screenEm()
       const qrLeft = W - em * (2.4 + 14)
       const cardRight = embedded ? W - em * 1.6 : qrLeft - em * 1.5
       const cardLeft = cardRight - em * (wide ? CARD_WIDE_EM : CARD_EM)
@@ -235,13 +248,13 @@ export default function Ecran() {
       const regionR = cardLeft - em * 4.5 // la place du fil
       const sx = (regionL + regionR) / 2
       const halfW = Math.max(W * 0.08, (regionR - regionL) / 2)
-      const halfH = H * 0.4
+      const halfH = sceneH() * 0.4
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
       const ex = Math.max(lx - x0, x1 - lx, 1e-6)
       const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
-      const cam = { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
+      const cam = { x: lx - (sx - W / 2) / zoom, y: ly + lift() / zoom, zoom }
       // Le fil part du bord droit du morceau, à la hauteur de son centre (là où il croise l'horizontale)
       let xi = -Infinity
       const poly = tile.poly
@@ -571,7 +584,7 @@ export default function Ecran() {
       // Le fil : du bord du morceau jusqu'à sa légende, dans la couleur du verre
       if (link && tile) {
         const a = Math.min(1, (now - link.at) / 700)
-        const y = H / 2
+        const y = H / 2 - lift()
         // Le fil suit le bord du morceau qui respire (agrandi autour de son centre, placé à l'écran en sx)
         const centerX = link.center
         const x0 = centerX + (link.from - centerX) * liveScale + 6
@@ -773,7 +786,7 @@ export default function Ecran() {
 
       {/* La légende du morceau en scène : nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
       {card && !cta && (
-        <div key={card.key} style={{ position: 'absolute', left: card.left, top: '50%', transform: 'translateY(-50%)', width: `${card.wide ? CARD_WIDE_EM : CARD_EM}em`, maxHeight: '86vh' }}>
+        <div key={card.key} style={{ position: 'absolute', left: card.left, top: embed ? '50%' : `calc((100% - ${BAND_EM}em) / 2)`, transform: 'translateY(-50%)', width: `${card.wide ? CARD_WIDE_EM : CARD_EM}em`, maxHeight: embed ? '86vh' : `calc(100% - ${BAND_EM}em - 2em)` }}>
           <div
             className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}
             style={{ padding: '1.7em 1.9em', borderRadius: '1.1em', background: 'rgba(11,10,18,0.94)', border: `1px solid ${card.color}55`, borderLeft: `0.3em solid ${card.color}`, boxShadow: `0 0 4em ${card.color}26, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}
@@ -815,8 +828,8 @@ export default function Ecran() {
         </>
       )}
 
-      {/* Pause : appel à donner, au centre, le vitrail entier derrière */}
-      {cta && (
+      {/* Pause, écran intégré (sans bandeau) : appel à donner, au centre, le vitrail entier derrière */}
+      {cta && embed && (
         <div className="absolute" style={{ left: '50%', bottom: '3em', transform: 'translateX(-50%)', width: '40em', textAlign: 'center' }}>
           <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 0 4em rgba(240,178,74,0.15)' }}>
             <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('ctaSurtitre')}</div>
@@ -830,7 +843,23 @@ export default function Ecran() {
 
       {!embed && (
         <>
-{/* Code QR, en bas à droite */}
+{/* Bandeau d'appel, toujours visible (même pendant une mise en scène) : ce qu'on regarde, et comment s'y ajouter.
+          Entre la signature et le code QR, vers lequel pointe la flèche. Pendant la pause d'appel, il s'agrandit vers le
+          haut avec le « pourquoi donner » de l'organisme, en entier (c'est lui qui prime), et le code QR s'illumine. */}
+      <div className="absolute" style={{ left: '17em', right: '18em', bottom: '2.4em', display: 'flex', justifyContent: 'flex-end', pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.4em', padding: '1.1em 1.5em 1.1em 1.8em', borderRadius: '1.2em', background: 'rgba(11,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 1em 3em rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
+          <div>
+            {cta && (
+              <div className="tv-banner-in" style={{ fontSize: org.why.length > 240 ? '1.05em' : '1.2em', lineHeight: 1.45, color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-line', maxWidth: '42em', paddingBottom: '0.8em', marginBottom: '0.8em', borderBottom: '1px solid rgba(240,178,74,0.3)' }}>{org.why}</div>
+            )}
+            <div className="font-display" style={{ fontSize: '1.75em', lineHeight: 1.15 }}>{t('bandeauTitre')}</div>
+            <div style={{ fontSize: '1.35em', fontWeight: 600, marginTop: '0.35em', color: GOLD }}>{snap?.showcase ? t('bandeauAppelDemo') : t('bandeauAppel')}</div>
+          </div>
+          <div aria-hidden="true" style={{ fontSize: '3em', lineHeight: 1, color: GOLD }}>→</div>
+        </div>
+      </div>
+
+      {/* Code QR, en bas à droite */}
       <div className="absolute text-center" style={{ right: '2.4em', bottom: '2.4em', width: '14em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em', boxShadow: cta ? '0 0 0 0.4em rgba(240,178,74,0.6)' : 'none', transition: 'box-shadow 0.6s' }}>
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element

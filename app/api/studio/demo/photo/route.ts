@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   if (!isJpeg(bytes)) return fail('Ce fichier n’est pas un JPEG.') // i18n-ok : section Studio (FR)
   try {
     const r = await addDemoPhoto(bytes)
-    if (!r.ok) return fail(r.reason === 'noDemo' ? 'Créez d’abord la démo.' : 'Tous les morceaux nommés ont déjà une photo.', 409) // i18n-ok : section Studio (FR)
+    if (!r.ok) return fail(r.reason === 'noDemo' ? 'Créez d’abord la démo.' : 'Tous les fragments nommés ont déjà une photo.', 409) // i18n-ok : section Studio (FR)
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('Photo de la démo :', e)
