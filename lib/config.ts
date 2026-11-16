@@ -88,7 +88,7 @@ export interface BrandTexts {
 
 export const BRAND: Record<Locale, BrandTexts> = {
   fr: { descriptor: 'La collecte de fonds qui donne un visage à votre communauté.', slogan: CONFIG.brand.slogan, poweredBy: 'Propulsé par Donivers' },
-  en: { descriptor: 'Fundraising that puts a face on your community.', slogan: 'Every donation, a piece of the universe.', poweredBy: 'Powered by Donivers' },
+  en: { descriptor: 'Fundraising that puts a face on your community.', slogan: 'Every donation, a fragment of the universe.', poweredBy: 'Powered by Donivers' },
 }
 
 export const brandFor = (locale: Locale = DEFAULT_LOCALE): BrandTexts => BRAND[locale]
