@@ -8,6 +8,7 @@ import { CourrielsForm, JuridiqueForm, SiteWebForm, useIdentity, type Identity }
 import Adresse from './Adresse'
 import { ForfaitInfo } from './Forfait'
 import { INTL_TAG, type Locale } from '@/i18n/config'
+import { askConfirm } from '@/components/ConfirmDialog'
 
 // Réglages (propriétaire seulement) : un menu groupé, chaque ligne affiche son état et ouvre son propre écran
 // (#plus/juridique…), avec un retour au menu. Décision du 12 novembre 2026 : cinq onglets, pas un sixième ; le menu
@@ -213,6 +214,7 @@ function Paiements({ data, act, open }: { data: ConsoleData; act: Act; open: (ac
 /** Supprimer les dons de démonstration (organisme réel) ou vider l'atelier (tous ses dons fictifs). */
 function DemoData({ data, act }: { data: ConsoleData; act: Act }) {
   const t = useTranslations('console.plus')
+  const tc = useTranslations('console')
   const practice = data.org.practice
   return (
     <div className="card space-y-3 text-sm">
@@ -220,7 +222,11 @@ function DemoData({ data, act }: { data: ConsoleData; act: Act }) {
       <button
         className="btn btn-ghost"
         onClick={() => {
-          if (confirm(practice ? t('viderConfirmer') : t('purgeConfirmer'))) void act({ action: 'purgeDemo' }, practice ? t('viderOk') : t('purgeOk'))
+          void askConfirm(
+            practice
+              ? { title: t('viderQuestion'), text: t('viderTexte'), confirmLabel: t('vider'), cancelLabel: tc('annuler'), danger: true }
+              : { title: t('purgeQuestion'), text: t('purgeTexte'), confirmLabel: t('purgeOui'), cancelLabel: tc('annuler'), danger: true },
+          ).then(ok => ok && act({ action: 'purgeDemo' }, practice ? t('viderOk') : t('purgeOk')))
         }}
       >
         {practice ? t('vider') : t('purge')}
@@ -252,6 +258,7 @@ function Practice({ data, act }: { data: ConsoleData; act: Act }) {
 
 function Team({ team, meId, act }: { team: NonNullable<ConsoleData['team']>; meId: string; act: Act }) {
   const t = useTranslations('console.equipe')
+  const tc = useTranslations('console')
   const tr = useTranslations('console.roles')
   const tl = useTranslations('commun.langue')
   const day = useDay()
@@ -275,7 +282,7 @@ function Team({ team, meId, act }: { team: NonNullable<ConsoleData['team']>; meI
                 <button
                   className="chip !px-3 text-xs"
                   onClick={() => {
-                    if (confirm(t('retirerConfirmer', { email: m.email }))) void act({ action: 'removeMember', accountId: m.accountId }, t('retire'))
+                    void askConfirm({ title: t('retirerQuestion', { email: m.email }), text: t('retirerTexte'), confirmLabel: t('retirer'), cancelLabel: tc('annuler'), danger: true }).then(ok => ok && act({ action: 'removeMember', accountId: m.accountId }, t('retire')))
                   }}
                 >
                   {t('retirer')}

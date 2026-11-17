@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Mark } from '@/components/plateforme/Brand'
 import { squareJpeg } from '@/lib/photoClient'
 import type { Funnel, PlatformTotals, Stage, StudioBilling, StudioOrg, SuggestionRow, TaxRow, TodoItem } from '@/lib/studio-stats'
+import { askConfirm } from '@/components/ConfirmDialog'
 
 // Section Studio (en français : usage interne de Studio Existence). Voir app/api/studio/route.ts.
 // Piste C « Parcours » (validée par Mika le 12 nov. 2026) : « À traiter » d'abord, puis les organismes rangés par étape,
@@ -215,7 +216,7 @@ export default function StudioPanel() {
                         </span>
                         <span className="flex gap-3 pt-0.5">
                           <button className="underline" onClick={() => void act({ action: 'resend', invitationId: i.id }, `Nouveau lien envoyé à ${i.email}.`)}>Renvoyer</button>
-                          <button className="muted underline" onClick={() => confirm(`Annuler l’invitation de ${i.email} ?`) && void act({ action: 'revoke', invitationId: i.id }, 'Invitation annulée.')}>Annuler</button>
+                          <button className="muted underline" onClick={() => void askConfirm({ title: `Annuler l’invitation de ${i.email} ?`, text: 'Le lien envoyé ne fonctionnera plus.', confirmLabel: 'Annuler l’invitation', cancelLabel: 'Garder', danger: true }).then(ok => ok && act({ action: 'revoke', invitationId: i.id }, 'Invitation annulée.'))}>Annuler</button>
                         </span>
                       </div>
                     ))}
@@ -707,11 +708,15 @@ function PhotoMaintenance() {
             )}
             {todo && !r.apply && (
               <div className="flex flex-wrap gap-2">
-                <button className="btn !w-auto" disabled={busy} onClick={() => confirm('Ranger les photos ? Les fichiers sont copiés dans le dossier de leur organisme, puis les anciens effacés.') && void call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purgeOrphans: false }) })}>
+                <button className="btn !w-auto" disabled={busy} onClick={() => void askConfirm({ title: 'Ranger les photos ?', text: 'Les fichiers sont copiés dans le dossier de leur organisme, puis les anciens effacés.', confirmLabel: 'Ranger', cancelLabel: 'Annuler' }).then(ok => {
+                  if (ok) void call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purgeOrphans: false }) })
+                })}>
                   Ranger les photos
                 </button>
                 {r.orphansOld > 0 && (
-                  <button className="btn btn-ghost !w-auto" disabled={busy} onClick={() => confirm(`Ranger les photos ET effacer ${r.orphansOld} photo(s) envoyée(s) sans don ? C’est définitif.`) && void call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purgeOrphans: true }) })}>
+                  <button className="btn btn-ghost !w-auto" disabled={busy} onClick={() => void askConfirm({ title: 'Ranger et effacer les photos sans don ?', text: `${r.orphansOld} photo(s) envoyée(s) sans don seront effacées. C’est définitif.`, confirmLabel: 'Ranger et effacer', cancelLabel: 'Annuler', danger: true }).then(ok => {
+                  if (ok) void call({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ purgeOrphans: true }) })
+                })}>
                     Ranger et effacer les photos sans don
                   </button>
                 )}
@@ -802,7 +807,10 @@ function DemoCard() {
           <button
             className="btn !w-auto"
             disabled={!!busy || !d}
-            onClick={() => (!d?.exists || confirm('Régénérer les donateurs ? Les dates sont replacées à aujourd’hui ; les photos sont gardées et redistribuées.')) && void post('generate', 'Génération…')}
+            onClick={async () => {
+              if (d?.exists && !(await askConfirm({ title: 'Régénérer les donateurs ?', text: 'Les dates sont replacées à aujourd’hui ; les photos sont gardées et redistribuées.', confirmLabel: 'Régénérer', cancelLabel: 'Annuler' }))) return
+              void post('generate', 'Génération…')
+            }}
           >
             {d?.exists ? 'Régénérer les donateurs' : 'Créer la démo'}
           </button>
@@ -813,7 +821,9 @@ function DemoCard() {
             </label>
           )}
           {!!d?.photos && (
-            <button className="btn btn-ghost !w-auto" disabled={!!busy} onClick={() => confirm(`Retirer les ${d.photos} photo(s) de la démo ? Les fichiers sont effacés.`) && void post('removePhotos', 'Retrait…')}>
+            <button className="btn btn-ghost !w-auto" disabled={!!busy} onClick={() => void askConfirm({ title: `Retirer les ${d.photos} photo(s) de la démo ?`, text: 'Les fichiers sont effacés.', confirmLabel: 'Retirer', cancelLabel: 'Annuler', danger: true }).then(ok => {
+              if (ok) void post('removePhotos', 'Retrait…')
+            })}>
               Retirer les photos
             </button>
           )}
