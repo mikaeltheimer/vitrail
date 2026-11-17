@@ -18,6 +18,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
 import { FALLBACK_GLASS } from '@/lib/theme'
 import Signature from '@/components/Signature'
+import EmptyVitrail from '@/components/vitrail/EmptyVitrail'
 import { QUOTES, type Locale } from '@/i18n/config'
 import { useOrg } from '@/lib/useOrg'
 import { useMoney, useSceneText } from '@/lib/useI18n'
@@ -762,6 +763,9 @@ export default function Ecran() {
       <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
         <OrgLogo style={{ width: '12em', display: 'block' }} nameStyle={{ fontSize: '1.6em' }} />
         <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{org.vitrailTitle}</div>
+        {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) */}
+        {count > 0 && (
+        <>
         <div style={{ marginTop: '0.9em', fontFamily: MONO }}>
           <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{money(raised)}</span>
           <span style={{ fontSize: '1em', color: 'rgba(255,255,255,0.6)', marginLeft: '0.5em' }}>{event && event.goalCents > 0 ? t('sur', { montant: money(event.goalCents) }) : t('amasses')}</span>
@@ -774,6 +778,8 @@ export default function Ecran() {
         <div style={{ fontFamily: MONO, fontSize: '0.95em', color: 'rgba(255,255,255,0.55)', marginTop: '0.5em' }}>
           {t('donateurs', { count })}
         </div>
+        </>
+        )}
       </div>
 
       {/* Signature de Donivers : en bas à gauche, en face du QR, sous le bloc de l'organisme (toujours plus petite que
@@ -852,8 +858,9 @@ export default function Ecran() {
             {cta && (
               <div className="tv-banner-in" style={{ fontSize: org.why.length > 240 ? '1.05em' : '1.2em', lineHeight: 1.45, color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-line', maxWidth: '42em', paddingBottom: '0.8em', marginBottom: '0.8em', borderBottom: '1px solid rgba(240,178,74,0.3)' }}>{org.why}</div>
             )}
-            <div className="font-display" style={{ fontSize: '1.75em', lineHeight: 1.15 }}>{t('bandeauTitre')}</div>
-            <div style={{ fontSize: '1.35em', fontWeight: 600, marginTop: '0.35em', color: GOLD }}>{snap?.showcase ? t('bandeauAppelDemo') : t('bandeauAppel')}</div>
+            {/* Vitrail vide : « chaque fragment est une personne qui a donné » serait faux ; le bandeau dit qu'il attend */}
+            <div className="font-display" style={{ fontSize: '1.75em', lineHeight: 1.15 }}>{count === 0 ? t('vide') : t('bandeauTitre')}</div>
+            <div style={{ fontSize: '1.35em', fontWeight: 600, marginTop: '0.35em', color: GOLD }}>{count === 0 ? t('videTexte') : snap?.showcase ? t('bandeauAppelDemo') : t('bandeauAppel')}</div>
           </div>
           <div aria-hidden="true" style={{ fontSize: '3em', lineHeight: 1, color: GOLD }}>→</div>
         </div>
@@ -880,10 +887,18 @@ export default function Ecran() {
         </>
       )}
 
+      {/* Vitrail vide : le même disque que la page (verre clair, fragment lumineux), au-dessus du bandeau d'appel, qui
+          porte le texte (intégré : pas de bandeau, le texte va sous le disque) */}
       {snap && count === 0 && (
-        <div className="absolute text-center" style={{ left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '24em' }}>
-          <div style={{ fontSize: '1.9em', fontWeight: 600 }}>{t('vide')}</div>
-          <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.5em' }}>{t('videTexte')}</div>
+        <div className="absolute" style={{ inset: embed ? '2em 0' : `2em 0 ${BAND_EM}em`, zIndex: 0 }}>
+          <EmptyVitrail disc={embed ? 0.62 : 0.86}>
+            {embed && (
+              <>
+                <div style={{ fontSize: '1.9em', fontWeight: 600, textShadow: '0 2px 24px rgba(0,0,0,0.9)' }}>{t('vide')}</div>
+                <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.4em', textShadow: '0 1px 14px rgba(0,0,0,0.9)' }}>{t('videTexte')}</div>
+              </>
+            )}
+          </EmptyVitrail>
         </div>
       )}
     </main>
