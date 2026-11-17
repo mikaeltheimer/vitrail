@@ -59,9 +59,10 @@ export default function Diffuser({ data }: { data: ConsoleData }) {
     setTimeout(() => setCopied(false), 3000)
   }
 
+  // Ordinateur : le lien et les écrans à gauche, le code QR à droite, la provenance sur toute la largeur
   return (
-    <div className="space-y-6">
-      <Section title={t('lien')}>
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
+      <Section title={t('lien')} className="lg:col-start-1 lg:row-start-1">
         <div className="card space-y-3 text-sm">
           <p className="break-all">{link || '…'}</p>
           <button className="btn" onClick={() => void share()} disabled={!link}>
@@ -72,7 +73,7 @@ export default function Diffuser({ data }: { data: ConsoleData }) {
         </div>
       </Section>
 
-      <Section title={t('qr')}>
+      <Section title={t('qr')} className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <div className="card space-y-3 text-sm">
           <label className="block">
             <span>{t('emplacement')}</span>
@@ -96,7 +97,7 @@ export default function Diffuser({ data }: { data: ConsoleData }) {
         </div>
       </Section>
 
-      <Section title={t('ecrans')}>
+      <Section title={t('ecrans')} className="lg:col-start-1 lg:row-start-2">
         <div className="card space-y-3 text-sm">
           <p className="muted">{t('ecransAide')}</p>
           <div className="flex flex-wrap gap-2">
@@ -112,7 +113,7 @@ export default function Diffuser({ data }: { data: ConsoleData }) {
         </div>
       </Section>
 
-      <Section title={t('provenance')}>
+      <Section title={t('provenance')} className="lg:col-span-2 lg:row-start-3">
         {data.channels.length === 0 ? (
           <p className="card muted text-sm">{t('provenanceVide')}</p>
         ) : (

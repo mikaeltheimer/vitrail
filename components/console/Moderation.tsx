@@ -22,7 +22,7 @@ export default function Moderation({ data, act, notify, setNotify }: { data: Con
 
   return (
     <div className="space-y-6">
-      <section className="card space-y-3 text-sm">
+      <section className="card space-y-3 text-sm lg:max-w-3xl">
         <b>{t('mode')}</b>
         <div className="flex flex-wrap gap-2">
           <button className="chip !px-3" aria-pressed={data.photoModeration === 'live'} onClick={() => void act({ action: 'setPhotoModeration', mode: 'live' }, t('modeImmediatOk'))}>
@@ -43,7 +43,7 @@ export default function Moderation({ data, act, notify, setNotify }: { data: Con
 
       {photos.length > 0 && (
         <Section title={t('photos', { count: photos.length })}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {photos.map(d => (
               <div key={d.id} className="card space-y-2 !p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,20 +65,22 @@ export default function Moderation({ data, act, notify, setNotify }: { data: Con
 
       {messages.length > 0 && (
         <Section title={t('temoignages', { count: messages.length })}>
-          {messages.map(d => (
-            <div key={d.id} className="card space-y-2 text-sm">
-              <p className="italic">« {d.message} »</p>
-              <p className="muted text-xs">— {d.display_name || t('anonyme')}</p>
-              <div className="flex gap-2">
-                <button className="chip !px-3" onClick={() => void act({ action: 'approveMessage', donorId: d.id }, t('temoignagePublie'))}>
-                  {t('publier')}
-                </button>
-                <button className="chip !px-3" onClick={() => void act({ action: 'removeMessage', donorId: d.id }, t('temoignageRefuse'))}>
-                  {t('refuser')}
-                </button>
+          <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+            {messages.map(d => (
+              <div key={d.id} className="card space-y-2 text-sm">
+                <p className="italic">« {d.message} »</p>
+                <p className="muted text-xs">— {d.display_name || t('anonyme')}</p>
+                <div className="flex gap-2">
+                  <button className="chip !px-3" onClick={() => void act({ action: 'approveMessage', donorId: d.id }, t('temoignagePublie'))}>
+                    {t('publier')}
+                  </button>
+                  <button className="chip !px-3" onClick={() => void act({ action: 'removeMessage', donorId: d.id }, t('temoignageRefuse'))}>
+                    {t('refuser')}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </Section>
       )}
 
