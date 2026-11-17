@@ -118,137 +118,146 @@ export default function Accueil({
           : t('etatEnLigne')
   const stateColor = data.mode === 'stripe' ? GREEN : data.mode === 'demo' ? 'var(--accent)' : RED
 
+  // Ordinateur : la collecte et les derniers dons à gauche, « À faire » et les raccourcis à droite (toujours visibles).
+  // Téléphone : une colonne, dans l'ordre du document (collecte, À faire, raccourcis, derniers dons).
   return (
-    <div className="space-y-6">
-      {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} setTab={setTab} openTerms={() => setTermsOpen(true)} />}
-      <section aria-label={t('collecte')} className="card space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="muted">{t('vitrailPrincipal')}</span>
-          <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: stateColor }}>
-            <span className="h-2 w-2 rounded-full" style={{ background: stateColor }} />
-            {stateLabel}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-baseline gap-2">
-          <span className="text-[40px] font-semibold leading-none" style={{ fontFamily: 'var(--font-display)' }}>
-            {money(s.totalCents)}
-          </span>
-          {s.goalCents && <span className="muted">{t('surObjectif', { objectif: money(s.goalCents) })}</span>}
-        </div>
-        {s.goalCents && (
-          <div role="img" aria-label={t('progression', { pct: Math.round((s.totalCents / s.goalCents) * 100) })} className="h-2.5 overflow-hidden rounded-full" style={{ background: 'rgba(244,239,230,0.08)' }}>
-            <div className="h-full" style={{ width: `${Math.min(100, (s.totalCents / s.goalCents) * 100)}%`, background: 'var(--accent)' }} />
+    <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-6 lg:space-y-0">
+      <div className="space-y-6 lg:col-start-1 lg:row-start-1">
+        {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} setTab={setTab} openTerms={() => setTermsOpen(true)} />}
+        <section aria-label={t('collecte')} className="card space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="muted">{t('vitrailPrincipal')}</span>
+            <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: stateColor }}>
+              <span className="h-2 w-2 rounded-full" style={{ background: stateColor }} />
+              {stateLabel}
+            </span>
           </div>
-        )}
-        <p className="muted flex flex-wrap gap-x-4 text-sm">
-          <span>{t('dons', { count: s.donations })}</span>
-          <span>{t('donateurs', { count: s.donors })}</span>
-        </p>
-        {data.mode === 'demo' && owner && !data.org.practice && <p className="text-xs" style={{ color: 'var(--accent)' }}>{t('demoExplication')}</p>}
-        <Apercu url={data.vitrailUrl} version={s.donations} label={data.org.practice ? t('voirEntrainement') : t('voirVitrail')} />
-      </section>
-
-      {/* L'atelier, toujours à portée sur l'accueil (avant : seulement dans la carte de démarrage, qui disparaît à la mise en ligne, et dans Plus) */}
-      {owner && data.atelierUrl && !(data.org.status === 'draft' && !data.org.practice) && (
-        <section className="card flex flex-wrap items-center gap-3 text-sm" style={{ borderColor: 'rgba(240,178,74,0.45)' }} aria-labelledby="atelier-accueil">
-          <span className="min-w-[200px] flex-1">
-            <b id="atelier-accueil" className="block">
-              {t('atelierTitre')}
-            </b>
-            <span className="muted block text-[13px]">{t('atelierAide')}</span>
-          </span>
-          <a className="btn !w-auto" href={data.atelierUrl}>
-            {tc('monVitrail.ouvrirAtelier')}
-          </a>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-[40px] font-semibold leading-none" style={{ fontFamily: 'var(--font-display)' }}>
+              {money(s.totalCents)}
+            </span>
+            {s.goalCents && <span className="muted">{t('surObjectif', { objectif: money(s.goalCents) })}</span>}
+          </div>
+          {s.goalCents && (
+            <div role="img" aria-label={t('progression', { pct: Math.round((s.totalCents / s.goalCents) * 100) })} className="h-2.5 overflow-hidden rounded-full" style={{ background: 'rgba(244,239,230,0.08)' }}>
+              <div className="h-full" style={{ width: `${Math.min(100, (s.totalCents / s.goalCents) * 100)}%`, background: 'var(--accent)' }} />
+            </div>
+          )}
+          <p className="muted flex flex-wrap gap-x-4 text-sm">
+            <span>{t('dons', { count: s.donations })}</span>
+            <span>{t('donateurs', { count: s.donors })}</span>
+          </p>
+          {data.mode === 'demo' && owner && !data.org.practice && <p className="text-xs" style={{ color: 'var(--accent)' }}>{t('demoExplication')}</p>}
+          <Apercu url={data.vitrailUrl} version={s.donations} label={data.org.practice ? t('voirEntrainement') : t('voirVitrail')} />
         </section>
-      )}
 
-      <Section
-        title={t('aFaire')}
-        aside={todos.length > 0 ? <span className="rounded-full px-2 text-xs font-bold" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>{todos.length}</span> : undefined}
-      >
-        {todos.length === 0 && <p className="card muted text-sm">{t('rienAFaire')}</p>}
-        {todos.map(x =>
-          x.onClick ? (
-            <button
-              key={x.key}
-              onClick={x.onClick}
-              className="card flex w-full items-start gap-3 !p-3.5 text-left"
-              style={x.urgent ? { borderColor: 'rgba(240,120,140,0.55)' } : undefined}
-            >
-              <Icon name={x.icon} color={x.urgent ? RED : 'var(--accent)'} />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[15px] font-bold">{x.title}</span>
-                {x.detail && <span className="muted text-[13px]">{x.detail}</span>}
-              </span>
-              <span className="self-center whitespace-nowrap text-[13px]" style={{ color: 'var(--accent)' }}>
-                {x.action}
-              </span>
-            </button>
-          ) : (
-            <p key={x.key} className="card m-0 flex w-full items-start gap-3 !p-3.5 text-sm">
-              <Icon name={x.icon} color="var(--muted)" />
-              <span className="flex-1">{x.title}</span>
-            </p>
-          ),
+        {/* L'atelier, toujours à portée sur l'accueil (avant : seulement dans la carte de démarrage, qui disparaît à la mise en ligne, et dans Plus) */}
+        {owner && data.atelierUrl && !(data.org.status === 'draft' && !data.org.practice) && (
+          <section className="card flex flex-wrap items-center gap-3 text-sm" style={{ borderColor: 'rgba(240,178,74,0.45)' }} aria-labelledby="atelier-accueil">
+            <span className="min-w-[200px] flex-1">
+              <b id="atelier-accueil" className="block">
+                {t('atelierTitre')}
+              </b>
+              <span className="muted block text-[13px]">{t('atelierAide')}</span>
+            </span>
+            <a className="btn !w-auto" href={data.atelierUrl}>
+              {tc('monVitrail.ouvrirAtelier')}
+            </a>
+          </section>
         )}
-        {termsOpen && data.terms && !data.terms.accepted && (
-          <Sheet title={tt('titre')} onClose={() => setTermsOpen(false)} closeLabel={tc('fermer')}>
-            <TermsSummary data={data} act={act} />
-          </Sheet>
-        )}
-      </Section>
 
-      <section aria-label={t('raccourcis')} className="grid grid-cols-3 gap-2">
-        <a href="/ecran" target="_blank" rel="noopener" className="card flex min-h-[84px] flex-col items-center justify-center gap-2 !p-2 text-center text-[13px] leading-tight !text-[var(--text)]">
-          <Icon name="ecran" color="var(--accent)" />
-          {t('ouvrirEcran')}
-        </a>
-        <button onClick={() => setTab('diffuser')} className="card flex min-h-[84px] flex-col items-center justify-center gap-2 !p-2 text-center text-[13px] leading-tight !text-[var(--text)]">
-          <Icon name="partager" color="var(--accent)" />
-          {t('partager')}
-        </button>
-        <button onClick={openCash} className="card flex min-h-[84px] flex-col items-center justify-center gap-2 !p-2 text-center text-[13px] leading-tight !text-[var(--text)]">
-          <Icon name="billet" color="var(--accent)" />
-          {t('donComptant')}
-        </button>
-      </section>
+      </div>
 
-      <Section
-        title={t('derniersDons')}
-        aside={
-          <button className="text-[13px]" style={{ color: 'var(--accent)' }} onClick={() => setTab('dons')}>
-            {t('toutVoir')}
+      <div className="space-y-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <Section
+          title={t('aFaire')}
+          aside={todos.length > 0 ? <span className="rounded-full px-2 text-xs font-bold" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>{todos.length}</span> : undefined}
+        >
+          {todos.length === 0 && <p className="card muted text-sm">{t('rienAFaire')}</p>}
+          {todos.map(x =>
+            x.onClick ? (
+              <button
+                key={x.key}
+                onClick={x.onClick}
+                className="card flex w-full items-start gap-3 !p-3.5 text-left"
+                style={x.urgent ? { borderColor: 'rgba(240,120,140,0.55)' } : undefined}
+              >
+                <Icon name={x.icon} color={x.urgent ? RED : 'var(--accent)'} />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[15px] font-bold">{x.title}</span>
+                  {x.detail && <span className="muted text-[13px]">{x.detail}</span>}
+                </span>
+                <span className="self-center whitespace-nowrap text-[13px]" style={{ color: 'var(--accent)' }}>
+                  {x.action}
+                </span>
+              </button>
+            ) : (
+              <p key={x.key} className="card m-0 flex w-full items-start gap-3 !p-3.5 text-sm">
+                <Icon name={x.icon} color="var(--muted)" />
+                <span className="flex-1">{x.title}</span>
+              </p>
+            ),
+          )}
+          {termsOpen && data.terms && !data.terms.accepted && (
+            <Sheet title={tt('titre')} onClose={() => setTermsOpen(false)} closeLabel={tc('fermer')}>
+              <TermsSummary data={data} act={act} />
+            </Sheet>
+          )}
+        </Section>
+
+        <section aria-label={t('raccourcis')} className="grid grid-cols-3 gap-2">
+          <a href="/ecran" target="_blank" rel="noopener" className="card flex min-h-[84px] flex-col items-center justify-center gap-2 !p-2 text-center text-[13px] leading-tight !text-[var(--text)]">
+            <Icon name="ecran" color="var(--accent)" />
+            {t('ouvrirEcran')}
+          </a>
+          <button onClick={() => setTab('diffuser')} className="card flex min-h-[84px] flex-col items-center justify-center gap-2 !p-2 text-center text-[13px] leading-tight !text-[var(--text)]">
+            <Icon name="partager" color="var(--accent)" />
+            {t('partager')}
           </button>
-        }
-      >
-        {recent.length === 0 ? (
-          <p className="card muted text-sm">{t('aucunDon')}</p>
-        ) : (
-          <ul className="card !p-0">
-            {recent.map((n, i) => {
-              const d = one(n.donors)
-              return (
-                <li key={n.id} className={i ? 'border-t' : ''} style={{ borderColor: 'var(--line)' }}>
-                  <button className="console-row flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => openDonor(n.donor_id)}>
-                    <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: colorOf.get(n.donor_id) ?? 'var(--accent)' }} />
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[15px]">{d?.display_name || t('anonyme')}</span>
-                      <span className="muted text-xs">
-                        {ago(n.created_at)} · {tc(`source.${n.source}` as 'source.stripe')}
-                      </span>
-                    </span>
-                    <b className="text-[15px]">{money(n.amount_cents - n.refunded_cents)}</b>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </Section>
+          <button onClick={openCash} className="card flex min-h-[84px] flex-col items-center justify-center gap-2 !p-2 text-center text-[13px] leading-tight !text-[var(--text)]">
+            <Icon name="billet" color="var(--accent)" />
+            {t('donComptant')}
+          </button>
+        </section>
+      </div>
 
-      {/* Le forfait, tout en bas (Mika, 16 nov.) : utile à consulter, jamais urgent */}
-      {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
+      <div className="space-y-6 lg:col-start-1 lg:row-start-2">
+        <Section
+          title={t('derniersDons')}
+          aside={
+            <button className="text-[13px]" style={{ color: 'var(--accent)' }} onClick={() => setTab('dons')}>
+              {t('toutVoir')}
+            </button>
+          }
+        >
+          {recent.length === 0 ? (
+            <p className="card muted text-sm">{t('aucunDon')}</p>
+          ) : (
+            <ul className="card !p-0">
+              {recent.map((n, i) => {
+                const d = one(n.donors)
+                return (
+                  <li key={n.id} className={i ? 'border-t' : ''} style={{ borderColor: 'var(--line)' }}>
+                    <button className="console-row flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => openDonor(n.donor_id)}>
+                      <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: colorOf.get(n.donor_id) ?? 'var(--accent)' }} />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate text-[15px]">{d?.display_name || t('anonyme')}</span>
+                        <span className="muted text-xs">
+                          {ago(n.created_at)} · {tc(`source.${n.source}` as 'source.stripe')}
+                        </span>
+                      </span>
+                      <b className="text-[15px]">{money(n.amount_cents - n.refunded_cents)}</b>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Section>
+
+        {/* Le forfait, tout en bas (Mika, 16 nov.) : utile à consulter, jamais urgent */}
+        {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
+      </div>
     </div>
   )
 }

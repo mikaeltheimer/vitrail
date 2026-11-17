@@ -694,6 +694,13 @@
       "diffuser": "Diffuser",
       "plus": "Réglages"
     },
+    "pages": {
+      "accueil": "Où en est la collecte et ce qui demande votre attention.",
+      "dons": "Chaque don reçu et chaque donateur. Choisissez une période pour faire les comptes d’une soirée.",
+      "moderation": "Les photos, les témoignages et les signalements qui attendent une décision.",
+      "diffuser": "Le lien à partager, les codes QR, les écrans et d’où viennent les dons.",
+      "plus": "Le vitrail, l’organisme, l’équipe et les paiements."
+    },
     "enAttente": "{count, plural, one {# élément en attente} other {# éléments en attente}}",
     "chargement": "Chargement…",
     "chargementImpossible": "Chargement impossible : {erreur}",

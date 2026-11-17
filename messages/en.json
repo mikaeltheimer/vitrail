@@ -694,6 +694,13 @@
       "diffuser": "Share",
       "plus": "Settings"
     },
+    "pages": {
+      "accueil": "How the campaign is going and what needs your attention.",
+      "dons": "Every donation received and every donor. Choose a period to balance the books for an evening.",
+      "moderation": "Photos, testimonials and reports waiting for a decision.",
+      "diffuser": "The link to share, QR codes, screens and where donations come from.",
+      "plus": "Your stained glass, your organization, your team and payments."
+    },
     "enAttente": "{count, plural, one {# item waiting} other {# items waiting}}",
     "chargement": "Loading…",
     "chargementImpossible": "Could not load: {erreur}",

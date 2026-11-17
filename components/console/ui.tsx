@@ -173,11 +173,11 @@ export function useAgo() {
 export const RED = '#F58FA3'
 export const GREEN = '#3DB5A6'
 
-export function Section({ title, children, aside }: { title: string; children: React.ReactNode; aside?: React.ReactNode }) {
+export function Section({ title, children, aside, className = '' }: { title: string; children: React.ReactNode; aside?: React.ReactNode; className?: string }) {
   return (
-    <section className="space-y-2">
+    <section className={`space-y-2 lg:space-y-3 ${className}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-bold">{title}</h2>
+        <h2 className="text-[17px] font-bold lg:text-lg">{title}</h2>
         {aside}
       </div>
       {children}
