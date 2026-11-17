@@ -9,7 +9,7 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
 | Mika | Studio : page « Parcours » (à traiter, organismes par étape, fiche), onglet Chiffres, fonction SQL des totaux ; textes restés sur « Plus » / « Mon vitrail » | `mika/studio` | `app/studio`, `components/studio/`, `lib/studio-stats.ts`, `app/api/studio`, migration `2026-11-25-studio-totaux` |
-| Mika | Textes proposés : titre « Notre communauté, enfin visible », « Pourquoi donner » réécrit ; atelier : « Texte proposé », « Partir de ce texte », piste pour la présentation. Ensuite : guide de l'atelier | `mika/textes-proposes` | `messages/`, `components/atelier/Atelier.tsx`, `app/api/atelier/route.ts`, `lib/identity.ts` |
+| Mika | Textes proposés : titre « Notre communauté, enfin visible », « Pourquoi donner » réécrit ; atelier : « Texte proposé », « Partir de ce texte », piste pour la présentation. Puis guide de l'atelier (`mika/guide-atelier`) | `mika/textes-proposes` | `messages/`, `components/atelier/Atelier.tsx`, `app/api/atelier/route.ts`, `lib/identity.ts` |
 | Mika | Nouveau symbole « B » (5 pièces, plomb 2, lumière du vitrail), un seul symbole à toutes les tailles | `mika/logo-b` | `scripts/logo.py`, `public/brand/`, `components/plateforme/Brand.tsx`, `components/Signature.tsx`, `lib/shareImage.tsx`, `app/layout.tsx` |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)

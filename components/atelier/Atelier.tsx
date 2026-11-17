@@ -1,6 +1,7 @@
 'use client'
 
 /* eslint-disable @next/next/no-img-element -- aperçu des images téléversées */
+import Guide, { guideDone, guideSteps, type GuideAction, type GuideData } from './Guide'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
@@ -37,6 +38,8 @@ interface Draft {
   iconUrl: string | null
   /** Textes proposés par langue, « {org} » à remplacer (absents d'une vieille réponse : aucun texte proposé). */
   proposed?: Partial<Record<Locale, Partial<Record<TextField, string>>>>
+  /** Pour le guide : l'état de la console, publication, dons fictifs (absent d'une vieille réponse). */
+  guide?: GuideData
 }
 
 /** Le texte proposé pour un champ, avec le nom de l'organisme dans cette langue ; '' s'il n'y en a pas. */
@@ -73,10 +76,9 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   const t = useTranslations('atelier')
   const [draft, setDraft] = useState<Draft | null>(null)
   const [editing, setEditing] = useState(false)
-  const [target, setTarget] = useState<EditTarget | 'langues' | 'tout' | null>(null)
+  const [target, setTarget] = useState<EditTarget | 'langues' | 'tout' | 'guide' | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
-  const [intro, setIntro] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [barHeight, setBarHeight] = useState(36)
   const watchBar = useCallback((el: HTMLDivElement | null) => {
@@ -97,9 +99,9 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
     const id = setTimeout(() => {
       void load()
       // On arrive toujours hors du mode Modifier (on vient souvent faire un don fictif ou projeter l'écran) ;
-      // l'explication de la première visite indique où se trouve « Modifier ».
+      // à la première visite, le guide s'ouvre (il dit quoi faire, et dans quel ordre).
       try {
-        if (!localStorage.getItem('donivers:atelier-vu')) setIntro(true)
+        if (!localStorage.getItem('donivers:atelier-vu')) setTarget('guide')
       } catch {}
     }, 0)
     return () => clearTimeout(id)
@@ -112,7 +114,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/atelier', { cache: 'no-store' }).catch(() => null)
       if (!res?.ok) return
       const d = (await res.json()) as Draft
-      setDraft(cur => (cur ? { ...cur, toModerate: d.toModerate } : cur))
+      setDraft(cur => (cur ? { ...cur, toModerate: d.toModerate, guide: d.guide ?? cur.guide } : cur))
     }, 10_000)
     return () => clearInterval(id)
   }, [draft !== null]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -169,6 +171,28 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
       setNote({ ok: true, text: t('publie') })
     }
   }
+  const steps = guideSteps(draft)
+  const closeGuide = () => {
+    setTarget(null)
+    try {
+      localStorage.setItem('donivers:atelier-vu', '1')
+    } catch {}
+  }
+  const guideAction = (a: GuideAction) => {
+    try {
+      localStorage.setItem('donivers:atelier-vu', '1')
+    } catch {}
+    if (a === 'publier') return void publish()
+    if (a === 'don') {
+      // Le panneau de don est celui de la page du vitrail : on le lui demande
+      setTarget(null)
+      setEditing(false)
+      window.dispatchEvent(new Event('donivers:don-fictif'))
+      return
+    }
+    setEditing(true)
+    setTarget(a)
+  }
   const discard = async () => {
     if (!confirm(t('abandonnerConfirmer'))) return
     setBusy(true)
@@ -201,6 +225,9 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
             <span className="px-1.5 font-semibold" style={{ color: '#F0B24A' }}>
               {t('titre')}
             </span>
+            <button className="chip !px-2.5 !py-1 text-[12px]" aria-pressed={target === 'guide'} onClick={() => (target === 'guide' ? closeGuide() : setTarget('guide'))} style={target !== 'guide' && guideDone(steps) < steps.length ? { borderColor: '#F0B24A', color: '#F0B24A' } : undefined}>
+              {t('guide.puce', { fait: guideDone(steps), total: steps.length })}
+            </button>
             <button className="chip !px-2.5 !py-1 text-[12px]" aria-pressed={editing} onClick={() => setEditing(!editing)}>
               {editing ? t('terminer') : t('modifier')}
             </button>
@@ -241,21 +268,9 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
             {note.text}
           </p>
         )}
-        {intro && !hiddenHere && (
-          <Sheet
-            side={false}
-            title={t('introTitre')}
-            onClose={() => {
-              setIntro(false)
-              try {
-                localStorage.setItem('donivers:atelier-vu', '1')
-              } catch {}
-            }}
-            closeLabel={t('compris')}
-          >
-            <p>{t('intro1')}</p>
-            <p>{t('intro2')}</p>
-            <p>{t('intro3')}</p>
+        {target === 'guide' && !hiddenHere && (
+          <Sheet title={t('guide.titre')} onClose={closeGuide} closeLabel={t('fermer')}>
+            <Guide steps={steps} guide={draft.guide} pending={draft.pending} consoleUrl={draft.consoleUrl} onAction={guideAction} />
           </Sheet>
         )}
         {target === 'langues' && <LanguagesSheet draft={draft} onClose={() => setTarget(null)} save={async locales => {
@@ -266,7 +281,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
           }
         }} />}
         {target === 'tout' && <AllTexts draft={draft} onPick={f => setTarget(f)} onClose={() => setTarget(null)} />}
-        {target && target !== 'langues' && target !== 'tout' && target !== 'logo' && target !== 'icon' && (
+        {target && target !== 'langues' && target !== 'tout' && target !== 'guide' && target !== 'logo' && target !== 'icon' && (
           <TextSheet key={target} field={target} draft={draft} pageLocale={pageLocale} setText={setText} onClose={() => setTarget(null)} />
         )}
         {(target === 'logo' || target === 'icon') && <ImageSheet type={target} url={target === 'logo' ? draft.logoUrl : draft.iconUrl} onDone={load} onClose={() => setTarget(null)} />}

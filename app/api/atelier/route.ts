@@ -7,6 +7,7 @@ import type { Locale } from '@/i18n/config'
 import type { StoredTexts } from '@/lib/identity-shared'
 import { failer } from '@/lib/errors'
 import { getOrg, orgUrl } from '@/lib/tenant'
+import { launchBlockers, type LaunchBlocker } from '@/lib/launch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,6 +38,20 @@ async function toModerate(atelierId: string): Promise<number> {
   return count ?? 0
 }
 
+/**
+ * Pour le guide de l'atelier : ce qui reste à faire dans la console avant la mise en ligne (même définition que
+ * « Mettre en ligne »), si le vitrail est en ligne, s'il a déjà été publié, et si l'équipe a fait un don fictif.
+ */
+async function guide(orgId: string, atelierId: string): Promise<{ live: boolean; published: boolean; blockers: LaunchBlocker[]; practiceDonations: number }> {
+  const db = getDb()
+  const [{ data: org }, { count }] = await Promise.all([
+    db.from('organizations').select('status,stripe_ready,legal,terms_version,published_at').eq('id', orgId).maybeSingle(),
+    db.from('donors').select('id', { count: 'exact', head: true }).eq('organization_id', atelierId),
+  ])
+  const o = (org ?? {}) as { status?: string; stripe_ready?: boolean; legal?: unknown; terms_version?: string | null; published_at?: string | null }
+  return { live: o.status === 'live', published: !!o.published_at, blockers: org ? launchBlockers(o) : [], practiceDonations: count ?? 0 }
+}
+
 /** Retour à la console de l'organisme réel (sous-domaine, ou ?org= en prévisualisation). */
 async function consoleUrl(orgId: string, request: NextRequest): Promise<string | null> {
   const org = await getOrg(orgId)
@@ -48,6 +63,7 @@ async function state(orgId: string, atelierId: string, request: NextRequest) {
   return {
     consoleUrl: await consoleUrl(orgId, request),
     toModerate: await toModerate(atelierId),
+    guide: await guide(orgId, atelierId),
     pending,
     fallbackName,
     locales: draft.locales,
