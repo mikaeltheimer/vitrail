@@ -18,7 +18,7 @@ import { useCharityNumber, useOrg } from "@/lib/useOrg";
 import { useCount, useGlassName, useMoney, useOrdinal } from "@/lib/useI18n";
 import { CONFIG, GLASS_COLORS } from "@/lib/config";
 import { currentGlass } from "@/lib/theme";
-import ContributionBlock, { contributionFor, useContributionConfig, type ContributionChoice } from "./ContributionBlock";
+import ContributionBlock, { ContributionRecap, contributionFor, useContributionConfig, type ContributionChoice } from "./ContributionBlock";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
 import { AnotherQuestion, useQuestionPicker } from "./QuestionPicker";
@@ -120,21 +120,6 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 const MIN = CONFIG.minAmountCents / 100;
 const MAX = CONFIG.maxAmountCents / 100;
 
-/** Curseur 0–1000 → montant en dollars, sur une échelle logarithmique du minimum au maximum. */
-function sliderToAmount(v: number): number {
-  const a = Math.exp(
-    Math.log(MIN) + (v / 1000) * (Math.log(MAX) - Math.log(MIN)),
-  );
-  const step = a < 20 ? 1 : a < 200 ? 5 : a < 2000 ? 25 : 250;
-  return Math.min(MAX, Math.max(MIN, Math.round(a / step) * step));
-}
-function amountToSlider(a: number): number {
-  return Math.round(
-    ((Math.log(Math.max(MIN, a)) - Math.log(MIN)) /
-      (Math.log(MAX) - Math.log(MIN))) *
-      1000,
-  );
-}
 function formatShare(x: number, tag: string): string {
   const opts: Intl.NumberFormatOptions =
     x * 100 >= 1 ? { maximumFractionDigits: 1 } : { maximumSignificantDigits: 2 };
@@ -243,7 +228,7 @@ export default function ClaimPanel({
   const [amountText, setAmountText] = useState(String(start));
   // Contribution à Donivers : la suggestion est présélectionnée (décision 1 de Mika, 16 nov.)
   const contributionConfig = useContributionConfig();
-  const [contributionChoice, setContributionChoice] = useState<ContributionChoice>(saved?.contribution?.choice ?? "suggested");
+  const [contributionChoice, setContributionChoice] = useState<ContributionChoice>(saved?.contribution?.choice === "none" ? "other" : (saved?.contribution?.choice ?? "suggested"));
   const [contributionOther, setContributionOther] = useState(saved?.contribution?.other ?? "");
   const [name, setName] = useState(saved?.name ?? "");
   const [color, setColor] = useState<string>(
@@ -464,7 +449,8 @@ export default function ClaimPanel({
               left: isMobile ? 0 : "auto",
               right: isMobile ? 0 : "16px",
               top: !isMobile ? "72px" : keyboard ? `${keyboard.top}px` : peek ? "auto" : 0,
-              width: isMobile ? "auto" : "min(400px, calc(100% - 32px))",
+              // Plus large pour la lisibilité (Mika, 17 nov.) ; le vitrail recadre le morceau d'après la largeur réelle (page.tsx)
+              width: isMobile ? "auto" : "min(520px, max(400px, 42vw), calc(100% - 32px))",
               bottom: isMobile && !keyboard ? 0 : "auto",
               height: keyboard ? `${keyboard.height}px` : undefined,
               maxHeight: !isMobile
@@ -591,135 +577,100 @@ export default function ClaimPanel({
         </span>
       </div>
 
-      {/* ---------- Montant ---------- */}
-      <div style={{ display: "grid", gap: "6px" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: "12px",
-          }}
-        >
-          <label htmlFor="claim-amount-input" style={labelStyle}>
-            {t("montant")}
-          </label>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: "4px",
-              color: GOLD,
-            }}
-          >
-            {locale === "en" && (
-              <span style={{ fontSize: "26px", fontWeight: 700 }}>$</span>
-            )}
+      {/* ---------- 1. Votre don (Mika, 17 nov. : sections numérotées ; montants rapides plutôt que le curseur) ---------- */}
+      <section style={sectionStyle} aria-labelledby="claim-s1">
+        <SectionHead n={1} id="claim-s1" title={t("sectionDon")} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }} role="group" aria-label={t("montantsRapides")}>
+          {quickAmounts(typicalCents).map((v) => {
+            const on = amount === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setAmount(v)}
+                style={{
+                  ...chipStyle,
+                  borderColor: on ? GOLD : "rgba(255,255,255,0.22)",
+                  background: on ? "rgba(240,178,74,0.14)" : "transparent",
+                  color: on ? GOLD : "#F4EFE6",
+                }}
+              >
+                {money(v * 100)}
+              </button>
+            );
+          })}
+        </div>
+        <label htmlFor="claim-amount-input" style={amountFieldStyle}>
+          <span style={{ fontSize: "16px", color: "rgba(255,255,255,0.82)", flex: "none" }}>{t("autreMontant")}</span>
+          <span style={{ display: "flex", alignItems: "baseline", gap: "4px", marginLeft: "auto", color: GOLD }}>
+            {locale === "en" && <span style={{ fontSize: "24px", fontWeight: 700 }}>$</span>}
             <input
               id="claim-amount-input"
               inputMode="numeric"
               value={amountText}
+              aria-label={t("montant")}
               onChange={(e) => {
                 const v = e.target.value.replace(/[^\d]/g, "");
                 setAmountText(v);
                 const n = parseInt(v, 10);
                 if (n >= 1) setAmountState(Math.min(n, MAX));
               }}
+              onFocus={(e) => e.target.select()}
               onBlur={() => setAmount(amount)}
               style={{
-                width: `${Math.max(2, amountText.length) + 0.6}ch`,
+                width: `${Math.max(3, amountText.length) + 0.6}ch`,
                 background: "transparent",
                 border: 0,
-                borderBottom: "1px dashed rgba(240,178,74,0.4)",
                 color: GOLD,
-                font: "700 26px 'DM Sans', sans-serif",
+                font: "700 24px 'DM Sans', sans-serif",
                 textAlign: "right",
                 padding: 0,
                 fontVariantNumeric: "tabular-nums",
+                outline: "none",
               }}
             />
-            {locale === "fr" && (
-              <span style={{ fontSize: "26px", fontWeight: 700 }}>$</span>
-            )}
-          </div>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={1000}
-          value={amountToSlider(amount)}
-          onChange={(e) => setAmount(sliderToAmount(+e.target.value))}
-          aria-label={t("montant")}
-          style={{ width: "100%", accentColor: GOLD }}
-        />
+            {locale === "fr" && <span style={{ fontSize: "24px", fontWeight: 700 }}>$</span>}
+          </span>
+        </label>
         {amount < MIN && (
           <p style={{ ...hintStyle, color: "#f87171" }}>
             {te("montantMin", { montant: money(CONFIG.minAmountCents) })}
           </p>
         )}
         <p style={hintStyle}>
+          {typicalCents ? `${t("typique", { montant: money(typicalCents) })} ` : ""}
           {t("tailleMontant")}
-          {typicalCents ? ` ${t("typique", { montant: money(typicalCents) })}` : ""}
         </p>
         {overlayMobile && !confirming && (
           <button type="button" onClick={() => togglePeek(true)} style={peekStyle}>
             {t("voirMorceau")}
           </button>
         )}
-        <ContributionBlock
-          donCents={baseCents}
-          orgName={org.name}
-          config={contributionConfig}
-          choice={contributionChoice}
-          otherText={contributionOther}
-          onChoice={(c) => {
-            // « Autre montant » part de la suggestion, que le donateur ajuste
-            if (c === "other" && !contributionOther && contribution.cents > 0) setContributionOther((contribution.cents / 100).toFixed(2));
-            setContributionChoice(c);
-          }}
-          onOtherText={setContributionOther}
-        />
-        <label
+        <dl
           style={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "flex-start",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: "5px 12px",
+            margin: 0,
             fontSize: "16px",
-            color: "rgba(255,255,255,0.75)",
-            cursor: "pointer",
           }}
         >
-          <input
-            type="checkbox"
-            checked={mailing}
-            onChange={(e) => setMailing(e.target.checked)}
-            style={{ accentColor: GOLD, marginTop: "2px" }}
-          />
-          <span>{t("listeEnvoi", { org: org.name })}</span>
-        </label>
-      </div>
+          <dt style={dtStyle}>{t("part")}</dt>
+          <dd style={monoStyle}>{formatShare(share, INTL_TAG[locale])}</dd>
+          <dt style={dtStyle}>{t("plusGrandQue")}</dt>
+          <dd style={monoStyle}>
+            {t("plusGrandQueValeur", { count: bigger, total: count(amounts.length) })}
+          </dd>
+          <dt style={dtStyle}>{t("rang")}</dt>
+          <dd style={monoStyle}>{ordinal(rank)}</dd>
+        </dl>
 
-      <dl
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gap: "5px 12px",
-          margin: 0,
-          fontSize: "16px",
-        }}
-      >
-        <dt style={dtStyle}>{t("part")}</dt>
-        <dd style={monoStyle}>{formatShare(share, INTL_TAG[locale])}</dd>
-        <dt style={dtStyle}>{t("plusGrandQue")}</dt>
-        <dd style={monoStyle}>
-          {t("plusGrandQueValeur", { count: bigger, total: count(amounts.length) })}
-        </dd>
-        <dt style={dtStyle}>{t("rang")}</dt>
-        <dd style={monoStyle}>{ordinal(rank)}</dd>
-      </dl>
+      </section>
 
       {!agrandir && (
-        <>
+        <section style={sectionStyle} aria-labelledby="claim-s2">
+          <SectionHead n={2} id="claim-s2" title={t("sectionMorceau")} note={t("facultatif")} />
           {/* ---------- Nom affiché : avant le témoignage (en dernier, on l'oubliait) ---------- */}
           {/* Même encadré doré que le témoignage : ce sont les deux choses qui s'affichent sur le morceau */}
           <label style={{ ...cardStyle, display: "grid", gap: "8px" }}>
@@ -851,8 +802,47 @@ export default function ClaimPanel({
           <p style={{ ...hintStyle, marginTop: "-6px" }}>
             {t("facultatifs")}
           </p>
-        </>
+        </section>
       )}
+
+      {/* ---------- 3. Paiement : la contribution, détachée dans son encadré, puis le total et le bouton ---------- */}
+      <section style={sectionStyle} aria-labelledby="claim-s3">
+        <SectionHead n={agrandir ? 2 : 3} id="claim-s3" title={t("sectionPaiement")} />
+        <div style={contributionBoxStyle}>
+          <ContributionBlock
+            donCents={baseCents}
+            orgName={org.name}
+            config={contributionConfig}
+            choice={contributionChoice}
+            otherText={contributionOther}
+            onChoice={(c) => {
+              // « Autre montant » part de 0 (Mika, 17 nov., comme Zeffy) : c'est aussi le chemin pour ne rien ajouter
+              if (c === "other") setContributionOther("");
+              setContributionChoice(c);
+            }}
+            onOtherText={setContributionOther}
+          />
+        </div>
+        <ContributionRecap donCents={baseCents} cents={contribution.error ? 0 : contribution.cents} orgName={org.name} charity={contributionConfig.charity} />
+        <label
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "flex-start",
+            fontSize: "16px",
+            color: "rgba(255,255,255,0.75)",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={mailing}
+            onChange={(e) => setMailing(e.target.checked)}
+            style={{ accentColor: GOLD, marginTop: "2px" }}
+          />
+          <span>{t("listeEnvoi", { org: org.name })}</span>
+        </label>
+      </section>
 
       {error && (
         <p style={{ margin: 0, fontSize: "16px", color: "#f87171" }}>{error}</p>
@@ -992,6 +982,27 @@ function DemoCheckout({
   );
 }
 
+/** Montants rapides : 20, 50, 100 et 250 $, avec le montant habituel de l'organisme à la place du plus proche. */
+function quickAmounts(typicalCents: number | null): number[] {
+  const base = [20, 50, 100, 250];
+  const typical = typicalCents ? Math.round(typicalCents / 100) : null;
+  if (!typical || typical < MIN || typical > MAX || base.includes(typical)) return base;
+  const nearest = base.reduce((best, v) => (Math.abs(Math.log(v / typical)) < Math.abs(Math.log(best / typical)) ? v : best));
+  return base.map((v) => (v === nearest ? typical : v)).sort((x, y) => x - y);
+}
+
+function SectionHead({ n, id, title, note }: { n: number; id: string; title: string; note?: string }) {
+  return (
+    <h3 id={id} style={{ margin: 0, display: "flex", alignItems: "center", gap: "10px", fontSize: "19px", fontWeight: 700, color: "#F4EFE6" }}>
+      <span aria-hidden style={sectionNumberStyle}>
+        {n}
+      </span>
+      {title}
+      {note && <span style={{ fontSize: "15px", fontWeight: 400, color: "rgba(255,255,255,0.72)" }}>{note}</span>}
+    </h3>
+  );
+}
+
 // ---------- Styles ----------
 const labelStyle: CSSProperties = {
   fontSize: "14px",
@@ -1116,4 +1127,44 @@ const closeStyle: CSSProperties = {
   fontSize: "24px",
   cursor: "pointer",
   lineHeight: 1,
+};
+const sectionStyle: CSSProperties = { display: "grid", gap: "12px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.12)" };
+const sectionNumberStyle: CSSProperties = {
+  flex: "none",
+  width: "28px",
+  height: "28px",
+  borderRadius: "50%",
+  border: `1.5px solid ${GOLD}`,
+  color: GOLD,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "15px",
+};
+const chipStyle: CSSProperties = {
+  font: "600 17px 'DM Sans', sans-serif",
+  padding: "10px 14px",
+  minHeight: "46px",
+  borderRadius: "10px",
+  border: "1px solid",
+  cursor: "pointer",
+  fontVariantNumeric: "tabular-nums",
+};
+const amountFieldStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "8px 14px",
+  minHeight: "52px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.3)",
+  background: "#0B0A12",
+  cursor: "text",
+};
+/** La contribution, détachée du reste (Mika, 17 nov.) : un encadré neutre, pas doré (le doré est pour le morceau). */
+const contributionBoxStyle: CSSProperties = {
+  padding: "14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.16)",
+  background: "rgba(255,255,255,0.05)",
 };

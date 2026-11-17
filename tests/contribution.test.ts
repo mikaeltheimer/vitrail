@@ -66,8 +66,8 @@ async function main() {
   check('grille 15 / 8 / 7 : taux effectif entre 7 % et 15 %', decroit)
 
   console.log('Menu')
-  check('100 $ : 15 % retiré (égal à la suggestion)', JSON.stringify(c.menuRatesFor(10_000, c.DEFAULT_CONTRIBUTION_SETTINGS)) === '[0.05,0.1]')
-  check('500 $ : les trois pourcentages', c.menuRatesFor(50_000, c.DEFAULT_CONTRIBUTION_SETTINGS).length === 3)
+  check('100 $ : 15 % retiré (égal à la suggestion)', JSON.stringify(c.menuRatesFor(10_000, c.DEFAULT_CONTRIBUTION_SETTINGS)) === '[0.1]')
+  check('500 $ : les deux pourcentages', c.menuRatesFor(50_000, c.DEFAULT_CONTRIBUTION_SETTINGS).length === 2)
   check('montant d\'un pourcentage', c.menuContribution(12_500, 0.05) === 625)
 
   console.log('Estimation des frais Stripe (2,9 % + 0,30 $, moitié vers le haut)')
