@@ -134,7 +134,13 @@
     "demoLectureSeule": "This stained glass is a demonstration: nothing is saved here.",
     "conditionsAAccepter": "Accept the new terms of use first (Home › To do).",
     "conditionsChangees": "The terms changed in the meantime. Reload the page to read the new version.",
-    "charityNumberInvalide": "This number doesn’t look valid: 9 digits, RR, then 4 digits (e.g. 123456789 RR 0001)."
+    "charityNumberInvalide": "This number doesn’t look valid: 9 digits, RR, then 4 digits (e.g. 123456789 RR 0001).",
+    "nomInvalide": "The name must be between 2 and 80 characters.",
+    "motDePasseActuelFaux": "The current password is incorrect.",
+    "motDePasseIdentique": "The new password must be different from the current one.",
+    "courrielIdentique": "This is already your account’s address.",
+    "courrielIndisponible": "This address can’t be used for your account.",
+    "courrielDejaDemande": "A link was just sent. Wait two minutes before asking for another."
   },
   "photo": {
     "alt": "Your photo",
@@ -557,7 +563,18 @@
     "centiemeBravo": "Congratulations: {org} just welcomed its 100th donor.",
     "centiemeEnsuite": "From now on, each donation gives rise to a {taux} commission, taxes included, up to {plafond} in total. When a donor adds a contribution, it pays it.",
     "centiemeDonateurs": "Your donors have already paid {montant} of {plafond}.",
-    "centiemeBouton": "See my plan"
+    "centiemeBouton": "See my plan",
+    "changeObjet": "Confirm your new address for {brand}",
+    "changePreheader": "One click to confirm your new address.",
+    "changeTitre": "Confirm your new address",
+    "changeCorps": "You asked to replace the address of your {brand} account ({ancienne}) with this one. The change happens when you click the button. The link is valid for 24 hours and works only once.",
+    "changeBouton": "Confirm this address",
+    "changeIgnorer": "Didn’t ask for this? Ignore this email: nothing will change.",
+    "changeAvisObjet": "Your {brand} account address has changed",
+    "changeAvisPreheader": "Your account now uses another address.",
+    "changeAvisTitre": "Your address has changed",
+    "changeAvisCorps": "Your {brand} account now uses the address {nouvelle}. From now on, it is the one you sign in with and the one that receives our emails.",
+    "changeAvisPasVous": "Wasn’t you? Write to us right away at {contact}."
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",
@@ -715,6 +732,34 @@
       "autres": "My other organizations",
       "deconnexion": "Sign out"
     },
+    "monCompte": {
+      "titre": "My account",
+      "nom": "Name",
+      "nomAide": "The name your team sees.",
+      "nomOk": "Name saved.",
+      "courriel": "Email address",
+      "courrielAide": "You sign in with it and receive the console’s emails there.",
+      "nouveauCourriel": "New address",
+      "changerCourriel": "Change address",
+      "envoyerLien": "Send the confirmation link",
+      "lienEnvoye": "Link sent to {email}. The address will change once you confirm it (24 hours).",
+      "enAttente": "Waiting for confirmation: {email}",
+      "annulerChangement": "Cancel this change",
+      "annule": "Change cancelled.",
+      "motDePasse": "Password",
+      "motDePasseAide": "{min} characters or more. Your other devices will be signed out.",
+      "motDePasseModifie": "Changed on {date}",
+      "changerMotDePasse": "Change password",
+      "actuel": "Current password",
+      "nouveau": "New password",
+      "encore": "Once more",
+      "motDePasseOk": "Password changed. Your other devices are signed out.",
+      "confirmerAvecMotDePasse": "To confirm, your current password",
+      "differents": "The two passwords don’t match.",
+      "enregistrer": "Save",
+      "annuler": "Cancel",
+      "oublie": "Forgot your password? Sign out, then use “Forgot password” on the sign-in page."
+    },
     "roles": {
       "owner": "owner",
       "volunteer": "volunteer"
@@ -751,7 +796,9 @@
         "moderation": "Moderation notice",
         "invitation": "Invitation",
         "password_reset": "Password",
-        "fee_threshold": "Notice: 100th donor"
+        "fee_threshold": "Notice: 100th donor",
+        "email_change": "Address change",
+        "email_changed": "Notice: address changed"
       }
     },
     "accueil": {
@@ -1652,6 +1699,7 @@
     "metaConnexion": "Sign in — {brand}",
     "metaInvitation": "Invitation — {brand}",
     "metaReinitialiser": "New password — {brand}",
+    "metaCourriel": "Confirm a new address · {brand}",
     "erreur": "Something went wrong. Please try again.",
     "retourVitrail": "← Back to the stained glass",
     "retourAccueil": "← Back to home",
@@ -1695,6 +1743,13 @@
       "nouveau": "New password",
       "encore": "Once more",
       "enregistrer": "Save"
+    },
+    "courriel": {
+      "titre": "Confirm your new address",
+      "aide": "Click so your account uses this address from now on.",
+      "confirmer": "Confirm the new address",
+      "fait": "Done: your account now uses {email}. Your former address received a notice.",
+      "console": "Go to the console"
     }
   },
   "demoJuridique": {

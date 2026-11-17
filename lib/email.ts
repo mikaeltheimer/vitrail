@@ -15,7 +15,7 @@ import type { Locale } from '@/i18n/config'
 // (Resend en panne, journal absent) est écrit dans la console et le journal, et le don ou la demande suit son cours.
 // Sans RESEND_API_KEY (développement), le courriel est simplement écrit dans la console du serveur.
 
-export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request' | 'fee_threshold'
+export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request' | 'fee_threshold' | 'email_change' | 'email_changed'
 
 export type EmailStatus = 'queued' | 'sent' | 'delivered' | 'delayed' | 'bounced' | 'complained' | 'failed' | 'skipped'
 
@@ -419,6 +419,47 @@ export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: 
 
 export async function sendPasswordReset(i: { to: string; token: string; locale: Locale; baseUrl: string; organizationId?: string | null }): Promise<boolean> {
   return sendEmail({ kind: 'password_reset', to: i.to, locale: i.locale, organizationId: i.organizationId ?? null, ...buildPasswordReset(i) })
+}
+
+// ── Mon compte : changement d'adresse courriel ─────────────────────────────────
+
+/** Lien de confirmation, envoyé à la NOUVELLE adresse (24 h). */
+export function buildEmailChange(i: { token: string; locale: Locale; baseUrl: string; oldEmail: string }): Built {
+  const t = translatorFor(i.locale)
+  const url = linkTo(i.baseUrl, `/admin/courriel?jeton=${encodeURIComponent(i.token)}&lang=${i.locale}`)
+  return {
+    subject: t('courriel.changeObjet', { brand: CONFIG.brand.name }),
+    content: {
+      preheader: t('courriel.changePreheader'),
+      heading: t('courriel.changeTitre'),
+      paragraphs: [t('courriel.changeCorps', { brand: CONFIG.brand.name, ancienne: i.oldEmail }), t('courriel.changeIgnorer')],
+      button: { label: t('courriel.changeBouton'), url },
+      linkHelp: t('courriel.lienAlt'),
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendEmailChange(i: { to: string; token: string; locale: Locale; baseUrl: string; oldEmail: string }): Promise<boolean> {
+  return sendEmail({ kind: 'email_change', to: i.to, locale: i.locale, organizationId: null, ...buildEmailChange(i) })
+}
+
+/** Avis à l'ANCIENNE adresse, une fois le changement fait. */
+export function buildEmailChanged(i: { locale: Locale; newEmail: string }): Built {
+  const t = translatorFor(i.locale)
+  return {
+    subject: t('courriel.changeAvisObjet', { brand: CONFIG.brand.name }),
+    content: {
+      preheader: t('courriel.changeAvisPreheader'),
+      heading: t('courriel.changeAvisTitre'),
+      paragraphs: [t('courriel.changeAvisCorps', { brand: CONFIG.brand.name, nouvelle: i.newEmail }), t('courriel.changeAvisPasVous', { contact: CONFIG.brand.studioLegal.email })],
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendEmailChanged(i: { to: string; locale: Locale; newEmail: string }): Promise<boolean> {
+  return sendEmail({ kind: 'email_changed', to: i.to, locale: i.locale, organizationId: null, ...buildEmailChanged(i) })
 }
 
 // ── Forfait : avis au propriétaire (plateforme) ───────────────────────────────
