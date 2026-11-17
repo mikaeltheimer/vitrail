@@ -11,10 +11,39 @@ import { GREEN, RED, Sheet, useDay } from './ui'
 
 type Note = { ok: boolean; text: string } | null
 
-async function post(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string; email?: string }> {
+async function post(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string; code?: string; email?: string }> {
   const res = await fetch('/api/compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  const body = (await res.json().catch(() => ({}))) as { error?: string; email?: string }
+  const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string; email?: string }
   return { ok: res.ok, ...body }
+}
+
+// Une erreur s'affiche sous le champ qu'elle concerne (Mika, 17 nov.) ; les autres sous le formulaire
+const FIELD_OF: Record<string, string> = {
+  nomInvalide: 'name',
+  courrielRequis: 'email',
+  courrielInvalide: 'email',
+  courrielIdentique: 'email',
+  courrielIndisponible: 'email',
+  motDePasseCourt: 'next',
+  motDePasseLong: 'next',
+  motDePasseCourant: 'next',
+  motDePasseCourriel: 'next',
+  motDePasseIdentique: 'next',
+}
+type Errors = Record<string, string>
+
+/** Ce qu'il faut pour relier un champ à son erreur (lecteurs d'écran compris). */
+function fieldProps(id: string, errors: Errors) {
+  return errors[id] ? { 'aria-invalid': true, 'aria-describedby': `compte-err-${id}` } : {}
+}
+
+function FieldError({ id, errors }: { id: string; errors: Errors }) {
+  if (!errors[id]) return null
+  return (
+    <span id={`compte-err-${id}`} role="alert" className="block text-xs" style={{ color: RED }}>
+      {errors[id]}
+    </span>
+  )
 }
 
 export default function Compte({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
@@ -67,22 +96,27 @@ function NameBlock({ info, onSaved }: { info: AccountInfo; onSaved: () => void }
   const [name, setName] = useState(info.name)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<Note>(null)
+  const [errors, setErrors] = useState<Errors>({})
   const changed = name.trim() !== info.name
   return (
     <form
       className="card space-y-3"
+      noValidate
       onSubmit={async e => {
         e.preventDefault()
         setBusy(true)
         const r = await post({ action: 'nom', name })
         setBusy(false)
-        setNote(r.ok ? { ok: true, text: t('nomOk') } : { ok: false, text: r.error || tc('erreur') })
-        if (r.ok) onSaved()
+        if (r.ok) {
+          setNote({ ok: true, text: t('nomOk') })
+          onSaved()
+        } else setErrors({ name: r.error || tc('erreur') })
       }}
     >
       <label className="block space-y-1">
         <span className="font-bold">{t('nom')}</span>
-        <input className="field" value={name} onChange={e => (setName(e.target.value), setNote(null))} maxLength={80} autoComplete="name" />
+        <input className="field" value={name} onChange={e => (setName(e.target.value), setNote(null), setErrors({}))} maxLength={80} autoComplete="name" {...fieldProps('name', errors)} />
+        <FieldError id="name" errors={errors} />
         <span className="muted block text-xs">{t('nomAide')}</span>
       </label>
       <Message note={note} />
@@ -103,6 +137,7 @@ function EmailBlock({ info, reload }: { info: AccountInfo; reload: () => Promise
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<Note>(null)
+  const [errors, setErrors] = useState<Errors>({})
   return (
     <section className="card space-y-3" aria-labelledby="compte-courriel">
       <div>
@@ -136,33 +171,41 @@ function EmailBlock({ info, reload }: { info: AccountInfo; reload: () => Promise
       ) : (
         <form
           className="space-y-3"
+          noValidate
           onSubmit={async e => {
             e.preventDefault()
             setBusy(true)
             const r = await post({ action: 'courriel', email, password })
             setBusy(false)
+            setErrors({})
             if (r.ok) {
               setNote({ ok: true, text: t('lienEnvoye', { email: r.email ?? email }) })
               setOpen(false)
               setEmail('')
               setPassword('')
               await reload()
-            } else setNote({ ok: false, text: r.error || tc('erreur') })
+            } else {
+              const field = r.code === 'motDePasseActuelFaux' ? 'password' : FIELD_OF[r.code ?? '']
+              if (field) setErrors({ [field]: r.error || tc('erreur') })
+              else setNote({ ok: false, text: r.error || tc('erreur') })
+            }
           }}
         >
           <label className="block space-y-1">
             <span className="muted text-xs">{t('nouveauCourriel')}</span>
-            <input className="field" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required autoFocus />
+            <input className="field" type="email" value={email} onChange={e => (setEmail(e.target.value), setErrors(x => ({ ...x, email: '' })))} autoComplete="email" required autoFocus {...fieldProps('email', errors)} />
+            <FieldError id="email" errors={errors} />
           </label>
           <label className="block space-y-1">
             <span className="muted text-xs">{t('confirmerAvecMotDePasse')}</span>
-            <input className="field" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
+            <input className="field" type="password" value={password} onChange={e => (setPassword(e.target.value), setErrors(x => ({ ...x, password: '' })))} autoComplete="current-password" required {...fieldProps('password', errors)} />
+            <FieldError id="password" errors={errors} />
           </label>
           <div className="flex flex-wrap gap-2">
             <button className="btn !w-auto" disabled={busy || !email || !password}>
               {t('envoyerLien')}
             </button>
-            <button type="button" className="btn btn-ghost !w-auto" onClick={() => (setOpen(false), setNote(null))}>
+            <button type="button" className="btn btn-ghost !w-auto" onClick={() => (setOpen(false), setNote(null), setErrors({}))}>
               {t('annuler')}
             </button>
           </div>
@@ -181,6 +224,8 @@ function PasswordBlock({ info, day }: { info: AccountInfo; day: (iso: string) =>
   const [again, setAgain] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<Note>(null)
+  const [errors, setErrors] = useState<Errors>({})
+  const clear = (id: string) => setErrors(x => ({ ...x, [id]: '' }))
   return (
     <section className="card space-y-3" aria-labelledby="compte-mdp">
       <div>
@@ -197,39 +242,49 @@ function PasswordBlock({ info, day }: { info: AccountInfo; day: (iso: string) =>
       ) : (
         <form
           className="space-y-3"
+          noValidate
           onSubmit={async e => {
             e.preventDefault()
-            if (next !== again) return setNote({ ok: false, text: t('differents') })
+            setNote(null)
+            if (next !== again) return setErrors({ again: t('differents') })
             setBusy(true)
             const r = await post({ action: 'motDePasse', current, next })
             setBusy(false)
+            setErrors({})
             if (r.ok) {
               setNote({ ok: true, text: t('motDePasseOk') })
               setOpen(false)
               setCurrent('')
               setNext('')
               setAgain('')
-            } else setNote({ ok: false, text: r.error || tc('erreur') })
+            } else {
+              const field = r.code === 'motDePasseActuelFaux' ? 'current' : FIELD_OF[r.code ?? '']
+              if (field) setErrors({ [field]: r.error || tc('erreur') })
+              else setNote({ ok: false, text: r.error || tc('erreur') })
+            }
           }}
         >
           <p className="muted text-xs">{t('motDePasseAide', { min: PASSWORD_MIN })}</p>
           <label className="block space-y-1">
             <span className="muted text-xs">{t('actuel')}</span>
-            <input className="field" type="password" value={current} onChange={e => setCurrent(e.target.value)} autoComplete="current-password" required autoFocus />
+            <input className="field" type="password" value={current} onChange={e => (setCurrent(e.target.value), clear('current'))} autoComplete="current-password" required autoFocus {...fieldProps('current', errors)} />
+            <FieldError id="current" errors={errors} />
           </label>
           <label className="block space-y-1">
             <span className="muted text-xs">{t('nouveau')}</span>
-            <input className="field" type="password" value={next} onChange={e => setNext(e.target.value)} autoComplete="new-password" minLength={PASSWORD_MIN} required />
+            <input className="field" type="password" value={next} onChange={e => (setNext(e.target.value), clear('next'))} autoComplete="new-password" required {...fieldProps('next', errors)} />
+            <FieldError id="next" errors={errors} />
           </label>
           <label className="block space-y-1">
             <span className="muted text-xs">{t('encore')}</span>
-            <input className="field" type="password" value={again} onChange={e => setAgain(e.target.value)} autoComplete="new-password" required />
+            <input className="field" type="password" value={again} onChange={e => (setAgain(e.target.value), clear('again'))} autoComplete="new-password" required {...fieldProps('again', errors)} />
+            <FieldError id="again" errors={errors} />
           </label>
           <div className="flex flex-wrap gap-2">
             <button className="btn !w-auto" disabled={busy || !current || !next || !again}>
               {t('enregistrer')}
             </button>
-            <button type="button" className="btn btn-ghost !w-auto" onClick={() => (setOpen(false), setNote(null))}>
+            <button type="button" className="btn btn-ghost !w-auto" onClick={() => (setOpen(false), setNote(null), setErrors({}))}>
               {t('annuler')}
             </button>
           </div>
