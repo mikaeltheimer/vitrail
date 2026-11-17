@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { INTL_TAG, type Locale } from "@/i18n/config";
-import { useOrg } from "@/lib/useOrg";
+import { useCharityNumber, useOrg } from "@/lib/useOrg";
 import { useCount, useGlassName, useMoney, useOrdinal } from "@/lib/useI18n";
 import { CONFIG, GLASS_COLORS } from "@/lib/config";
 import { currentGlass } from "@/lib/theme";
@@ -163,6 +163,7 @@ export default function ClaimPanel({
   const te = useTranslations("erreurs");
   const tc = useTranslations("commun");
   const org = useOrg();
+  const charity = useCharityNumber();
   const money = useMoney();
   const count = useCount();
   const ordinal = useOrdinal();
@@ -888,7 +889,7 @@ export default function ClaimPanel({
         </button>
       </div>
       <p style={{ ...hintStyle, textAlign: "center" }}>
-        {showcase ? t("piedDemo") : t("pied")}{" "}
+        {showcase ? t("piedDemo") : charity ? t("piedAvecNumero", { org: org.name }) : t("pied")}{" "}
         <Link
           href="/confidentialite"
           target="_blank"

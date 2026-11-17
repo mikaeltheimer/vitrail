@@ -6,7 +6,7 @@
 import Signature from '@/components/Signature'
 import { useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
-import { useBrand, useOrg } from '@/lib/useOrg'
+import { useBrand, useCharityNumber, useOrg } from '@/lib/useOrg'
 import { useMoney } from '@/lib/useI18n'
 import { OrgLogo } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
@@ -36,6 +36,7 @@ export default function AboutPanel({
   const tc = useTranslations('commun')
   const td = useTranslations('don')
   const org = useOrg()
+  const charity = useCharityNumber()
   const editing = !!useAtelier()?.editing
   const ta = useTranslations('atelier')
   const brand = useBrand()
@@ -147,7 +148,7 @@ export default function AboutPanel({
           {tm('ajouter')}
         </button>
         <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.45)', margin: 0 }}>
-          {t('recu')}{' '}
+          {charity ? t('recuAvecNumero', { org: org.name, numero: charity }) : t('recu')}{' '}
           <a href="/confidentialite" style={{ color: 'rgba(255,255,255,0.6)' }}>
             {tc('confidentialiteCourt')}
           </a>

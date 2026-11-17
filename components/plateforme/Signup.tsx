@@ -362,7 +362,7 @@ export default function Signup({ token, domain }: { token: string; domain: strin
           </h1>
           <ul className="card m-0 list-none space-y-3 !p-4">
             {[
-              t.rich('conditions.l1', { gratuit: PRICING.freeDonors, taux: pct(PRICING.rate), plafond: formatMoney(PRICING.capCents, locale), b }),
+              t.rich('conditions.l1', { brand: CONFIG.brand.name, gratuit: PRICING.freeDonors, taux: pct(PRICING.rate), plafond: formatMoney(PRICING.capCents, locale), b }),
               t.rich('conditions.l2', { b }),
               t.rich('conditions.l3', { b }),
               t('conditions.l4'),

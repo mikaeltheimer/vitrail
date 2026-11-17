@@ -31,6 +31,8 @@ export interface Identity {
   logoSize: [number, number] | null
   iconUrl: string | null
   legal: LegalInfo
+  /** Numéro d'enregistrement d'organisme de bienfaisance (legal.charityNumber) ; '' sans numéro : aucune mention de reçu fiscal. */
+  charityNumber: string
   /** Nom affiché comme expéditeur des courriels. */
   senderName: string
   /** Adresse de réponse des courriels (à défaut, celle du responsable des renseignements personnels). */

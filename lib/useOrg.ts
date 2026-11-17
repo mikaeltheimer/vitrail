@@ -27,6 +27,11 @@ export function useIdentity(): Identity | null {
   return useIdentityContext().identity
 }
 
+/** Numéro d'organisme de bienfaisance de l'organisme de la page ; '' sans numéro (mentions « pas de reçu fiscal »). */
+export function useCharityNumber(): string {
+  return useIdentityContext().identity?.charityNumber ?? ''
+}
+
 /** Vitrine de Donivers avec la provenance (?ref=<organisme>), pour la signature « propulsé par ». */
 export function useBrandHref(): string | null {
   return useIdentityContext().brandHref

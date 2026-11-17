@@ -10,7 +10,8 @@ import RequestForm from '@/components/plateforme/RequestForm'
 import LightSpill from '@/components/plateforme/LightSpill'
 import { CONFIG } from '@/lib/config'
 import { formatMoney } from '@/lib/format'
-import { PRICING, pricingExampleCents } from '@/lib/platform-fee'
+import { PRICING, pricingExampleCents, suggestionCoversCommission } from '@/lib/platform-fee'
+import { platformSettings } from '@/lib/platform-settings'
 import type { Locale } from '@/i18n/config'
 
 // Vitrine de la plateforme : sur le domaine nu (proxy.ts réécrit « / » vers ici), et à /plateforme partout ailleurs.
@@ -48,6 +49,9 @@ export default async function PlateformePage() {
   // Le prix en trois temps (verres de la palette : jade, ambre, ciel ; l'ambre, couleur d'accent, sur le seul temps payant)
   const glass = (id: string) => DEFAULT_GLASSES.find(g => g.id === id)!.value
   const exampleDon = 5_000
+  // Tranches et tarif Stripe en vigueur (platform_settings ; valeurs par défaut si la base ne répond pas)
+  const { contribution } = await platformSettings()
+  const exampleKey = suggestionCoversCommission(exampleDon, contribution) ? 'tarifs.p2ExempleContribution' : 'tarifs.p2Exemple'
   const phases = [
     { key: 'p1', glass: glass('jade'), radius: '999px 0 0 999px', label: t('tarifs.p1Etiquette', { gratuit: P.freeDonors }), value: pct(0, locale), text: t('tarifs.p1Texte'), accent: false },
     {
@@ -57,7 +61,7 @@ export default async function PlateformePage() {
       label: t('tarifs.p2Etiquette', { suivant: P.freeDonors + 1 }),
       value: pct(P.rate, locale),
       text: t('tarifs.p2Texte', { plafond: money(P.capCents) }),
-      example: t('tarifs.p2Exemple', { don: money(exampleDon), commission: money(Math.round(exampleDon * P.rate)) }),
+      example: t(exampleKey, { don: money(exampleDon), commission: money(Math.round(exampleDon * P.rate)) }),
       accent: true,
     },
     { key: 'p3', glass: glass('ciel'), radius: '0 999px 999px 0', label: t('tarifs.p3Etiquette'), value: pct(0, locale), text: t('tarifs.p3Texte'), accent: false },
@@ -270,7 +274,7 @@ export default async function PlateformePage() {
                 <h3 className="m-0 text-[18px]" style={{ color: 'var(--text)' }}>
                   {t('tarifs.stripeTitre')}
                 </h3>
-                <p className="m-0">{t('tarifs.stripe', { pct: pct(CONFIG.feePercent, locale), fixe: money(CONFIG.feeFixedCents) })}</p>
+                <p className="m-0">{t('tarifs.stripe', { pct: pct(contribution.stripeFeeEstimate.rate, locale), fixe: money(contribution.stripeFeeEstimate.fixedCents) })}</p>
                 <p className="m-0">{t('tarifs.direct', { brand })}</p>
               </div>
               <div className="flex flex-col gap-1.5">

@@ -178,6 +178,10 @@ async function main() {
   check('province : celle de l\'organisme', tax.taxProvinceFor({ orgProvince: 'QC', donorProvince: 'ON' }) === 'QC' && tax.taxProvinceFor({ orgProvince: 'XX' }) === null)
   check('taux venus de la base, invalides ignorés', tax.parseTaxRates({ QC: 0.15, ON: 'x', NS: 0.9 }).QC === 0.15 && tax.parseTaxRates({ ON: 'x' }).ON === 0.13 && tax.parseTaxRates({ NS: 0.9 }).NS === 0.14)
 
+  console.log('Vitrine : la contribution suggérée paie-t-elle la commission ?')
+  check('50 $ : suggestion 7,50 $, surplus 5,53 $ ≥ 1,40 $', f.suggestionCoversCommission(5_000, c.DEFAULT_CONTRIBUTION_SETTINGS))
+  check('tranches à 1 % : la phrase disparaît', !f.suggestionCoversCommission(5_000, { ...c.DEFAULT_CONTRIBUTION_SETTINGS, brackets: [{ rate: 0.01 }] }))
+
   console.log('Réglages de la plateforme')
   reset()
   settings.clearPlatformSettingsCache()

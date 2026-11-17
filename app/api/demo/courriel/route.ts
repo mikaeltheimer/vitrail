@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (!identity) return errorResponse(request, err('indisponible'), 503)
 
   const e = emailIdentity(identity, isLocale(lang) ? lang : localeOf(request))
-  const built = buildReceipt({ amountCents: amount.value, token: 'demonstration', locale: e.locale, baseUrl: baseUrlOf(request), org: e.build.org })
+  const built = buildReceipt({ amountCents: amount.value, token: 'demonstration', locale: e.locale, baseUrl: baseUrlOf(request), org: e.build.org, charityNumber: e.build.charityNumber })
   const { html } = renderEmail(built.content, e.locale, e.from.header)
   return NextResponse.json(
     { subject: built.subject, fromName: e.from.fromName, html },

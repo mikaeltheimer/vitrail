@@ -190,7 +190,8 @@
     "pasMaintenant": "Pas maintenant ? Gardez ce lien : il est aussi dans le courriel de confirmation.",
     "agrandir": "Agrandir mon don",
     "modifier": "Modifier mon fragment",
-    "piedCourriel": "Un courriel de confirmation avec ces liens vous est envoyé. Aucun reçu fiscal n'est émis pour le moment."
+    "piedCourriel": "Un courriel de confirmation avec ces liens vous est envoyé. Aucun reçu fiscal n'est émis pour le moment.",
+    "piedCourrielAvecNumero": "Un courriel de confirmation avec ces liens vous est envoyé. Votre reçu fiscal est émis par {org}."
   },
   "gerer": {
     "chargement": "Chargement…",
@@ -334,6 +335,7 @@
       "etape3": "Il entre dans le vitrail",
       "etape3Texte": "Ici, et sur le grand écran pendant les événements.",
       "recu": "Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment. Paiement sécurisé par Stripe.",
+      "recuAvecNumero": "{org} est un organisme de bienfaisance enregistré (n° {numero}) : votre don donne droit à un reçu fiscal, émis par {org}. Paiement sécurisé par Stripe.",
       "creation": "Une création de <lien>{studio}</lien>."
     },
     "ferme": "Ce vitrail ouvrira bientôt : les dons ne sont pas encore ouverts.",
@@ -414,7 +416,8 @@
     "demo": "Mode démo : aucune clé Stripe n'est configurée. Le fragment est ajouté tout de suite, sans paiement ni courriel.",
     "instant": "Un instant…",
     "donner": "Donner {montant}",
-    "pied": "Ce que vous voyez est un aperçu. Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre fragment. Pas de reçu fiscal pour le moment.",
+    "pied": "Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre fragment. Pas de reçu fiscal pour le moment.",
+    "piedAvecNumero": "Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay), qui vous demandera votre courriel ; puis retour sur votre fragment. Votre don donne droit à un reçu fiscal, émis par {org}.",
     "erreurInattendue": "Erreur inattendue. Réessayez.",
     "listeEnvoi": "J’accepte de recevoir par courriel les nouvelles de {org} (campagnes, événements). Je peux me désabonner en tout temps.",
     "demoVitrine": "Démonstration : essayez sans crainte. Rien n'est payé ni enregistré ; votre fragment n'existe que dans cet onglet.",
@@ -472,6 +475,7 @@
     "recuContribution": "Vous avez aussi ajouté {contribution} de frais de transaction et de contribution à Donivers, pour un total payé de {total}.",
     "recuContributionTaxes": "La contribution comprend les taxes applicables. Elle est versée à Studio Existence inc. (TPS/TVH : {tps} ; TVQ : {tvq}) et ne donne pas droit à un reçu fiscal.",
     "recuPied": "Ce courriel confirme votre don. Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment.",
+    "recuPiedAvecNumero": "Ce courriel confirme votre don ; il n’est pas un reçu fiscal. Votre reçu fiscal officiel est émis par {org}, organisme de bienfaisance enregistré (n° {numero}).",
     "lienObjet": "Votre lien — {org}",
     "lienCorps": "Voici votre lien pour modifier votre fragment ou l'agrandir. Il reste valable 30 jours.",
     "recuPreheader": "Votre fragment s'ajoute au vitrail.",
@@ -842,7 +846,7 @@
       "tout": "Tout ({montant})",
       "partie": "Une partie :",
       "montant": "Montant à rembourser",
-      "avertissement": "L’argent revient sur la carte du donateur en 5 à 10 jours. Les frais de Stripe ne sont pas rendus : ils restent à la charge de l’organisme. Notre commission est rendue au prorata. Le fragment rétrécit, ou disparaît si tout est remboursé. C’est définitif.",
+      "avertissement": "L’argent revient sur la carte du donateur en 5 à 10 jours, contribution comprise. Les frais de Stripe ne sont pas rendus : ils restent à la charge de l’organisme, même si la contribution les avait payés. La part de {brand} (commission et contribution) est rendue au prorata du montant remboursé. Le fragment rétrécit, ou disparaît si tout est remboursé. C’est définitif.",
       "horsLimite": "Entre 0,01 $ et {max}.",
       "confirmer": "Rembourser {montant} à ce donateur ? C’est définitif.",
       "enCours": "Remboursement…",
@@ -1167,17 +1171,18 @@
     },
     "tarifs": {
       "titre": "Gratuit pour vos {gratuit} premiers donateurs.",
-      "sousTitre": "Ensuite, {taux} par don, jusqu’à {plafond} versés. Puis plus rien, pour toujours.",
+      "sousTitre": "Ensuite, {taux} par don jusqu’à {plafond} au total, taxes incluses. Vos donateurs peuvent les payer pour vous.",
       "jauge": "Le prix en trois temps",
       "p1Etiquette": "Vos {gratuit} premiers donateurs",
       "p1Texte": "Rien à payer.",
       "p2Etiquette": "À partir du {suivant, selectordinal, one {#er} other {#e}} donateur",
-      "p2Texte": "par don, jusqu’à {plafond} au total. Prélevé automatiquement par Stripe, sans facture.",
+      "p2Texte": "par don, taxes incluses, jusqu’à {plafond} au total. Prélevé automatiquement par Stripe, sans facture. Quand un donateur ajoute une contribution, elle les paie à votre place.",
       "p2Exemple": "Sur un don de {don} : {commission}.",
+      "p2ExempleContribution": "Sur un don de {don} : {commission}, ou rien si le donateur ajoute la contribution suggérée.",
       "p3Etiquette": "Puis, pour toujours",
       "p3Texte": "Dons illimités, sans commission.",
       "exemples": "Exemples",
-      "exHypothese": "Chaque donateur donne une fois ; frais de Stripe exclus.",
+      "exHypothese": "Ces montants supposent que chaque donateur donne une fois et qu’aucun n’ajoute de contribution : c’est donc le maximum que votre organisme peut avoir à payer. Montants taxes incluses.",
       "exPetit": "Petit organisme",
       "exMoyen": "Organisme moyen",
       "exGala": "Gala",
@@ -1186,10 +1191,10 @@
       "exReste": "Encore {reste} au plus, puis plus rien.",
       "exPlafond": "Plafond atteint : plus rien, jamais.",
       "stripeTitre": "Frais de Stripe",
-      "stripe": "Payés directement à Stripe par votre organisme : {pct} + {fixe} par carte canadienne. Le donateur peut choisir de les couvrir.",
+      "stripe": "Pris par Stripe sur chaque paiement : {pct} + {fixe} par carte canadienne. Quand le donateur ajoute une contribution, elle les paie d’abord, et votre organisme reçoit le don en entier. Sinon, ils sont pris sur le don.",
       "direct": "L’argent va directement dans votre compte Stripe : il ne passe jamais par {brand}.",
       "gratuitTitre": "Toujours gratuit",
-      "gratuitTexte": "Exports de vos données, droit de retrait des donateurs, remboursements, modération. En cas de remboursement, notre commission vous est rendue au prorata.",
+      "gratuitTexte": "Exports de vos données, droit de retrait des donateurs, remboursements, modération. En cas de remboursement, notre part (commission et contribution) est rendue au prorata du montant remboursé.",
       "bientot": "Bientôt : vitraux de campagne ({taux} par don, jusqu’à {campagne} par campagne) et {brand} Pro ({pro} par année)."
     },
     "garanties": {
@@ -1301,8 +1306,8 @@
     },
     "conditions": {
       "titre": "Les conditions, en bref",
-      "l1": "<b>Gratuit pour vos {gratuit} premiers donateurs.</b> Ensuite, {taux} par don, jusqu’à {plafond} versés. Puis plus rien, pour toujours.",
-      "l2": "Les <b>frais de Stripe</b> (et d’éventuels litiges) sont à la charge de votre organisme, même en cas de remboursement.",
+      "l1": "<b>Gratuit pour vos {gratuit} premiers donateurs.</b> Ensuite, {taux} par don, taxes incluses, jusqu’à {plafond} au total. Puis plus rien, pour toujours. Vos donateurs peuvent payer ces frais pour vous en ajoutant une contribution facultative à {brand}.",
+      "l2": "Les <b>frais de Stripe</b> sont payés d’abord par la contribution des donateurs ; sinon, ils sont à la charge de votre organisme, comme les litiges. Stripe ne les rend pas lors d’un remboursement.",
       "l3": "Votre organisme est <b>responsable des renseignements</b> de ses donateurs (Loi 25) ; Studio Existence les héberge et les traite pour vous.",
       "l4": "Vous modérez ce qui s’affiche sur votre vitrail.",
       "lire": "Lire les conditions d’utilisation complètes",
@@ -1617,16 +1622,18 @@
           "titre": "4. Paiements",
           "blocs": [
             "Les dons sont payés par carte au moyen de Stripe, directement sur le compte Stripe de l’organisme. L’argent ne transite jamais par nous. L’organisme ouvre et gère son compte Stripe et accepte les conditions de Stripe, qui s’appliquent entre lui et Stripe.",
-            "Les frais de traitement de Stripe, les remboursements, les litiges (contestations de paiement) et les frais qui s’y rattachent sont à la charge de l’organisme. Tant que le compte Stripe n’est pas prêt, le vitrail n’accepte aucun don réel."
+            "Stripe prélève des frais de traitement sur chaque paiement. Lorsque le donateur ajoute une contribution à {brand} (section 5), cette contribution paie d’abord ces frais : l’organisme reçoit alors son don en entier. Les frais sont estimés au moment du paiement, au tarif standard de Stripe ; si les frais réels sont plus élevés (par exemple pour une carte étrangère), nous rendons la différence à l’organisme, dans la limite de la contribution. Sans contribution, ou pour la part que la contribution ne couvre pas, les frais de Stripe sont à la charge de l’organisme.",
+            "Les remboursements, les litiges (contestations de paiement) et les frais qui s’y rattachent sont à la charge de l’organisme. Stripe ne rend pas ses frais de traitement lors d’un remboursement : ils restent à la charge de l’organisme, même lorsqu’une contribution les avait payés, puisque la contribution est remboursée au donateur avec son don. Tant que le compte Stripe n’est pas prêt, le vitrail n’accepte aucun don réel."
           ]
         },
         {
-          "titre": "5. Notre commission",
+          "titre": "5. Notre commission et la contribution des donateurs",
           "blocs": [
             "Les {gratuit} premiers donateurs de l’organisme ne donnent lieu à aucune commission. Un donateur est une adresse courriel distincte ; un donateur ajouté à la main dans la console compte aussi, et un donateur qui donne plusieurs fois ne compte qu’une fois. Un donateur dont les renseignements ont été supprimés continue de compter.",
-            "Une fois ce seuil atteint, nous prélevons une commission de {taux} du montant de chaque don reçu par carte sur le vitrail principal, frais de traitement couverts par le donateur exclus. Le seuil s’apprécie au moment où le paiement commence.",
-            "Le total des commissions du vitrail principal ne dépasse jamais {plafond}. Le don qui atteint ce plafond ne paie que le solde. Une fois le plafond atteint, plus aucune commission n’est prélevée sur le vitrail principal pour toute la durée du contrat, même si un remboursement fait ensuite baisser ce total.",
-            "La commission est prélevée automatiquement par Stripe au moment du paiement. En cas de remboursement ou de litige perdu, la part correspondante de la commission est rendue. Les taxes applicables s’ajoutent, s’il y a lieu.",
+            "Au moment du don, le donateur peut ajouter une contribution facultative à {brand}. Elle est versée à {studio} ; elle ne fait pas partie du don et ne donne pas droit à un reçu fiscal. Elle paie d’abord les frais de Stripe (section 4) ; le reste, appelé le surplus, nous revient. La contribution n’est jamais plafonnée : un donateur peut contribuer avant comme après l’atteinte du plafond.",
+            "Une fois ce seuil atteint, chaque don reçu par carte sur le vitrail principal donne lieu à une commission de {taux} de son montant (contribution exclue), taxes incluses. Le seuil s’apprécie au moment où le paiement commence. Lorsque le surplus de la contribution de ce don atteint la commission, l’organisme ne paie rien sur ce don ; sinon, il paie la différence.",
+            "Le plafond de {plafond}, taxes incluses, compte tout ce que nous avons reçu grâce aux dons du vitrail principal : les commissions payées par l’organisme et le surplus des contributions de ses donateurs, dès le premier donateur. Les contributions peuvent donc atteindre le plafond à elles seules, même avant le {suivant} donateur. Sur le don qui atteint le plafond, l’organisme ne paie que le solde. Une fois le plafond atteint, l’organisme est acquitté : plus aucune commission n’est prélevée sur le vitrail principal pour toute la durée du contrat, même si un remboursement fait ensuite baisser ce total. Les donateurs peuvent continuer d’ajouter une contribution.",
+            "La commission et le surplus sont prélevés automatiquement par Stripe au moment du paiement. Tous nos montants s’entendent taxes incluses : la TPS et la TVQ, ou la TVH, ne s’ajoutent jamais ; nous les remettons en les prenant sur ce que nous recevons. En cas de remboursement ou de litige perdu, la part correspondante de ce que nous avons reçu (commission et surplus) est rendue au prorata du montant remboursé ; avant l’acquittement, le cumul baisse d’autant.",
             "Les vitraux de campagne et les fonctions de {brand} Pro, lorsqu’ils seront offerts, auront leurs propres prix, affichés avant toute activation. Aucun n’est facturé sans l’accord de l’organisme.",
             "Le vitrail principal n’a ni abonnement ni frais fixes. Nous pouvons modifier la commission en avisant l’organisme au moins 30 jours à l’avance ; la modification ne vise que les dons reçus après son entrée en vigueur et ne peut pas rétablir de commission sur un vitrail principal dont le plafond est atteint.",
             "Des conditions particulières convenues par écrit avec un organisme (par exemple, une exemption de commission) l’emportent sur la présente section."

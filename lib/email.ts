@@ -180,7 +180,7 @@ function footerFor(locale: Locale, orgName: string): string[] {
 /** Pour un courriel à un donateur : la langue (limitée à celles de l'organisme), ses textes et son expéditeur. */
 export function emailIdentity(identity: Identity, locale: Locale) {
   const l = clampLocale(identity.locales, locale)
-  return { locale: l, build: { locale: l, org: identity.texts[l] }, from: { fromName: identity.senderName, replyTo: identity.replyTo, header: emailHeader(identity, l) } }
+  return { locale: l, build: { locale: l, org: identity.texts[l], charityNumber: identity.charityNumber }, from: { fromName: identity.senderName, replyTo: identity.replyTo, header: emailHeader(identity, l) } }
 }
 
 /** En-tête des courriels d'un organisme ; null pour l'identité neutre (organisme inconnu : courriel de la plateforme). */
@@ -216,7 +216,7 @@ export interface ReceiptInput {
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
 // Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
-export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts; charityNumber?: string }): Built {
   const t = translatorFor(i.locale)
   const org = i.org
   return {
@@ -238,7 +238,8 @@ export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contribution
       button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
       note: t('courriel.recuLienNote'),
       linkHelp: t('courriel.lienAlt'),
-      footer: [t('courriel.recuPied'), ...footerFor(i.locale, i.org.name)],
+      // Reçu fiscal : seulement si l'organisme a un numéro d'organisme de bienfaisance (le reçu officiel vient de lui)
+      footer: [i.charityNumber ? t('courriel.recuPiedAvecNumero', { org: org.name, numero: i.charityNumber }) : t('courriel.recuPied'), ...footerFor(i.locale, i.org.name)],
     },
   }
 }
