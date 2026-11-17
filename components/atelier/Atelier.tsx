@@ -1,6 +1,7 @@
 'use client'
 
 /* eslint-disable @next/next/no-img-element -- aperçu des images téléversées */
+import { useConfirm } from '@/components/ConfirmDialog'
 import Guide, { guideDone, guideSteps, type GuideAction, type GuideData } from './Guide'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -81,6 +82,8 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [barHeight, setBarHeight] = useState(36)
+  // Confirmations dans une fenêtre de Donivers, pas celle du navigateur (Mika, 17 nov.)
+  const [confirmDialog, confirm] = useConfirm()
   const watchBar = useCallback((el: HTMLDivElement | null) => {
     if (!el) return
     const ro = new ResizeObserver(() => setBarHeight(Math.round(el.getBoundingClientRect().height)))
@@ -162,7 +165,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
       clearTimeout(saveTimer.current)
       await post({ action: 'save', texts: draft.texts })
     }
-    if (!confirm(t('publierConfirmer'))) return
+    if (!(await confirm({ title: t('publierTitre'), text: t('publierTexte'), confirmLabel: t('publier'), cancelLabel: t('pasMaintenant') }))) return
     setBusy(true)
     const d = await post({ action: 'publish' })
     setBusy(false)
@@ -194,7 +197,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
     setTarget(a)
   }
   const discard = async () => {
-    if (!confirm(t('abandonnerConfirmer'))) return
+    if (!(await confirm({ title: t('abandonnerTitre'), text: t('abandonnerTexte'), confirmLabel: t('abandonner'), cancelLabel: t('garder'), danger: true }))) return
     setBusy(true)
     const d = await post({ action: 'discard' })
     setBusy(false)
@@ -268,6 +271,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
             {note.text}
           </p>
         )}
+        {confirmDialog}
         {target === 'guide' && !hiddenHere && (
           <Sheet title={t('guide.titre')} onClose={closeGuide} closeLabel={t('fermer')}>
             <Guide steps={steps} guide={draft.guide} pending={draft.pending} consoleUrl={draft.consoleUrl} onAction={guideAction} />
