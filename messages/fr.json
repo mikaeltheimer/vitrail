@@ -1194,8 +1194,7 @@
       "stripe": "Pris par Stripe sur chaque paiement : {pct} + {fixe} par carte canadienne. Quand le donateur ajoute une contribution, elle les paie d’abord, et votre organisme reçoit le don en entier. Sinon, ils sont pris sur le don.",
       "direct": "L’argent va directement dans votre compte Stripe : il ne passe jamais par {brand}.",
       "gratuitTitre": "Toujours gratuit",
-      "gratuitTexte": "Exports de vos données, droit de retrait des donateurs, remboursements, modération. En cas de remboursement, notre part (commission et contribution) est rendue au prorata du montant remboursé.",
-      "bientot": "Bientôt : vitraux de campagne ({taux} par don, jusqu’à {campagne} par campagne) et {brand} Pro ({pro} par année)."
+      "gratuitTexte": "Exports de vos données, droit de retrait des donateurs, remboursements, modération. En cas de remboursement, notre part (commission et contribution) est rendue au prorata du montant remboursé."
     },
     "garanties": {
       "quebecTitre": "Fait au Québec",

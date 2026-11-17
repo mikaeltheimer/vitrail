@@ -1194,8 +1194,7 @@
       "stripe": "Taken by Stripe on each payment: {pct} + {fixe} per Canadian card. When the donor adds a contribution, it pays them first, and your organization receives the full donation. Otherwise, they come out of the donation.",
       "direct": "The money goes straight to your Stripe account: it never passes through {brand}.",
       "gratuitTitre": "Always free",
-      "gratuitTexte": "Exporting your data, donors’ right to remove their content, refunds, moderation. If a donation is refunded, our share (commission and contribution) is returned in proportion to the amount refunded.",
-      "bientot": "Coming soon: stained glass for campaigns ({taux} per donation, up to {campagne} per campaign) and {brand} Pro ({pro} per year)."
+      "gratuitTexte": "Exporting your data, donors’ right to remove their content, refunds, moderation. If a donation is refunded, our share (commission and contribution) is returned in proportion to the amount refunded."
     },
     "garanties": {
       "quebecTitre": "Made in Québec",

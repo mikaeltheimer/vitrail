@@ -284,10 +284,6 @@ export default async function PlateformePage() {
                 <p className="m-0">{t('tarifs.gratuitTexte')}</p>
               </div>
             </div>
-
-            <p className="muted m-0 border-t pt-5 text-sm" style={{ borderColor: 'rgba(244,239,230,0.08)' }}>
-              {t('tarifs.bientot', { taux: pct(P.rate, locale), campagne: money(P.campaignCapCents), pro: money(P.proYearCents), brand })}
-            </p>
           </div>
         </section>
 
