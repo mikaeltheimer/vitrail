@@ -1,5 +1,8 @@
--- Donivers — schéma complet de la base (état au 2026-11-16 : migrations jusqu'à 2026-11-27-contribution-donateur.sql comprise ;
--- la 19 ne touche que des données ; la 23 n'existe pas). Mis à jour par pg_dump d'une base construite avec ce fichier
+-- Donivers — schéma complet de la base (état au 2026-11-16 : migrations jusqu'à 2026-11-29-avis-seuil-et-taxes.sql comprise ;
+-- la 19 ne touche que des données ; la 23 n'existe pas). Migrations 28 et 29 : pg_dump d'une base construite avec ce
+-- fichier, comparé à celui de la même base après les deux migrations (table terms_acceptances, colonne
+-- fee_threshold_notified_at, contrainte email_log_kind_check élargie, studio_tax_totals et studio_suggestion_stats, ces
+-- deux dernières à la fin avec studio_org_stats). Avant : mis à jour par pg_dump d'une base construite avec ce fichier
 -- puis la migration 27 (comparaison des deux pg_dump : platform_settings et son historique, les colonnes de organizations
 -- et de donations, la vue organization_billing, settle_platform_fee et studio_org_stats ; une base construite avec ce
 -- fichier seul donne le même pg_dump, aux droits explicites de service_role près, que Supabase accorde par défaut).
@@ -417,7 +420,7 @@ CREATE TABLE public.email_log (
     status text DEFAULT 'queued'::text NOT NULL,
     error text,
     organization_id uuid,
-    CONSTRAINT email_log_kind_check CHECK ((kind = ANY (ARRAY['receipt'::text, 'magic_link'::text, 'reminder'::text, 'moderation'::text, 'invitation'::text, 'password_reset'::text, 'signup_code'::text, 'access_request'::text]))),
+    CONSTRAINT email_log_kind_check CHECK ((kind = ANY (ARRAY['receipt'::text, 'magic_link'::text, 'reminder'::text, 'moderation'::text, 'invitation'::text, 'password_reset'::text, 'signup_code'::text, 'access_request'::text, 'fee_threshold'::text]))),
     CONSTRAINT email_log_locale_check CHECK ((locale = ANY (ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT email_log_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'delivered'::text, 'delayed'::text, 'bounced'::text, 'complained'::text, 'failed'::text, 'skipped'::text])))
 );
@@ -496,6 +499,7 @@ CREATE TABLE public.organizations (
     fee_threshold_reached_at timestamp with time zone,
     fee_settled_at timestamp with time zone,
     tax_province text,
+    fee_threshold_notified_at timestamp with time zone,
     CONSTRAINT organizations_locales_check CHECK (((array_length(locales, 1) >= 1) AND (array_length(locales, 1) <= 2) AND (locales <@ ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT organizations_photo_moderation_check CHECK ((photo_moderation = ANY (ARRAY['live'::text, 'moderation'::text]))),
     CONSTRAINT organizations_showcase_not_practice CHECK ((NOT (showcase AND (practice_of IS NOT NULL)))),
@@ -591,6 +595,15 @@ CREATE TABLE public.signup_codes (
     attempts integer DEFAULT 0 NOT NULL,
     verified_at timestamp with time zone,
     CONSTRAINT signup_codes_email_check CHECK ((email = lower(email)))
+);
+
+CREATE TABLE public.terms_acceptances (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    version text NOT NULL,
+    accepted_at timestamp with time zone DEFAULT now() NOT NULL,
+    accepted_by uuid,
+    CONSTRAINT terms_acceptances_version_check CHECK (((char_length(version) >= 1) AND (char_length(version) <= 60)))
 );
 
 CREATE TABLE public.visits (
@@ -809,6 +822,12 @@ ALTER TABLE ONLY public.sessions
 ALTER TABLE ONLY public.signup_codes
     ADD CONSTRAINT signup_codes_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.terms_acceptances
+    ADD CONSTRAINT terms_acceptances_org_version UNIQUE (organization_id, version);
+
+ALTER TABLE ONLY public.terms_acceptances
+    ADD CONSTRAINT terms_acceptances_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.visits
     ADD CONSTRAINT visits_pkey PRIMARY KEY (id);
 
@@ -948,6 +967,12 @@ ALTER TABLE ONLY public.sessions
 ALTER TABLE ONLY public.signup_codes
     ADD CONSTRAINT signup_codes_invitation_id_fkey FOREIGN KEY (invitation_id) REFERENCES public.invitations(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY public.terms_acceptances
+    ADD CONSTRAINT terms_acceptances_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES public.accounts(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.terms_acceptances
+    ADD CONSTRAINT terms_acceptances_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
 ALTER TABLE ONLY public.visits
     ADD CONSTRAINT visits_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE RESTRICT;
 
@@ -992,6 +1017,8 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.signup_codes ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.terms_acceptances ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
 
@@ -1094,6 +1121,55 @@ CREATE FUNCTION public.studio_org_stats(p_since timestamp with time zone) RETURN
   left join premiers on premiers.organization_id = orgs.id
   left join membres on membres.organization_id = orgs.id
   left join courriels on courriels.organization_id = orgs.id
+$$;
+
+CREATE FUNCTION public.studio_suggestion_stats(p_since timestamp with time zone) RETURNS TABLE(tranche text, donations bigint, accepted bigint, nothing bigint, donations_since bigint, accepted_since bigint)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  with d as (
+    select
+      case when x.amount_cents < 25000 then 'moins-250' when x.amount_cents <= 100000 then '250-1000' else 'plus-1000' end as tranche,
+      x.donor_contribution_cents = x.contribution_suggested_cents as accepted,
+      x.donor_contribution_cents = 0 as nothing,
+      x.created_at
+    from public.donations x
+    join public.organizations o on o.id = x.organization_id and o.practice_of is null and not o.showcase
+    where x.source = 'stripe' and coalesce(x.contribution_suggested_cents, 0) > 0
+  )
+  select tranche,
+         count(*)::bigint,
+         count(*) filter (where accepted)::bigint,
+         count(*) filter (where nothing)::bigint,
+         count(*) filter (where created_at >= p_since)::bigint,
+         count(*) filter (where accepted and created_at >= p_since)::bigint
+  from d
+  group by tranche
+$$;
+
+CREATE FUNCTION public.studio_tax_totals(p_since timestamp with time zone) RETURNS TABLE(tax_province text, tax_cents bigint, tax_since_cents bigint)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  with d as (
+    select
+      x.tax_province,
+      x.created_at,
+      case when x.platform_fee_cents - x.platform_fee_waived_cents > 0
+        then round(x.tax_included_cents::numeric
+                   * greatest(0, x.platform_fee_cents - x.platform_fee_waived_cents - x.platform_fee_refunded_cents)
+                   / (x.platform_fee_cents - x.platform_fee_waived_cents))::bigint
+        else 0 end as tax_net
+    from public.donations x
+    join public.organizations o on o.id = x.organization_id and o.practice_of is null and not o.showcase
+    where x.source = 'stripe' and x.platform_fee_settled_at is not null and x.tax_province is not null
+  )
+  select tax_province,
+         coalesce(sum(tax_net), 0)::bigint,
+         coalesce(sum(tax_net) filter (where created_at >= p_since), 0)::bigint
+  from d
+  group by tax_province
+  order by tax_province
 $$;
 
 -- ── Accès : serveur seulement (service_role) ──────────────────────────────────────────────────────────────────────────────
