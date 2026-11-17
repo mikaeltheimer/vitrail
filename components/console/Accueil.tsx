@@ -147,8 +147,6 @@ export default function Accueil({
         <Apercu url={data.vitrailUrl} version={s.donations} label={data.org.practice ? t('voirEntrainement') : t('voirVitrail')} />
       </section>
 
-      {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
-
       {/* L'atelier, toujours à portée sur l'accueil (avant : seulement dans la carte de démarrage, qui disparaît à la mise en ligne, et dans Plus) */}
       {owner && data.atelierUrl && !(data.org.status === 'draft' && !data.org.practice) && (
         <section className="card flex flex-wrap items-center gap-3 text-sm" style={{ borderColor: 'rgba(240,178,74,0.45)' }} aria-labelledby="atelier-accueil">
@@ -247,6 +245,9 @@ export default function Accueil({
           </ul>
         )}
       </Section>
+
+      {/* Le forfait, tout en bas (Mika, 16 nov.) : utile à consulter, jamais urgent */}
+      {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
     </div>
   )
 }
