@@ -1,5 +1,6 @@
 'use client'
 
+import { useSyncExternalStore } from 'react'
 import { useLocale } from 'next-intl'
 import { INTL_TAG, type Locale } from '@/i18n/config'
 
@@ -185,8 +186,43 @@ export function Section({ title, children, aside, className = '' }: { title: str
   )
 }
 
-/** Fenêtre par-dessus la console (fiche donateur, don comptant) : plein écran sur téléphone. */
-export function Sheet({ title, onClose, children, closeLabel }: { title: string; onClose: () => void; children: React.ReactNode; closeLabel: string }) {
+/** Écran d'ordinateur (≥ 1024 px, le menu latéral de la console) : vrai seulement dans le navigateur. */
+const DESKTOP = '(min-width: 1024px)'
+export function useDesktop(): boolean {
+  return useSyncExternalStore(
+    cb => {
+      const m = window.matchMedia(DESKTOP)
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    () => window.matchMedia(DESKTOP).matches,
+    () => false,
+  )
+}
+
+/** Largeur du panneau latéral (ordinateur) : le contenu de la console se décale d'autant pour rester visible. */
+export const PANEL_PAD = 'lg:pr-[484px]'
+
+/**
+ * Fenêtre par-dessus la console (fiche donateur, don comptant) : plein écran sur téléphone.
+ * `panel` : sur ordinateur, panneau fixé à droite, à côté de la liste qui reste visible et utilisable (pas de voile).
+ */
+export function Sheet({ title, onClose, children, closeLabel, panel = false }: { title: string; onClose: () => void; children: React.ReactNode; closeLabel: string; panel?: boolean }) {
+  const desktop = useDesktop()
+  if (panel && desktop)
+    return (
+      <aside aria-label={title} className="fixed inset-y-0 right-0 z-40 w-[460px] overflow-y-auto border-l p-6 shadow-2xl" style={{ background: 'var(--bg)', borderColor: 'var(--line)' }}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+            {title}
+          </h2>
+          <button className="chip flex h-11 w-11 items-center justify-center !p-0" aria-label={closeLabel} onClick={onClose}>
+            <Icon name="fermer" size={18} />
+          </button>
+        </div>
+        {children}
+      </aside>
+    )
   return (
     <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-50 flex justify-center overflow-y-auto" style={{ background: 'rgba(5,4,8,0.75)' }}>
       <div className="min-h-full w-full max-w-lg p-4 sm:py-10" style={{ background: 'var(--bg)' }}>

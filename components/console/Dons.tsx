@@ -6,7 +6,7 @@ import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Act, ConsoleData, DonorRow } from './types'
 import type { DonationFees } from '@/lib/platform-fee'
-import { RED, GREEN, Section, Sheet, useTime } from './ui'
+import { PANEL_PAD, RED, GREEN, Section, Sheet, useDesktop, useTime } from './ui'
 import { askConfirm } from '@/components/ConfirmDialog'
 import Journal from './Journal'
 
@@ -37,6 +37,7 @@ export default function Dons({
   setView: (v: DonsView) => void
 }) {
   const tj = useTranslations('console.journal')
+  const desktop = useDesktop()
   const t = useTranslations('console.dons')
   const money = useMoney()
   const time = useTime()
@@ -51,8 +52,9 @@ export default function Dons({
       .sort((a, b) => String(b.lastDonationAt ?? '').localeCompare(String(a.lastDonationAt ?? '')))
   }, [data.donors, search])
 
+  // Ordinateur : la fiche s'ouvre à droite et le contenu se décale pour rester visible
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${donorId && desktop ? PANEL_PAD : ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div role="group" aria-label={tj('vues')} className="inline-flex gap-1 rounded-xl border p-1" style={{ borderColor: 'var(--line)', background: 'rgba(255,255,255,0.03)' }}>
           {(['journal', 'donateurs'] as const).map(v => (
@@ -88,25 +90,63 @@ export default function Dons({
         {donors.length === 0 ? (
           <p className="card muted text-sm">{search ? t('aucunResultat') : t('aucunDonateur')}</p>
         ) : (
-          <ul className="card !p-0">
-            {donors.slice(0, 200).map((d, i) => (
-              <li key={d.id} className={i ? 'border-t' : ''} style={{ borderColor: 'var(--line)' }}>
-                <button className="console-row flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => setDonorId(d.id)}>
-                  <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: d.color, opacity: d.hidden ? 0.35 : 1 }} />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-[15px]">
-                      {d.display_name || t('anonyme')} {d.hidden && <span style={{ color: RED }}>· {t('masque')}</span>}
+          <>
+            {/* Téléphone : une liste ; ordinateur et tablette : un tableau */}
+            <ul className="card !p-0 md:hidden">
+              {donors.slice(0, 200).map((d, i) => (
+                <li key={d.id} className={i ? 'border-t' : ''} style={{ borderColor: 'var(--line)' }}>
+                  <button className="console-row flex w-full items-center gap-3 px-3.5 py-3 text-left" onClick={() => setDonorId(d.id)}>
+                    <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: d.color, opacity: d.hidden ? 0.35 : 1 }} />
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-[15px]">
+                        {d.display_name || t('anonyme')} {d.hidden && <span style={{ color: RED }}>· {t('masque')}</span>}
+                      </span>
+                      <span className="muted truncate text-xs">
+                        {d.erased_at ? t('supprime') : noEmail(d.email) ? t('sansCourriel') : d.email}
+                        {d.lastDonationAt ? ` · ${time(d.lastDonationAt)}` : ''}
+                      </span>
                     </span>
-                    <span className="muted truncate text-xs">
-                      {d.erased_at ? t('supprime') : noEmail(d.email) ? t('sansCourriel') : d.email}
-                      {d.lastDonationAt ? ` · ${time(d.lastDonationAt)}` : ''}
-                    </span>
-                  </span>
-                  <b className="text-[15px]">{money(d.totalCents)}</b>
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <b className="text-[15px]">{money(d.totalCents)}</b>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="card hidden overflow-x-auto !p-0 md:block">
+              <table className="w-full text-[15px]">
+                <thead>
+                  <tr className="muted text-left text-xs uppercase tracking-wide">
+                    <th className="px-5 py-3 font-semibold">{t('colDonateur')}</th>
+                    <th className="px-3 py-3 font-semibold">{t('colDernierDon')}</th>
+                    <th className="px-5 py-3 text-right font-semibold">{t('colTotal')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donors.slice(0, 200).map(d => {
+                    const selected = d.id === donorId
+                    return (
+                      <tr key={d.id} className="border-t" style={{ borderColor: 'var(--line)', background: selected ? 'rgba(240,178,74,0.08)' : undefined, boxShadow: selected ? 'inset 3px 0 0 var(--accent)' : undefined }}>
+                        <td className="px-5 py-2.5">
+                          <button className="flex items-center gap-3 text-left hover:underline" style={{ background: 'transparent' }} aria-current={selected ? 'true' : undefined} onClick={() => setDonorId(d.id)}>
+                            <span className="h-[22px] w-3.5 flex-none rounded-[3px]" style={{ background: d.color, opacity: d.hidden ? 0.35 : 1 }} />
+                            <span className="flex min-w-0 flex-col">
+                              <span>
+                                {d.display_name || t('anonyme')} {d.hidden && <span style={{ color: RED }}>· {t('masque')}</span>}
+                              </span>
+                              <span className="muted text-[13px]">{d.erased_at ? t('supprime') : noEmail(d.email) ? t('sansCourriel') : d.email}</span>
+                            </span>
+                          </button>
+                        </td>
+                        <td className="muted whitespace-nowrap px-3 py-2.5 tabular-nums">{d.lastDonationAt ? time(d.lastDonationAt) : '—'}</td>
+                        <td className="px-5 py-2.5 text-right tabular-nums">
+                          <b>{money(d.totalCents)}</b>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
         {donors.length > 200 && <p className="muted text-xs">{t('limite')}</p>}
       </Section>
@@ -193,7 +233,7 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
   const erased = !!donor?.erased_at
   const total = d ? d.donations.reduce((s, n) => s + n.amount_cents - n.refunded_cents, 0) : 0
   return (
-    <Sheet title={donor?.display_name || t('titre')} onClose={onClose} closeLabel={tc('fermer')}>
+    <Sheet title={donor?.display_name || t('titre')} onClose={onClose} closeLabel={tc('fermer')} panel>
       {error && <p style={{ color: RED }}>{error}</p>}
       {!d && !error && <p className="muted">{tc('chargement')}</p>}
       {d && donor && (
