@@ -80,6 +80,7 @@ export function identityFromRow(r: IdentityRow): Identity {
     legal: {
       entity: legal.entity ?? '',
       neq: legal.neq ?? '',
+      charityNumber: legal.charityNumber ?? '',
       address: legal.address ?? '',
       officerName: legal.officerName ?? '',
       officerEmail: legal.officerEmail ?? '',
@@ -87,6 +88,7 @@ export function identityFromRow(r: IdentityRow): Identity {
       retention: legal.retention ?? '',
       updated: legal.updated ?? '',
     },
+    charityNumber: typeof legal.charityNumber === 'string' ? legal.charityNumber.trim() : '',
     senderName: (r.sender_name || texts[locales[0]].name).trim(),
     replyTo: r.reply_to || legal.officerEmail || null,
     showcase: !!r.showcase,

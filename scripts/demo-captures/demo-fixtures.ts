@@ -118,6 +118,8 @@ export function demoConsoleData(locale: 'fr' | 'en', now = Date.now()): ConsoleD
     identityMissing: [],
     atelierUrl: null,
     published: true,
+    terms: null,
+    billing: null,
     summary: { totalCents, donations: donations.length, donors: list.length, goalCents: null },
     me: { name: 'Claire Martin', email: 'direction@demo.invalid', role: 'owner', accountId: 'demo-owner' },
     orgs: [],

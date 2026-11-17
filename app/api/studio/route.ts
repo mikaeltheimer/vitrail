@@ -5,7 +5,7 @@ import { createInvitation, normalizeEmail, tokenHash, CREATE_INVITATION_DAYS } f
 import { getDb } from '@/lib/db'
 import { sendOrgInvitation } from '@/lib/email'
 import { orgUrl, platformUrl } from '@/lib/tenant'
-import { WINDOW_DAYS, buildFunnel, buildTodo, orgStats, platformTotals, toStudioOrg, type InvitationLite, type RequestLite } from '@/lib/studio-stats'
+import { WINDOW_DAYS, buildFunnel, buildTodo, orgStats, platformTotals, studioBilling, suggestionRow, taxRow, toStudioOrg, type InvitationLite, type RequestLite } from '@/lib/studio-stats'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,11 +24,12 @@ export async function GET(request: NextRequest) {
   if (!me) return fail('Réservé à Studio Existence.', 403) // i18n-ok : section Studio (FR)
   const db = getDb()
   const now = Date.now()
-  const [reqs, allReqs, invs, orgs, slugs, accounts, owners, stats] = await Promise.all([
+  const sinceIso = new Date(now - WINDOW_DAYS * 86_400_000).toISOString()
+  const [reqs, allReqs, invs, orgs, slugs, accounts, owners, stats, billing, taxes, suggestion] = await Promise.all([
     db.from('access_requests').select('id,org_name,name,email,message,locale,source,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
     db.from('access_requests').select('source,created_at').limit(5000),
     db.from('invitations').select('id,email,org_name,locale,created_at,expires_at,accepted_at,revoked_at').is('organization_id', null).order('created_at', { ascending: false }).limit(500),
-    db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,legal,created_at,went_live_at').is('practice_of', null).eq('showcase', false).order('created_at', { ascending: false }).limit(500),
+    db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,legal,terms_version,created_at,went_live_at').is('practice_of', null).eq('showcase', false).order('created_at', { ascending: false }).limit(500),
     db.from('organization_slugs').select('slug,organization_id').eq('is_current', true),
     db.from('accounts').select('id,email,name,last_login_at').limit(10000),
     // Contact des propriétaires (relation de service entre Studio et l'organisme, pas des donateurs)
@@ -37,14 +38,21 @@ export async function GET(request: NextRequest) {
       data => ({ data, error: null }),
       (error: { message?: string }) => ({ data: null, error }),
     ),
+    // Forfait de chaque organisme (C) : totaux de la vue organization_billing, jamais les dons un par un
+    db.from('organization_billing').select('organization_id,fee_model,cap_cents,fees_net_cents,donor_covered_cents,cumul_cents,fee_threshold_reached_at,fee_settled_at').limit(5000),
+    // Taxes comprises par province et acceptation de la suggestion (migration 2026-11-29) : des totaux ; absents avant la
+    // migration, Studio s'affiche quand même (null)
+    db.rpc('studio_tax_totals', { p_since: sinceIso }).then(r => (r.error ? null : (r.data as Record<string, unknown>[]))),
+    db.rpc('studio_suggestion_stats', { p_since: sinceIso }).then(r => (r.error ? null : (r.data as Record<string, unknown>[]))),
   ])
-  for (const r of [reqs, allReqs, invs, orgs, slugs, accounts, owners, stats]) if (r.error) return fail(r.error.message || 'Erreur.', 500) // i18n-ok : section Studio (FR)
+  for (const r of [reqs, allReqs, invs, orgs, slugs, accounts, owners, stats, billing]) if (r.error) return fail(r.error.message || 'Erreur.', 500) // i18n-ok : section Studio (FR)
   const accountById = new Map((accounts.data ?? []).map(a => [a.id as string, { email: a.email as string, name: (a.name as string) || '' }]))
   const ownersOf = new Map<string, { email: string; name: string }[]>()
   for (const m of owners.data ?? []) {
     const a = accountById.get(m.account_id as string)
     if (a) ownersOf.set(m.organization_id as string, [...(ownersOf.get(m.organization_id as string) ?? []), a])
   }
+  const billingOf = new Map((billing.data ?? []).map(b => [b.organization_id as string, studioBilling(b)]))
   const slugOf = new Map((slugs.data ?? []).map(s => [s.organization_id as string, s.slug as string]))
   const invitations: (InvitationLite & { createdAt: string })[] = (invs.data ?? []).map(i => ({
     id: i.id as string,
@@ -60,6 +68,7 @@ export async function GET(request: NextRequest) {
     return {
       ...org,
       owners: ownersOf.get(o.id as string) ?? [],
+      billing: billingOf.get(o.id as string) ?? null,
       links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request) } : null,
     }
   })
@@ -72,6 +81,8 @@ export async function GET(request: NextRequest) {
     organizations,
     todo: buildTodo((reqs.data ?? []) as RequestLite[], invitations, organizations, now),
     totals: platformTotals(organizations),
+    taxes: taxes ? taxes.map(taxRow) : null,
+    suggestion: suggestion ? suggestion.map(suggestionRow) : null,
     funnel: buildFunnel((allReqs.data ?? []) as { source: string | null; created_at: string }[], invitations.map(i => ({ created_at: i.createdAt })), organizations, now),
     accounts: { total: logins.length, active: logins.filter(d => !!d && new Date(d).getTime() > since).length },
     windowDays: WINDOW_DAYS,

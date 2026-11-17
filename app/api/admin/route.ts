@@ -9,6 +9,8 @@ import { createToken } from '@/lib/donations'
 import { fetchWhere, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getOrg, getVitrail, orgBaseUrl, orgName, orgUrl } from '@/lib/tenant'
 import { goLive, practiceOf } from '@/lib/signup'
+import { acceptTerms, termsStatus } from '@/lib/terms'
+import { billingSummary } from '@/lib/billing'
 import { getIdentity, missingForLaunch } from '@/lib/identity'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
@@ -29,6 +31,9 @@ import { platformDomain } from '@/lib/hosts'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/** Campagnes fermées jusqu'à l'étape L2 (leur commission n'existe pas encore). */
+const CAMPAIGNS_OPEN = false
+
 
 // ── Lecture : tout ce que la console affiche ──────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -47,7 +52,7 @@ export async function GET(request: NextRequest) {
     db.from('vitrail_totals').select('vitrail_id,total_cents,donations_count').eq('organization_id', orgId),
     db
       .from('donations')
-      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
+      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,donor_contribution_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -57,7 +62,7 @@ export async function GET(request: NextRequest) {
     fetchWhere<{ id: string; channel: string }>('visits', 'id,channel', 'organization_id', orgId, 'id'),
     db.from('reports').select('id,donor_id,reason,created_at').eq('organization_id', orgId).eq('resolved', false).order('created_at', { ascending: false }).limit(200),
     // Litiges ouverts : à traiter dans le tableau de bord Stripe avant la date limite (tous, pas seulement les 100 derniers dons)
-    db.from('donations').select('id,amount_cents,fee_cents,dispute_due_by,created_at').eq('organization_id', orgId).eq('dispute_status', 'open').order('dispute_due_by', { ascending: true }),
+    db.from('donations').select('id,amount_cents,fee_cents,donor_contribution_cents,dispute_due_by,created_at').eq('organization_id', orgId).eq('dispute_status', 'open').order('dispute_due_by', { ascending: true }),
   ])
   for (const r of [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes]) if (r.error) return fail('Admin GET', r.error)
 
@@ -123,6 +128,10 @@ export async function GET(request: NextRequest) {
     identityMissing: t.tenant.org.practiceOf ? [] : missingForLaunch((await getIdentity(t.tenant.org))?.legal ?? {}),
     // L'atelier (vitrail d'entraînement en mode Modifier) et si une version personnalisée a déjà été publiée
     atelierUrl: await atelierUrl(t.tenant.org, request),
+    // Carte « Votre forfait » (C) : propriétaire de l'organisme réel seulement (ni atelier, ni démo, ni bénévole)
+    billing: t.role === 'owner' && !t.tenant.org.practiceOf && !t.tenant.org.showcase ? await billingSummary(orgId, t.tenant.org.feeSchedule) : null,
+    // Conditions de la plateforme (D8) : version en vigueur acceptée ? Organisme réel seulement (ni atelier, ni démo)
+    terms: t.tenant.org.practiceOf || t.tenant.org.showcase ? null : { ...(await termsStatus(t.tenant.org.id)), exempt: t.tenant.org.feeSchedule.model === 'exempt' },
     published: !!(await getDb().from('organizations').select('published_at').eq('id', t.tenant.org.practiceOf ?? t.tenant.org.id).maybeSingle()).data?.published_at,
     summary: {
       totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
@@ -176,10 +185,10 @@ export async function GET(request: NextRequest) {
 const OWNER_ONLY = new Set([
   'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
   'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail', 'goLive', 'eraseDonor',
-  'checkAddress', 'changeAddress',
+  'checkAddress', 'changeAddress', 'acceptTerms',
 ])
 // Ce qui n'a pas de sens dans l'entraînement : l'argent réel, Stripe, l'équipe (c'est celle de l'organisme réel)
-const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive', 'checkAddress', 'changeAddress'])
+const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive', 'checkAddress', 'changeAddress', 'acceptTerms'])
 
 /** Le vitrail de l'atelier, ouvert en mode Modifier. */
 async function atelierUrl(org: { id: string; slug: string; practiceOf: string | null }, request: NextRequest): Promise<string | null> {
@@ -347,8 +356,10 @@ export async function POST(request: NextRequest) {
       return removed.error ? oops(removed.error) : NextResponse.json({ ok: true })
     }
 
-    // Interim : « créer un événement » crée une campagne (un vitrail à elle, adresse /<identifiant>)
+    // Campagnes : bientôt (D6 du plan K). Leur commission (2,8 % jusqu'à 195 $ par campagne) arrive avec elles (étape L2) ;
+    // d'ici là, un don de campagne ne paierait que la contribution. Le code qui suit reste pour l'étape L2.
     case 'createEvent': {
+      if (!CAMPAIGNS_OPEN) return fail('campagnesBientot')
       const name = str(b.name).trim()
       if (name.length < 2 || name.length > 80) return fail(err('campagneNom', { min: 2, max: 80 }))
       const goal = Math.round(Number(b.goalCents) || 0)
@@ -535,7 +546,15 @@ export async function POST(request: NextRequest) {
     // Mettre en ligne : brouillon → en ligne, quand le compte Stripe est prêt (l'entraînement reste tel quel)
     case 'goLive': {
       const r = await goLive(orgId)
-      if (!r.ok) return fail(r.error === 'stripe' ? 'stripePasPret' : r.error === 'juridique' ? 'coordonneesIncompletes' : r.error === 'deja' ? 'dejaEnLigne' : 'impossibleIci')
+      if (!r.ok) return fail(r.error === 'stripe' ? 'stripePasPret' : r.error === 'juridique' ? 'coordonneesIncompletes' : r.error === 'conditions' ? 'conditionsAAccepter' : r.error === 'deja' ? 'dejaEnLigne' : 'impossibleIci')
+      return NextResponse.json({ ok: true })
+    }
+
+    // Accepter la version en vigueur des conditions de la plateforme (D8), au nom de l'organisme : propriétaire seulement
+    case 'acceptTerms': {
+      if (t.tenant.org.showcase) return fail('impossibleIci')
+      const r = await acceptTerms(orgId, t.account.id, b.version)
+      if (!r.ok) return fail('conditionsChangees')
       return NextResponse.json({ ok: true })
     }
 

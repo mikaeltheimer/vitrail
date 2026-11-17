@@ -1,5 +1,5 @@
 import { check, done, mocks } from './helpers'
-import { calls, reset, tables } from './fake-db'
+import { calls, reset, rpcs, tables } from './fake-db'
 
 // ── Faux Stripe et faux next/server (le webhook se teste sans réseau) ───────────────────────────
 const feeRefunds: { id: string; amount: number; key: string }[] = []
@@ -11,7 +11,16 @@ const accountCalls: { params: Record<string, any>; opts?: Record<string, any> }[
 const charges: Record<string, { account: string; charge: { id: string; amount: number; amount_refunded: number; application_fee: string | null; disputed?: boolean } }> = {}
 const refundsMade: { params: Record<string, any>; opts: Record<string, any> }[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
 const seenKeys = new Set<string>()
+// Paiements lus au règlement (frais réels sur la balance transaction du compte connecté)
+const intents: Record<string, { account: string; latest_charge: Record<string, unknown> }> = {}
 const fakeStripe = {
+  paymentIntents: {
+    retrieve: async (id: string, _p: unknown, opts: { stripeAccount: string }) => {
+      const x = intents[id]
+      if (!x || x.account !== opts.stripeAccount) throw new Error('No such payment_intent')
+      return { id, latest_charge: x.latest_charge }
+    },
+  },
   charges: {
     retrieve: async (id: string, _p: unknown, opts: { stripeAccount: string }) => {
       const x = Object.values(charges).find(c => c.charge.id === id && c.account === opts.stripeAccount)
@@ -69,21 +78,14 @@ process.env.PAYMENT_MODE = 'stripe'
 process.env.STRIPE_SECRET_KEY = 'sk_test_x'
 
 async function main() {
-  const { platformFeeCents, parseFeeSchedule, DEFAULT_FEE_SCHEDULE } = await import('../lib/platform-fee')
+  const { parseBillingSchedule, DEFAULT_BILLING_SCHEDULE } = await import('../lib/platform-fee')
   const { paymentModeFor } = await import('../lib/env')
   const { forgetTenantCache } = await import('../lib/tenant')
   const { POST } = await import('../app/api/webhook/stripe/route')
 
-  console.log('Commission')
-  const S = DEFAULT_FEE_SCHEDULE
-  check('2,8 % d\'un don de 100 $', platformFeeCents(10000, S, 0) === 280)
-  check('arrondi au cent', platformFeeCents(1234, S, 0) === 35) // 34,552
-  check('juste sous le seuil : encore 2,8 %', platformFeeCents(10000, S, 499_999) === 280)
-  check('au seuil : 0,5 %', platformFeeCents(10000, S, 500_000) === 50)
-  check('le don qui franchit le seuil garde l\'ancien taux', platformFeeCents(100_000, S, 499_000) === 2800)
-  check('grille invalide : retombe sur la grille par défaut', JSON.stringify(parseFeeSchedule({ rate: 'x', tierRate: -1, tierAfterCents: NaN })) === JSON.stringify(S))
-  check('grille négociée', parseFeeSchedule({ rate: 0.02, tierAfterCents: 100, tierRate: 0 }).tierRate === 0)
-  check('taux absurde refusé (> 20 %)', parseFeeSchedule({ rate: 0.9 }).rate === S.rate)
+  console.log('Grille (la règle elle-même : tests/contribution.test.ts)')
+  const S = DEFAULT_BILLING_SCHEDULE
+  check('grille de l\'ancienne forme en base : modèle plafonné par défaut', JSON.stringify(parseBillingSchedule({ rate: 0.028, tierRate: 0.005, tierAfterCents: 500000 })) === JSON.stringify(S))
 
   console.log('Mode de paiement par organisme')
   check('brouillon : dons fermés (on s\'exerce sur l\'entraînement)', paymentModeFor({ status: 'draft', stripeReady: true }) === 'off')
@@ -96,13 +98,37 @@ async function main() {
   process.env.PAYMENT_MODE = 'stripe'
 
   console.log('Webhook Connect')
+  const settleCalls: Record<string, unknown>[] = []
+  const capWaive = { cents: 0 }
   const seed = () => {
     reset(); forgetTenantCache()
     for (const k of Object.keys(fees)) delete fees[k]
     for (const k of Object.keys(sessionsByIntent)) delete sessionsByIntent[k]
     feeRefunds.length = 0
+    for (const k of Object.keys(intents)) delete intents[k]
+    settleCalls.length = 0
+    // settle_platform_fee simulé (la vraie est éprouvée sur PostgreSQL) : surplus réel = min(S, C − frais réels), plus
+    // un excédent de plafond réglable ; un don déjà réglé renvoie le même résultat
+    rpcs.settle_platform_fee = args => {
+      settleCalls.push(args)
+      const d = tables.donations.find(x => x.id === args.p_donation)!
+      if (d.platform_fee_settled_at) {
+        // Frais réels arrivés après le règlement : corrigés une seule fois
+        if (args.p_stripe_fee_actual != null && d.stripe_fee_actual_cents == null) {
+          const real = Math.min(Number(d.contribution_surplus_cents), Math.max(0, Number(d.donor_contribution_cents ?? 0) - Number(args.p_stripe_fee_actual)))
+          Object.assign(d, { platform_fee_waived_cents: Number(d.platform_fee_waived_cents) + Number(d.contribution_surplus_cents) - real, contribution_surplus_cents: real, stripe_fee_actual_cents: args.p_stripe_fee_actual })
+        }
+        return [{ waived_cents: d.platform_fee_waived_cents, surplus_cents: d.contribution_surplus_cents, settled_now: false, already_settled: true }]
+      }
+      const surplus = Number(d.contribution_surplus_cents ?? 0)
+      const real = args.p_stripe_fee_actual == null ? surplus : Math.min(surplus, Math.max(0, Number(d.donor_contribution_cents ?? 0) - Number(args.p_stripe_fee_actual)))
+      const waived = surplus - real + capWaive.cents
+      Object.assign(d, { platform_fee_waived_cents: waived, contribution_surplus_cents: real, platform_fee_settled_at: 'maintenant', stripe_fee_actual_cents: args.p_stripe_fee_actual ?? null })
+      return [{ waived_cents: waived, surplus_cents: real, settled_now: false, already_settled: false }]
+    }
+    capWaive.cents = 0
     tables.organizations = [
-      { id: 'orgA', status: 'live', name_fr: 'École A', texts: {}, photo_moderation: 'live', stripe_account_id: 'acct_A', stripe_ready: false },
+      { id: 'orgA', status: 'live', name_fr: 'École A', texts: {}, photo_moderation: 'live', stripe_account_id: 'acct_A', stripe_ready: false, tax_province: 'QC' },
       { id: 'orgB', status: 'live', name_fr: 'Musée B', texts: {}, photo_moderation: 'live', stripe_account_id: 'acct_B', stripe_ready: false },
     ]
     tables.organization_slugs = [{ slug: 'ecoleartsutton', organization_id: 'orgA', is_current: true }, { slug: 'musee', organization_id: 'orgB', is_current: true }]
@@ -168,6 +194,78 @@ async function main() {
   check('account.updated : l\'organisme devient prêt', tables.organizations.find(o => o.id === 'orgA')!.stripe_ready === true && tables.organizations.find(o => o.id === 'orgB')!.stripe_ready === false)
   await send({ type: 'account.updated', account: 'acct_A', data: { object: { id: 'acct_A', charges_enabled: false, details_submitted: true } } })
   check('account.updated : paiements désactivés par Stripe → plus prêt', tables.organizations.find(o => o.id === 'orgA')!.stripe_ready === false)
+  await send({ type: 'account.updated', account: 'acct_B', data: { object: { id: 'acct_B', country: 'CA', charges_enabled: true, details_submitted: true, company: { address: { state: 'on' } } } } })
+  check('account.updated : province lue sur l\'adresse de l\'entreprise', tables.organizations.find(o => o.id === 'orgB')!.tax_province === 'ON')
+  await send({ type: 'account.updated', account: 'acct_B', data: { object: { id: 'acct_B', country: 'CA', charges_enabled: true, details_submitted: true } } })
+  check('account.updated sans adresse : la province connue reste', tables.organizations.find(o => o.id === 'orgB')!.tax_province === 'ON')
+
+  console.log('Contribution et règlement')
+  const contribSession = (over: Record<string, unknown> = {}) =>
+    session({ id: 'cs_contrib', amount_total: 14375, payment_intent: 'pi_contrib', ...over }, { feeCents: '0', platformFee: '1428', contribution: '1875', contributionSurplus: '1428', stripeFeeEstimate: '447', contributionSuggested: '1875', contributionVersion: '2026-11-16' })
+  const realFee = (stripeFee: number) => {
+    intents['pi_contrib'] = { account: 'acct_A', latest_charge: { id: 'ch_contrib', application_fee: 'fee_contrib', balance_transaction: { fee_details: [{ type: 'stripe_fee', amount: stripeFee }, { type: 'application_fee', amount: 1428 }] } } }
+    fees['fee_contrib'] = { amount: 1428, amount_refunded: 0 }
+  }
+  seed()
+  realFee(447)
+  r = await send(contribSession())
+  const dc = () => tables.donations.find(x => x.provider_ref === 'cs_contrib')!
+  check('don et contribution séparés : le don reste 125 $', r.status === 200 && dc().amount_cents === 12500 && dc().donor_contribution_cents === 1875)
+  check('suggestion montrée et version gardées', dc().contribution_suggested_cents === 1875 && dc().contribution_brackets_version === '2026-11-16' && dc().stripe_fee_estimated_cents === 447)
+  check('règlement appelé avec les frais réels (sans la commission de Donivers)', settleCalls.length === 1 && settleCalls[0].p_stripe_fee_actual === 447)
+  check('frais réels = estimés : rien n\'est rendu', feeRefunds.length === 0 && dc().platform_fee_waived_cents === 0)
+  check('taxes du Québec comprises dans ce que garde Donivers', dc().tax_province === 'QC' && dc().tax_included_cents === 1428 - Math.round(1428 / 1.14975))
+
+  seed()
+  realFee(560) // carte étrangère : 5,60 $ au lieu de 4,47 $
+  await send(contribSession())
+  check('frais réels plus élevés : la différence (1,13 $) est rendue à l\'organisme', feeRefunds.length === 1 && feeRefunds[0].amount === 113 && feeRefunds[0].key.startsWith('fee-waive-'))
+  check('surplus gardé = contribution − frais réels', dc().contribution_surplus_cents === 1315 && dc().tax_included_cents === 1315 - Math.round(1315 / 1.14975))
+  await send(contribSession())
+  check('webhook rejoué : rien de plus n\'est rendu, un seul don', feeRefunds.length === 1 && tables.donations.length === 1)
+
+  seed()
+  realFee(300) // tarif réduit : frais plus bas, la commission ne peut pas monter
+  await send(contribSession())
+  check('frais réels plus bas : rien ne change chez Stripe', feeRefunds.length === 0 && dc().contribution_surplus_cents === 1428)
+
+  seed()
+  realFee(447)
+  capWaive.cents = 900 // deux paiements simultanés près du plafond : le règlement rend 9 $
+  await send(contribSession())
+  check('excédent du plafond rendu chez Stripe', feeRefunds.length === 1 && feeRefunds[0].amount === 900)
+
+  seed()
+  intents['pi_contrib'] = { account: 'acct_A', latest_charge: { id: 'ch_contrib', application_fee: 'fee_contrib', balance_transaction: 'txn_pas_encore' } }
+  fees['fee_contrib'] = { amount: 1428, amount_refunded: 0 }
+  await send(contribSession())
+  check('frais réels pas encore connus : surplus estimé gardé', settleCalls[0].p_stripe_fee_actual === null && dc().contribution_surplus_cents === 1428)
+  // charge.updated : Stripe a créé la balance transaction (carte étrangère, 5,62 $)
+  realFee(562)
+  sessionsByIntent['pi_contrib'] = { id: 'cs_contrib', metadata: { orgId: 'orgA' } }
+  const updated = { type: 'charge.updated', account: 'acct_A', data: { object: { id: 'ch_contrib', paid: true, payment_intent: 'pi_contrib', balance_transaction: 'txn_1' } } }
+  r = await send(updated)
+  check('charge.updated : frais réels lus après coup, 1,15 $ rendu à l\'organisme', r.status === 200 && feeRefunds.length === 1 && feeRefunds[0].amount === 115 && dc().contribution_surplus_cents === 1313 && dc().stripe_fee_actual_cents === 562)
+  await send(updated)
+  check('charge.updated rejoué : rien de plus', feeRefunds.length === 1)
+  r = await send({ type: 'charge.updated', account: 'acct_A', data: { object: { id: 'ch_x', paid: true, payment_intent: 'pi_contrib', balance_transaction: null } } })
+  check('charge.updated sans balance transaction : ignoré', r.status === 200 && feeRefunds.length === 1)
+
+  seed()
+  realFee(447)
+  rpcs.settle_platform_fee = () => { throw { code: '40P01', message: 'interblocage' } }
+  r = await send(contribSession())
+  check('règlement en échec : 500 (Stripe rejoue), le don est déjà enregistré', r.status === 500 && tables.donations.length === 1)
+
+  console.log('Remboursement après un excédent rendu')
+  seed()
+  realFee(560)
+  await send(contribSession())
+  sessionsByIntent['pi_contrib'] = { id: 'cs_contrib', metadata: { orgId: 'orgA' } }
+  feeRefunds.length = 0
+  await send({ type: 'charge.refunded', account: 'acct_A', data: { object: { id: 'ch_contrib', amount: 14375, amount_refunded: 14375, payment_intent: 'pi_contrib', application_fee: 'fee_contrib' } } })
+  check('remboursement total : le reste est rendu, l\'excédent n\'est pas rendu deux fois', feeRefunds.length === 1 && feeRefunds[0].amount === 1315 && fees['fee_contrib'].amount_refunded === 1428)
+  check('base à jour : part rendue au titre du remboursement, don à zéro', dc().platform_fee_refunded_cents === 1315 && dc().refunded_cents === 12500)
 
   console.log('Remboursement et commission')
   const refundEvent = (amount_refunded: number, extra: object = {}) => ({
@@ -218,7 +316,7 @@ async function main() {
   rr = await refundDonationFromConsole(fakeStripe as never, 'orgA', 'acct_A', donId, 2600)
   const made = refundsMade[0]
   check('remboursement partiel fait sur le compte de l\'organisme', rr.ok && made.opts.stripeAccount === 'acct_A' && made.params.amount === 2600 && made.params.payment_intent === 'pi_ch_c')
-  check('commission rendue par Stripe dans le même appel', made.params.refund_application_fee === true && fees['fee_c'].amount_refunded === 70)
+  check('commission rendue juste après par notre calcul, pas par refund_application_fee', made.params.refund_application_fee === undefined && fees['fee_c'].amount_refunded === 70)
   check('base à jour tout de suite : moitié du don', tables.donations[0].refunded_cents === 2500 && tables.donations[0].platform_fee_refunded_cents === 70)
   feeRefunds.length = 0
   await send({ type: 'charge.refunded', account: 'acct_A', data: { object: { ...charges['cs_live_000001'].charge, payment_intent: 'pi_ch_c' } } })
@@ -300,19 +398,36 @@ async function main() {
   console.log('Paiement direct')
   const { startCheckout } = await import('../lib/payments')
   const base = { email: 'ana@x.ca', amountCents: 10000, feeCents: 0, returnTo: 'vitrail' as const, profile: { showName: true, name: 'Ana', message: null, photoUrl: null, quoteConsent: false }, color: '#fff', channel: null, locale: 'fr' as const, baseUrl: 'https://ecoleartsutton.donivers.test' }
-  const orgRow = { id: 'orgA', slug: 'ecoleartsutton', status: 'live' as const, practiceOf: null, showcase: false, name: 'École A', nameEn: null, photoModeration: 'live' as const, senderName: null, replyTo: null, stripeAccountId: 'acct_A', stripeReady: true, feeSchedule: S }
+  const orgRow = { id: 'orgA', slug: 'ecoleartsutton', status: 'live' as const, practiceOf: null, showcase: false, name: 'École A', nameEn: null, photoModeration: 'live' as const, senderName: null, replyTo: null, stripeAccountId: 'acct_A', stripeReady: true, feeSchedule: S, taxProvince: 'QC' }
   const vit = { id: 'permA', organizationId: 'orgA', kind: 'permanent' as const, slug: null, name: 'A', state: 'active' as const, inMain: true, goalCents: 0 }
   seed()
-  tables.organization_fee_totals = [{ organization_id: 'orgA', fees_cents: 0 }]
+  tables.organization_billing = [{ organization_id: 'orgA', donors_counted: 150, cumul_cents: 0, fee_threshold_reached_at: '2026-11-20', fee_settled_at: null }]
   await startCheckout({ ...base, tenant: { org: orgRow, vitrail: vit } })
   const c0 = created.at(-1)!
   check('la session est créée sur le compte de l\'organisme', c0.opts.stripeAccount === 'acct_A')
-  check('commission de 2,8 % prélevée par Stripe', c0.params.payment_intent_data.application_fee_amount === 280 && c0.params.metadata.platformFee === '280')
+  check('après le 100e donateur, sans contribution : 2,8 % prélevés par Stripe', c0.params.payment_intent_data.application_fee_amount === 280 && c0.params.metadata.platformFee === '280')
+  const expires = Number(c0.params.expires_at) - Math.floor(Date.now() / 1000)
+  check('session de 30 minutes', expires > 29 * 60 && expires <= 30 * 60)
+  check('sans contribution : une seule ligne, aucune suggestion gardée', c0.params.line_items.length === 1 && c0.params.metadata.contribution === '0' && !('contributionSuggested' in c0.params.metadata))
   check('organisme et vitrail dans les métadonnées', c0.params.metadata.orgId === 'orgA' && c0.params.metadata.vitrailId === 'permA')
   check('retour sur l\'adresse de l\'organisme', String(c0.params.success_url).startsWith('https://ecoleartsutton.donivers.test/vitrail?merci='))
-  tables.organization_fee_totals = [{ organization_id: 'orgA', fees_cents: 500_000 }]
+  await startCheckout({ ...base, contributionCents: 1500, contributionShown: true, tenant: { org: orgRow, vitrail: vit } })
+  const c1 = created.at(-1)!
+  // F = 2,9 % de 115 $ + 0,30 $ = 3,64 $ ; S = 11,36 $ ≥ N = 2,80 $ → l'organisme ne paie rien
+  check('contribution de 15 $ : deuxième ligne, Donivers garde le surplus, l\'organisme ne paie rien', c1.params.line_items.length === 2 && c1.params.line_items[1].price_data.unit_amount === 1500 && c1.params.payment_intent_data.application_fee_amount === 1136)
+  check('libellé de la ligne (piste A)', c1.params.line_items[1].price_data.product_data.name === 'Frais de transaction et contribution à Donivers')
+  check('détail du calcul dans les métadonnées', c1.params.metadata.contribution === '1500' && c1.params.metadata.contributionSurplus === '1136' && c1.params.metadata.stripeFeeEstimate === '364' && c1.params.metadata.contributionSuggested === '1500' && c1.params.metadata.contributionVersion === '2026-11-16')
+  tables.organization_billing = [{ organization_id: 'orgA', donors_counted: 40, cumul_cents: 0, fee_threshold_reached_at: null, fee_settled_at: null }]
   await startCheckout({ ...base, tenant: { org: orgRow, vitrail: vit } })
-  check('après 5 000 $ de commissions : 0,5 %', created.at(-1)!.params.payment_intent_data.application_fee_amount === 50)
+  check('avant le 100e donateur : rien prélevé', !('application_fee_amount' in created.at(-1)!.params.payment_intent_data))
+  tables.organization_billing = [{ organization_id: 'orgA', donors_counted: 400, cumul_cents: 49500, fee_threshold_reached_at: '2026-11-20', fee_settled_at: '2026-11-25' }]
+  await startCheckout({ ...base, tenant: { org: orgRow, vitrail: vit } })
+  check('acquitté : 0 % pour toujours', !('application_fee_amount' in created.at(-1)!.params.payment_intent_data))
+  tables.organization_billing = [{ organization_id: 'orgA', donors_counted: 400, cumul_cents: 0, fee_threshold_reached_at: '2026-11-20', fee_settled_at: null }]
+  await startCheckout({ ...base, tenant: { org: { ...orgRow, feeSchedule: parseBillingSchedule({ model: 'exempt', scope: 'principal' }) }, vitrail: vit } })
+  check('École exemptée : aucune commission', !('application_fee_amount' in created.at(-1)!.params.payment_intent_data))
+  await startCheckout({ ...base, tenant: { org: orgRow, vitrail: { ...vit, id: 'campA', kind: 'campaign' as const, slug: 'c1' } } })
+  check('campagne : pas encore de commission (étape L2)', !('application_fee_amount' in created.at(-1)!.params.payment_intent_data))
   let threw = false
   try { await startCheckout({ ...base, tenant: { org: { ...orgRow, stripeAccountId: null }, vitrail: vit } }) } catch { threw = true }
   check('sans compte connecté : aucun paiement ne démarre', threw)

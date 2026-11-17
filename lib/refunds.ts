@@ -6,16 +6,16 @@ import { getDb } from './db'
  * Idempotent : on pose la valeur totale reprise selon Stripe, on ne l'additionne pas, donc rejouer l'événement ne change rien.
  *
  * Repris = ce que Stripe a remboursé + la part perdue dans un litige (`dispute_lost_cents`, déjà en base). Les deux sont des
- * montants du PAIEMENT, qui comprend les frais couverts par le donateur (fee_cents) ; le don non. Tout repris = tout le don ;
+ * montants du PAIEMENT, qui comprend la contribution et les frais couverts par le donateur ; le don non. Tout repris = tout le don ;
  * en partie = la même proportion du don. Un morceau dont le don net tombe à zéro disparaît du vitrail (vues vitrail_*).
  */
 export async function applyRefund(orgId: string, providerRef: string, chargeAmount: number, amountRefunded: number): Promise<{ outcome: 'updated' | 'unchanged' | 'unknown'; donationId?: string; reversedCents?: number }> {
   const db = getDb()
-  const { data: donation, error } = await db.from('donations').select('id,amount_cents,fee_cents,refunded_cents,dispute_lost_cents').eq('organization_id', orgId).eq('provider_ref', providerRef).maybeSingle()
+  const { data: donation, error } = await db.from('donations').select('id,amount_cents,fee_cents,donor_contribution_cents,refunded_cents,dispute_lost_cents').eq('organization_id', orgId).eq('provider_ref', providerRef).maybeSingle()
   if (error) throw error
   if (!donation) return { outcome: 'unknown' }
   const amount = Number(donation.amount_cents)
-  const paid = chargeAmount > 0 ? chargeAmount : amount + Number(donation.fee_cents ?? 0)
+  const paid = chargeAmount > 0 ? chargeAmount : amount + Number(donation.fee_cents ?? 0) + Number(donation.donor_contribution_cents ?? 0)
   const reversed = Math.min(paid, amountRefunded + Number(donation.dispute_lost_cents ?? 0))
   const refunded = reversed >= paid ? amount : Math.min(amount, Math.round((reversed * amount) / paid))
   if (refunded === Number(donation.refunded_cents)) return { outcome: 'unchanged', donationId: donation.id, reversedCents: reversed }
@@ -27,12 +27,14 @@ export async function applyRefund(orgId: string, providerRef: string, chargeAmou
 type FeeApi = Pick<Stripe, 'applicationFees'>
 
 /**
- * Rend à l'organisme la part de notre commission correspondant au remboursement. Un remboursement fait par
- * l'organisme depuis son tableau de bord ne rembourse PAS notre commission : c'est à nous de le faire.
+ * Rend à l'organisme la part de ce que garde Donivers (surplus de la contribution et commission) correspondant au
+ * remboursement. Un remboursement fait par l'organisme depuis son tableau de bord ne rend PAS cette part : c'est à nous de
+ * le faire. Après l'acquittement aussi (D4 : l'organisme reste acquitté, la part est quand même rendue).
  *
- * Idempotent, sans dépendre de la base : la vérité est ce que Stripe a déjà remboursé sur cette commission. On vise
- * la part due (proportionnelle à la part remboursée du paiement) et on ne rembourse que l'écart. Si l'organisme a déjà
- * fait rembourser la commission lui-même, l'écart est nul. Renvoie le total rendu après l'opération, ou null (pas de commission).
+ * Calcul (corrige le point 0.7 du plan K) : l'excédent déjà rendu au règlement (platform_fee_waived_cents) n'est jamais
+ * compté deux fois. Base = prélevé − excédent ; part due = base × part remboursée du paiement ; Stripe doit avoir rendu
+ * au total excédent + part due. Idempotent sans dépendre de la base pour l'argent : la vérité est ce que Stripe a déjà
+ * rendu sur cette commission ; on ne rend que l'écart. Renvoie la part rendue au titre du remboursement, ou null.
  */
 export async function refundPlatformFee(
   stripe: FeeApi,
@@ -42,15 +44,24 @@ export async function refundPlatformFee(
   const feeId = typeof charge.application_fee === 'string' ? charge.application_fee : charge.application_fee?.id
   if (!feeId) return null
   const fee = await stripe.applicationFees.retrieve(feeId)
-  const ratio = charge.amount > 0 ? Math.min(1, charge.amount_refunded / charge.amount) : 1
-  const due = ratio >= 1 ? fee.amount : Math.round(fee.amount * ratio)
-  const delta = due - fee.amount_refunded
-  if (delta > 0) {
-    await stripe.applicationFees.createRefund(feeId, { amount: delta }, { idempotencyKey: `fee-refund-${charge.id}-${due}` })
-  }
-  const returned = Math.max(due, fee.amount_refunded)
+  let waived = 0
   if (donationId) {
-    const { error } = await getDb().from('donations').update({ platform_fee_refunded_cents: Math.min(returned, fee.amount) }).eq('id', donationId)
+    const { data, error } = await getDb().from('donations').select('platform_fee_waived_cents').eq('id', donationId).maybeSingle()
+    if (error) throw error
+    waived = Math.min(fee.amount, Math.max(0, Number(data?.platform_fee_waived_cents ?? 0)))
+  }
+  const base = fee.amount - waived
+  const ratio = charge.amount > 0 ? Math.min(1, charge.amount_refunded / charge.amount) : 1
+  const due = ratio >= 1 ? base : Math.round(base * ratio)
+  const target = waived + due
+  const delta = target - fee.amount_refunded
+  if (delta > 0) {
+    await stripe.applicationFees.createRefund(feeId, { amount: delta }, { idempotencyKey: `fee-refund-${charge.id}-${target}` })
+  }
+  // Part rendue au titre du remboursement (l'organisme a pu en faire rendre plus lui-même : on ne dépasse pas la base)
+  const returned = Math.min(base, Math.max(due, fee.amount_refunded - waived))
+  if (donationId) {
+    const { error } = await getDb().from('donations').update({ platform_fee_refunded_cents: returned }).eq('id', donationId)
     if (error) throw error
   }
   return returned
@@ -66,8 +77,9 @@ export type ConsoleRefundResult =
  * Remboursement lancé depuis notre console (pas depuis le tableau de bord Stripe).
  *
  * - Le don doit appartenir à l'organisme et être un paiement Stripe sur SON compte connecté (jamais celui d'un autre).
- * - `amountCents` est un montant du PAIEMENT (don + frais couverts par le donateur) ; null = tout ce qui reste.
- * - `refund_application_fee` : Stripe rend en même temps la part proportionnelle de notre commission.
+ * - `amountCents` est un montant du PAIEMENT (don + contribution + frais couverts) ; null = tout ce qui reste.
+ * - Pas de `refund_application_fee` : Stripe rendrait sa propre proportion, sans tenir compte de l'excédent déjà rendu au
+ *   règlement. La part de Donivers est rendue juste après par refundPlatformFee, avec le bon calcul.
  * - Ensuite, la base est mise à jour tout de suite (même calcul que le webhook, donc le webhook qui suivra ne changera rien) ;
  *   si cette mise à jour échoue, le webhook charge.refunded la refera.
  * - Clé d'idempotence liée à l'état du paiement : un double clic ne rembourse pas deux fois.
@@ -99,7 +111,7 @@ export async function refundDonationFromConsole(
   if (!Number.isInteger(amount) || amount <= 0 || amount > remaining) return { ok: false, reason: 'bad_amount', remainingCents: remaining }
 
   const refund = await stripe.refunds.create(
-    { payment_intent: intent.id, amount, refund_application_fee: true, reason: 'requested_by_customer', metadata: { donationId, source: 'console' } },
+    { payment_intent: intent.id, amount, reason: 'requested_by_customer', metadata: { donationId, source: 'console' } },
     { stripeAccount: accountId, idempotencyKey: `console-refund-${donationId}-${charge.amount_refunded}-${amount}` },
   )
   if (refund.status === 'failed' || refund.status === 'canceled') return { ok: false, reason: 'failed' }

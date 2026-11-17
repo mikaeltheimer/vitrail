@@ -80,6 +80,7 @@ const UNIQUE: Record<string, string[]> = {
   sessions: ['token_hash'],
   invitations: ['token_hash'],
   organization_slugs: ['slug'],
+  terms_acceptances: ['organization_id+version'],
 }
 /** Fonctions SQL simulées (db.rpc) : le test en installe une ; la vraie est éprouvée en SQL. */
 export const rpcs: Record<string, (args: Record<string, unknown>) => unknown> = {}

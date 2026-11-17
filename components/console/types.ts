@@ -1,5 +1,7 @@
 // Données renvoyées par GET /api/admin (console v2)
 
+import type { BillingSummary } from '@/lib/platform-fee'
+
 export type Role = 'owner' | 'volunteer'
 
 export interface DonorRow {
@@ -34,6 +36,7 @@ export interface DonationRow {
   donor_id: string
   amount_cents: number
   fee_cents: number | null
+  donor_contribution_cents?: number | null
   refunded_cents: number
   dispute_status: 'open' | 'won' | 'lost' | null
   dispute_due_by: string | null
@@ -57,6 +60,10 @@ export interface ConsoleData {
   atelierUrl: string | null
   /** Une version personnalisée a déjà été publiée depuis l'atelier. */
   published: boolean
+  /** Carte « Votre forfait » (C) : propriétaire de l'organisme réel seulement, sinon null. */
+  billing: BillingSummary | null
+  /** Conditions de la plateforme (D8) : version en vigueur acceptée ? null pour l'atelier et la démo. */
+  terms: { version: string; effectiveDate: string; accepted: boolean; acceptedAt: string | null; acceptedBy: string | null; exempt: boolean } | null
   summary: { totalCents: number; donations: number; donors: number; goalCents: number | null }
   me: { name: string; email: string; role: Role; accountId: string }
   orgs: { id: string; name: string; url: string }[]
@@ -68,7 +75,7 @@ export interface ConsoleData {
   stripe: { accountId: string | null; ready: boolean }
   photoModeration: 'live' | 'moderation'
   reports: { id: number; donor_id: string; reason: string | null; created_at: string }[]
-  disputes: { id: string; amount_cents: number; fee_cents: number | null; dispute_due_by: string | null; created_at: string }[]
+  disputes: { id: string; amount_cents: number; fee_cents: number | null; donor_contribution_cents?: number | null; dispute_due_by: string | null; created_at: string }[]
   bounces: { donorId: string; email: string; status: string; at: string }[]
   /** Dons de démonstration encore présents. */
   demoDonations?: number

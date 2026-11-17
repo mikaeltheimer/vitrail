@@ -8,7 +8,7 @@ import { startCheckout } from '@/lib/payments'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { cleanChannel, defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
-import { feeFor } from '@/lib/fees'
+import { validateContributionCents } from '@/lib/contribution'
 import { questionsOf } from '@/lib/identity'
 
 export const runtime = 'nodejs'
@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
 
   const amount = validateAmountCents(body.amountCents)
   if (!amount.ok) return errorResponse(request, amount.error)
+  // Contribution facultative à Donivers : un entier de cents, jamais plus que le don (le reste se recalcule au paiement)
+  const contribution = validateContributionCents(body.contributionCents, amount.value)
+  if (!contribution.ok) return errorResponse(request, err(contribution.reason === 'too_high' ? 'contributionTropHaute' : 'requeteInvalide'))
 
   let email: string | null
   let profile
@@ -67,9 +70,12 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await startCheckout({
       email,
-      // Le don seul fait la taille du morceau ; les frais couverts sont recalculés ici, jamais repris du navigateur
+      // Le don seul fait la taille du fragment ; la contribution remplace l'ancienne case « couvrir les frais »
+      // (un ancien onglet qui envoie encore coverFees est simplement ignoré)
       amountCents: amount.value,
-      feeCents: body.coverFees === true ? feeFor(amount.value) : 0,
+      feeCents: 0,
+      contributionCents: contribution.value,
+      contributionShown: body.contributionShown === true,
       returnTo: body.returnTo === 'vitrail' ? 'vitrail' : 'don',
       profile: { ...profile, name: profile.showName ? profile.name : ANON_LABEL },
       color,

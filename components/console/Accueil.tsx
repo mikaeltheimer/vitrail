@@ -5,31 +5,36 @@ import MiniGlass from '@/components/MiniGlass'
 import type { Piece } from '@/lib/types'
 import { useTranslations } from 'next-intl'
 import { useMoney } from '@/lib/useI18n'
-import type { ConsoleData } from './types'
+import type { Act, ConsoleData } from './types'
 import { one } from './types'
 import type { Tab } from './Console'
 import type { Screen } from './Plus'
-import { Icon, RED, GREEN, Section, useAgo, useDay } from './ui'
+import { Icon, RED, GREEN, Section, Sheet, useAgo, useDay } from './ui'
+import { TermsSummary } from './Conditions'
+import { ForfaitCard } from './Forfait'
 
 interface Todo {
   key: string
-  icon: 'alerte' | 'image' | 'drapeau' | 'courriel' | 'carte'
+  icon: 'alerte' | 'image' | 'drapeau' | 'courriel' | 'carte' | 'document'
   title: string
-  detail: string
-  action: string
+  detail?: string
+  /** Sans action : une ligne d'information (bénévole), pas un bouton. */
+  action?: string
   urgent?: boolean
-  onClick: () => void
+  onClick?: () => void
 }
 
 // Accueil : où en est la collecte, ce qui demande l'attention de l'équipe (« À faire »), les gestes du soir, les derniers dons.
 export default function Accueil({
   data,
+  act,
   setTab,
   openDonor,
   openCash,
   open,
 }: {
   data: ConsoleData
+  act: Act
   setTab: (t: Tab, screen?: Screen | null) => void
   openDonor: (id: string) => void
   openCash: () => void
@@ -42,19 +47,28 @@ export default function Accueil({
   const day = useDay()
   const owner = data.me.role === 'owner'
   const s = data.summary
+  const tt = useTranslations('console.conditions')
+  const [termsOpen, setTermsOpen] = useState(false)
 
   const photos = data.donors.filter(d => d.photo_url && d.photo_status === 'pending').length
   const messages = data.donors.filter(d => d.message && d.message_status === 'pending').length
   const reported = new Set(data.reports.map(r => r.donor_id)).size
 
   const todos: Todo[] = []
+  // Nouvelles conditions à accepter (D8) : en tête ; le propriétaire les lit et les accepte, le bénévole est seulement prévenu
+  if (data.terms && !data.terms.accepted)
+    todos.push(
+      owner
+        ? { key: 'conditions', icon: 'document', title: tt('aFaireTitre'), detail: data.org.status === 'draft' ? tt('aFaireBrouillon') : tt('aFaireEnLigne'), action: tt('lireCourt'), onClick: () => setTermsOpen(true) }
+        : { key: 'conditions', icon: 'document', title: tt('benevole') },
+    )
   if (owner)
     for (const x of data.disputes)
       todos.push({
         key: `litige-${x.id}`,
         icon: 'alerte',
         urgent: true,
-        title: t('litigeTitre', { montant: money(x.amount_cents + (x.fee_cents ?? 0)) }),
+        title: t('litigeTitre', { montant: money(x.amount_cents + (x.fee_cents ?? 0) + (x.donor_contribution_cents ?? 0)) }),
         detail: x.dispute_due_by ? t('litigeDetail', { date: day(x.dispute_due_by) }) : t('litigeDetailSansDate'),
         action: t('repondre'),
         onClick: () => void open('stripeDashboard'),
@@ -105,7 +119,7 @@ export default function Accueil({
 
   return (
     <div className="space-y-6">
-      {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} setTab={setTab} />}
+      {data.org.status === 'draft' && !data.org.practice && <Demarrage data={data} open={open} setTab={setTab} openTerms={() => setTermsOpen(true)} />}
       <section aria-label={t('collecte')} className="card space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="muted">{t('vitrailPrincipal')}</span>
@@ -153,23 +167,35 @@ export default function Accueil({
         aside={todos.length > 0 ? <span className="rounded-full px-2 text-xs font-bold" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>{todos.length}</span> : undefined}
       >
         {todos.length === 0 && <p className="card muted text-sm">{t('rienAFaire')}</p>}
-        {todos.map(x => (
-          <button
-            key={x.key}
-            onClick={x.onClick}
-            className="card flex w-full items-start gap-3 !p-3.5 text-left"
-            style={x.urgent ? { borderColor: 'rgba(240,120,140,0.55)' } : undefined}
-          >
-            <Icon name={x.icon} color={x.urgent ? RED : 'var(--accent)'} />
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-bold">{x.title}</span>
-              <span className="muted text-[13px]">{x.detail}</span>
-            </span>
-            <span className="self-center whitespace-nowrap text-[13px]" style={{ color: 'var(--accent)' }}>
-              {x.action}
-            </span>
-          </button>
-        ))}
+        {todos.map(x =>
+          x.onClick ? (
+            <button
+              key={x.key}
+              onClick={x.onClick}
+              className="card flex w-full items-start gap-3 !p-3.5 text-left"
+              style={x.urgent ? { borderColor: 'rgba(240,120,140,0.55)' } : undefined}
+            >
+              <Icon name={x.icon} color={x.urgent ? RED : 'var(--accent)'} />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-[15px] font-bold">{x.title}</span>
+                {x.detail && <span className="muted text-[13px]">{x.detail}</span>}
+              </span>
+              <span className="self-center whitespace-nowrap text-[13px]" style={{ color: 'var(--accent)' }}>
+                {x.action}
+              </span>
+            </button>
+          ) : (
+            <p key={x.key} className="card m-0 flex w-full items-start gap-3 !p-3.5 text-sm">
+              <Icon name={x.icon} color="var(--muted)" />
+              <span className="flex-1">{x.title}</span>
+            </p>
+          ),
+        )}
+        {termsOpen && data.terms && !data.terms.accepted && (
+          <Sheet title={tt('titre')} onClose={() => setTermsOpen(false)} closeLabel={tc('fermer')}>
+            <TermsSummary data={data} act={act} />
+          </Sheet>
+        )}
       </Section>
 
       <section aria-label={t('raccourcis')} className="grid grid-cols-3 gap-2">
@@ -219,16 +245,21 @@ export default function Accueil({
           </ul>
         )}
       </Section>
+
+      {/* Le forfait, tout en bas (Mika, 16 nov.) : utile à consulter, jamais urgent */}
+      {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
     </div>
   )
 }
 
 /** Organisme en brouillon : les étapes avant la mise en ligne (le propriétaire seul peut connecter Stripe et mettre en ligne). */
-function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void>; setTab: (t: Tab, screen?: Screen | null) => void }) {
+function Demarrage({ data, open, setTab, openTerms }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void>; setTab: (t: Tab, screen?: Screen | null) => void; openTerms: () => void }) {
   const t = useTranslations('console.demarrage')
+  const tt = useTranslations('console.conditions')
   const owner = data.me.role === 'owner'
   const ready = data.stripe.ready
   const missing = data.identityMissing.length
+  const termsOk = !data.terms || data.terms.accepted
   const [busy, setBusy] = useState(false)
   const step = (done: boolean, n: number) => (
     <span
@@ -297,12 +328,17 @@ function Demarrage({ data, open, setTab }: { data: ConsoleData; open: (action: s
           <span className="flex-1 space-y-2">
             <span className="block">
               <b>{t('enLigne')}</b>
-              <span className="muted block text-[13px]">{ready && missing === 0 ? t('enLigneAide') : t('enLigneAttente')}</span>
+              <span className="muted block text-[13px]">{ready && missing === 0 && termsOk ? t('enLigneAide') : termsOk ? t('enLigneAttente') : t('enLigneAttenteConditions')}</span>
             </span>
+            {owner && !termsOk && (
+              <button className="btn btn-ghost" onClick={openTerms}>
+                {tt('aFaireTitre')}
+              </button>
+            )}
             {owner && (
               <button
                 className="btn"
-                disabled={!ready || missing > 0 || busy}
+                disabled={!ready || missing > 0 || !termsOk || busy}
                 onClick={async () => {
                   if (!confirm(t('enLigneConfirmer'))) return
                   setBusy(true)

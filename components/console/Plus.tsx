@@ -6,6 +6,8 @@ import type { Act, ConsoleData, Role } from './types'
 import { GREEN, Icon, RED, Section, useDay, useTime } from './ui'
 import { CourrielsForm, JuridiqueForm, SiteWebForm, useIdentity, type Identity } from './MonVitrail'
 import Adresse from './Adresse'
+import { ForfaitInfo } from './Forfait'
+import { INTL_TAG, type Locale } from '@/i18n/config'
 
 // Réglages (propriétaire seulement) : un menu groupé, chaque ligne affiche son état et ouvre son propre écran
 // (#plus/juridique…), avec un retour au menu. Décision du 12 novembre 2026 : cinq onglets, pas un sixième ; le menu
@@ -59,6 +61,7 @@ function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Pl
         </div>
       )}
       {screen === 'juridique' && identity && <JuridiqueForm identity={identity} reload={reload} />}
+      {screen === 'juridique' && <TermsHistory data={data} />}
       {screen === 'courriels' && (
         <div className="space-y-6">
           {identity && <CourrielsForm identity={identity} reload={reload} />}
@@ -67,6 +70,7 @@ function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Pl
       )}
       {screen === 'equipe' && data.team && <Team team={data.team} meId={data.me.accountId} act={act} />}
       {screen === 'paiements' && <Paiements data={data} act={act} open={open} />}
+      {screen === 'paiements' && data.billing && <ForfaitInfo billing={data.billing} />}
       {screen === 'demo' && <DemoData data={data} act={act} />}
       {!identity && (screen === 'adresse' || screen === 'juridique' || screen === 'courriels') && <p className="card muted text-sm">{t('chargement')}</p>}
     </div>
@@ -384,5 +388,25 @@ function Journal() {
         )}
       </div>
     </Section>
+  )
+}
+
+/** Dernière acceptation des conditions de la plateforme (D8) : la preuve, lisible par le propriétaire. */
+function TermsHistory({ data }: { data: ConsoleData }) {
+  const t = useTranslations('console.conditions')
+  const locale = useLocale() as Locale
+  const terms = data.terms
+  if (!terms?.accepted || !terms.acceptedAt) return null
+  const date = new Date(terms.acceptedAt).toLocaleDateString(INTL_TAG[locale], { day: 'numeric', month: 'long', year: 'numeric' })
+  return (
+    <section className="card space-y-1 text-sm" aria-labelledby="conditions-historique">
+      <h3 id="conditions-historique" className="font-bold">
+        {t('historiqueTitre')}
+      </h3>
+      <p className="muted m-0">{terms.acceptedBy ? t('historique', { date, nom: terms.acceptedBy, version: terms.version }) : t('historiqueSansNom', { date, version: terms.version })}</p>
+      <a href="/plateforme/conditions" target="_blank" rel="noopener" className="inline-block">
+        {t('lire')} ↗
+      </a>
+    </section>
   )
 }

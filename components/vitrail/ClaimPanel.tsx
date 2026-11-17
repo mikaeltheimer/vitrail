@@ -14,11 +14,11 @@ import {
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { INTL_TAG, type Locale } from "@/i18n/config";
-import { useOrg } from "@/lib/useOrg";
+import { useCharityNumber, useOrg } from "@/lib/useOrg";
 import { useCount, useGlassName, useMoney, useOrdinal } from "@/lib/useI18n";
 import { CONFIG, GLASS_COLORS } from "@/lib/config";
 import { currentGlass } from "@/lib/theme";
-import { feeFor } from "@/lib/fees";
+import ContributionBlock, { contributionFor, useContributionConfig, type ContributionChoice } from "./ContributionBlock";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
 import TestimonialField from "./TestimonialField";
 import { AnotherQuestion, useQuestionPicker } from "./QuestionPicker";
@@ -70,7 +70,7 @@ interface Props {
 /** Don fictif du vitrail de démonstration : la photo est une data URL (elle doit survivre à un rechargement de l'onglet). */
 export interface DemoDonation {
   amountCents: number;
-  /** Ce que le donateur aurait payé (frais couverts compris) : c'est le montant du courriel de remerciement. */
+  /** Ce que le donateur aurait payé (contribution à Donivers comprise). */
   paidCents: number;
   name: string | null;
   message: string | null;
@@ -92,7 +92,7 @@ export interface KnownDonor {
 const DRAFT_KEY = "vitrail:claim";
 interface SavedDraft {
   amount: number;
-  coverFees: boolean;
+  contribution?: { choice: ContributionChoice; other: string };
   name: string;
   color: string;
   message: string;
@@ -163,6 +163,7 @@ export default function ClaimPanel({
   const te = useTranslations("erreurs");
   const tc = useTranslations("commun");
   const org = useOrg();
+  const charity = useCharityNumber();
   const money = useMoney();
   const count = useCount();
   const ordinal = useOrdinal();
@@ -240,7 +241,10 @@ export default function ClaimPanel({
   const start = saved?.amount ?? (typicalCents ? typicalCents / 100 : 25);
   const [amount, setAmountState] = useState(start);
   const [amountText, setAmountText] = useState(String(start));
-  const [coverFees, setCoverFees] = useState(saved?.coverFees ?? false);
+  // Contribution à Donivers : la suggestion est présélectionnée (décision 1 de Mika, 16 nov.)
+  const contributionConfig = useContributionConfig();
+  const [contributionChoice, setContributionChoice] = useState<ContributionChoice>(saved?.contribution?.choice ?? "suggested");
+  const [contributionOther, setContributionOther] = useState(saved?.contribution?.other ?? "");
   const [name, setName] = useState(saved?.name ?? "");
   const [color, setColor] = useState<string>(
     currentGlass(saved?.color) ?? GLASS_COLORS[0].value,
@@ -281,8 +285,8 @@ export default function ClaimPanel({
   }, [saved]);
 
   const baseCents = Math.round(amount * 100);
-  const feeCents = feeFor(baseCents);
-  const payCents = coverFees ? baseCents + feeCents : baseCents;
+  const contribution = contributionFor(contributionChoice, contributionOther, baseCents, contributionConfig);
+  const payCents = baseCents + contribution.cents;
   const showName = name.trim().length >= 2;
 
   // ---------- Aperçu en direct dans le vitrail ----------
@@ -373,6 +377,7 @@ export default function ClaimPanel({
     amount >= MIN &&
     amount <= MAX &&
     (!name.trim() || showName) &&
+    !contribution.error &&
     !busy &&
     !photoBusy;
   const submit = async () => {
@@ -394,7 +399,8 @@ export default function ClaimPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amountCents: baseCents,
-          coverFees,
+          contributionCents: contribution.cents,
+          contributionShown: true,
           mailingConsent: mailing,
           returnTo,
           channel,
@@ -426,7 +432,7 @@ export default function ClaimPanel({
             : photo.src;
         const draft: SavedDraft = {
           amount,
-          coverFees,
+          contribution: { choice: contributionChoice, other: contributionOther },
           name,
           color,
           message,
@@ -660,26 +666,19 @@ export default function ClaimPanel({
             {t("voirMorceau")}
           </button>
         )}
-        <label
-          style={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "flex-start",
-            fontSize: "16px",
-            color: "rgba(255,255,255,0.75)",
-            cursor: "pointer",
+        <ContributionBlock
+          donCents={baseCents}
+          orgName={org.name}
+          config={contributionConfig}
+          choice={contributionChoice}
+          otherText={contributionOther}
+          onChoice={(c) => {
+            // « Autre montant » part de la suggestion, que le donateur ajuste
+            if (c === "other" && !contributionOther && contribution.cents > 0) setContributionOther((contribution.cents / 100).toFixed(2));
+            setContributionChoice(c);
           }}
-        >
-          <input
-            type="checkbox"
-            checked={coverFees}
-            onChange={(e) => setCoverFees(e.target.checked)}
-            style={{ accentColor: GOLD, marginTop: "2px" }}
-          />
-          <span>
-            {t("frais", { frais: money(feeCents), montant: money(baseCents) })}
-          </span>
-        </label>
+          onOtherText={setContributionOther}
+        />
         <label
           style={{
             display: "flex",
@@ -890,7 +889,7 @@ export default function ClaimPanel({
         </button>
       </div>
       <p style={{ ...hintStyle, textAlign: "center" }}>
-        {showcase ? t("piedDemo") : t("pied")}{" "}
+        {showcase ? t("piedDemo") : charity ? t("piedAvecNumero", { org: org.name }) : t("pied")}{" "}
         <Link
           href="/confidentialite"
           target="_blank"

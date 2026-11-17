@@ -1,4 +1,5 @@
-import { launchBlockers } from './launch'
+import { launchBlockers, type LaunchBlocker } from './launch'
+import { TERMS_VERSION, recordAcceptance } from './terms'
 import { createHash, randomInt } from 'node:crypto'
 import { getDb } from './db'
 import {
@@ -22,7 +23,8 @@ import type { AppError } from './errors'
 // chacun avec son vitrail permanent ; la personne en est propriétaire et sa session s'ouvre.
 
 /** À changer à CHAQUE modification du texte des conditions (preuve de ce qui a été accepté). Provisoire : avocat. */
-export const TERMS_VERSION = '2026-11-10-provisoire'
+export { TERMS_VERSION } from './terms'
+
 const CODE_MINUTES = 15
 const CODE_ATTEMPTS = 5
 const CODES_PER_HOUR = 5
@@ -215,6 +217,7 @@ export async function signup(i: SignupInput): Promise<SignupResult> {
     if (vErr) throw vErr
     const { error: mErr } = await db.from('memberships').insert({ account_id: account.id, organization_id: org.id, role: 'owner', created_at: now })
     if (mErr) throw mErr
+    await recordAcceptance(org.id as string, account.id, now)
     await db.from('invitations').update({ accepted_at: now }).eq('id', inv.id)
   } catch (e) {
     await undo(created.orgs, createdAccountId)
@@ -245,9 +248,9 @@ async function undo(orgIds: string[], accountId: string | null): Promise<void> {
 }
 
 /** Mettre en ligne (propriétaire) : seulement un organisme réel en brouillon dont le compte Stripe est prêt. */
-export async function goLive(orgId: string): Promise<{ ok: true } | { ok: false; error: 'entrainement' | 'deja' | 'stripe' | 'juridique' }> {
+export async function goLive(orgId: string): Promise<{ ok: true } | { ok: false; error: 'entrainement' | 'deja' | LaunchBlocker }> {
   const db = getDb()
-  const { data: org, error } = await db.from('organizations').select('id,status,practice_of,stripe_ready,legal').eq('id', orgId).maybeSingle()
+  const { data: org, error } = await db.from('organizations').select('id,status,practice_of,stripe_ready,legal,terms_version').eq('id', orgId).maybeSingle()
   if (error) throw error
   if (!org || org.practice_of) return { ok: false, error: 'entrainement' }
   if (org.status !== 'draft') return { ok: false, error: 'deja' }

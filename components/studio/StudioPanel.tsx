@@ -3,14 +3,24 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Mark } from '@/components/plateforme/Brand'
 import { squareJpeg } from '@/lib/photoClient'
-import type { Funnel, PlatformTotals, Stage, StudioOrg, TodoItem } from '@/lib/studio-stats'
+import type { Funnel, PlatformTotals, Stage, StudioBilling, StudioOrg, SuggestionRow, TaxRow, TodoItem } from '@/lib/studio-stats'
 
 // Section Studio (en français : usage interne de Studio Existence). Voir app/api/studio/route.ts.
 // Piste C « Parcours » (validée par Mika le 12 nov. 2026) : « À traiter » d'abord, puis les organismes rangés par étape,
 // une fiche par organisme ; les chiffres de la plateforme dans leur onglet. Des TOTAUX, jamais des personnes.
 // Plus tard : passer à la piste A (tableau, une ligne par organisme) au-delà d'environ 8 organismes en ligne.
 
-type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string } | null }
+type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string } | null; billing: StudioBilling | null }
+
+/** « Partenaire fondateur », « Acquitté », « 312 $ / 495 $ » ou « Gratuit » (forfait du nouveau modèle). */
+function forfaitLabel(b: StudioBilling | null, money: (c: number) => string): string {
+  if (!b) return '—'
+  if (b.model === 'exempt') return 'Partenaire fondateur'
+  if (b.settledAt) return 'Acquitté'
+  if (b.thresholdAt) return `${money(Math.min(b.cumulCents, b.capCents))} / ${money(b.capCents)}`
+  return 'Gratuit'
+}
+const dateCourte = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
 interface Data {
   me: { email: string; name: string }
   requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; source: string | null; created_at: string }[]
@@ -18,6 +28,8 @@ interface Data {
   organizations: Org[]
   todo: TodoItem[]
   totals: PlatformTotals
+  taxes: TaxRow[] | null
+  suggestion: SuggestionRow[] | null
   funnel: Funnel
   accounts: { total: number; active: number }
   windowDays: number
@@ -34,11 +46,13 @@ const VIOLET = '#A56BD9'
 const day = (iso: string) => new Date(iso).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })
 const money = (c: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: c % 100 ? 2 : 0 }).format(c / 100)
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString('fr-CA')} ${n > 1 ? many : one}`
-const MISSING: Record<string, string> = { stripe: 'Stripe', juridique: 'les coordonnées juridiques' }
+const MISSING: Record<string, string> = { stripe: 'Stripe', juridique: 'les coordonnées juridiques', conditions: 'les nouvelles conditions' }
 /** « Stripe et les coordonnées juridiques » (phrase) ; « Stripe, coordonnées juridiques » (court, pour les cartes). */
 /** Lien « Écrire » vers un propriétaire, sujet prérempli : relation de service, jamais d'envoi groupé. */
 const mailto = (email: string, org: string) => `mailto:${email}?subject=${encodeURIComponent(`Donivers · ${org}`)}`
-const missing = (b: string[], short = false) => (short ? b.map(k => (k === 'stripe' ? 'Stripe' : 'coordonnées juridiques')).join(', ') : b.map(k => MISSING[k] ?? k).join(' et '))
+const missing = (b: string[], short = false) => (short ? b.map(k => (k === 'stripe' ? 'Stripe' : k === 'conditions' ? 'conditions' : 'coordonnées juridiques')).join(', ') : joinEt(b.map(k => MISSING[k] ?? k)))
+/** « a », « a et b », « a, b et c ». */
+const joinEt = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} et ${l[l.length - 1]}` : (l[0] ?? ''))
 
 /** « il y a 3 jours », « hier », « aujourd’hui », « dans 2 jours ». */
 function since(iso: string | null): string {
@@ -221,7 +235,7 @@ export default function StudioPanel() {
               <span className="font-semibold" style={{ color: 'var(--text)' }}>Plateforme</span>
               <span>{plural(data.totals.donors, 'donateur', 'donateurs')}</span>
               <span>{money(data.totals.netCents)} nets</span>
-              <span>{money(data.totals.feeCents)} de commission</span>
+              <span>{money(data.totals.feeCents)} reçus par Donivers</span>
               <span>{plural(data.totals.disputesOpen, 'litige ouvert', 'litiges ouverts')}</span>
               <button className="ml-auto underline" onClick={() => go('chiffres')}>Tous les chiffres</button>
             </div>
@@ -472,7 +486,10 @@ function OrgSheet({ o, windowDays, onClose }: { o: Org; windowDays: number; onCl
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
           <Stat label="Dons nets" value={money(s.netCents)} sub={s.offlineNetCents ? `dont ${money(s.offlineNetCents)} hors Stripe` : 'après remboursements'} />
           <Stat label="Dons" value={s.donations.toLocaleString('fr-CA')} sub={s.donations ? `moyenne ${money(Math.round(s.netCents / s.donations))}` : '—'} />
-          <Stat label="Commission nette" value={money(s.feeCents)} sub={`${money(s.feeSinceCents)} en ${windowDays} jours`} />
+          <Stat label="Forfait" value={<span className="text-base">{forfaitLabel(o.billing, money)}</span>} sub={o.billing?.settledAt ? `acquitté le ${dateCourte(o.billing.settledAt)}` : o.billing?.thresholdAt ? `seuil franchi le ${dateCourte(o.billing.thresholdAt)}` : undefined} />
+          <Stat label="Réglé par l’organisme" value={o.billing && o.billing.model !== 'exempt' ? money(o.billing.orgPaidCents) : '—'} />
+          <Stat label="Réglé par les donateurs" value={o.billing && o.billing.model !== 'exempt' ? money(o.billing.donorsPaidCents) : '—'} />
+          <Stat label="Reçus par Donivers" value={money(s.feeCents)} sub={`${money(s.feeSinceCents)} en ${windowDays} jours`} />
           <Stat label="Litiges ouverts" value={<span style={{ color: s.disputesOpen ? ROSE : undefined }}>{s.disputesOpen}</span>} />
           <Stat label="Équipe" value={s.owners + s.volunteers} sub={`${plural(s.owners, 'propriétaire', 'propriétaires')}, ${plural(s.volunteers, 'bénévole', 'bénévoles')}`} />
           <Stat label="Dernier don" value={<span className="text-base">{since(s.lastDonationAt)}</span>} />
@@ -520,7 +537,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
     ['Dons', t.donations.toLocaleString('fr-CA'), t.donationsSince.toLocaleString('fr-CA')],
     ['Montant net', money(t.netCents), money(t.netSinceCents)],
     ['dont hors Stripe (comptant, amorçage)', money(t.offlineNetCents), '—'],
-    ['Commission nette', money(t.feeCents), money(t.feeSinceCents)],
+    ['Reçus par Donivers', money(t.feeCents), money(t.feeSinceCents)],
     ['Litiges ouverts', t.disputesOpen, '—'],
     ['Courriels rebondis', t.bounces, t.bouncesSince],
     ['Plaintes', t.complaints, t.complaintsSince],
@@ -552,7 +569,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
           <Stat label="Membres des équipes" value={t.owners + t.volunteers} sub={`${plural(t.owners, 'propriétaire', 'propriétaires')}, ${plural(t.volunteers, 'bénévole', 'bénévoles')}`} />
         </div>
         <div className="card !p-4">
-          <Stat label="Commission nette" value={money(t.feeCents)} sub={`${money(t.feeSinceCents)} en ${w} jours`} />
+          <Stat label="Reçus par Donivers" value={money(t.feeCents)} sub={`${money(t.feeSinceCents)} en ${w} jours`} />
         </div>
       </section>
 
@@ -580,6 +597,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
           </table>
           </div>
           <p className="muted text-[13px]">Démo et ateliers exclus ; dons de démonstration exclus. Un même courriel chez deux organismes compte deux fois.</p>
+          <TaxesEtSuggestion taxes={data.taxes} suggestion={data.suggestion} w={w} money={money} />
         </section>
 
         <section className="space-y-2.5">
@@ -618,7 +636,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="muted text-[13px]">
-                  {['Organisme', 'Étape', 'Donateurs', 'Dons nets', 'Commission', 'Litiges', 'Dernier don'].map(h => (
+                  {['Organisme', 'Étape', 'Donateurs', 'Dons nets', 'Forfait', 'Réglé par l’organisme', 'Réglé par les donateurs', 'Seuil franchi le', 'Acquitté le', 'Litiges', 'Dernier don'].map(h => (
                     <th key={h} className="whitespace-nowrap px-5 py-3 font-medium">{h}</th>
                   ))}
                 </tr>
@@ -632,7 +650,11 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
                     <td className="whitespace-nowrap px-5 py-2.5" style={{ color: STAGE_COLOR[o.stage] }}>{COLUMNS.find(c => c.key === o.stage)?.title ?? 'Suspendu'}</td>
                     <td className="px-5 py-2.5 tabular-nums">{o.stats.donors} / 100</td>
                     <td className="px-5 py-2.5 tabular-nums">{money(o.stats.netCents)}</td>
-                    <td className="px-5 py-2.5 tabular-nums">{money(o.stats.feeCents)}</td>
+                    <td className="whitespace-nowrap px-5 py-2.5">{forfaitLabel(o.billing, money)}</td>
+                    <td className="px-5 py-2.5 tabular-nums">{o.billing && o.billing.model !== 'exempt' ? money(o.billing.orgPaidCents) : '—'}</td>
+                    <td className="px-5 py-2.5 tabular-nums">{o.billing && o.billing.model !== 'exempt' ? money(o.billing.donorsPaidCents) : '—'}</td>
+                    <td className="muted whitespace-nowrap px-5 py-2.5">{dateCourte(o.billing?.thresholdAt ?? null)}</td>
+                    <td className="muted whitespace-nowrap px-5 py-2.5">{dateCourte(o.billing?.settledAt ?? null)}</td>
                     <td className="px-5 py-2.5 tabular-nums" style={{ color: o.stats.disputesOpen ? ROSE : undefined }}>{o.stats.disputesOpen}</td>
                     <td className="muted whitespace-nowrap px-5 py-2.5">{since(o.stats.lastDonationAt)}</td>
                   </tr>
@@ -799,5 +821,57 @@ function DemoCard() {
         <p className="muted text-xs">Des photos que Studio a le droit de montrer (vos propres photos, avec consentement) ; jamais de banque d’images de visages.</p>
       </div>
     </section>
+  )
+}
+
+const PROVINCES: Record<string, string> = {
+  QC: 'Québec (TPS + TVQ)', ON: 'Ontario (TVH)', NB: 'Nouveau-Brunswick (TVH)', NS: 'Nouvelle-Écosse (TVH)', PE: 'Île-du-Prince-Édouard (TVH)', NL: 'Terre-Neuve-et-Labrador (TVH)',
+  BC: 'Colombie-Britannique (TPS)', AB: 'Alberta (TPS)', SK: 'Saskatchewan (TPS)', MB: 'Manitoba (TPS)', YT: 'Yukon (TPS)', NT: 'Territoires du Nord-Ouest (TPS)', NU: 'Nunavut (TPS)',
+}
+const TRANCHES: Record<SuggestionRow['tranche'], string> = { 'moins-250': 'moins de 250 $', '250-1000': '250 à 1 000 $', 'plus-1000': 'plus de 1 000 $' }
+const taux = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)} %` : '—')
+
+/** Taxes à remettre (comprises dans ce que garde Donivers) et acceptation de la contribution suggérée : des totaux. */
+function TaxesEtSuggestion({ taxes, suggestion, w, money }: { taxes: TaxRow[] | null; suggestion: SuggestionRow[] | null; w: number; money: (c: number) => string }) {
+  if (!taxes && !suggestion) return null
+  const tot = (suggestion ?? []).reduce((a, s) => ({ d: a.d + s.donations, ok: a.ok + s.accepted, rien: a.rien + s.nothing }), { d: 0, ok: 0, rien: 0 })
+  const order: SuggestionRow['tranche'][] = ['moins-250', '250-1000', 'plus-1000']
+  return (
+    <div className="space-y-2.5 pt-4">
+      <h3 className="font-bold">Taxes comprises dans ce que reçoit Donivers</h3>
+      <div className="card overflow-hidden !p-0">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="muted text-[13px]">
+              <th className="px-5 py-3 font-medium">Province</th>
+              <th className="px-5 py-3 text-right font-medium">Total</th>
+              <th className="whitespace-nowrap px-5 py-3 text-right font-medium">{w} derniers jours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(taxes ?? []).length === 0 && (
+              <tr className="border-t" style={{ borderColor: 'var(--line)' }}>
+                <td className="muted px-5 py-2.5" colSpan={3}>Aucune taxe perçue pour l’instant.</td>
+              </tr>
+            )}
+            {(taxes ?? []).map(r => (
+              <tr key={r.province} className="border-t" style={{ borderColor: 'var(--line)' }}>
+                <td className="px-5 py-2.5">{PROVINCES[r.province] ?? r.province}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{money(r.taxCents)}</td>
+                <td className="muted px-5 py-2.5 text-right tabular-nums">{money(r.taxSinceCents)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="muted text-[13px]">Dons réglés des organismes réels, nets des remboursements. À confirmer avec le comptable avant chaque remise.</p>
+      {suggestion && (
+        <p className="card text-sm">
+          Contribution suggérée acceptée telle quelle : <b>{taux(tot.ok, tot.d)}</b> des dons
+          {tot.d > 0 && <> ({order.filter(k => suggestion.some(s => s.tranche === k)).map(k => { const s = suggestion.find(x => x.tranche === k)!; return `${TRANCHES[k]} : ${taux(s.accepted, s.donations)}` }).join(' · ')}) ; aucune contribution : {taux(tot.rien, tot.d)}</>}
+          {tot.d === 0 && ' (aucun don avec une suggestion pour l’instant)'}
+        </p>
+      )}
+    </div>
   )
 }

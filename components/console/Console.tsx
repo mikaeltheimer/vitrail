@@ -10,6 +10,7 @@ import Moderation from './Moderation'
 import Diffuser from './Diffuser'
 import Plus, { SCREENS, needsAttention, type Screen } from './Plus'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import { TermsScreen, laterKey, readLater } from './Conditions'
 
 export type Tab = 'accueil' | 'dons' | 'moderation' | 'diffuser' | 'plus'
 const TABS: Tab[] = ['accueil', 'dons', 'moderation', 'diffuser', 'plus']
@@ -26,6 +27,16 @@ export default function Console() {
   const [screen, setScreen] = useState<Screen | null>(null)
   const [donorId, setDonorId] = useState<string | null>(null)
   const [cashOpen, setCashOpen] = useState(false)
+  // Nouvelles conditions à accepter (propriétaire) : plein écran, sauf si « Plus tard » a déjà été choisi dans cet onglet
+  const termsVersion = owner && data?.terms && !data.terms.accepted ? data.terms.version : null
+  // Lu après le premier rendu (sessionStorage n'existe pas côté serveur) : rien ne s'affiche avant de savoir
+  const [later, setLater] = useState<{ version: string; later: boolean } | null>(null)
+  useEffect(() => {
+    if (!termsVersion) return
+    const id = setTimeout(() => setLater({ version: termsVersion, later: readLater(termsVersion) }), 0)
+    return () => clearTimeout(id)
+  }, [termsVersion])
+  const showTerms = !!data && !!termsVersion && later?.version === termsVersion && !later.later
 
   useEffect(() => {
     const read = () => {
@@ -129,10 +140,23 @@ export default function Console() {
         </p>
       )}
 
+      {showTerms && data && (
+        <TermsScreen
+          data={data}
+          act={c.act}
+          onLater={() => {
+            try {
+              sessionStorage.setItem(laterKey(termsVersion!), '1')
+            } catch {}
+            setLater({ version: termsVersion!, later: true })
+          }}
+        />
+      )}
+
       <main className="mt-5">
         {c.loadError && <p style={{ color: RED }}>{t('chargementImpossible', { erreur: c.loadError })}</p>}
         {!data && !c.loadError && <p className="muted">{t('chargement')}</p>}
-        {data && tab === 'accueil' && <Accueil data={data} setTab={setTab} openDonor={id => { setDonorId(id); setTab('dons') }} openCash={() => { setCashOpen(true); setTab('dons') }} open={c.open} />}
+        {data && tab === 'accueil' && <Accueil data={data} act={c.act} setTab={setTab} openDonor={id => { setDonorId(id); setTab('dons') }} openCash={() => { setCashOpen(true); setTab('dons') }} open={c.open} />}
         {data && tab === 'dons' && <Dons data={data} act={c.act} donorId={donorId} setDonorId={setDonorId} cashOpen={cashOpen} setCashOpen={setCashOpen} />}
         {data && tab === 'moderation' && <Moderation data={data} act={c.act} notify={c.notifyDonor} setNotify={c.setNotifyDonor} />}
         {data && tab === 'diffuser' && <Diffuser data={data} />}

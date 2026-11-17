@@ -22,3 +22,10 @@ export function formatMoney(cents: number, locale: Locale = DEFAULT_LOCALE): str
 export function formatCount(n: number, locale: Locale = DEFAULT_LOCALE): string {
   return new Intl.NumberFormat(INTL_TAG[locale]).format(n)
 }
+
+/** Ordinal court : « 1er », « 101e » ; « 1st », « 101st », « 112th ». */
+export function shortOrdinal(n: number, locale: Locale = DEFAULT_LOCALE): string {
+  if (locale !== 'en') return n === 1 ? '1er' : `${n}e`
+  const cat = new Intl.PluralRules('en-CA', { type: 'ordinal' }).select(n)
+  return `${n}${{ one: 'st', two: 'nd', few: 'rd' }[cat as 'one' | 'two' | 'few'] ?? 'th'}`
+}

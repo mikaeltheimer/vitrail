@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { GLASS_COLORS } from '@/lib/config'
+import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Act, ConsoleData, DonorRow } from './types'
+import type { DonationFees } from '@/lib/platform-fee'
 import { RED, GREEN, Section, Sheet, useTime } from './ui'
 
 const toCents = (s: string) => Math.round((parseFloat(s.replace(',', '.')) || 0) * 100)
@@ -122,11 +123,14 @@ interface Detail {
     id: string
     amount_cents: number
     fee_cents: number | null
+    donor_contribution_cents?: number | null
     refunded_cents: number
     dispute_status: 'open' | 'won' | 'lost' | null
     source: string
     channel: string | null
     created_at: string
+    /** Détail des frais d'un don par carte (propriétaire seulement). */
+    fees?: DonationFees | null
   }[]
   emails: { id: string; created_at: string; kind: string; status: string; to_email: string; error: string | null }[]
 }
@@ -280,6 +284,15 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
                           <span style={{ color: RED }}> · {n.refunded_cents >= n.amount_cents ? t('rembourse') : t('remboursePartiel', { montant: money(n.refunded_cents) })}</span>
                         )}
                         <span className="muted block text-xs">{time(n.created_at)}</span>
+                        {n.fees && (
+                          <span className="muted block text-xs">
+                            {t('detailForfait', {
+                              contribution: money(n.fees.contributionCents),
+                              frais: n.fees.stripeFeeCents === null ? '—' : n.fees.stripeFeeEstimated ? t('fraisEstimes', { frais: money(n.fees.stripeFeeCents) }) : money(n.fees.stripeFeeCents),
+                              commission: money(n.fees.orgCommissionCents),
+                            })}
+                          </span>
+                        )}
                       </span>
                       {refundable && (
                         <button className="chip !px-3" aria-expanded={refunding === n.id} onClick={() => setRefunding(refunding === n.id ? null : n.id)}>
@@ -361,12 +374,13 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
   )
 }
 
-/** Remboursement : montant du PAIEMENT (don + frais couverts), tout ce qui reste par défaut. Confirmé, et définitif. */
+/** Remboursement : montant du PAIEMENT (don + contribution + frais couverts), tout ce qui reste par défaut. Confirmé, et définitif. */
 function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donations'][number]; onCancel: () => void; onSubmit: (cents: number | null) => Promise<void> }) {
   const t = useTranslations('console.remboursement')
   const tc = useTranslations('console')
   const money = useMoney()
-  const paid = donation.amount_cents + (donation.fee_cents ?? 0)
+  const extra = (donation.fee_cents ?? 0) + (donation.donor_contribution_cents ?? 0)
+  const paid = donation.amount_cents + extra
   const back = donation.amount_cents > 0 ? Math.round((donation.refunded_cents * paid) / donation.amount_cents) : 0
   const remaining = Math.max(0, paid - back)
   const [all, setAll] = useState(true)
@@ -378,7 +392,11 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
     <div className="mt-3 space-y-3 rounded-xl border p-3" style={{ borderColor: 'rgba(240,120,140,0.45)' }}>
       <p>
         {t('paiement', { montant: money(paid) })}
-        {(donation.fee_cents ?? 0) > 0 && <span className="muted"> {t('detail', { don: money(donation.amount_cents), frais: money(donation.fee_cents ?? 0) })}</span>}
+        {(donation.donor_contribution_cents ?? 0) > 0 ? (
+          <span className="muted"> {t('detailContribution', { don: money(donation.amount_cents), contribution: money(extra) })}</span>
+        ) : (
+          (donation.fee_cents ?? 0) > 0 && <span className="muted"> {t('detail', { don: money(donation.amount_cents), frais: money(donation.fee_cents ?? 0) })}</span>
+        )}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2">
@@ -397,7 +415,7 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
           />
         </label>
       </div>
-      <p className="muted text-xs">{t('avertissement')}</p>
+      <p className="muted text-xs">{t('avertissement', { brand: CONFIG.brand.name })}</p>
       {!all && amount && !valid && <p style={{ color: RED }}>{t('horsLimite', { max: money(remaining) })}</p>}
       <div className="flex gap-2">
         <button

@@ -9,7 +9,10 @@ import { isOrgPhotoUrl } from '@/lib/photos'
 import { isLocale } from '@/i18n/config'
 import { getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { applyRefund, reconcileCharge, recordDispute, refundPlatformFee } from '@/lib/refunds'
-import { isAccountReady, orgByAccount, setAccountReady } from '@/lib/connect'
+import { isAccountReady, orgByAccount, provinceOfAccount, setAccountReady } from '@/lib/connect'
+import { settleDonation } from '@/lib/settlement'
+import { notifyThresholdIfNeeded } from '@/lib/billing-notice'
+import { getDb } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
   // ── Le compte de l'organisme a changé (identité vérifiée, paiements activés…) ──
   if (event.type === 'account.updated') {
     const acct = event.data.object as Stripe.Account
-    await setAccountReady(orgId, acct.id, isAccountReady(acct))
+    await setAccountReady(orgId, acct.id, isAccountReady(acct), provinceOfAccount(acct))
     return ok()
   }
 
@@ -94,9 +97,13 @@ export async function POST(request: NextRequest) {
     // Frais couverts par le donateur : payés, mais hors du don (morceau et total gardent des chiffres ronds)
     const fee = parseInt(m.feeCents ?? '', 10)
     const feeCents = Number.isFinite(fee) && fee > 0 && fee < session.amount_total ? fee : 0
-    // Notre commission, fixée à la création du paiement
+    // Ce que garde Donivers, fixé à la création du paiement (S + P) ; le règlement le corrige ensuite sous verrou
     const pf = parseInt(m.platformFee ?? '', 10)
     const platformFeeCents = Number.isFinite(pf) && pf > 0 && pf < session.amount_total ? pf : 0
+    // Contribution à Donivers : payée, hors du don (le reçu, le fragment et le total ne portent que le don)
+    const intMeta = (v: string | undefined) => { const x = parseInt(v ?? '', 10); return Number.isFinite(x) && x >= 0 ? x : null }
+    const contributionCents = Math.min(intMeta(m.contribution) ?? 0, Math.max(0, session.amount_total - feeCents - 1))
+    const amountCents = session.amount_total - feeCents - contributionCents
     const baseUrl = orgBaseUrl(org.slug)
 
     try {
@@ -115,9 +122,16 @@ export async function POST(request: NextRequest) {
           photoUrl: isOrgPhotoUrl(m.photo, org.id) ? m.photo : null,
         },
         color: color.ok ? color.value : defaultColorFor(email),
-        amountCents: session.amount_total - feeCents,
+        amountCents,
         feeCents,
         platformFeeCents,
+        contribution: {
+          cents: contributionCents,
+          surplusCents: Math.min(intMeta(m.contributionSurplus) ?? 0, platformFeeCents),
+          stripeFeeEstimatedCents: intMeta(m.stripeFeeEstimate),
+          suggestedCents: intMeta(m.contributionSuggested),
+          bracketsVersion: m.contributionVersion ? m.contributionVersion.slice(0, 40) : null,
+        },
         source: 'stripe',
         providerRef: session.id,
         channel: cleanChannel(m.channel),
@@ -129,18 +143,50 @@ export async function POST(request: NextRequest) {
         // ni retarder la réponse à Stripe : il part après.
         const locale = isLocale(m.lang) ? m.lang : 'fr'
         const { donorId } = result
-        const amountCents = session.amount_total
         after(async () => {
           try {
-            await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
+            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
           } catch (e) {
             console.error('Courriel de reçu non envoyé :', e)
           }
         })
       }
+      // Règlement (plafond, frais réels, excédent rendu, taxes) : après le courriel (programmé pour
+      // après la réponse), et aussi au rejeu : s'il échoue, le webhook répond 500, Stripe rejoue, le don est un doublon
+      const intent = typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null)
+      await settleDonation(getStripe(), { donationId: result.donationId, accountId: event.account, paymentIntentId: intent, contributionCents, orgProvince: org.taxProvince })
+      // Le règlement a peut-être franchi le seuil gratuit : avis au propriétaire, une seule fois (D7), après la réponse
+      after(() => notifyThresholdIfNeeded(org.id).then(() => undefined, e => console.error('Avis du 100e donateur non envoyé :', e)))
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
       return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
+    }
+    return ok()
+  }
+
+  // ── Frais Stripe réels connus après coup (balance transaction asynchrone) : le règlement corrige le surplus ──
+  if (event.type === 'charge.updated') {
+    const charge = event.data.object as Stripe.Charge
+    const intent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id
+    if (!intent || !charge.balance_transaction || !charge.paid) return ok()
+    try {
+      const session = (await getStripe().checkout.sessions.list({ payment_intent: intent, limit: 1 }, { stripeAccount: event.account })).data[0]
+      if (!session || session.metadata?.orgId !== orgId) return ok() // pas un paiement de Donivers
+      const { data: don, error } = await getDb()
+        .from('donations')
+        .select('id,donor_contribution_cents,stripe_fee_actual_cents')
+        .eq('organization_id', orgId)
+        .eq('provider_ref', session.id)
+        .maybeSingle()
+      if (error) throw error
+      // Don pas encore enregistré : Stripe rejouera (checkout.session.completed le réglera de toute façon)
+      if (!don) return NextResponse.json({ error: 'Don pas encore enregistré' }, { status: 500 }) // i18n-ok : réponse à Stripe
+      if (don.stripe_fee_actual_cents !== null) return ok()
+      const org = await getOrg(orgId)
+      await settleDonation(getStripe(), { donationId: don.id, accountId: event.account, paymentIntentId: intent, contributionCents: don.donor_contribution_cents ?? 0, orgProvince: org?.taxProvince ?? null })
+    } catch (e) {
+      console.error('Frais réels non réglés :', e)
+      return NextResponse.json({ error: 'Règlement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
     }
     return ok()
   }

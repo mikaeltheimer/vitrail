@@ -16,7 +16,7 @@ export interface OrgTexts {
   testimonial: { question: string; questions: string[]; cta: string; placeholder: string; lead: string; consent: string }
 }
 
-export const LEGAL_KEYS = ['entity', 'neq', 'address', 'officerName', 'officerEmail', 'officerPhone', 'retention'] as const
+export const LEGAL_KEYS = ['entity', 'neq', 'charityNumber', 'address', 'officerName', 'officerEmail', 'officerPhone', 'retention'] as const
 export type LegalKey = (typeof LEGAL_KEYS)[number]
 /** Coordonnées juridiques (pages /confidentialite et /conditions). `updated` : date du dernier enregistrement (AAAA-MM-JJ). */
 export type LegalInfo = Record<LegalKey | 'updated', string>
@@ -31,6 +31,8 @@ export interface Identity {
   logoSize: [number, number] | null
   iconUrl: string | null
   legal: LegalInfo
+  /** Numéro d'enregistrement d'organisme de bienfaisance (legal.charityNumber) ; '' sans numéro : aucune mention de reçu fiscal. */
+  charityNumber: string
   /** Nom affiché comme expéditeur des courriels. */
   senderName: string
   /** Adresse de réponse des courriels (à défaut, celle du responsable des renseignements personnels). */
@@ -48,7 +50,7 @@ export type StoredTexts = Partial<Record<Locale, Partial<Record<TextField, strin
 
 /** Longueurs maximales (caractères). */
 export const TEXT_MAX: Record<TextField, number> = { name: 80, about: 1200, why: 400, vitrailTitle: 60, question: 120, question2: 120, question3: 120, placeholder: 160 }
-export const LEGAL_MAX: Record<LegalKey, number> = { entity: 200, neq: 40, address: 200, officerName: 120, officerEmail: 120, officerPhone: 40, retention: 1500 }
+export const LEGAL_MAX: Record<LegalKey, number> = { entity: 200, neq: 40, charityNumber: 40, address: 200, officerName: 120, officerEmail: 120, officerPhone: 40, retention: 1500 }
 
 /** Une langue que l'organisme offre : celle demandée si elle l'est, sinon sa langue principale. */
 export function clampLocale(locales: readonly Locale[], locale: Locale): Locale {
@@ -106,6 +108,17 @@ export function resolveTexts(stored: StoredTexts, locales: Locale[], fallbackNam
  * bienfaisance, et la durée de conservation (vide : la phrase par défaut de la plateforme, voir confidentialite.retentionDefaut).
  */
 export const LEGAL_REQUIRED: readonly LegalKey[] = ['entity', 'address', 'officerName', 'officerEmail', 'officerPhone']
+
+/**
+ * Numéro d'enregistrement d'organisme de bienfaisance (ARC) : 9 chiffres, « RR », 4 chiffres. Espaces et casse libres à la
+ * saisie ; enregistré sous la forme « 123456789 RR 0001 ». '' si vide ; null si la forme n'est pas la bonne.
+ */
+export function normalizeCharityNumber(raw: string): string | null {
+  const s = raw.replace(/\s+/g, '').toUpperCase()
+  if (!s) return ''
+  const m = /^(\d{9})RR(\d{4})$/.exec(s)
+  return m ? `${m[1]} RR ${m[2]}` : null
+}
 
 /** Ce qui manque avant « Mettre en ligne » (le nom existe dès l'inscription). */
 export function missingForLaunch(legal: Partial<LegalInfo>): LegalKey[] {

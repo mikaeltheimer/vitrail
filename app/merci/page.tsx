@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import MiniGlass from '@/components/MiniGlass'
 import { useTranslations } from 'next-intl'
-import { useOrg } from '@/lib/useOrg'
+import { useCharityNumber, useOrg } from '@/lib/useOrg'
 import { useMoney } from '@/lib/useI18n'
 import type { Piece, Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
@@ -33,6 +33,7 @@ function Merci() {
   const t = useTranslations('merci')
   const tc = useTranslations('commun')
   const org = useOrg()
+  const charity = useCharityNumber()
   const money = useMoney()
   const ref = useSearchParams().get('ref')
   const [result, setResult] = useState<'wait' | 'ok' | 'lost'>('wait')
@@ -133,7 +134,7 @@ function Merci() {
             </Link>
           </div>
           <p className="muted mt-6 text-xs">
-            {t('piedCourriel')}{' '}
+            {charity ? t('piedCourrielAvecNumero', { org: org.name }) : t('piedCourriel')}{' '}
             <Link href="/confidentialite" className="underline">
               {tc('confidentialiteCourt')}
             </Link>

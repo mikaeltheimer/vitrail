@@ -1,3 +1,4 @@
+import { STUDIO_TAX_NUMBERS } from './tax'
 import { CONFIG, brandFor } from './config'
 import { clampLocale, identityOrNeutral, type Identity, type OrgTexts } from './identity'
 import { getDb } from './db'
@@ -14,7 +15,7 @@ import type { Locale } from '@/i18n/config'
 // (Resend en panne, journal absent) est écrit dans la console et le journal, et le don ou la demande suit son cours.
 // Sans RESEND_API_KEY (développement), le courriel est simplement écrit dans la console du serveur.
 
-export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request'
+export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request' | 'fee_threshold'
 
 export type EmailStatus = 'queued' | 'sent' | 'delivered' | 'delayed' | 'bounced' | 'complained' | 'failed' | 'skipped'
 
@@ -179,7 +180,7 @@ function footerFor(locale: Locale, orgName: string): string[] {
 /** Pour un courriel à un donateur : la langue (limitée à celles de l'organisme), ses textes et son expéditeur. */
 export function emailIdentity(identity: Identity, locale: Locale) {
   const l = clampLocale(identity.locales, locale)
-  return { locale: l, build: { locale: l, org: identity.texts[l] }, from: { fromName: identity.senderName, replyTo: identity.replyTo, header: emailHeader(identity, l) } }
+  return { locale: l, build: { locale: l, org: identity.texts[l], charityNumber: identity.charityNumber }, from: { fromName: identity.senderName, replyTo: identity.replyTo, header: emailHeader(identity, l) } }
 }
 
 /** En-tête des courriels d'un organisme ; null pour l'identité neutre (organisme inconnu : courriel de la plateforme). */
@@ -202,7 +203,10 @@ export interface Built {
 
 export interface ReceiptInput {
   to: string
+  /** Le don seul (le montant du fragment). */
   amountCents: number
+  /** Contribution à Donivers payée en plus (0 ou absente : aucune ligne). */
+  contributionCents?: number
   token: string
   locale: Locale
   donorId?: string | null
@@ -212,7 +216,7 @@ export interface ReceiptInput {
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
 // Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
-export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts; charityNumber?: string }): Built {
   const t = translatorFor(i.locale)
   const org = i.org
   return {
@@ -222,12 +226,20 @@ export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'lo
       heading: t('courriel.recuTitre'),
       paragraphs: [
         t('courriel.recuConfirmation', { montant: formatMoney(i.amountCents, i.locale) }),
+        // Contribution à Donivers : à part du don, taxes comprises, sans reçu fiscal (spécification du 16 nov., 2.2)
+        ...(i.contributionCents && i.contributionCents > 0
+          ? [
+              t('courriel.recuContribution', { contribution: formatMoney(i.contributionCents, i.locale), total: formatMoney(i.amountCents + i.contributionCents, i.locale) }),
+              t('courriel.recuContributionTaxes', { tps: STUDIO_TAX_NUMBERS.gstHst, tvq: STUDIO_TAX_NUMBERS.qst }),
+            ]
+          : []),
         `${org.testimonial.question} ${org.testimonial.cta} ${org.testimonial.lead}`,
       ],
       button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
       note: t('courriel.recuLienNote'),
       linkHelp: t('courriel.lienAlt'),
-      footer: [t('courriel.recuPied'), ...footerFor(i.locale, i.org.name)],
+      // Reçu fiscal : seulement si l'organisme a un numéro d'organisme de bienfaisance (le reçu officiel vient de lui)
+      footer: [i.charityNumber ? t('courriel.recuPiedAvecNumero', { org: org.name, numero: i.charityNumber }) : t('courriel.recuPied'), ...footerFor(i.locale, i.org.name)],
     },
   }
 }
@@ -407,6 +419,46 @@ export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: 
 
 export async function sendPasswordReset(i: { to: string; token: string; locale: Locale; baseUrl: string; organizationId?: string | null }): Promise<boolean> {
   return sendEmail({ kind: 'password_reset', to: i.to, locale: i.locale, organizationId: i.organizationId ?? null, ...buildPasswordReset(i) })
+}
+
+// ── Forfait : avis au propriétaire (plateforme) ───────────────────────────────
+
+export interface ThresholdNoticeInput {
+  to: string
+  locale: Locale
+  orgName: string
+  /** Ce que les donateurs ont déjà réglé du plafond (0 : la phrase est omise). */
+  donorsPaidCents: number
+  capCents: number
+  rate: number
+  consoleUrl: string
+  organizationId: string
+}
+
+/** Le 100e donateur est compté (D7) : ce qui change à partir de maintenant, et le rôle de la contribution. */
+export function buildThresholdNotice(i: Omit<ThresholdNoticeInput, 'to' | 'organizationId'>): Built {
+  const t = translatorFor(i.locale)
+  const taux = new Intl.NumberFormat(i.locale === 'en' ? 'en-CA' : 'fr-CA', { style: 'percent', maximumFractionDigits: 1 }).format(i.rate)
+  const plafond = formatMoney(i.capCents, i.locale)
+  return {
+    subject: t('courriel.centiemeObjet', { org: i.orgName }),
+    content: {
+      preheader: t('courriel.centiemePreheader'),
+      heading: t('courriel.centiemeTitre'),
+      paragraphs: [
+        t('courriel.centiemeBravo', { org: i.orgName }),
+        t('courriel.centiemeEnsuite', { taux, plafond }),
+        ...(i.donorsPaidCents > 0 ? [t('courriel.centiemeDonateurs', { montant: formatMoney(i.donorsPaidCents, i.locale), plafond })] : []),
+      ],
+      button: { label: t('courriel.centiemeBouton'), url: i.consoleUrl },
+      linkHelp: t('courriel.lienAlt'),
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendThresholdNotice(i: ThresholdNoticeInput): Promise<boolean> {
+  return sendEmail({ kind: 'fee_threshold', to: i.to, locale: i.locale, organizationId: i.organizationId, ...buildThresholdNotice(i) })
 }
 
 // ── Inscription des organismes (plateforme) ────────────────────────────────────

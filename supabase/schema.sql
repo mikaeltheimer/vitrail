@@ -1,7 +1,10 @@
--- Donivers — schéma complet de la base (état au 2026-11-14 : migrations jusqu'à 2026-11-26-demo-ecran-jumele.sql comprise ;
+-- Donivers — schéma complet de la base (état au 2026-11-16 : migrations jusqu'à 2026-11-27-contribution-donateur.sql comprise ;
 -- la 19 ne touche que des données ; la 23 n'existe pas). Mis à jour par pg_dump d'une base construite avec ce fichier
--- puis la migration 26 (comparaison des deux pg_dump : seule la table demo_screen_pieces s'ajoute, avec sa clé, sa clé
--- étrangère, ses deux index et RLS ; une base construite avec ce fichier seul donne le même pg_dump).
+-- puis la migration 27 (comparaison des deux pg_dump : platform_settings et son historique, les colonnes de organizations
+-- et de donations, la vue organization_billing, settle_platform_fee et studio_org_stats ; une base construite avec ce
+-- fichier seul donne le même pg_dump, aux droits explicites de service_role près, que Supabase accorde par défaut).
+-- La vue organization_billing suit la table vitraux, et studio_org_stats reste à la fin : le corps d'une fonction SQL
+-- est vérifié à sa création. Les deux lignes de départ de platform_settings sont insérées en fin de fichier.
 -- Dernier rejeu complet (11 nov.) : schema.sql d'avant l'étape 3 (cd7c01d), puis toutes les migrations
 -- à partir de 2026-11-06, dans l'ordre de leur nom.
 --
@@ -113,6 +116,134 @@ begin
   return new;
 end $$;
 
+CREATE FUNCTION public.platform_settings_log() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+begin
+  if tg_when = 'BEFORE' then
+    new.updated_at := now();
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and new.value is not distinct from old.value then
+    return null;
+  end if;
+  insert into public.platform_settings_history (key, old_value, new_value, changed_by)
+  values (new.key, case when tg_op = 'UPDATE' then old.value end, new.value, new.updated_by);
+  return null;
+end;
+$$;
+
+CREATE FUNCTION public.settle_platform_fee(p_donation uuid, p_stripe_fee_actual integer DEFAULT NULL::integer) RETURNS TABLE(waived_cents integer, surplus_cents integer, settled_now boolean, already_settled boolean)
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare
+  v_org uuid;
+  d record;
+  o record;
+  v_model text;
+  v_cap bigint;
+  v_free bigint;
+  v_counts boolean;
+  v_principal boolean;
+  v_s integer;
+  v_p_charged integer;
+  v_p_allowed integer;
+  v_cumul bigint := 0;
+  v_waived integer;
+  v_donors bigint;
+  v_settled_now boolean := false;
+begin
+  select organization_id into v_org from public.donations where id = p_donation;
+  if v_org is null then
+    raise exception 'Don inconnu : %', p_donation using errcode = 'P0002';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('donivers-platform-fee:' || v_org::text, 0));
+
+  select dn.id, dn.source, dn.vitrail_id, dn.platform_fee_cents, dn.platform_fee_waived_cents, dn.platform_fee_settled_at,
+         dn.platform_fee_refunded_cents, dn.donor_contribution_cents, dn.contribution_surplus_cents, dn.stripe_fee_actual_cents
+    into d from public.donations dn where dn.id = p_donation for update;
+  if d.platform_fee_settled_at is not null then
+    -- Frais réels arrivés après le règlement (charge.updated : Stripe crée la balance transaction de façon asynchrone) :
+    -- on corrige le surplus une seule fois ; la différence s'ajoute à l'excédent rendu
+    if p_stripe_fee_actual is not null and d.stripe_fee_actual_cents is null then
+      v_s := least(d.contribution_surplus_cents, greatest(0, d.donor_contribution_cents - p_stripe_fee_actual));
+      v_waived := least(d.platform_fee_cents - d.platform_fee_refunded_cents, d.platform_fee_waived_cents + (d.contribution_surplus_cents - v_s));
+      update public.donations
+         set contribution_surplus_cents = v_s, platform_fee_waived_cents = v_waived, stripe_fee_actual_cents = p_stripe_fee_actual
+       where id = p_donation;
+      return query select v_waived, v_s, false, true;
+      return;
+    end if;
+    return query select d.platform_fee_waived_cents, d.contribution_surplus_cents, false, true;
+    return;
+  end if;
+
+  select og.fee_schedule, og.fee_settled_at, og.fee_threshold_reached_at into o
+    from public.organizations og where og.id = v_org for update;
+  v_model := coalesce(o.fee_schedule->>'model', 'capped');
+  v_cap := coalesce(case when jsonb_typeof(o.fee_schedule->'capCents') = 'number' then (o.fee_schedule->>'capCents')::bigint end, 49500);
+  v_free := coalesce(case when jsonb_typeof(o.fee_schedule->'freeDonors') = 'number' then (o.fee_schedule->>'freeDonors')::bigint end, 100);
+  v_counts := coalesce(case when jsonb_typeof(o.fee_schedule->'contributionCountsTowardCap') = 'boolean'
+                then (o.fee_schedule->>'contributionCountsTowardCap')::boolean end, true);
+  select v.kind = 'permanent' into v_principal from public.vitraux v where v.id = d.vitrail_id;
+
+  -- Surplus réel : jamais plus que l'estimé (Stripe ne permet pas d'augmenter la commission après coup)
+  v_s := d.contribution_surplus_cents;
+  if p_stripe_fee_actual is not null then
+    v_s := least(v_s, greatest(0, d.donor_contribution_cents - p_stripe_fee_actual));
+  end if;
+  v_p_charged := greatest(0, d.platform_fee_cents - d.contribution_surplus_cents);
+
+  if d.source <> 'stripe' or not coalesce(v_principal, false) then
+    v_p_allowed := v_p_charged; -- hors du vitrail principal : rien à corriger ici (campagnes : étape L2)
+  elsif v_model = 'exempt' or o.fee_settled_at is not null then
+    v_p_allowed := 0;
+  else
+    -- Cumul des autres dons déjà réglés (même définition que organization_billing), ce don exclu
+    select coalesce(sum(case when v_counts
+             then x.platform_fee_cents - x.platform_fee_waived_cents - x.platform_fee_refunded_cents
+             else x.platform_fee_cents - x.platform_fee_waived_cents - x.platform_fee_refunded_cents
+                  - case when x.platform_fee_cents - x.platform_fee_waived_cents > 0
+                      then round(x.contribution_surplus_cents::numeric * (x.platform_fee_cents - x.platform_fee_waived_cents - x.platform_fee_refunded_cents)
+                                 / (x.platform_fee_cents - x.platform_fee_waived_cents))::bigint
+                      else 0 end
+             end), 0)
+      into v_cumul
+      from public.donations x
+      join public.vitraux v on v.id = x.vitrail_id and v.kind = 'permanent'
+      where x.organization_id = v_org and x.source = 'stripe' and x.id <> p_donation and x.platform_fee_settled_at is not null;
+    v_p_allowed := least(v_p_charged, greatest(0, v_cap - v_cumul - case when v_counts then v_s else 0 end))::integer;
+  end if;
+
+  v_waived := (v_p_charged - v_p_allowed) + (d.contribution_surplus_cents - v_s);
+
+  update public.donations
+     set platform_fee_waived_cents = v_waived,
+         contribution_surplus_cents = v_s,
+         stripe_fee_actual_cents = coalesce(p_stripe_fee_actual, stripe_fee_actual_cents),
+         platform_fee_settled_at = now()
+   where id = p_donation;
+
+  -- Verrous (jamais retirés)
+  if d.source = 'stripe' and coalesce(v_principal, false) and v_model <> 'exempt' and o.fee_settled_at is null
+     and v_cumul + (case when v_counts then v_s else 0 end) + v_p_allowed >= v_cap then
+    update public.organizations set fee_settled_at = now() where id = v_org and fee_settled_at is null;
+    v_settled_now := found;
+  end if;
+  if o.fee_threshold_reached_at is null then
+    select count(distinct dn.donor_id) into v_donors from public.donations dn
+      where dn.organization_id = v_org and dn.source in ('stripe', 'cash', 'seed');
+    if v_donors >= v_free then
+      update public.organizations set fee_threshold_reached_at = now() where id = v_org and fee_threshold_reached_at is null;
+    end if;
+  end if;
+
+  return query select v_waived, v_s, v_settled_now, false;
+end;
+$$;
+
 CREATE FUNCTION public.vitraux_guard() RETURNS trigger
     LANGUAGE plpgsql
     SET search_path TO ''
@@ -203,16 +334,29 @@ CREATE TABLE public.donations (
     dispute_status text,
     dispute_due_by timestamp with time zone,
     dispute_lost_cents integer DEFAULT 0 NOT NULL,
+    donor_contribution_cents integer DEFAULT 0 NOT NULL,
+    contribution_suggested_cents integer,
+    contribution_brackets_version text,
+    stripe_fee_estimated_cents integer,
+    stripe_fee_actual_cents integer,
+    contribution_surplus_cents integer DEFAULT 0 NOT NULL,
+    tax_province text,
+    tax_included_cents integer DEFAULT 0 NOT NULL,
+    platform_fee_waived_cents integer DEFAULT 0 NOT NULL,
+    platform_fee_settled_at timestamp with time zone,
     CONSTRAINT donations_amount_cents_check CHECK ((amount_cents > 0)),
+    CONSTRAINT donations_contribution_checks CHECK (((donor_contribution_cents >= 0) AND ((contribution_suggested_cents IS NULL) OR (contribution_suggested_cents >= 0)) AND ((stripe_fee_estimated_cents IS NULL) OR (stripe_fee_estimated_cents >= 0)) AND ((stripe_fee_actual_cents IS NULL) OR (stripe_fee_actual_cents >= 0)) AND (contribution_surplus_cents >= 0) AND (tax_included_cents >= 0) AND (platform_fee_waived_cents >= 0))),
     CONSTRAINT donations_dispute_lost_cents_check CHECK ((dispute_lost_cents >= 0)),
     CONSTRAINT donations_dispute_status_check CHECK ((dispute_status = ANY (ARRAY['open'::text, 'won'::text, 'lost'::text]))),
     CONSTRAINT donations_fee_cents_check CHECK ((fee_cents >= 0)),
     CONSTRAINT donations_fee_refund_le_fee CHECK ((platform_fee_refunded_cents <= platform_fee_cents)),
+    CONSTRAINT donations_platform_fee_balance CHECK ((((platform_fee_refunded_cents + platform_fee_waived_cents) <= platform_fee_cents) AND (contribution_surplus_cents <= platform_fee_cents) AND (tax_included_cents <= platform_fee_cents))),
     CONSTRAINT donations_platform_fee_cents_check CHECK ((platform_fee_cents >= 0)),
     CONSTRAINT donations_platform_fee_refunded_cents_check CHECK ((platform_fee_refunded_cents >= 0)),
     CONSTRAINT donations_refund_le_amount CHECK ((refunded_cents <= amount_cents)),
     CONSTRAINT donations_refunded_cents_check CHECK ((refunded_cents >= 0)),
-    CONSTRAINT donations_source_check CHECK ((source = ANY (ARRAY['stripe'::text, 'cash'::text, 'seed'::text, 'demo'::text])))
+    CONSTRAINT donations_source_check CHECK ((source = ANY (ARRAY['stripe'::text, 'cash'::text, 'seed'::text, 'demo'::text]))),
+    CONSTRAINT donations_tax_province_check CHECK (((tax_province IS NULL) OR (tax_province = ANY (ARRAY['AB'::text, 'BC'::text, 'MB'::text, 'NB'::text, 'NL'::text, 'NS'::text, 'NT'::text, 'NU'::text, 'ON'::text, 'PE'::text, 'QC'::text, 'SK'::text, 'YT'::text]))))
 );
 
 CREATE TABLE public.donors (
@@ -349,10 +493,14 @@ CREATE TABLE public.organizations (
     draft_updated_at timestamp with time zone,
     published_at timestamp with time zone,
     showcase boolean DEFAULT false NOT NULL,
-    CONSTRAINT organizations_locales_check CHECK ((((array_length(locales, 1) >= 1) AND (array_length(locales, 1) <= 2)) AND (locales <@ ARRAY['fr'::text, 'en'::text]))),
+    fee_threshold_reached_at timestamp with time zone,
+    fee_settled_at timestamp with time zone,
+    tax_province text,
+    CONSTRAINT organizations_locales_check CHECK (((array_length(locales, 1) >= 1) AND (array_length(locales, 1) <= 2) AND (locales <@ ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT organizations_photo_moderation_check CHECK ((photo_moderation = ANY (ARRAY['live'::text, 'moderation'::text]))),
     CONSTRAINT organizations_showcase_not_practice CHECK ((NOT (showcase AND (practice_of IS NOT NULL)))),
-    CONSTRAINT organizations_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'live'::text, 'suspended'::text])))
+    CONSTRAINT organizations_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'live'::text, 'suspended'::text]))),
+    CONSTRAINT organizations_tax_province_check CHECK (((tax_province IS NULL) OR (tax_province = ANY (ARRAY['AB'::text, 'BC'::text, 'MB'::text, 'NB'::text, 'NL'::text, 'NS'::text, 'NT'::text, 'NU'::text, 'ON'::text, 'PE'::text, 'QC'::text, 'SK'::text, 'YT'::text]))))
 );
 
 CREATE VIEW public.organization_fee_totals WITH (security_invoker='true') AS
@@ -378,6 +526,32 @@ CREATE TABLE public.password_resets (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     expires_at timestamp with time zone NOT NULL,
     used_at timestamp with time zone
+);
+
+CREATE TABLE public.platform_settings (
+    key text NOT NULL,
+    value jsonb NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_by uuid,
+    CONSTRAINT platform_settings_key_check CHECK ((key ~ '^[a-z_]{1,60}$'::text))
+);
+
+CREATE TABLE public.platform_settings_history (
+    id bigint NOT NULL,
+    key text NOT NULL,
+    old_value jsonb,
+    new_value jsonb NOT NULL,
+    changed_at timestamp with time zone DEFAULT now() NOT NULL,
+    changed_by uuid
+);
+
+ALTER TABLE public.platform_settings_history ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.platform_settings_history_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
 );
 
 CREATE TABLE public.reports (
@@ -458,6 +632,64 @@ CREATE TABLE public.vitraux (
     CONSTRAINT vitraux_slug_check CHECK ((slug ~ '^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$'::text)),
     CONSTRAINT vitraux_state_check CHECK ((state = ANY (ARRAY['active'::text, 'closed'::text])))
 );
+
+CREATE VIEW public.organization_billing WITH (security_invoker='true') AS
+ WITH dons AS (
+         SELECT d.organization_id,
+            ((d.platform_fee_cents - d.platform_fee_waived_cents) - d.platform_fee_refunded_cents) AS retained,
+                CASE
+                    WHEN ((d.platform_fee_cents - d.platform_fee_waived_cents) > 0) THEN (round((((d.contribution_surplus_cents)::numeric * (((d.platform_fee_cents - d.platform_fee_waived_cents) - d.platform_fee_refunded_cents))::numeric) / ((d.platform_fee_cents - d.platform_fee_waived_cents))::numeric)))::bigint
+                    ELSE (0)::bigint
+                END AS donor_part
+           FROM (public.donations d
+             JOIN public.vitraux v ON (((v.id = d.vitrail_id) AND (v.kind = 'permanent'::text))))
+          WHERE ((d.source = 'stripe'::text) AND (d.platform_fee_settled_at IS NOT NULL))
+        ), totaux AS (
+         SELECT dons.organization_id,
+            COALESCE(sum(dons.retained), (0)::bigint) AS retained_cents,
+            (COALESCE(sum(dons.donor_part), (0)::numeric))::bigint AS donor_covered_cents
+           FROM dons
+          GROUP BY dons.organization_id
+        ), donateurs AS (
+         SELECT d.organization_id,
+            count(DISTINCT d.donor_id) AS donors_counted
+           FROM public.donations d
+          WHERE (d.source = ANY (ARRAY['stripe'::text, 'cash'::text, 'seed'::text]))
+          GROUP BY d.organization_id
+        )
+ SELECT o.id AS organization_id,
+    COALESCE((o.fee_schedule ->> 'model'::text), 'capped'::text) AS fee_model,
+    COALESCE(
+        CASE
+            WHEN (jsonb_typeof((o.fee_schedule -> 'freeDonors'::text)) = 'number'::text) THEN ((o.fee_schedule ->> 'freeDonors'::text))::integer
+            ELSE NULL::integer
+        END, 100) AS free_donors,
+    COALESCE(
+        CASE
+            WHEN (jsonb_typeof((o.fee_schedule -> 'capCents'::text)) = 'number'::text) THEN ((o.fee_schedule ->> 'capCents'::text))::integer
+            ELSE NULL::integer
+        END, 49500) AS cap_cents,
+    COALESCE(
+        CASE
+            WHEN (jsonb_typeof((o.fee_schedule -> 'contributionCountsTowardCap'::text)) = 'boolean'::text) THEN ((o.fee_schedule ->> 'contributionCountsTowardCap'::text))::boolean
+            ELSE NULL::boolean
+        END, true) AS contribution_counts_toward_cap,
+    COALESCE(dn.donors_counted, (0)::bigint) AS donors_counted,
+    (COALESCE(t.retained_cents, (0)::bigint) - COALESCE(t.donor_covered_cents, (0)::bigint)) AS fees_net_cents,
+    COALESCE(t.donor_covered_cents, (0)::bigint) AS donor_covered_cents,
+        CASE
+            WHEN COALESCE(
+            CASE
+                WHEN (jsonb_typeof((o.fee_schedule -> 'contributionCountsTowardCap'::text)) = 'boolean'::text) THEN ((o.fee_schedule ->> 'contributionCountsTowardCap'::text))::boolean
+                ELSE NULL::boolean
+            END, true) THEN COALESCE(t.retained_cents, (0)::bigint)
+            ELSE (COALESCE(t.retained_cents, (0)::bigint) - COALESCE(t.donor_covered_cents, (0)::bigint))
+        END AS cumul_cents,
+    o.fee_threshold_reached_at,
+    o.fee_settled_at
+   FROM ((public.organizations o
+     LEFT JOIN totaux t ON ((t.organization_id = o.id)))
+     LEFT JOIN donateurs dn ON ((dn.organization_id = o.id)));
 
 CREATE VIEW public.vitrail_donations WITH (security_invoker='true') AS
  SELECT n.id AS donation_id,
@@ -562,6 +794,12 @@ ALTER TABLE ONLY public.organizations
 ALTER TABLE ONLY public.password_resets
     ADD CONSTRAINT password_resets_pkey PRIMARY KEY (token_hash);
 
+ALTER TABLE ONLY public.platform_settings_history
+    ADD CONSTRAINT platform_settings_history_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.platform_settings
+    ADD CONSTRAINT platform_settings_pkey PRIMARY KEY (key);
+
 ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
 
@@ -608,6 +846,8 @@ CREATE INDEX memberships_org_idx ON public.memberships USING btree (organization
 
 CREATE UNIQUE INDEX organization_slugs_one_current ON public.organization_slugs USING btree (organization_id) WHERE is_current;
 
+CREATE INDEX platform_settings_history_key ON public.platform_settings_history USING btree (key, changed_at);
+
 CREATE INDEX reports_open_idx ON public.reports USING btree (resolved, created_at DESC);
 
 CREATE INDEX reports_org_open_idx ON public.reports USING btree (organization_id, resolved, created_at DESC);
@@ -629,6 +869,10 @@ CREATE TRIGGER donations_guard BEFORE UPDATE ON public.donations FOR EACH ROW EX
 CREATE TRIGGER organization_slugs_demo_guard BEFORE INSERT OR UPDATE OF slug, organization_id ON public.organization_slugs FOR EACH ROW EXECUTE FUNCTION public.organization_slugs_demo_guard();
 
 CREATE TRIGGER organizations_demo_guard BEFORE UPDATE OF showcase ON public.organizations FOR EACH ROW EXECUTE FUNCTION public.organizations_demo_guard();
+
+CREATE TRIGGER platform_settings_log AFTER INSERT OR UPDATE ON public.platform_settings FOR EACH ROW EXECUTE FUNCTION public.platform_settings_log();
+
+CREATE TRIGGER platform_settings_touch BEFORE UPDATE ON public.platform_settings FOR EACH ROW EXECUTE FUNCTION public.platform_settings_log();
 
 CREATE TRIGGER vitraux_guard BEFORE UPDATE ON public.vitraux FOR EACH ROW EXECUTE FUNCTION public.vitraux_guard();
 
@@ -686,6 +930,9 @@ ALTER TABLE ONLY public.organizations
 ALTER TABLE ONLY public.password_resets
     ADD CONSTRAINT password_resets_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY public.platform_settings
+    ADD CONSTRAINT platform_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.accounts(id) ON DELETE SET NULL;
+
 ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.donors(id) ON DELETE CASCADE;
 
@@ -736,6 +983,10 @@ ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.password_resets ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.platform_settings_history ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
@@ -767,7 +1018,7 @@ CREATE FUNCTION public.studio_org_stats(p_since timestamp with time zone) RETURN
       d.source,
       d.dispute_status,
       greatest(d.amount_cents - d.refunded_cents - d.dispute_lost_cents, 0)::bigint as net,
-      (d.platform_fee_cents - d.platform_fee_refunded_cents)::bigint as fee
+      (d.platform_fee_cents - d.platform_fee_waived_cents - d.platform_fee_refunded_cents)::bigint as fee
     from public.donations d
     join orgs on orgs.id = d.organization_id
     where d.source in ('stripe', 'cash', 'seed')
@@ -775,7 +1026,6 @@ CREATE FUNCTION public.studio_org_stats(p_since timestamp with time zone) RETURN
   dons as (
     select
       d.organization_id,
-      count(distinct d.donor_id) as donors,
       count(*) as donations,
       count(*) filter (where d.created_at > p_since) as donations_since,
       coalesce(sum(d.net), 0)::bigint as net_cents,
@@ -820,7 +1070,7 @@ CREATE FUNCTION public.studio_org_stats(p_since timestamp with time zone) RETURN
   )
   select
     orgs.id,
-    coalesce(dons.donors, 0),
+    coalesce(b.donors_counted, 0),
     coalesce(premiers.donors_since, 0),
     coalesce(dons.donations, 0),
     coalesce(dons.donations_since, 0),
@@ -839,6 +1089,7 @@ CREATE FUNCTION public.studio_org_stats(p_since timestamp with time zone) RETURN
     coalesce(courriels.complaints, 0),
     coalesce(courriels.complaints_since, 0)
   from orgs
+  left join public.organization_billing b on b.organization_id = orgs.id
   left join dons on dons.organization_id = orgs.id
   left join premiers on premiers.organization_id = orgs.id
   left join membres on membres.organization_id = orgs.id
@@ -850,6 +1101,19 @@ $$;
 revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
 revoke all on all functions in schema public from public, anon, authenticated;
+
+-- ── Réglages de la plateforme : valeurs de départ (tranches de la contribution, frais Stripe estimés, taxes) ───────────
+insert into public.platform_settings (key, value) values
+  ('contribution_brackets', '{
+     "version": "2026-11-16",
+     "brackets": [{"upToCents": 25000, "rate": 0.15}, {"upToCents": 100000, "rate": 0.08}, {"rate": 0.07}],
+     "menuRates": [0.05, 0.10, 0.15],
+     "stripeFeeEstimate": {"rate": 0.029, "fixedCents": 30}
+   }'::jsonb),
+  -- À confirmer avec le comptable (lib/tax.ts) : TPS + TVQ au Québec, TVH dans les provinces harmonisées, TPS ailleurs
+  ('tax_rates', '{"AB": 0.05, "BC": 0.05, "MB": 0.05, "NB": 0.15, "NL": 0.15, "NS": 0.14, "NT": 0.05, "NU": 0.05,
+                  "ON": 0.13, "PE": 0.15, "QC": 0.14975, "SK": 0.05, "YT": 0.05}'::jsonb)
+on conflict (key) do nothing;
 
 -- ── Photos des donateurs et logos des organismes (org/<id>/…) ──────────────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

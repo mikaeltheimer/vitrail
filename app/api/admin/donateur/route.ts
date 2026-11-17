@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
+import { FEE_COLUMNS } from '@/lib/billing'
+import { donationFees, type FeeRow } from '@/lib/platform-fee'
 import { getDb } from '@/lib/db'
 import { hasEmailLog } from '@/lib/schema'
 import { failer, internalError } from '@/lib/errors'
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
   const [donations, emails] = await Promise.all([
     db
       .from('donations')
-      .select('id,amount_cents,fee_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at')
+      .select(`id,fee_cents,dispute_status,dispute_due_by,channel,created_at,${FEE_COLUMNS}`)
       .eq('organization_id', orgId)
       .eq('donor_id', id)
       .order('created_at', { ascending: false }),
@@ -47,7 +49,20 @@ export async function GET(request: NextRequest) {
       mailing_consent_at: d.mailing_consent_at ?? null,
       erased_at: d.erased_at ?? null,
     },
-    donations: donations.data ?? [],
+    // Détail des frais de chaque don par carte (C) : propriétaire seulement ; les colonnes brutes ne sortent pas d'ici
+    donations: ((donations.data ?? []) as unknown as (FeeRow & Record<string, unknown>)[]).map(d => ({
+      id: d.id,
+      amount_cents: d.amount_cents,
+      fee_cents: d.fee_cents,
+      donor_contribution_cents: d.donor_contribution_cents,
+      refunded_cents: d.refunded_cents,
+      dispute_status: d.dispute_status,
+      dispute_due_by: d.dispute_due_by,
+      source: d.source,
+      channel: d.channel,
+      created_at: d.created_at,
+      fees: a.ctx.role === 'owner' ? donationFees(d) : null,
+    })),
     emails: (emails as { data: unknown[] | null }).data ?? [],
   })
 }

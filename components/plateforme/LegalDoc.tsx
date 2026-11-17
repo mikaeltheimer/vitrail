@@ -1,8 +1,8 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { CONFIG } from '@/lib/config'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, shortOrdinal } from '@/lib/format'
 import { PRICING } from '@/lib/platform-fee'
-import { TERMS_VERSION } from '@/lib/signup'
+import { LEGAL_EFFECTIVE_DATES, TERMS_VERSION } from '@/lib/terms'
 import type { Locale } from '@/i18n/config'
 import fr from '@/messages/fr.json'
 import en from '@/messages/en.json'
@@ -11,8 +11,6 @@ import en from '@/messages/en.json'
 // paragraphes ; un paragraphe qui commence par « • » est un élément de liste. Les variables entre accolades sont
 // remplacées ici, avec les vraies valeurs (raison sociale, commission, version des conditions).
 
-/** Date d'entrée en vigueur des textes de la plateforme (à changer avec eux, comme TERMS_VERSION). */
-export const LEGAL_EFFECTIVE_DATE = '2026-11-10'
 
 interface Doc {
   titre: string
@@ -27,7 +25,7 @@ export default async function LegalDoc({ doc }: { doc: 'confidentialite' | 'cond
   const d = (locale === 'en' ? en : fr).legalPlateforme[doc] as Doc
   const s = CONFIG.brand.studioLegal
   const pct = (r: number) => new Intl.NumberFormat(locale === 'en' ? 'en-CA' : 'fr-CA', { style: 'percent', maximumFractionDigits: 1 }).format(r)
-  const date = new Intl.DateTimeFormat(locale === 'en' ? 'en-CA' : 'fr-CA', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${LEGAL_EFFECTIVE_DATE}T12:00:00Z`))
+  const date = new Intl.DateTimeFormat(locale === 'en' ? 'en-CA' : 'fr-CA', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${LEGAL_EFFECTIVE_DATES[doc]}T12:00:00Z`))
   const vars: Record<string, string> = {
     brand: CONFIG.brand.name,
     studio: s.name,
@@ -36,6 +34,8 @@ export default async function LegalDoc({ doc }: { doc: 'confidentialite' | 'cond
     email: s.email,
     taux: pct(PRICING.rate),
     gratuit: String(PRICING.freeDonors),
+    // Le premier donateur payant, en ordinal (« 101e », « 101st »), section 5
+    suivant: shortOrdinal(PRICING.freeDonors + 1, locale),
     plafond: formatMoney(PRICING.capCents, locale),
     version: TERMS_VERSION,
     date,
@@ -85,3 +85,4 @@ function group(blocs: string[]): (string | string[])[] {
   }
   return out
 }
+

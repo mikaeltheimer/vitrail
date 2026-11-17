@@ -67,6 +67,19 @@ async function main() {
   check('expéditeur : le nom de l\'organisme', e.from.fromName === 'Lake Theatre')
   const r = buildReceipt({ amountCents: 2500, token: 'x', locale: e.locale, baseUrl: 'https://lac.test', org: e.build.org })
   check('reçu : nom et question de l\'organisme', r.subject.includes('Lake Theatre') && JSON.stringify(r.content).includes('Why do you support Lake Theatre?'))
+  check('reçu sans contribution : aucune ligne de contribution', !JSON.stringify(r.content.paragraphs).includes('Donivers'))
+  const rc = buildReceipt({ amountCents: 12500, contributionCents: 1875, token: 'x', locale: 'fr', baseUrl: 'https://lac.test', org: e.build.org })
+  const txt = JSON.stringify(rc.content)
+  check('reçu avec contribution : le don seul, puis la contribution et le total', txt.includes('125\u00a0$') && txt.includes('18,75') && txt.includes('143,75'))
+  check('reçu avec contribution : taxes comprises et numéros de Studio Existence', txt.includes('744071374 RT0001') && txt.includes('1233689404 TQ0001') && txt.includes('reçu fiscal'))
+
+  check('reçu sans numéro de bienfaisance : pas de reçu fiscal', JSON.stringify(rc.content.footer).includes('pas encore enregistré'))
+  const rn = buildReceipt({ amountCents: 12500, token: 'x', locale: 'fr', baseUrl: 'https://lac.test', org: e.build.org, charityNumber: '12345 6789 RR0001' })
+  const pied = JSON.stringify(rn.content.footer)
+  check('reçu avec numéro : émis par l\'organisme, ce courriel n\'en est pas un', pied.includes('12345 6789 RR0001') && pied.includes('n’est pas un reçu fiscal') && !pied.includes('pas encore enregistré'))
+  check('identité : numéro de bienfaisance lu dans legal, vide par défaut', e.build.charityNumber === '' && id.identityFromRow({ id: 'z', name_fr: 'Z', website_url: null, texts: {}, legal: { charityNumber: ' 1 RR0001 ' }, theme: {}, logo_path: null, icon_path: null, locales: ['fr'], sender_name: null, reply_to: null }).charityNumber === '1 RR0001')
+  const fmt = await import('../lib/format')
+  check('ordinaux courts', fmt.shortOrdinal(101, 'fr') === '101e' && fmt.shortOrdinal(1, 'fr') === '1er' && fmt.shortOrdinal(101, 'en') === '101st' && fmt.shortOrdinal(112, 'en') === '112th' && fmt.shortOrdinal(103, 'en') === '103rd')
 
   console.log('Mise en ligne')
   check('tout manque (NEQ et conservation facultatifs)', shared.missingForLaunch({}).length === 5)
@@ -93,6 +106,13 @@ async function main() {
   check('site web : pas de javascript:', res.status === 400)
   res = await post({ ...ok, legal: { officerEmail: 'pas-un-courriel' } })
   check('courriel du responsable invalide refusé', res.status === 400)
+  res = await post({ ...ok, legal: { ...ok.legal, charityNumber: '123456789rr0001' } })
+  check('numéro de bienfaisance : enregistré sous sa forme normale', res.status === 200 && (row.legal as { charityNumber: string }).charityNumber === '123456789 RR 0001')
+  res = await post({ ...ok, legal: { ...ok.legal, charityNumber: '12345 RR1' } })
+  check('numéro de bienfaisance mal formé : refusé, l\'ancien reste', res.status === 400 && (row.legal as { charityNumber: string }).charityNumber === '123456789 RR 0001')
+  res = await post(ok)
+  check('numéro retiré quand la case est vidée (plus d\'effacement à l\'insu)', res.status === 200 && !(row.legal as { charityNumber?: string }).charityNumber)
+  check('forme normale', shared.normalizeCharityNumber(' 123 456 789 rr 0001 ') === '123456789 RR 0001' && shared.normalizeCharityNumber('') === '' && shared.normalizeCharityNumber('123456789 RC 0001') === null)
   current = { id: 'ecole-essai', practiceOf: 'ecole' }
   check('depuis l\'atelier : refusé', (await post(ok)).status === 400)
 

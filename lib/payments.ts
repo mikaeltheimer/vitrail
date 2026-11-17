@@ -4,7 +4,9 @@ import { CONFIG } from './config'
 import { translatorFor } from './i18n'
 import type { Locale } from '@/i18n/config'
 import { paymentModeFor, requireEnv } from './env'
-import { cumulativePlatformFees, platformFeeCents } from './platform-fee'
+import { billingStateOf, computeDonationFees, type BillingSchedule } from './platform-fee'
+import { contributionSettingsFor, stripeFeeEstimateFor, suggestedContribution } from './contribution'
+import { platformSettings } from './platform-settings'
 import { orgName, vitrailPath, type Tenant } from './tenant'
 import { recordDonation } from './donations'
 import type { DonorProfileInput } from './validate'
@@ -25,6 +27,10 @@ export interface CheckoutRequest {
   amountCents: number
   /** Frais de transaction que le donateur ajoute de lui-même (0 s'il ne les couvre pas). Payés, mais hors du total affiché. */
   feeCents: number
+  /** Contribution facultative à Donivers (C), déjà validée par le serveur (0 ≤ C ≤ don). Absente : 0. */
+  contributionCents?: number
+  /** Le bloc de contribution a été montré : on garde la suggestion et la version des tranches (taux d'acceptation). */
+  contributionShown?: boolean
   /** Où revenir après le paiement : le vitrail (panneau « Ajouter mon morceau ») ou la page de don classique. */
   returnTo: 'vitrail' | 'don'
   profile: DonorProfileInput
@@ -54,6 +60,12 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
   const mode = paymentModeFor(req.tenant.org)
   if (mode === 'off') throw new Error('Les paiements ne sont pas activés.')
 
+  // Tranches de la contribution : celles de l'organisme s'il en a, sinon celles de la plateforme
+  const schedule = req.tenant.org.feeSchedule
+  const settings = await platformSettings()
+  const contribution = contributionSettingsFor(settings.contribution, schedule.contributionBrackets)
+  const suggested = req.contributionShown ? suggestedContribution(req.amountCents, contribution.brackets) : null
+
   if (mode === 'demo') {
     const ref = `demo_${randomUUID()}`
     await recordDonation({
@@ -67,6 +79,11 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       feeCents: req.feeCents,
       source: 'demo',
       providerRef: ref,
+      // Démo et atelier : la contribution choisie est gardée (l'organisme voit ce que ses donateurs feraient), sans
+      // surplus ni commission : aucun argent ne circule (décision 5 du 16 nov.)
+      ...((req.contributionCents ?? 0) > 0 || suggested !== null
+        ? { contribution: { cents: req.contributionCents ?? 0, surplusCents: 0, stripeFeeEstimatedCents: null, suggestedCents: suggested, bracketsVersion: suggested !== null ? contribution.version.slice(0, 40) : null } }
+        : {}),
       channel: req.channel,
       locale: req.locale,
       mailingConsent: req.mailingConsent,
@@ -77,7 +94,19 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
   // Paiement direct sur le compte de l'organisme : l'argent va chez lui, nous ne prélevons que notre commission
   const accountId = req.tenant.org.stripeAccountId
   if (!accountId) throw new Error("L'organisme n'a pas de compte Stripe connecté.")
-  const platformFee = platformFeeCents(req.amountCents, req.tenant.org.feeSchedule, await cumulativePlatformFees(req.tenant.org.id))
+  // La règle de la spécification (section 1), « au début du paiement » (D2) ; le webhook la règle ensuite sous verrou
+  const stripeFee = stripeFeeEstimateFor(contribution.stripeFeeEstimate, schedule.stripeFeeEstimate)
+  // Campagnes : pas encore de commission (étape L2, createEvent désactivé) ; la contribution reste possible
+  const principal = req.tenant.vitrail.kind === 'permanent'
+  const applied: BillingSchedule = principal ? schedule : { model: 'exempt', scope: 'principal' }
+  const fees = computeDonationFees({
+    donCents: req.amountCents,
+    contributionCents: req.contributionCents ?? 0,
+    schedule: applied,
+    state: applied.model === 'exempt' ? { donorsCounted: 0, thresholdReached: false, settled: false, cumulCents: 0 } : await billingStateOf(req.tenant.org.id),
+    stripeFee,
+  })
+  const platformFee = fees.applicationFeeCents
 
   const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}', req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail))
   const t = translatorFor(req.locale)
@@ -86,6 +115,8 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
     {
     mode: 'payment',
     submit_type: 'donate',
+    // 30 min (le minimum permis par Stripe) : la commission est fixée ici, une session ouverte longtemps la rend périmée
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     locale: req.locale === 'en' ? 'en' : 'fr-CA',
     ...(req.email ? { customer_email: req.email } : {}),
     line_items: [
@@ -101,10 +132,15 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       ...(req.feeCents > 0
         ? [{ quantity: 1, price_data: { currency: CONFIG.currency, unit_amount: req.feeCents, product_data: { name: t('stripe.frais') } } }]
         : []),
+      // La contribution à Donivers, sur sa propre ligne (frais de transaction compris)
+      ...((req.contributionCents ?? 0) > 0
+        ? [{ quantity: 1, price_data: { currency: CONFIG.currency, unit_amount: req.contributionCents!, product_data: { name: t('stripe.contribution') } } }]
+        : []),
     ],
     payment_intent_data: {
       description: t('stripe.description', { org }),
-      // Notre commission, prélevée par Stripe sur le paiement ; les frais de Stripe restent à la charge de l'organisme
+      // Ce que garde Donivers : le surplus de la contribution (S) et la part de l'organisme (P). Les frais de Stripe sont
+      // pris sur le compte de l'organisme (paiement direct) : la contribution les lui a payés.
       ...(platformFee > 0 ? { application_fee_amount: platformFee } : {}),
     },
     metadata: {
@@ -122,6 +158,11 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       channel: req.channel ?? '',
       feeCents: String(req.feeCents),
       platformFee: String(platformFee),
+      // Le détail du calcul, relu par le webhook (le règlement le corrige sous verrou)
+      contribution: String(req.contributionCents ?? 0),
+      contributionSurplus: String(fees.surplusCents),
+      stripeFeeEstimate: String(fees.stripeFeeEstimatedCents),
+      ...(suggested !== null ? { contributionSuggested: String(suggested), contributionVersion: contribution.version.slice(0, 40) } : {}),
       lang: req.locale,
       mailing: req.mailingConsent ? '1' : '0',
     },
