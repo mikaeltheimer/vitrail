@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { CONFIG } from '@/lib/config'
 import { formatMoney, shortOrdinal } from '@/lib/format'
 import { PRICING } from '@/lib/platform-fee'
-import { TERMS_VERSION } from '@/lib/signup'
+import { LEGAL_EFFECTIVE_DATES, TERMS_VERSION } from '@/lib/terms'
 import type { Locale } from '@/i18n/config'
 import fr from '@/messages/fr.json'
 import en from '@/messages/en.json'
@@ -11,8 +11,6 @@ import en from '@/messages/en.json'
 // paragraphes ; un paragraphe qui commence par « • » est un élément de liste. Les variables entre accolades sont
 // remplacées ici, avec les vraies valeurs (raison sociale, commission, version des conditions).
 
-/** Date d'entrée en vigueur de chaque texte de la plateforme (à changer avec lui ; pour les conditions, avec TERMS_VERSION). */
-export const LEGAL_EFFECTIVE_DATES = { conditions: '2026-11-18', confidentialite: '2026-11-10' } as const
 
 interface Doc {
   titre: string

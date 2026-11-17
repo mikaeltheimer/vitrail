@@ -82,7 +82,7 @@ export function stageOf(status: string, blockers: LaunchBlocker[]): Stage {
 }
 
 export function toStudioOrg(o: Record<string, unknown>, slug: string, stats: OrgStats | undefined): StudioOrg {
-  const blockers = launchBlockers(o as { stripe_ready?: boolean; legal?: unknown })
+  const blockers = launchBlockers(o as { stripe_ready?: boolean; legal?: unknown; terms_version?: string | null })
   const status = String(o.status)
   return {
     id: o.id as string,

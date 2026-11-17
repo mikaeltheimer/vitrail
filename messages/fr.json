@@ -131,7 +131,9 @@
     "imageLourde": "Image trop lourde ({max} Ko au plus).",
     "imageIllisible": "Image illisible : envoyez un PNG, un JPEG ou un SVG.",
     "imageDimensions": "Dimensions de l’image invalides.",
-    "demoLectureSeule": "C’est un vitrail de démonstration : rien n’y est enregistré."
+    "demoLectureSeule": "C’est un vitrail de démonstration : rien n’y est enregistré.",
+    "conditionsAAccepter": "Acceptez d’abord les nouvelles conditions d’utilisation (Accueil › À faire).",
+    "conditionsChangees": "Les conditions ont changé entre-temps. Rechargez la page pour lire la nouvelle version."
   },
   "photo": {
     "alt": "Votre photo",
@@ -1058,6 +1060,7 @@
       "enLigne": "Mettre en ligne",
       "enLigneAide": "Votre vitrail accepte alors de vrais dons.",
       "enLigneAttente": "Possible dès que Stripe est prêt et que les coordonnées juridiques sont remplies.",
+      "enLigneAttenteConditions": "Possible dès que Stripe est prêt, que les coordonnées juridiques sont remplies et que les nouvelles conditions sont acceptées.",
       "enLigneConfirmer": "Mettre votre vitrail en ligne ? Il acceptera de vrais dons dès maintenant.",
       "mettreEnLigne": "Mettre en ligne",
       "erreur": "Une erreur est survenue.",
@@ -1101,6 +1104,31 @@
       "retentionModifier": "Modifier cette phrase",
       "retentionRetablir": "Revenir à la phrase par défaut",
       "retentionAide": "À modifier seulement si votre organisme a une règle de conservation différente."
+    },
+    "conditions": {
+      "titre": "Nos conditions d’utilisation changent",
+      "intro": "Nous les avons mises à jour le {date}. Voici ce qui change pour {org} :",
+      "changeContribution": "Vos donateurs peuvent ajouter une contribution facultative à {brand}. Elle paie d’abord les frais de Stripe : vous recevez alors leur don en entier.",
+      "changePlafond": "Cette contribution compte dans le plafond de {plafond} : vos donateurs peuvent payer pour vous l’utilisation de {brand}, même avant votre {suivant, selectordinal, one {#er} other {#e}} donateur.",
+      "changeTaxes": "Nos prix s’entendent taxes incluses : {taux} par don, {plafond} au plus. Rien ne s’y ajoute.",
+      "changePartenaire": "Votre entente de partenaire fondateur ne change pas : aucune commission sur votre vitrail principal.",
+      "changeRemboursement": "Si vous remboursez un don, Stripe ne rend pas ses frais, même quand la contribution les avait payés.",
+      "rassure": "Aucun de ces changements ne vous coûte plus qu’avant.",
+      "lire": "Lire les conditions complètes",
+      "accepter": "Accepter",
+      "acceptation": "Enregistrement…",
+      "plusTard": "Plus tard",
+      "noteBrouillon": "Vous pourrez mettre votre vitrail en ligne une fois les conditions acceptées.",
+      "noteEnLigne": "Votre vitrail reste en ligne pendant ce temps.",
+      "aFaireTitre": "Accepter les nouvelles conditions",
+      "aFaireBrouillon": "Nécessaire pour mettre votre vitrail en ligne.",
+      "aFaireEnLigne": "Un résumé de ce qui change vous attend.",
+      "lireCourt": "Lire",
+      "benevole": "Le propriétaire de l’organisme doit accepter les nouvelles conditions.",
+      "merci": "Conditions acceptées. Merci!",
+      "historiqueTitre": "Conditions d’utilisation",
+      "historique": "Conditions d’utilisation acceptées le {date} par {nom} (version {version}).",
+      "historiqueSansNom": "Conditions d’utilisation acceptées le {date} (version {version})."
     }
   },
   "plateforme": {

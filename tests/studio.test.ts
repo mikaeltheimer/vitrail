@@ -13,11 +13,14 @@ const LEGAL = { entity: 'École inc.', address: '1 rue', officerName: 'A', offic
 async function main() {
   const s = await import('../lib/studio-stats')
   const { launchBlockers } = await import('../lib/launch')
+  const { TERMS_VERSION: TV } = await import('../lib/terms')
 
   console.log('Prêt à lancer')
-  check('rien de prêt : Stripe et coordonnées', JSON.stringify(launchBlockers({ stripe_ready: false, legal: {} })) === '["stripe","juridique"]')
-  check('Stripe prêt, coordonnées incomplètes', JSON.stringify(launchBlockers({ stripe_ready: true, legal: { ...LEGAL, officerPhone: ' ' } })) === '["juridique"]')
-  check('tout prêt', launchBlockers({ stripe_ready: true, legal: LEGAL }).length === 0)
+  check('rien de prêt : Stripe et coordonnées', JSON.stringify(launchBlockers({ stripe_ready: false, legal: {}, terms_version: TV })) === '["stripe","juridique"]')
+  check('Stripe prêt, coordonnées incomplètes', JSON.stringify(launchBlockers({ stripe_ready: true, legal: { ...LEGAL, officerPhone: ' ' }, terms_version: TV })) === '["juridique"]')
+  check('tout prêt', launchBlockers({ stripe_ready: true, legal: LEGAL, terms_version: TV }).length === 0)
+  check('conditions d\'une version précédente : pas prêt', JSON.stringify(launchBlockers({ stripe_ready: true, legal: LEGAL, terms_version: '2026-11-10-provisoire' })) === '["conditions"]')
+  check('jamais acceptées : pas prêt', JSON.stringify(launchBlockers({ stripe_ready: true, legal: LEGAL })) === '["conditions"]')
   check('étapes', s.stageOf('draft', ['stripe']) === 'pas-pret' && s.stageOf('draft', []) === 'pret' && s.stageOf('live', ['stripe']) === 'en-ligne' && s.stageOf('suspended', []) === 'suspendu')
 
   console.log('Lecture des totaux')
@@ -32,10 +35,10 @@ async function main() {
   check('bigint en texte converti', stats.get('a')?.donors === 19 && stats.get('a')?.netCents === 214168 && stats.get('a')?.bouncesSince === 2)
 
   const orgs = [
-    s.toStudioOrg({ id: 'a', name_fr: 'École', status: 'draft', stripe_ready: true, legal: LEGAL, created_at: ago(20) }, 'ecole', stats.get('a')),
-    s.toStudioOrg({ id: 'b', name_fr: 'Club', status: 'draft', stripe_ready: false, legal: {}, created_at: ago(10) }, 'club', undefined),
-    s.toStudioOrg({ id: 'c', name_fr: 'Neuf', status: 'draft', stripe_ready: false, legal: LEGAL, created_at: ago(2) }, 'neuf', undefined),
-    s.toStudioOrg({ id: 'd', name_fr: 'Musée', status: 'live', stripe_ready: true, legal: LEGAL, created_at: ago(40), went_live_at: ago(5) }, 'musee', { ...s.EMPTY_STATS, donors: 28, netCents: 100, feeCents: 7 }),
+    s.toStudioOrg({ id: 'a', name_fr: 'École', status: 'draft', terms_version: TV, stripe_ready: true, legal: LEGAL, created_at: ago(20) }, 'ecole', stats.get('a')),
+    s.toStudioOrg({ id: 'b', name_fr: 'Club', status: 'draft', terms_version: TV, stripe_ready: false, legal: {}, created_at: ago(10) }, 'club', undefined),
+    s.toStudioOrg({ id: 'c', name_fr: 'Neuf', status: 'draft', terms_version: TV, stripe_ready: false, legal: LEGAL, created_at: ago(2) }, 'neuf', undefined),
+    s.toStudioOrg({ id: 'd', name_fr: 'Musée', status: 'live', terms_version: TV, stripe_ready: true, legal: LEGAL, created_at: ago(40), went_live_at: ago(5) }, 'musee', { ...s.EMPTY_STATS, donors: 28, netCents: 100, feeCents: 7 }),
   ]
   check('École prête à lancer', orgs[0].stage === 'pret')
   check('Club pas prêt : ce qui manque', orgs[1].stage === 'pas-pret' && orgs[1].blockers.join() === 'stripe,juridique')

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     db.from('access_requests').select('id,org_name,name,email,message,locale,source,created_at').is('handled_at', null).order('created_at', { ascending: false }).limit(200),
     db.from('access_requests').select('source,created_at').limit(5000),
     db.from('invitations').select('id,email,org_name,locale,created_at,expires_at,accepted_at,revoked_at').is('organization_id', null).order('created_at', { ascending: false }).limit(500),
-    db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,legal,created_at,went_live_at').is('practice_of', null).eq('showcase', false).order('created_at', { ascending: false }).limit(500),
+    db.from('organizations').select('id,name_fr,status,showcase,stripe_ready,legal,terms_version,created_at,went_live_at').is('practice_of', null).eq('showcase', false).order('created_at', { ascending: false }).limit(500),
     db.from('organization_slugs').select('slug,organization_id').eq('is_current', true),
     db.from('accounts').select('id,email,name,last_login_at').limit(10000),
     // Contact des propriétaires (relation de service entre Studio et l'organisme, pas des donateurs)

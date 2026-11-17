@@ -100,6 +100,7 @@ async function main() {
   check('un vitrail permanent chacun', tables.vitraux.filter(v => v.organization_id === org.id || v.organization_id === practice.id).length === 2)
   const acc = tables.accounts.find(a => a.email === 'autre@x.ca')!
   check('propriétaire de l\'organisme réel seulement', tables.memberships.length === 1 && tables.memberships[0].organization_id === org.id && tables.memberships[0].role === 'owner')
+  check('acceptation inscrite à l\'historique', (tables.terms_acceptances ?? []).filter(x => x.organization_id === org.id && x.version === su.TERMS_VERSION && x.accepted_by === acc.id).length === 1)
   check('invitation servie', !!tables.invitations[0].accepted_at && !(await su.signupInvitation(inv.token)))
   check('session ouverte', r.ok && (await auth.accountFromToken(r.sessionToken))?.email === 'autre@x.ca')
 
@@ -115,6 +116,23 @@ async function main() {
   const jur = await su.goLive(org.id as string)
   check('mise en ligne refusée sans coordonnées juridiques (Loi 25)', !jur.ok && jur.error === 'juridique')
   org.legal = { entity: 'Théâtre du Lac inc.', address: '1 rue du Lac', officerName: 'Julie, directrice', officerEmail: 'julie@x.ca', officerPhone: '450 555-0000', retention: '7 ans' }
+
+  console.log('Nouvelles conditions (D8)')
+  const terms = await import('../lib/terms')
+  org.terms_version = '2026-11-10-provisoire'
+  const cond = await su.goLive(org.id as string)
+  check('mise en ligne refusée avec les conditions d\'une version précédente', !cond.ok && cond.error === 'conditions')
+  const avant = await terms.termsStatus(org.id as string)
+  check('état : non acceptées, version et date en vigueur', !avant.accepted && avant.version === terms.TERMS_VERSION && avant.effectiveDate === terms.LEGAL_EFFECTIVE_DATES.conditions && avant.acceptedAt === null)
+  check('version autre que celle en vigueur : refusée', !(await terms.acceptTerms(org.id as string, acc.id as string, '2026-11-10-provisoire')).ok && org.terms_version === '2026-11-10-provisoire')
+  const nAvant = (tables.terms_acceptances ?? []).length
+  tables.terms_acceptances = (tables.terms_acceptances ?? []).filter(x => x.organization_id !== org.id)
+  const ok1 = await terms.acceptTerms(org.id as string, acc.id as string, terms.TERMS_VERSION, '2026-11-19T15:00:00.000Z')
+  const ok2 = await terms.acceptTerms(org.id as string, acc.id as string, terms.TERMS_VERSION, '2026-11-19T15:05:00.000Z')
+  check('acceptée : colonnes mises à jour', ok1.ok && ok2.ok && org.terms_version === terms.TERMS_VERSION && org.terms_accepted_by === acc.id)
+  check('deux fois : une seule ligne d\'historique', tables.terms_acceptances.filter(x => x.organization_id === org.id).length === 1 && nAvant >= 1)
+  const apres = await terms.termsStatus(org.id as string)
+  check('état : acceptées, par qui', apres.accepted && apres.acceptedBy === 'Julie' && apres.acceptedAt === '2026-11-19T15:05:00.000Z')
   check('mise en ligne avec Stripe prêt et coordonnées complètes', (await su.goLive(org.id as string)).ok && org.status === 'live' && !!org.went_live_at)
   check('pas deux fois', !(await su.goLive(org.id as string)).ok)
   check('l\'entraînement reste en brouillon', practice.status === 'draft')

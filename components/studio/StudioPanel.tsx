@@ -34,11 +34,13 @@ const VIOLET = '#A56BD9'
 const day = (iso: string) => new Date(iso).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })
 const money = (c: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: c % 100 ? 2 : 0 }).format(c / 100)
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString('fr-CA')} ${n > 1 ? many : one}`
-const MISSING: Record<string, string> = { stripe: 'Stripe', juridique: 'les coordonnées juridiques' }
+const MISSING: Record<string, string> = { stripe: 'Stripe', juridique: 'les coordonnées juridiques', conditions: 'les nouvelles conditions' }
 /** « Stripe et les coordonnées juridiques » (phrase) ; « Stripe, coordonnées juridiques » (court, pour les cartes). */
 /** Lien « Écrire » vers un propriétaire, sujet prérempli : relation de service, jamais d'envoi groupé. */
 const mailto = (email: string, org: string) => `mailto:${email}?subject=${encodeURIComponent(`Donivers · ${org}`)}`
-const missing = (b: string[], short = false) => (short ? b.map(k => (k === 'stripe' ? 'Stripe' : 'coordonnées juridiques')).join(', ') : b.map(k => MISSING[k] ?? k).join(' et '))
+const missing = (b: string[], short = false) => (short ? b.map(k => (k === 'stripe' ? 'Stripe' : k === 'conditions' ? 'conditions' : 'coordonnées juridiques')).join(', ') : joinEt(b.map(k => MISSING[k] ?? k)))
+/** « a », « a et b », « a, b et c ». */
+const joinEt = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} et ${l[l.length - 1]}` : (l[0] ?? ''))
 
 /** « il y a 3 jours », « hier », « aujourd’hui », « dans 2 jours ». */
 function since(iso: string | null): string {
