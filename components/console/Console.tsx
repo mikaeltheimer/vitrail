@@ -11,6 +11,7 @@ import Diffuser from './Diffuser'
 import Plus, { SCREENS, needsAttention, type Screen } from './Plus'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { TermsScreen, laterKey, readLater } from './Conditions'
+import Compte from './Compte'
 
 export type Tab = 'accueil' | 'dons' | 'moderation' | 'diffuser' | 'plus'
 const TABS: Tab[] = ['accueil', 'dons', 'moderation', 'diffuser', 'plus']
@@ -160,7 +161,7 @@ export default function Console() {
           )}
           {data && (
             <div className="pt-3">
-              <Account data={data} side />
+              <Account data={data} side onChanged={() => void c.load()} />
             </div>
           )}
         </div>
@@ -192,7 +193,7 @@ export default function Console() {
                 {t('entrainement.ouvrir')}
               </a>
             )}
-            {data && <Account data={data} />}
+            {data && <Account data={data} onChanged={() => void c.load()} />}
           </div>
         </header>
 
@@ -257,9 +258,10 @@ export default function Console() {
 }
 
 /** Compte connecté : nom, rôle, autres organismes, déconnexion. */
-function Account({ data, side = false }: { data: NonNullable<ReturnType<typeof useConsole>['data']>; side?: boolean }) {
+function Account({ data, side = false, onChanged }: { data: NonNullable<ReturnType<typeof useConsole>['data']>; side?: boolean; onChanged: () => void }) {
   const t = useTranslations('console')
   const [openMenu, setOpenMenu] = useState(false)
+  const [compte, setCompte] = useState(false)
   const initials = (data.me.name || data.me.email)
     .split(/[\s@.]+/)
     .filter(Boolean)
@@ -291,7 +293,7 @@ function Account({ data, side = false }: { data: NonNullable<ReturnType<typeof u
         </button>
       )}
       {openMenu && (
-        <div className={`card absolute z-50 w-64 space-y-3 !p-4 text-sm ${side ? 'bottom-14 left-0' : 'right-0 top-12'}`}>
+        <div className={`card absolute z-50 space-y-3 !p-4 text-sm ${side ? 'inset-x-0 bottom-14' : 'right-0 top-12 w-64'}`}>
           <p>
             <b>{data.me.name || data.me.email}</b>
             <span className="muted block">{data.me.email}</span>
@@ -307,6 +309,9 @@ function Account({ data, side = false }: { data: NonNullable<ReturnType<typeof u
               ))}
             </div>
           )}
+          <button className="btn btn-ghost w-full" onClick={() => (setOpenMenu(false), setCompte(true))}>
+            {t('compte.menu')}
+          </button>
           <p>
             <LanguageSwitch style={{ textDecoration: 'underline' }} />
           </p>
@@ -321,6 +326,7 @@ function Account({ data, side = false }: { data: NonNullable<ReturnType<typeof u
           </button>
         </div>
       )}
+      {compte && <Compte onClose={() => setCompte(false)} onChanged={onChanged} />}
     </div>
   )
 }

@@ -217,21 +217,22 @@ export type AdminContext = { tenant: Tenant; account: Account; role: Role }
  * Refus (403) si elle n'en est pas membre ou si son rôle est insuffisant ; 401 si personne n'est connecté.
  * Une requête qui modifie quelque chose doit venir de la même adresse (en-tête Origin) : pas de formulaire d'un autre site.
  */
+/** Requête d'écriture venue d'un autre site (en-tête Origin d'un autre hôte) : à refuser. GET et HEAD ne sont pas vérifiés. */
+export function foreignOrigin(request: Request): boolean {
+  if (request.method === 'GET' || request.method === 'HEAD') return false
+  const origin = request.headers.get('origin')
+  if (!origin) return false
+  const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim().toLowerCase()
+  try {
+    return new URL(origin).host.toLowerCase() !== host
+  } catch {
+    return true // origine illisible
+  }
+}
+
 export async function requireAdmin(request: Request, minRole: Role = 'volunteer'): Promise<{ ctx: AdminContext } | { response: Response }> {
   const deny = (status: number, key: ErrorKey) => ({ response: errorResponse(request, err(key), status) as Response })
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    const origin = request.headers.get('origin')
-    const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim().toLowerCase()
-    if (origin) {
-      let originHost = ''
-      try {
-        originHost = new URL(origin).host.toLowerCase()
-      } catch {
-        // origine illisible : refusée plus bas
-      }
-      if (originHost !== host) return deny(403, 'autreOrigine')
-    }
-  }
+  if (foreignOrigin(request)) return deny(403, 'autreOrigine')
   const t = await requireTenant(request)
   if ('response' in t) return t
   const account = await currentAccount()

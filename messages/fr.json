@@ -134,7 +134,13 @@
     "demoLectureSeule": "C’est un vitrail de démonstration : rien n’y est enregistré.",
     "conditionsAAccepter": "Acceptez d’abord les nouvelles conditions d’utilisation (Accueil › À faire).",
     "conditionsChangees": "Les conditions ont changé entre-temps. Rechargez la page pour lire la nouvelle version.",
-    "charityNumberInvalide": "Ce numéro ne semble pas valide : 9 chiffres, RR, puis 4 chiffres (ex. : 123456789 RR 0001)."
+    "charityNumberInvalide": "Ce numéro ne semble pas valide : 9 chiffres, RR, puis 4 chiffres (ex. : 123456789 RR 0001).",
+    "nomInvalide": "Le nom doit compter entre 2 et 80 caractères.",
+    "motDePasseActuelFaux": "Le mot de passe actuel n’est pas le bon.",
+    "motDePasseIdentique": "Le nouveau mot de passe doit être différent de l’actuel.",
+    "courrielIdentique": "C’est déjà l’adresse de votre compte.",
+    "courrielIndisponible": "Cette adresse ne peut pas être utilisée pour votre compte.",
+    "courrielDejaDemande": "Un lien vient d’être envoyé. Attendez deux minutes avant d’en demander un autre."
   },
   "photo": {
     "alt": "Votre photo",
@@ -557,7 +563,18 @@
     "centiemeBravo": "Bravo : {org} vient d’accueillir son 100e donateur.",
     "centiemeEnsuite": "À partir de maintenant, chaque don donne lieu à une commission de {taux}, taxes incluses, jusqu’à {plafond} au total. Quand un donateur ajoute une contribution, c’est elle qui la paie.",
     "centiemeDonateurs": "Vos donateurs ont déjà réglé {montant} sur {plafond}.",
-    "centiemeBouton": "Voir mon forfait"
+    "centiemeBouton": "Voir mon forfait",
+    "changeObjet": "Confirmez votre nouvelle adresse pour {brand}",
+    "changePreheader": "Un clic pour confirmer votre nouvelle adresse.",
+    "changeTitre": "Confirmez votre nouvelle adresse",
+    "changeCorps": "Vous avez demandé à remplacer l’adresse de votre compte {brand} ({ancienne}) par celle-ci. Le changement se fera quand vous aurez cliqué le bouton. Le lien vaut 24 heures et ne sert qu’une fois.",
+    "changeBouton": "Confirmer cette adresse",
+    "changeIgnorer": "Vous n’avez rien demandé ? Ignorez ce courriel : rien ne changera.",
+    "changeAvisObjet": "L’adresse de votre compte {brand} a changé",
+    "changeAvisPreheader": "Votre compte utilise maintenant une autre adresse.",
+    "changeAvisTitre": "Votre adresse a changé",
+    "changeAvisCorps": "Votre compte {brand} utilise maintenant l’adresse {nouvelle}. C’est elle qui sert désormais à vous connecter et à recevoir nos courriels.",
+    "changeAvisPasVous": "Ce n’est pas vous ? Écrivez-nous tout de suite à {contact}."
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",
@@ -715,6 +732,34 @@
       "autres": "Mes autres organismes",
       "deconnexion": "Se déconnecter"
     },
+    "monCompte": {
+      "titre": "Mon compte",
+      "nom": "Nom",
+      "nomAide": "Le nom que votre équipe voit.",
+      "nomOk": "Nom enregistré.",
+      "courriel": "Adresse courriel",
+      "courrielAide": "Elle sert à vous connecter et à recevoir les courriels de la console.",
+      "nouveauCourriel": "Nouvelle adresse",
+      "changerCourriel": "Changer d’adresse",
+      "envoyerLien": "Envoyer le lien de confirmation",
+      "lienEnvoye": "Lien envoyé à {email}. L’adresse changera quand vous l’aurez confirmé (24 heures).",
+      "enAttente": "En attente de confirmation : {email}",
+      "annulerChangement": "Annuler ce changement",
+      "annule": "Changement annulé.",
+      "motDePasse": "Mot de passe",
+      "motDePasseAide": "{min} caractères ou plus. Vos autres appareils seront déconnectés.",
+      "motDePasseModifie": "Modifié le {date}",
+      "changerMotDePasse": "Changer le mot de passe",
+      "actuel": "Mot de passe actuel",
+      "nouveau": "Nouveau mot de passe",
+      "encore": "Encore une fois",
+      "motDePasseOk": "Mot de passe changé. Vos autres appareils sont déconnectés.",
+      "confirmerAvecMotDePasse": "Pour confirmer, votre mot de passe actuel",
+      "differents": "Les deux mots de passe sont différents.",
+      "enregistrer": "Enregistrer",
+      "annuler": "Annuler",
+      "oublie": "Mot de passe oublié ? Déconnectez-vous, puis utilisez « Mot de passe oublié » sur la page de connexion."
+    },
     "roles": {
       "owner": "propriétaire",
       "volunteer": "bénévole"
@@ -751,7 +796,9 @@
         "moderation": "Avis de modération",
         "invitation": "Invitation",
         "password_reset": "Mot de passe",
-        "fee_threshold": "Avis : 100e donateur"
+        "fee_threshold": "Avis : 100e donateur",
+        "email_change": "Changement d’adresse",
+        "email_changed": "Avis : adresse changée"
       }
     },
     "accueil": {
@@ -1652,6 +1699,7 @@
     "metaConnexion": "Connexion — {brand}",
     "metaInvitation": "Invitation — {brand}",
     "metaReinitialiser": "Nouveau mot de passe — {brand}",
+    "metaCourriel": "Confirmer une nouvelle adresse · {brand}",
     "erreur": "Une erreur est survenue. Réessayez.",
     "retourVitrail": "← Retour au vitrail",
     "retourAccueil": "← Retour à l’accueil",
@@ -1695,6 +1743,13 @@
       "nouveau": "Nouveau mot de passe",
       "encore": "Encore une fois",
       "enregistrer": "Enregistrer"
+    },
+    "courriel": {
+      "titre": "Confirmer votre nouvelle adresse",
+      "aide": "Cliquez pour que votre compte utilise désormais cette adresse.",
+      "confirmer": "Confirmer la nouvelle adresse",
+      "fait": "C’est fait : votre compte utilise maintenant {email}. Votre ancienne adresse a reçu un avis.",
+      "console": "Aller à la console"
     }
   },
   "demoJuridique": {
