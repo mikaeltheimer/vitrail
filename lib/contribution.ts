@@ -33,7 +33,7 @@ export interface ContributionSettings {
 export const DEFAULT_CONTRIBUTION_SETTINGS: ContributionSettings = {
   version: '2026-11-16',
   brackets: [{ upToCents: 25_000, rate: 0.15 }, { upToCents: 100_000, rate: 0.08 }, { rate: 0.07 }],
-  menuRates: [0.05, 0.1, 0.15],
+  menuRates: [0.1, 0.15], // 5 % retiré (Mika, 17 nov.) ; la ligne de la base fait foi
   stripeFeeEstimate: { rate: 0.029, fixedCents: 30 },
 }
 

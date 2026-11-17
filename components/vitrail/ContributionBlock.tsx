@@ -55,7 +55,11 @@ export function useContributionConfig(): ContributionConfig {
   return config;
 }
 
-/** Le choix du donateur : la suggestion (par défaut), un pourcentage du menu, un autre montant, ou rien. */
+/**
+ * Le choix du donateur : la suggestion (par défaut), un pourcentage du menu ou un autre montant (vide = rien).
+ * « none » n'est plus au menu (Mika, 17 nov. : on passe par « Autre montant », qui part de 0, comme Zeffy) ;
+ * il reste lu pour un brouillon enregistré avant ce changement.
+ */
 export type ContributionChoice = "suggested" | "other" | "none" | `rate:${number}`;
 
 /** Contribution en cents pour un choix ; « Autre montant » se lit en dollars (virgule ou point). */
@@ -104,7 +108,8 @@ export default function ContributionBlock({
   const suggested = suggestedContribution(donCents, config.brackets);
   const rates = menuRatesFor(donCents, { ...DEFAULT_CONTRIBUTION_SETTINGS, brackets: config.brackets, menuRates: config.menuRates });
   // Un pourcentage choisi qui n'est plus au menu (le don a changé) : on revient à la suggestion
-  const shown: ContributionChoice = choice.startsWith("rate:") && !rates.includes(Number(choice.slice(5))) ? "suggested" : choice;
+  const shown: ContributionChoice =
+    choice === "none" ? "other" : choice.startsWith("rate:") && !rates.includes(Number(choice.slice(5))) ? "suggested" : choice;
   const { cents, error } = contributionFor(shown, otherText, donCents, config);
 
   // La ligne qui change avec le montant : tout est couvert (frais Stripe et commission), une partie, ou rien
@@ -120,7 +125,7 @@ export default function ContributionBlock({
   return (
     <div style={{ display: "grid", gap: "10px" }}>
       <label htmlFor={`${ids}-choix`} style={{ fontSize: "17px", fontWeight: 600, color: "#F4EFE6" }}>
-        {t("titre")}
+        {t("titre", { org: orgName })}
       </label>
       <select
         id={`${ids}-choix`}
@@ -135,7 +140,6 @@ export default function ContributionBlock({
           </option>
         ))}
         <option value="other">{t("autre")}</option>
-        <option value="none">{t("rien")}</option>
       </select>
       {shown === "other" && (
         <label style={{ display: "grid", gap: "6px", fontSize: "16px", color: "rgba(255,255,255,0.82)" }}>
@@ -144,6 +148,7 @@ export default function ContributionBlock({
             type="text"
             inputMode="decimal"
             value={otherText}
+            placeholder={t("autrePlaceholder")}
             onChange={(e) => onOtherText(e.target.value)}
             style={inputStyle}
             aria-invalid={error ? true : undefined}
@@ -186,23 +191,31 @@ export default function ContributionBlock({
           ))}
         </div>
       )}
-      {cents > 0 && !error && (
-        <dl style={recapStyle}>
-          <dt style={{ margin: 0 }}>
-            {t("recapDon", { org: orgName })}
-            {config.charity && <span style={noteStyle}>{t("recapRecu")}</span>}
-          </dt>
-          <dd style={amountStyle}>{money(donCents)}</dd>
-          <dt style={{ margin: 0 }}>
-            {t("recapContribution")}
-            <span style={noteStyle}>{t("recapContributionNote")}</span>
-          </dt>
-          <dd style={amountStyle}>{money(cents)}</dd>
-          <dt style={{ margin: 0, paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.12)", fontWeight: 700 }}>{t("recapTotal")}</dt>
-          <dd style={{ ...amountStyle, paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.12)", fontWeight: 700 }}>{money(donCents + cents)}</dd>
-        </dl>
-      )}
     </div>
+  );
+}
+
+
+/** Récapitulatif (section 2.2 de la spécification), sous l'encadré de la contribution : seulement s'il y a une contribution. */
+export function ContributionRecap({ donCents, cents, orgName, charity }: { donCents: number; cents: number; orgName: string; charity: boolean }) {
+  const t = useTranslations("contribution");
+  const money = useMoney();
+  if (cents <= 0) return null;
+  return (
+    <dl style={recapStyle}>
+      <dt style={{ margin: 0 }}>
+        {t("recapDon", { org: orgName })}
+        {charity && <span style={noteStyle}>{t("recapRecu")}</span>}
+      </dt>
+      <dd style={amountStyle}>{money(donCents)}</dd>
+      <dt style={{ margin: 0 }}>
+        {t("recapContribution")}
+        <span style={noteStyle}>{t("recapContributionNote")}</span>
+      </dt>
+      <dd style={amountStyle}>{money(cents)}</dd>
+      <dt style={{ margin: 0, paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.12)", fontWeight: 700 }}>{t("recapTotal")}</dt>
+      <dd style={{ ...amountStyle, paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.12)", fontWeight: 700 }}>{money(donCents + cents)}</dd>
+    </dl>
   );
 }
 
@@ -240,11 +253,9 @@ const recapStyle: CSSProperties = {
   gridTemplateColumns: "1fr auto",
   gap: "8px 12px",
   margin: 0,
-  padding: "12px 14px",
-  borderRadius: "10px",
-  background: "rgba(255,255,255,0.04)",
-  fontSize: "15px",
+  padding: "4px 2px",
+  fontSize: "16px",
   color: "#F4EFE6",
 };
-const noteStyle: CSSProperties = { display: "block", fontSize: "13px", color: "rgba(255,255,255,0.7)" };
+const noteStyle: CSSProperties = { display: "block", fontSize: "14px", color: "rgba(255,255,255,0.7)" };
 const amountStyle: CSSProperties = { margin: 0, textAlign: "right", fontVariantNumeric: "tabular-nums" };
