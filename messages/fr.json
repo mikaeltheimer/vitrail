@@ -133,7 +133,8 @@
     "imageDimensions": "Dimensions de l’image invalides.",
     "demoLectureSeule": "C’est un vitrail de démonstration : rien n’y est enregistré.",
     "conditionsAAccepter": "Acceptez d’abord les nouvelles conditions d’utilisation (Accueil › À faire).",
-    "conditionsChangees": "Les conditions ont changé entre-temps. Rechargez la page pour lire la nouvelle version."
+    "conditionsChangees": "Les conditions ont changé entre-temps. Rechargez la page pour lire la nouvelle version.",
+    "charityNumberInvalide": "Ce numéro ne semble pas valide : 9 chiffres, RR, puis 4 chiffres (ex. : 123456789 RR 0001)."
   },
   "photo": {
     "alt": "Votre photo",
@@ -839,7 +840,9 @@
       "supprimerAide": "À faire quand le donateur vous le demande. Son courriel, son nom, son témoignage, sa photo, son inscription à la liste d’envoi et l’historique de ses courriels sont effacés. Ses dons restent dans vos registres, sans nom, pour votre comptabilité, et son fragment reste sur le vitrail, anonyme. Il ne pourra plus recevoir son lien personnel.",
       "supprimerStripe": "Stripe garde de son côté le courriel lié au paiement, dans votre compte Stripe.",
       "supprimerConfirmer": "Supprimer définitivement",
-      "supprimerOk": "Renseignements supprimés."
+      "supprimerOk": "Renseignements supprimés.",
+      "detailForfait": "Contribution : {contribution} · Frais Stripe : {frais} · Commission payée par vous : {commission}",
+      "fraisEstimes": "{frais} (estimés)"
     },
     "remboursement": {
       "paiement": "Paiement : {montant}",
@@ -1096,9 +1099,12 @@
       "nonEnregistre": "Modifications non enregistrées",
       "dansAtelier": "Ici, dans l’atelier, personnalisez votre vitrail directement sur la page (bouton « Modifier »). Les coordonnées juridiques et les courriels se règlent dans la console de l’organisme.",
       "ouvrirAtelier": "Personnaliser dans l’atelier",
-      "neq": "NEQ ou numéro d’organisme de bienfaisance",
-      "neqExemple": "Ex. : 1234567890, ou 123456789 RR 0001",
+      "neq": "NEQ (numéro d’entreprise du Québec)",
+      "neqExemple": "Ex. : 1234567890",
       "neqAide": "Facultatif, mais recommandé : il identifie l’organisme sans ambiguïté.",
+      "charityNumber": "Numéro d’organisme de bienfaisance (facultatif)",
+      "charityNumberExemple": "Ex. : 123456789 RR 0001",
+      "charityNumberAide": "Si votre organisme est enregistré auprès de l’Agence du revenu du Canada. Vos donateurs verront alors que leur don donne droit à un reçu fiscal émis par {org}. Donivers ne produit pas les reçus officiels.",
       "officerPhoneExemple": "+1 514 555 0123",
       "retentionDefautTitre": "Phrase par défaut (convient à la plupart des organismes) :",
       "retentionModifier": "Modifier cette phrase",
@@ -1129,6 +1135,35 @@
       "historiqueTitre": "Conditions d’utilisation",
       "historique": "Conditions d’utilisation acceptées le {date} par {nom} (version {version}).",
       "historiqueSansNom": "Conditions d’utilisation acceptées le {date} (version {version})."
+    },
+    "forfait": {
+      "titre": "Votre forfait",
+      "comment": "Comment ça marche",
+      "badgeGratuit": "Gratuit",
+      "badgePaiement": "En paiement",
+      "badgeAcquitte": "Acquitté",
+      "badgePartenaire": "Partenaire fondateur",
+      "gratuit": "{n} donateurs sur {max} gratuits",
+      "gratuitDonateurs": "Vos donateurs ont déjà réglé {montant} sur {plafond}.",
+      "gratuitEnsuite": "Ensuite, {taux} par don, jusqu’à {plafond} au total.",
+      "paiement": "{montant} réglés sur {plafond}",
+      "paiementDont": "dont {montant} par vos donateurs",
+      "legendeDonateurs": "Vos donateurs",
+      "legendeVous": "Vous",
+      "reste": "Il reste {montant}. Ensuite, 0 % pour toujours.",
+      "acquitte": "Acquitté. 0 % sur tous vos dons, pour toujours.",
+      "acquitteDonateurs": "Vos donateurs en ont payé {montant}.",
+      "partenaire": "Aucune commission sur votre vitrail principal.",
+      "stripeCouverts": "Vos donateurs ont payé {montant} de frais Stripe à votre place.",
+      "jauge": "{montant} réglés sur {plafond}, dont {donateurs} par vos donateurs",
+      "reglagesTitre": "Votre forfait",
+      "reglages1": "Gratuit pour vos {gratuit} premiers donateurs.",
+      "reglages2": "Ensuite, {taux} par don, jusqu’à {plafond} au total. Puis 0 %, pour toujours.",
+      "reglages3": "Vos donateurs peuvent ajouter une contribution facultative à {brand}. Elle paie d’abord les frais de Stripe, puis votre commission, et elle compte dans le plafond.",
+      "reglages4": "Tous nos montants sont taxes incluses : rien ne s’y ajoute.",
+      "reglagesPartenaire": "Partenaire fondateur : aucune commission sur votre vitrail principal. Vos donateurs peuvent quand même ajouter une contribution facultative à {brand} ; elle paie d’abord les frais de Stripe.",
+      "reglagesStripe": "Frais de Stripe : {pct} + {fixe} par carte canadienne, pris sur chaque paiement. Stripe offre un tarif réduit aux organismes de bienfaisance enregistrés.",
+      "lireConditions": "Lire les conditions (section 5)"
     }
   },
   "plateforme": {

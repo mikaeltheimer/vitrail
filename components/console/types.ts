@@ -1,5 +1,7 @@
 // Données renvoyées par GET /api/admin (console v2)
 
+import type { BillingSummary } from '@/lib/platform-fee'
+
 export type Role = 'owner' | 'volunteer'
 
 export interface DonorRow {
@@ -58,6 +60,8 @@ export interface ConsoleData {
   atelierUrl: string | null
   /** Une version personnalisée a déjà été publiée depuis l'atelier. */
   published: boolean
+  /** Carte « Votre forfait » (C) : propriétaire de l'organisme réel seulement, sinon null. */
+  billing: BillingSummary | null
   /** Conditions de la plateforme (D8) : version en vigueur acceptée ? null pour l'atelier et la démo. */
   terms: { version: string; effectiveDate: string; accepted: boolean; acceptedAt: string | null; acceptedBy: string | null; exempt: boolean } | null
   summary: { totalCents: number; donations: number; donors: number; goalCents: number | null }

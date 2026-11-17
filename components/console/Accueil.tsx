@@ -11,6 +11,7 @@ import type { Tab } from './Console'
 import type { Screen } from './Plus'
 import { Icon, RED, GREEN, Section, Sheet, useAgo, useDay } from './ui'
 import { TermsSummary } from './Conditions'
+import { ForfaitCard } from './Forfait'
 
 interface Todo {
   key: string
@@ -145,6 +146,8 @@ export default function Accueil({
         {data.mode === 'demo' && owner && !data.org.practice && <p className="text-xs" style={{ color: 'var(--accent)' }}>{t('demoExplication')}</p>}
         <Apercu url={data.vitrailUrl} version={s.donations} label={data.org.practice ? t('voirEntrainement') : t('voirVitrail')} />
       </section>
+
+      {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
 
       {/* L'atelier, toujours à portée sur l'accueil (avant : seulement dans la carte de démarrage, qui disparaît à la mise en ligne, et dans Plus) */}
       {owner && data.atelierUrl && !(data.org.status === 'draft' && !data.org.practice) && (

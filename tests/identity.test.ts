@@ -106,6 +106,13 @@ async function main() {
   check('site web : pas de javascript:', res.status === 400)
   res = await post({ ...ok, legal: { officerEmail: 'pas-un-courriel' } })
   check('courriel du responsable invalide refusé', res.status === 400)
+  res = await post({ ...ok, legal: { ...ok.legal, charityNumber: '123456789rr0001' } })
+  check('numéro de bienfaisance : enregistré sous sa forme normale', res.status === 200 && (row.legal as { charityNumber: string }).charityNumber === '123456789 RR 0001')
+  res = await post({ ...ok, legal: { ...ok.legal, charityNumber: '12345 RR1' } })
+  check('numéro de bienfaisance mal formé : refusé, l\'ancien reste', res.status === 400 && (row.legal as { charityNumber: string }).charityNumber === '123456789 RR 0001')
+  res = await post(ok)
+  check('numéro retiré quand la case est vidée (plus d\'effacement à l\'insu)', res.status === 200 && !(row.legal as { charityNumber?: string }).charityNumber)
+  check('forme normale', shared.normalizeCharityNumber(' 123 456 789 rr 0001 ') === '123456789 RR 0001' && shared.normalizeCharityNumber('') === '' && shared.normalizeCharityNumber('123456789 RC 0001') === null)
   current = { id: 'ecole-essai', practiceOf: 'ecole' }
   check('depuis l\'atelier : refusé', (await post(ok)).status === 400)
 

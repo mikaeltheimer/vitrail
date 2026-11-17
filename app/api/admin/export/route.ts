@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { fetchWhere } from '@/lib/donations'
 import { failer } from '@/lib/errors'
+import { FEE_COLUMNS } from '@/lib/billing'
+import { donationFees, type FeeRow } from '@/lib/platform-fee'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,22 +42,27 @@ export async function GET(request: NextRequest) {
   } else if (type === 'dons') {
     const donations = await fetchWhere<Record<string, unknown>>(
       'donations',
-      'id,donor_id,amount_cents,fee_cents,refunded_cents,dispute_status,source,channel,created_at',
+      `id,donor_id,fee_cents,dispute_status,channel,created_at,${FEE_COLUMNS}`,
       'organization_id',
       org.id,
       'id',
     )
     donations.sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)))
     body = csv([
-      ['date', 'courriel', 'nom', 'don', 'frais_couverts', 'rembourse', 'net', 'litige', 'mode', 'provenance'],
+      // contribution, frais_stripe, commission_organisme (C, 16 nov.) ; frais_couverts reste pour les dons d'avant (ancienne case)
+      ['date', 'courriel', 'nom', 'don', 'contribution', 'frais_stripe', 'commission_organisme', 'frais_couverts', 'rembourse', 'net', 'litige', 'mode', 'provenance'],
       ...donations.map(n => {
         const d = byId.get(n.donor_id as string)
         const email = String(d?.email ?? '')
+        const f = donationFees(n as unknown as FeeRow)
         return [
           n.created_at,
           email.endsWith('.invalid') ? '' : email,
           d?.display_name ?? '',
           money(Number(n.amount_cents)),
+          f ? money(f.contributionCents) : '',
+          f && f.stripeFeeCents !== null ? money(f.stripeFeeCents) : '',
+          f ? money(f.orgCommissionCents) : '',
           money(Number(n.fee_cents ?? 0)),
           money(Number(n.refunded_cents)),
           money(Number(n.amount_cents) - Number(n.refunded_cents)),

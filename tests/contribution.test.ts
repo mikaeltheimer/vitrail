@@ -182,6 +182,35 @@ async function main() {
   check('50 $ : suggestion 7,50 $, surplus 5,53 $ ≥ 1,40 $', f.suggestionCoversCommission(5_000, c.DEFAULT_CONTRIBUTION_SETTINGS))
   check('tranches à 1 % : la phrase disparaît', !f.suggestionCoversCommission(5_000, { ...c.DEFAULT_CONTRIBUTION_SETTINGS, brackets: [{ rate: 0.01 }] }))
 
+  console.log('Détail des frais d\'un don (console, CSV)')
+  // 125 $ + 18,75 $, frais réels 4,47 $ : surplus 14,28 $, rien pour l'organisme
+  const d1 = f.donationFees({ source: 'stripe', amount_cents: 12_500, refunded_cents: 0, donor_contribution_cents: 1_875, stripe_fee_actual_cents: 447, stripe_fee_estimated_cents: 447, platform_fee_cents: 1_428, platform_fee_waived_cents: 0, platform_fee_refunded_cents: 0, contribution_surplus_cents: 1_428 })!
+  check('contribution suggérée : commission 0, frais Stripe payés par le donateur', d1.contributionCents === 1_875 && d1.stripeFeeCents === 447 && !d1.stripeFeeEstimated && d1.orgCommissionCents === 0 && d1.stripeCoveredCents === 447)
+  // « Ne rien ajouter » : frais estimés seulement, commission 3,50 $
+  const d2 = f.donationFees({ source: 'stripe', amount_cents: 12_500, refunded_cents: 0, donor_contribution_cents: 0, stripe_fee_actual_cents: null, stripe_fee_estimated_cents: 393, platform_fee_cents: 350, platform_fee_waived_cents: 0, platform_fee_refunded_cents: 0, contribution_surplus_cents: 0 })!
+  check('sans contribution : frais estimés, commission payée par l\'organisme', d2.stripeFeeEstimated && d2.stripeFeeCents === 393 && d2.orgCommissionCents === 350 && d2.stripeCoveredCents === 0)
+  // Remboursé en entier : plus rien de couvert, part de Donivers rendue
+  const d3 = f.donationFees({ source: 'stripe', amount_cents: 12_500, refunded_cents: 12_500, donor_contribution_cents: 1_875, stripe_fee_actual_cents: 447, platform_fee_cents: 1_428, platform_fee_waived_cents: 0, platform_fee_refunded_cents: 1_428, contribution_surplus_cents: 1_428 })!
+  check('remboursé : frais couverts et commission retombent à 0', d3.stripeCoveredCents === 0 && d3.orgCommissionCents === 0)
+  check('comptant : pas de détail', f.donationFees({ source: 'cash', amount_cents: 4_000, refunded_cents: 0 }) === null)
+
+  console.log('Carte « Votre forfait »')
+  const st = (o: Partial<Parameters<typeof f.billingStage>[0]>) => f.billingStage({ model: 'capped', settled: false, thresholdReached: false, donorsCounted: 37, freeDonors: 100, ...o })
+  check('états : gratuit, en paiement, acquitté, partenaire', st({}) === 'gratuit' && st({ donorsCounted: 100 }) === 'paiement' && st({ thresholdReached: true, donorsCounted: 50 }) === 'paiement' && st({ settled: true }) === 'acquitte' && st({ model: 'exempt', settled: true }) === 'partenaire')
+  const billing = await import('../lib/billing')
+  reset()
+  tables.organization_billing = [{ organization_id: 'o1', donors_counted: 214, cumul_cents: 31_200, donor_covered_cents: 28_000, fees_net_cents: 3_200, fee_threshold_reached_at: '2027-02-03T00:00:00Z', fee_settled_at: null }]
+  tables.donations = [{ id: 'd1', organization_id: 'o1', source: 'stripe', amount_cents: 12_500, refunded_cents: 0, donor_contribution_cents: 1_875, stripe_fee_actual_cents: 447, contribution_surplus_cents: 1_428, platform_fee_cents: 1_428 }]
+  const b1 = await billing.billingSummary('o1', f.DEFAULT_BILLING_SCHEDULE)
+  check('en paiement : 312 $ réglés dont 280 $ par les donateurs, 4,47 $ de frais Stripe couverts', b1.paidCents === 31_200 && b1.donorsPaidCents === 28_000 && b1.thresholdReached && !b1.settled && b1.stripeCoveredCents === 447)
+  tables.organization_billing[0] = { ...tables.organization_billing[0], cumul_cents: 61_000, donor_covered_cents: 60_000, fees_net_cents: 7_500, fee_settled_at: '2027-03-02T00:00:00Z' }
+  const b2 = await billing.billingSummary('o1', f.DEFAULT_BILLING_SCHEDULE)
+  check('acquitté : réglé borné au plafond, donateurs = plafond − part de l\'organisme', b2.settled && b2.paidCents === 49_500 && b2.donorsPaidCents === 42_000)
+  const b3 = await billing.billingSummary('o1', { model: 'exempt', scope: 'principal' })
+  check('partenaire fondateur : rien à régler', b3.model === 'exempt' && b3.paidCents === 0 && b3.donorsPaidCents === 0 && b3.capCents === 0)
+  const b4 = await billing.billingSummary('inconnu', f.DEFAULT_BILLING_SCHEDULE)
+  check('aucune ligne : gratuit, zéro partout', b4.donorsCounted === 0 && b4.paidCents === 0 && b4.stripeCoveredCents === 0)
+
   console.log('Réglages de la plateforme')
   reset()
   settings.clearPlatformSettingsCache()

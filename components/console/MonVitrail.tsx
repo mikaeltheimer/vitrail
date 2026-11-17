@@ -95,7 +95,7 @@ export function JuridiqueForm({ identity, reload }: { identity: Identity; reload
         {LEGAL_KEYS.filter(k => k !== 'retention').map(k => {
           const required = LEGAL_REQUIRED.includes(k)
           const missing = identity.missing.includes(k) && !form.legal[k]?.trim()
-          const example = k === 'entity' ? t('entityExemple') : k === 'neq' ? t('neqExemple') : k === 'officerName' ? t('officerNameExemple') : k === 'officerPhone' ? t('officerPhoneExemple') : undefined
+          const example = k === 'entity' ? t('entityExemple') : k === 'neq' ? t('neqExemple') : k === 'charityNumber' ? t('charityNumberExemple') : k === 'officerName' ? t('officerNameExemple') : k === 'officerPhone' ? t('officerPhoneExemple') : undefined
           return (
             <label key={k} className="block space-y-1">
               <span className="block">
@@ -118,6 +118,7 @@ export function JuridiqueForm({ identity, reload }: { identity: Identity; reload
                 />
               )}
               {k === 'neq' && <span className="muted block text-xs">{t('neqAide')}</span>}
+              {k === 'charityNumber' && <span className="muted block text-xs">{t('charityNumberAide', { org: identity.orgName })}</span>}
             </label>
           )
         })}

@@ -133,7 +133,8 @@
     "imageDimensions": "Invalid image dimensions.",
     "demoLectureSeule": "This stained glass is a demonstration: nothing is saved here.",
     "conditionsAAccepter": "Accept the new terms of use first (Home › To do).",
-    "conditionsChangees": "The terms changed in the meantime. Reload the page to read the new version."
+    "conditionsChangees": "The terms changed in the meantime. Reload the page to read the new version.",
+    "charityNumberInvalide": "This number doesn’t look valid: 9 digits, RR, then 4 digits (e.g. 123456789 RR 0001)."
   },
   "photo": {
     "alt": "Your photo",
@@ -839,7 +840,9 @@
       "supprimerAide": "Do this when the donor asks you to. Their email, name, testimonial, photo, mailing list sign-up and email history are erased. Their donations stay in your records, without a name, for your accounting, and their fragment stays on the stained glass, anonymous. They will no longer be able to receive their personal link.",
       "supprimerStripe": "Stripe keeps the email tied to the payment on its side, in your Stripe account.",
       "supprimerConfirmer": "Delete permanently",
-      "supprimerOk": "Information deleted."
+      "supprimerOk": "Information deleted.",
+      "detailForfait": "Contribution: {contribution} · Stripe fees: {frais} · Commission you paid: {commission}",
+      "fraisEstimes": "{frais} (estimated)"
     },
     "remboursement": {
       "paiement": "Payment: {montant}",
@@ -1096,9 +1099,12 @@
       "nonEnregistre": "Unsaved changes",
       "dansAtelier": "Here in the sandbox, customize your stained glass directly on the page (“Edit” button). Legal details and emails are set in the organization’s console.",
       "ouvrirAtelier": "Customize in the sandbox",
-      "neq": "NEQ or charity registration number",
-      "neqExemple": "E.g.: 1234567890, or 123456789 RR 0001",
+      "neq": "NEQ (Québec enterprise number)",
+      "neqExemple": "E.g.: 1234567890",
       "neqAide": "Optional, but recommended: it identifies the organization unambiguously.",
+      "charityNumber": "Charitable registration number (optional)",
+      "charityNumberExemple": "E.g.: 123456789 RR 0001",
+      "charityNumberAide": "If your organization is registered with the Canada Revenue Agency. Your donors will then see that their donation qualifies for a tax receipt issued by {org}. Donivers doesn’t produce official receipts.",
       "officerPhoneExemple": "+1 514 555 0123",
       "retentionDefautTitre": "Default sentence (suits most organizations):",
       "retentionModifier": "Edit this sentence",
@@ -1129,6 +1135,35 @@
       "historiqueTitre": "Terms of use",
       "historique": "Terms of use accepted on {date} by {nom} (version {version}).",
       "historiqueSansNom": "Terms of use accepted on {date} (version {version})."
+    },
+    "forfait": {
+      "titre": "Your plan",
+      "comment": "How it works",
+      "badgeGratuit": "Free",
+      "badgePaiement": "Paying",
+      "badgeAcquitte": "Paid in full",
+      "badgePartenaire": "Founding partner",
+      "gratuit": "{n} of {max} free donors",
+      "gratuitDonateurs": "Your donors have already paid {montant} of {plafond}.",
+      "gratuitEnsuite": "Then {taux} per donation, up to {plafond} in total.",
+      "paiement": "{montant} paid of {plafond}",
+      "paiementDont": "including {montant} by your donors",
+      "legendeDonateurs": "Your donors",
+      "legendeVous": "You",
+      "reste": "{montant} to go. Then 0%, forever.",
+      "acquitte": "Paid in full. 0% on all your donations, forever.",
+      "acquitteDonateurs": "Your donors paid {montant} of it.",
+      "partenaire": "No commission on your main stained glass.",
+      "stripeCouverts": "Your donors have paid {montant} in Stripe fees for you.",
+      "jauge": "{montant} paid of {plafond}, including {donateurs} by your donors",
+      "reglagesTitre": "Your plan",
+      "reglages1": "Free for your first {gratuit} donors.",
+      "reglages2": "Then {taux} per donation, up to {plafond} in total. Then 0%, forever.",
+      "reglages3": "Your donors can add an optional contribution to {brand}. It pays Stripe’s fees first, then your commission, and it counts toward the cap.",
+      "reglages4": "All our amounts include taxes: nothing is added on top.",
+      "reglagesPartenaire": "Founding partner: no commission on your main stained glass. Your donors can still add an optional contribution to {brand}; it pays Stripe’s fees first.",
+      "reglagesStripe": "Stripe fees: {pct} + {fixe} per Canadian card, taken on each payment. Stripe offers a reduced rate to registered charities.",
+      "lireConditions": "Read the terms (section 5)"
     }
   },
   "plateforme": {

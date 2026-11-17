@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db'
 import { forgetTenantCache, orgUrl } from '@/lib/tenant'
 import { practiceOf } from '@/lib/signup'
 import { IDENTITY_COLUMNS, forgetIdentity, type IdentityRow } from '@/lib/identity'
-import { LEGAL_KEYS, LEGAL_MAX, formatPhone, missingForLaunch, type LegalInfo } from '@/lib/identity-shared'
+import { LEGAL_KEYS, LEGAL_MAX, formatPhone, missingForLaunch, normalizeCharityNumber, type LegalInfo } from '@/lib/identity-shared'
 import { validateEmail } from '@/lib/validate'
 import { err, failer } from '@/lib/errors'
 
@@ -88,6 +88,12 @@ export async function POST(request: NextRequest) {
     if (v) legal[k] = v
   }
   if (legal.officerPhone) legal.officerPhone = formatPhone(legal.officerPhone)
+  // Numéro de bienfaisance (C) : il déclenche la mention « reçu fiscal » auprès des donateurs, donc une forme valide seulement
+  if (legal.charityNumber) {
+    const c = normalizeCharityNumber(legal.charityNumber)
+    if (c === null) return fail('charityNumberInvalide')
+    legal.charityNumber = c
+  }
   if (legal.officerEmail) {
     const e = validateEmail(legal.officerEmail)
     if (!e.ok) return fail('courrielResponsableInvalide')

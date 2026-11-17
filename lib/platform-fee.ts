@@ -36,6 +36,76 @@ export function suggestionCoversCommission(donCents: number, settings: Contribut
   return surplus >= Math.round(donCents * rate)
 }
 
+/** Colonnes d'un don nécessaires au détail des frais (console : fiche du don, carte du forfait, export CSV). */
+export interface FeeRow {
+  source: string
+  amount_cents: number
+  refunded_cents: number
+  donor_contribution_cents?: number | null
+  stripe_fee_actual_cents?: number | null
+  stripe_fee_estimated_cents?: number | null
+  platform_fee_cents?: number | null
+  platform_fee_waived_cents?: number | null
+  platform_fee_refunded_cents?: number | null
+  contribution_surplus_cents?: number | null
+}
+
+export interface DonationFees {
+  contributionCents: number
+  /** Frais Stripe : réels s'ils sont connus, sinon estimés ; null s'il n'y a ni l'un ni l'autre (don d'avant le 16 nov.). */
+  stripeFeeCents: number | null
+  stripeFeeEstimated: boolean
+  /** Ce que l'organisme a payé à Donivers sur ce don, net des remboursements (même calcul que la vue organization_billing). */
+  orgCommissionCents: number
+  /** Frais Stripe payés par la contribution, nets des remboursements (la contribution remboursée ne paie plus rien). */
+  stripeCoveredCents: number
+}
+
+/** Détail des frais d'un don par carte (null pour un don comptant, d'amorçage ou de démo). */
+export function donationFees(r: FeeRow): DonationFees | null {
+  if (r.source !== 'stripe') return null
+  const v = (x: number | null | undefined) => Math.max(0, Number(x ?? 0) || 0)
+  const contribution = v(r.donor_contribution_cents)
+  const actual = r.stripe_fee_actual_cents ?? null
+  const estimated = r.stripe_fee_estimated_cents ?? null
+  const stripeFee = actual ?? estimated
+  const base = v(r.platform_fee_cents) - v(r.platform_fee_waived_cents)
+  const retained = Math.max(0, base - v(r.platform_fee_refunded_cents))
+  const donorPart = base > 0 ? Math.round((v(r.contribution_surplus_cents) * retained) / base) : 0
+  const kept = r.amount_cents > 0 ? Math.max(0, 1 - v(r.refunded_cents) / r.amount_cents) : 0
+  return {
+    contributionCents: contribution,
+    stripeFeeCents: stripeFee,
+    stripeFeeEstimated: actual === null && estimated !== null,
+    orgCommissionCents: Math.max(0, retained - donorPart),
+    stripeCoveredCents: stripeFee === null ? 0 : Math.round(Math.min(contribution, stripeFee) * kept),
+  }
+}
+
+/** Ce que la carte « Votre forfait » affiche (console, propriétaire). */
+export interface BillingSummary {
+  model: 'capped' | 'exempt'
+  freeDonors: number
+  capCents: number
+  donorsCounted: number
+  /** Réglé pour le plafond : organisme et donateurs (borné au plafond pour l'affichage). */
+  paidCents: number
+  /** Dont réglé par les donateurs (surplus des contributions). */
+  donorsPaidCents: number
+  thresholdReached: boolean
+  settled: boolean
+  /** Frais Stripe payés par les contributions, depuis le début. */
+  stripeCoveredCents: number
+}
+
+/** État de la carte : partenaire fondateur, acquitté, en paiement (seuil franchi), ou gratuit. */
+export function billingStage(b: Pick<BillingSummary, 'model' | 'settled' | 'thresholdReached' | 'donorsCounted' | 'freeDonors'>): 'partenaire' | 'acquitte' | 'paiement' | 'gratuit' {
+  if (b.model === 'exempt') return 'partenaire'
+  if (b.settled) return 'acquitte'
+  if (b.thresholdReached || b.donorsCounted >= b.freeDonors) return 'paiement'
+  return 'gratuit'
+}
+
 /** Grille d'un organisme (organizations.fee_schedule). Une grille de l'ancienne forme, sans « model », vaut le modèle par défaut. */
 export type BillingSchedule =
   | {
