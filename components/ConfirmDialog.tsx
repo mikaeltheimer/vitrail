@@ -5,9 +5,12 @@
 //   const [dialog, confirm] = useConfirm()
 //   if (!(await confirm({ title, text, confirmLabel, cancelLabel }))) return
 //   …et rendre {dialog} quelque part dans le composant.
+// Ou, sans rien rendre soi-même (console, Studio) :
+//   if (!(await askConfirm({ … }))) return
 // Échap ou un clic à côté : annuler. Le bouton de confirmation prend le focus (Entrée confirme).
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 
 export interface ConfirmOptions {
   title: string
@@ -34,6 +37,27 @@ export function useConfirm(): [React.ReactNode, (o: ConfirmOptions) => Promise<b
     setOpen(null)
   }, [])
   return [open ? <ConfirmDialog options={open} onClose={close} /> : null, ask]
+}
+
+/** La même fenêtre, ouverte d'un appel : montée à part dans la page, retirée à la réponse. */
+export function askConfirm(o: ConfirmOptions): Promise<boolean> {
+  return new Promise(resolve => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    let done = false
+    const close = (ok: boolean) => {
+      if (done) return
+      done = true
+      resolve(ok)
+      // Après le clic en cours : on ne démonte pas une racine pendant qu'elle traite un événement
+      setTimeout(() => {
+        root.unmount()
+        host.remove()
+      }, 0)
+    }
+    root.render(<ConfirmDialog options={o} onClose={close} />)
+  })
 }
 
 function ConfirmDialog({ options, onClose }: { options: ConfirmOptions; onClose: (ok: boolean) => void }) {

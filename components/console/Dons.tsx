@@ -7,6 +7,7 @@ import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Act, ConsoleData, DonorRow } from './types'
 import type { DonationFees } from '@/lib/platform-fee'
 import { RED, GREEN, Section, Sheet, useTime } from './ui'
+import { askConfirm } from '@/components/ConfirmDialog'
 
 const toCents = (s: string) => Math.round((parseFloat(s.replace(',', '.')) || 0) * 100)
 const noEmail = (e: string) => e.endsWith('.invalid')
@@ -219,7 +220,7 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
               <button
                 className="chip !px-3"
                 onClick={() => {
-                  if (confirm(t('effacerConfirmer'))) void run({ action: 'scrubDonor', donorId: id }, t('efface'))
+                  void askConfirm({ title: t('effacerQuestion'), text: t('effacerTexte'), confirmLabel: t('effacerOui'), cancelLabel: tc('annuler'), danger: true }).then(ok => ok && run({ action: 'scrubDonor', donorId: id }, t('efface')))
                 }}
               >
                 {t('effacer')}
@@ -259,7 +260,8 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
                   key={x.id}
                   className="chip flex w-full justify-between !px-3 text-left"
                   onClick={async () => {
-                    if (!confirm(t('fusionnerConfirmer', { nom: x.display_name || x.email }))) return
+                    const nom = x.display_name || x.email
+                    if (!(await askConfirm({ title: t('fusionnerQuestion', { nom }), text: t('fusionnerTexte', { nom }), confirmLabel: t('fusionnerOui'), cancelLabel: tc('annuler') }))) return
                     if (await act({ action: 'mergeDonors', fromId: id, intoId: x.id }, t('fusionne'))) onOpen(x.id)
                   }}
                 >
@@ -423,7 +425,7 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
           disabled={!valid || busy}
           onClick={async () => {
             const cents = all ? null : partial
-            if (!confirm(t('confirmer', { montant: money(cents ?? remaining) }))) return
+            if (!(await askConfirm({ title: t('confirmerQuestion', { montant: money(cents ?? remaining) }), text: t('confirmerTexte'), confirmLabel: t('rembourser'), cancelLabel: tc('annuler'), danger: true }))) return
             setBusy(true)
             try {
               await onSubmit(cents)

@@ -12,6 +12,7 @@ import type { Screen } from './Plus'
 import { Icon, RED, GREEN, Section, Sheet, useAgo, useDay } from './ui'
 import { TermsSummary } from './Conditions'
 import { ForfaitCard } from './Forfait'
+import { askConfirm } from '@/components/ConfirmDialog'
 
 interface Todo {
   key: string
@@ -255,6 +256,7 @@ export default function Accueil({
 /** Organisme en brouillon : les étapes avant la mise en ligne (le propriétaire seul peut connecter Stripe et mettre en ligne). */
 function Demarrage({ data, open, setTab, openTerms }: { data: ConsoleData; open: (action: string, sameTab?: boolean) => Promise<void>; setTab: (t: Tab, screen?: Screen | null) => void; openTerms: () => void }) {
   const t = useTranslations('console.demarrage')
+  const tc = useTranslations('console')
   const tt = useTranslations('console.conditions')
   const owner = data.me.role === 'owner'
   const ready = data.stripe.ready
@@ -340,7 +342,7 @@ function Demarrage({ data, open, setTab, openTerms }: { data: ConsoleData; open:
                 className="btn"
                 disabled={!ready || missing > 0 || !termsOk || busy}
                 onClick={async () => {
-                  if (!confirm(t('enLigneConfirmer'))) return
+                  if (!(await askConfirm({ title: t('enLigneQuestion'), text: t('enLigneTexte'), confirmLabel: t('enLigne'), cancelLabel: tc('annuler') }))) return
                   setBusy(true)
                   const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'goLive' }) })
                   if (res.ok) window.location.reload()
