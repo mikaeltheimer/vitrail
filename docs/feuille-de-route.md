@@ -9,7 +9,7 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
 | Mika | Studio : page « Parcours » (à traiter, organismes par étape, fiche), onglet Chiffres, fonction SQL des totaux ; textes restés sur « Plus » / « Mon vitrail » | `mika/studio` | `app/studio`, `components/studio/`, `lib/studio-stats.ts`, `app/api/studio`, migration `2026-11-25-studio-totaux` |
-| Mika | Panneau de don : sections numérotées, montants rapides à la place du curseur, contribution « Couvrez les frais pour… » détachée, sans « Ne rien ajouter » ni 5 %, panneau plus large | `mika/panneau-don` | `components/vitrail/ClaimPanel.tsx`, `components/vitrail/ContributionBlock.tsx`, `messages/` |
+| Mika | Vitrail vide : disque en verre clair avec un fragment lumineux (vitrail et grand écran), compteur masqué à 0 | `mika/vitrail-vide` | `components/vitrail/EmptyVitrail.tsx`, `app/vitrail/page.tsx`, `app/ecran/page.tsx` |
 | Mika | Nouveau symbole « B » (5 pièces, plomb 2, lumière du vitrail), un seul symbole à toutes les tailles | `mika/logo-b` | `scripts/logo.py`, `public/brand/`, `components/plateforme/Brand.tsx`, `components/Signature.tsx`, `lib/shareImage.tsx`, `app/layout.tsx` |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)

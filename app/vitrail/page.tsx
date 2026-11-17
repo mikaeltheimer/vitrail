@@ -38,6 +38,7 @@ import { OrgMark } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
 import { useAtelier } from '@/components/atelier/Atelier'
 import { DEMO_BANNER_HEIGHT, DemoBanner, DemoToolsDrawer, EMAIL_PREVIEW_CENTS } from '@/components/vitrail/DemoTools'
+import EmptyVitrail from '@/components/vitrail/EmptyVitrail'
 
 const HEADER_HEIGHT = 56
 const MONO = "'DM Sans', sans-serif"
@@ -59,6 +60,7 @@ const introTitleStyle: React.CSSProperties = {
   textShadow: '0 2px 24px rgba(0,0,0,0.9)',
   fontVariantNumeric: 'tabular-nums',
 }
+const emptyTextStyle: React.CSSProperties = { marginTop: 10, maxWidth: 460, marginInline: 'auto', color: 'rgba(244,239,230,0.85)', fontSize: 17, lineHeight: 1.45, textShadow: '0 1px 14px rgba(0,0,0,0.9)' }
 const goldButtonStyle: React.CSSProperties = {
   padding: '11px 18px',
   background: GOLD,
@@ -1368,22 +1370,28 @@ function Vitrail() {
         </>
       )}
 
-      {/* Vitrail vide : invitation au premier don ; fermé (brouillon) : « ouvrira bientôt », sans bouton. Caché pendant un don */}
+      {/* Vitrail vide : le disque en verre clair et son fragment lumineux, puis l'invitation au premier don ; fermé
+          (brouillon) : le même disque, sans fragment lumineux, « ouvrira bientôt », sans bouton. Caché pendant un don */}
       {snap && count === 0 && !claimOpen && (
-        <div style={{ position: 'fixed', inset: `${HEADER_HEIGHT}px 0 0 0`, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24, zIndex: 100, pointerEvents: 'none' }}>
-          {closed ? (
-            <div>
-              <div style={introTitleStyle}>{t('bientot')}</div>
-              <div style={{ marginTop: 12, color: 'rgba(244,239,230,0.75)', fontSize: 15 }}>{t('bientotTexte')}</div>
-            </div>
-          ) : (
-            <div>
-              <div style={introTitleStyle}>{t('vide')}</div>
-              <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, marginTop: 20, pointerEvents: 'auto' }}>
-                {claimLabel}
-              </button>
-            </div>
-          )}
+        <div style={{ position: 'fixed', inset: `${HEADER_HEIGHT}px 0 0 0`, padding: mobile ? '24px 0' : '28px 0', zIndex: 100, pointerEvents: 'none', background: '#0B0A12' }}>
+          <div style={{ position: 'relative', height: '100%' }}>
+            <EmptyVitrail glow={!closed} disc={mobile ? 0.8 : 0.6}>
+              {closed ? (
+                <>
+                  <div style={introTitleStyle}>{t('bientot')}</div>
+                  <div style={emptyTextStyle}>{t('bientotTexte')}</div>
+                </>
+              ) : (
+                <>
+                  <div style={introTitleStyle}>{t('vide')}</div>
+                  <div style={emptyTextStyle}>{t('videTexte')}</div>
+                  <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, marginTop: 20, padding: '13px 22px', fontSize: 16, pointerEvents: 'auto' }}>
+                    {claimLabel}
+                  </button>
+                </>
+              )}
+            </EmptyVitrail>
+          </div>
         </div>
       )}
     </div>
@@ -1692,6 +1700,7 @@ function Header({
       <>
         <header style={{ ...base, padding: '0 16px', gap: 8 }}>
           {brand}
+          {count > 0 ? (
           <button onClick={onAbout} style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', background: 'none', border: 0, color: '#F4EFE6', padding: 0, display: 'grid', justifyItems: 'center', gap: 3 }}>
             <span style={{ fontWeight: 700, color: GOLD }}>{money(raised)}</span>
             {goalCents > 0 && (
@@ -1700,6 +1709,9 @@ function Header({
               </span>
             )}
           </button>
+          ) : (
+            <span />
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {count > 0 && (
               <button onClick={() => setSearchOpen(true)} aria-label={t('rechercher')} style={{ width: 40, height: 40, background: 'none', border: 0, color: '#F4EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1795,6 +1807,8 @@ function Header({
   return (
     <header style={{ ...base, padding: '0 24px' }}>
       <div style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex' }}>{brand}</div>
+      {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) : « 0 $ · 0 donateur » souligne le vide */}
+      {count > 0 && (
       <button onClick={onAbout} title={t('apropos')} style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#F4EFE6', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
         <span>
           <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{money(raised)}</span>
@@ -1808,6 +1822,7 @@ function Header({
           </span>
         )}
       </button>
+      )}
       <nav style={{ flex: '1 1 0', minWidth: 'max-content', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
         <button onClick={onAbout} style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', background: 'none', border: 0, cursor: 'pointer', marginRight: 16 }}>
           {t('apropos')}
