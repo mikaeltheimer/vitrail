@@ -5,7 +5,8 @@ import { platformSettings } from './platform-settings'
 
 // Règlement d'un don Stripe, appelé par le webhook une fois le don enregistré (spécification du 16 novembre 2026).
 //
-// 1. Frais Stripe réels : lus sur la balance transaction du paiement (compte de l'organisme). Ils servent à recalculer
+// 1. Frais Stripe réels : lus sur la balance transaction du paiement (compte de l'organisme). Stripe la crée parfois
+//    après coup : le webhook rappelle alors ce règlement sur charge.updated, et la base corrige une seule fois. Ils servent à recalculer
 //    le surplus de la contribution : s'ils dépassent l'estimation, la différence est rendue à l'organisme (Mika, 16 nov. :
 //    la contribution couvre d'abord les frais réels ; tout le reste va à Donivers ; l'organisme reçoit le don).
 // 2. settle_platform_fee (SQL, sous verrou par organisme) : part de l'organisme bornée par le plafond, verrous.
@@ -31,7 +32,7 @@ export interface SettleInput {
   donationId: string
   accountId: string
   paymentIntentId: string | null
-  /** Contribution du donateur (C) : les frais réels ne servent que s'il y en a une. */
+  /** Contribution du donateur (C). */
   contributionCents: number
   orgProvince: string | null
 }
@@ -50,7 +51,8 @@ export async function settleDonation(stripe: SettleApi, i: SettleInput): Promise
     charge = pi.latest_charge && typeof pi.latest_charge === 'object' ? pi.latest_charge : null
   }
   const bt = charge?.balance_transaction && typeof charge.balance_transaction === 'object' ? charge.balance_transaction : null
-  const actualFee = i.contributionCents > 0 ? stripeFeeOf(bt) : null
+  // Toujours enregistrés (fiche du don) ; ils ne changent quelque chose que s'il y a une contribution
+  const actualFee = stripeFeeOf(bt)
 
   const db = getDb()
   const { data, error } = await db.rpc('settle_platform_fee', { p_donation: i.donationId, p_stripe_fee_actual: actualFee })

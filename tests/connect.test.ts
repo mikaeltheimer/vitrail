@@ -112,7 +112,14 @@ async function main() {
     rpcs.settle_platform_fee = args => {
       settleCalls.push(args)
       const d = tables.donations.find(x => x.id === args.p_donation)!
-      if (d.platform_fee_settled_at) return [{ waived_cents: d.platform_fee_waived_cents, surplus_cents: d.contribution_surplus_cents, settled_now: false, already_settled: true }]
+      if (d.platform_fee_settled_at) {
+        // Frais réels arrivés après le règlement : corrigés une seule fois
+        if (args.p_stripe_fee_actual != null && d.stripe_fee_actual_cents == null) {
+          const real = Math.min(Number(d.contribution_surplus_cents), Math.max(0, Number(d.donor_contribution_cents ?? 0) - Number(args.p_stripe_fee_actual)))
+          Object.assign(d, { platform_fee_waived_cents: Number(d.platform_fee_waived_cents) + Number(d.contribution_surplus_cents) - real, contribution_surplus_cents: real, stripe_fee_actual_cents: args.p_stripe_fee_actual })
+        }
+        return [{ waived_cents: d.platform_fee_waived_cents, surplus_cents: d.contribution_surplus_cents, settled_now: false, already_settled: true }]
+      }
       const surplus = Number(d.contribution_surplus_cents ?? 0)
       const real = args.p_stripe_fee_actual == null ? surplus : Math.min(surplus, Math.max(0, Number(d.donor_contribution_cents ?? 0) - Number(args.p_stripe_fee_actual)))
       const waived = surplus - real + capWaive.cents
@@ -233,6 +240,16 @@ async function main() {
   fees['fee_contrib'] = { amount: 1428, amount_refunded: 0 }
   await send(contribSession())
   check('frais réels pas encore connus : surplus estimé gardé', settleCalls[0].p_stripe_fee_actual === null && dc().contribution_surplus_cents === 1428)
+  // charge.updated : Stripe a créé la balance transaction (carte étrangère, 5,62 $)
+  realFee(562)
+  sessionsByIntent['pi_contrib'] = { id: 'cs_contrib', metadata: { orgId: 'orgA' } }
+  const updated = { type: 'charge.updated', account: 'acct_A', data: { object: { id: 'ch_contrib', paid: true, payment_intent: 'pi_contrib', balance_transaction: 'txn_1' } } }
+  r = await send(updated)
+  check('charge.updated : frais réels lus après coup, 1,15 $ rendu à l\'organisme', r.status === 200 && feeRefunds.length === 1 && feeRefunds[0].amount === 115 && dc().contribution_surplus_cents === 1313 && dc().stripe_fee_actual_cents === 562)
+  await send(updated)
+  check('charge.updated rejoué : rien de plus', feeRefunds.length === 1)
+  r = await send({ type: 'charge.updated', account: 'acct_A', data: { object: { id: 'ch_x', paid: true, payment_intent: 'pi_contrib', balance_transaction: null } } })
+  check('charge.updated sans balance transaction : ignoré', r.status === 200 && feeRefunds.length === 1)
 
   seed()
   realFee(447)
