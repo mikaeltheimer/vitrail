@@ -34,6 +34,7 @@ export interface DonationRow {
   donor_id: string
   amount_cents: number
   fee_cents: number | null
+  donor_contribution_cents?: number | null
   refunded_cents: number
   dispute_status: 'open' | 'won' | 'lost' | null
   dispute_due_by: string | null
@@ -68,7 +69,7 @@ export interface ConsoleData {
   stripe: { accountId: string | null; ready: boolean }
   photoModeration: 'live' | 'moderation'
   reports: { id: number; donor_id: string; reason: string | null; created_at: string }[]
-  disputes: { id: string; amount_cents: number; fee_cents: number | null; dispute_due_by: string | null; created_at: string }[]
+  disputes: { id: string; amount_cents: number; fee_cents: number | null; donor_contribution_cents?: number | null; dispute_due_by: string | null; created_at: string }[]
   bounces: { donorId: string; email: string; status: string; at: string }[]
   /** Dons de démonstration encore présents. */
   demoDonations?: number

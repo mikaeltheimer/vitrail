@@ -162,6 +162,15 @@ async function main() {
   check('plus que le don : refusée', JSON.stringify(c.validateContributionCents(5_001, 5_000)) === '{"ok":false,"reason":"too_high"}')
   check('décimale, négative ou texte : refusée', !c.validateContributionCents(1.5, 5_000).ok && !c.validateContributionCents(-1, 5_000).ok && !c.validateContributionCents('100', 5_000).ok)
 
+  console.log('Choix du donateur (panneau de don)')
+  const block = await import('../components/vitrail/ContributionBlock')
+  const cfg = { version: 'v', brackets: B, menuRates: [0.05, 0.1, 0.15], stripeFeeEstimate: est, commissionRate: 0, orgPays: false, charity: false }
+  check('présélection : la suggestion', block.contributionFor('suggested', '', 12_500, cfg).cents === 1_875)
+  check('un pourcentage du menu', block.contributionFor('rate:0.05', '', 12_500, cfg).cents === 625)
+  check('autre montant, virgule ou point', block.contributionFor('other', '20,50', 12_500, cfg).cents === 2_050 && block.contributionFor('other', '20.5 $', 12_500, cfg).cents === 2_050)
+  check('autre montant plus grand que le don : refusé', block.contributionFor('other', '200', 12_500, cfg).error === 'tooHigh')
+  check('ne rien ajouter', block.contributionFor('none', '', 12_500, cfg).cents === 0)
+
   console.log('Taxes comprises')
   check('Québec : 14,28 $ comprend 1,86 $', tax.taxIncludedCents(1_428, 'QC') === 186)
   check('Ontario : 3,50 $ comprend 0,40 $', tax.taxIncludedCents(350, 'ON') === 40)

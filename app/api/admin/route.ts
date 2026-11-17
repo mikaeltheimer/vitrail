@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     db.from('vitrail_totals').select('vitrail_id,total_cents,donations_count').eq('organization_id', orgId),
     db
       .from('donations')
-      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
+      .select('id,donor_id,vitrail_id,amount_cents,fee_cents,donor_contribution_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at,donors!donations_donor_org_fk(display_name,email,hidden,photo_url,photo_status)')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     fetchWhere<{ id: string; channel: string }>('visits', 'id,channel', 'organization_id', orgId, 'id'),
     db.from('reports').select('id,donor_id,reason,created_at').eq('organization_id', orgId).eq('resolved', false).order('created_at', { ascending: false }).limit(200),
     // Litiges ouverts : à traiter dans le tableau de bord Stripe avant la date limite (tous, pas seulement les 100 derniers dons)
-    db.from('donations').select('id,amount_cents,fee_cents,dispute_due_by,created_at').eq('organization_id', orgId).eq('dispute_status', 'open').order('dispute_due_by', { ascending: true }),
+    db.from('donations').select('id,amount_cents,fee_cents,donor_contribution_cents,dispute_due_by,created_at').eq('organization_id', orgId).eq('dispute_status', 'open').order('dispute_due_by', { ascending: true }),
   ])
   for (const r of [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes]) if (r.error) return fail('Admin GET', r.error)
 

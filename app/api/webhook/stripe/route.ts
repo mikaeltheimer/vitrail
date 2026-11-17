@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         const { donorId } = result
         after(async () => {
           try {
-            await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
+            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
           } catch (e) {
             console.error('Courriel de reçu non envoyé :', e)
           }
