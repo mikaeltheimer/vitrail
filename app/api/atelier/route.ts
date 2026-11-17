@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { getDb } from '@/lib/db'
-import { assetUrl } from '@/lib/identity'
+import { assetUrl, proposedTemplates } from '@/lib/identity'
 import { discardDraft, loadDraft, publishDraft, saveDraft, validateLocales, validateTexts } from '@/lib/atelier'
 import type { Locale } from '@/i18n/config'
 import type { StoredTexts } from '@/lib/identity-shared'
@@ -54,6 +54,7 @@ async function state(orgId: string, atelierId: string, request: NextRequest) {
     texts: draft.texts,
     logoUrl: assetUrl(draft.logo_path),
     iconUrl: assetUrl(draft.icon_path),
+    proposed: proposedTemplates(),
   }
 }
 

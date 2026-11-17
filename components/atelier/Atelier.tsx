@@ -35,6 +35,17 @@ interface Draft {
   texts: StoredTexts
   logoUrl: string | null
   iconUrl: string | null
+  /** Textes proposés par langue, « {org} » à remplacer (absents d'une vieille réponse : aucun texte proposé). */
+  proposed?: Partial<Record<Locale, Partial<Record<TextField, string>>>>
+}
+
+/** Le texte proposé pour un champ, avec le nom de l'organisme dans cette langue ; '' s'il n'y en a pas. */
+function proposedFor(draft: Draft, l: Locale, f: TextField): string {
+  const tpl = draft.proposed?.[l]?.[f] ?? ''
+  if (!tpl) return ''
+  const primary = draft.locales[0] ?? 'fr'
+  const name = (draft.texts[l]?.name || draft.texts[primary]?.name || draft.fallbackName).trim()
+  return tpl.replaceAll('{org}', name)
 }
 
 /** Textes neutres de la plateforme, dans la langue de la page (aperçu du brouillon). */
@@ -363,8 +374,11 @@ function TextInput({ field, locale: l, label, draft, primary, autoFocus, setText
   const t = useTranslations('atelier')
   const v = draft.texts[l]?.[field] ?? ''
   const fallback = l !== primary ? draft.texts[primary]?.[field] : undefined
-  // Les questions facultatives n'ont pas de texte neutre : vides, elles ne sont simplement pas posées
-  const placeholder = fallback || (field === 'question2' || field === 'question3' ? '' : t('videNeutre'))
+  // Champ vide : on montre le texte qui s'affichera vraiment (celui de la langue principale, sinon le texte proposé),
+  // avec « Partir de ce texte » pour le retoucher. Présentation : une piste d'écriture (elle n'a pas de texte proposé).
+  // Les questions facultatives n'ont rien : vides, elles ne sont simplement pas posées.
+  const proposed = fallback ? '' : proposedFor(draft, l, field)
+  const placeholder = fallback || proposed || (field === 'about' ? t('aboutPiste') : '')
   const common = {
     lang: l,
     maxLength: TEXT_MAX[field],
@@ -381,8 +395,20 @@ function TextInput({ field, locale: l, label, draft, primary, autoFocus, setText
       ) : (
         <input className="field" {...common} onChange={e => setText(l, field, e.target.value)} />
       )}
-      <span className="muted block text-right text-xs">
-        {v.length} / {TEXT_MAX[field]}
+      <span className="flex items-start justify-between gap-3 text-xs">
+        <span className="muted">
+          {!v && proposed && (
+            <>
+              {t('proposeNote')}{' '}
+              <button type="button" className="underline" style={{ color: '#F0B24A' }} onClick={() => setText(l, field, proposed)}>
+                {t('partirDe')}
+              </button>
+            </>
+          )}
+        </span>
+        <span className="muted shrink-0">
+          {v.length} / {TEXT_MAX[field]}
+        </span>
       </span>
     </label>
   )
@@ -406,7 +432,7 @@ function AllTexts({ draft, onPick, onClose }: { draft: Draft; onPick: (f: EditTa
                   <span className="muted block text-xs">{t(`ou.${f}`)}</span>
                 </span>
                 <span className="text-xs" style={{ color: value ? '#3DB5A6' : 'var(--muted)' }}>
-                  {value ? t('rempli') : t('neutre')}
+                  {value ? t('rempli') : f !== 'logo' && f !== 'icon' && proposedFor(draft, primary, f) ? t('neutre') : t('vide')}
                 </span>
               </button>
             </li>

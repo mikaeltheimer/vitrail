@@ -2,9 +2,11 @@ import { headers } from 'next/headers'
 import { getDb } from './db'
 import { CONFIG } from './config'
 import { translatorFor } from './i18n'
+import fr from '@/messages/fr.json'
+import en from '@/messages/en.json'
 import { publicPhotoUrl } from './photos'
 import { LOCALES, type Locale } from '@/i18n/config'
-import { parseLocales, resolveTexts, type Defaults, type Identity, type LegalInfo, type OrgTexts, type StoredTexts } from './identity-shared'
+import { parseLocales, resolveTexts, type Defaults, type Identity, type LegalInfo, type OrgTexts, type StoredTexts, type TextField } from './identity-shared'
 import { SURFACE_HEADER, getOrg, resolveTenant, type OrgRow, type Surface } from './tenant'
 import { PATH_HEADER } from './hosts'
 export * from './identity-shared'
@@ -49,6 +51,16 @@ export const neutralDefaults: Defaults = (locale, org) => {
       consent: t('identite.consent', { org }),
     },
   }
+}
+
+/**
+ * Textes proposés (les textes neutres), par langue, avec « {org} » tel quel : l'atelier les montre dans ses champs vides
+ * et y met le nom de l'organisme lui-même (il peut changer pendant qu'on tape). Pas de proposition pour la présentation
+ * ni pour les questions facultatives : vides, elles ne s'affichent pas.
+ */
+export function proposedTemplates(): Record<Locale, Partial<Record<TextField, string>>> {
+  const of = (m: typeof fr) => ({ why: m.identite.why, vitrailTitle: m.identite.vitrailTitle, question: m.identite.question, placeholder: m.identite.placeholder })
+  return { fr: of(fr), en: of(en) }
 }
 
 /** L'identité telle que la montre l'atelier : le brouillon par-dessus la version publiée. */
