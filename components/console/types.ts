@@ -58,6 +58,8 @@ export interface ConsoleData {
   atelierUrl: string | null
   /** Une version personnalisée a déjà été publiée depuis l'atelier. */
   published: boolean
+  /** Conditions de la plateforme (D8) : version en vigueur acceptée ? null pour l'atelier et la démo. */
+  terms: { version: string; effectiveDate: string; accepted: boolean; acceptedAt: string | null; acceptedBy: string | null; exempt: boolean } | null
   summary: { totalCents: number; donations: number; donors: number; goalCents: number | null }
   me: { name: string; email: string; role: Role; accountId: string }
   orgs: { id: string; name: string; url: string }[]

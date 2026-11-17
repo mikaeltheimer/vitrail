@@ -131,7 +131,9 @@
     "imageLourde": "Image too large ({max} KB at most).",
     "imageIllisible": "Unreadable image: please send a PNG, JPEG or SVG.",
     "imageDimensions": "Invalid image dimensions.",
-    "demoLectureSeule": "This stained glass is a demonstration: nothing is saved here."
+    "demoLectureSeule": "This stained glass is a demonstration: nothing is saved here.",
+    "conditionsAAccepter": "Accept the new terms of use first (Home › To do).",
+    "conditionsChangees": "The terms changed in the meantime. Reload the page to read the new version."
   },
   "photo": {
     "alt": "Your photo",
@@ -1058,6 +1060,7 @@
       "enLigne": "Go live",
       "enLigneAide": "Your stained glass then accepts real donations.",
       "enLigneAttente": "Possible once Stripe is ready and the legal details are filled in.",
+      "enLigneAttenteConditions": "Possible once Stripe is ready, the legal details are filled in and the new terms are accepted.",
       "enLigneConfirmer": "Put your stained glass live? It will accept real donations right away.",
       "mettreEnLigne": "Go live",
       "erreur": "Something went wrong.",
@@ -1101,6 +1104,31 @@
       "retentionModifier": "Edit this sentence",
       "retentionRetablir": "Back to the default sentence",
       "retentionAide": "Change it only if your organization has a different retention rule."
+    },
+    "conditions": {
+      "titre": "Our terms of use are changing",
+      "intro": "We updated them on {date}. Here’s what changes for {org}:",
+      "changeContribution": "Your donors can add an optional contribution to {brand}. It pays Stripe’s fees first, so you receive their donation in full.",
+      "changePlafond": "This contribution counts toward the {plafond} cap: your donors can pay for your use of {brand}, even before your {suivant, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} donor.",
+      "changeTaxes": "Our prices include taxes: {taux} per donation, {plafond} at most. Nothing is added on top.",
+      "changePartenaire": "Your founding partner agreement doesn’t change: no commission on your main stained glass.",
+      "changeRemboursement": "If you refund a donation, Stripe doesn’t return its fees, even when the contribution had paid them.",
+      "rassure": "None of these changes costs you more than before.",
+      "lire": "Read the full terms",
+      "accepter": "Accept",
+      "acceptation": "Saving…",
+      "plusTard": "Later",
+      "noteBrouillon": "You’ll be able to put your stained glass live once the terms are accepted.",
+      "noteEnLigne": "Your stained glass stays live in the meantime.",
+      "aFaireTitre": "Accept the new terms",
+      "aFaireBrouillon": "Required to put your stained glass live.",
+      "aFaireEnLigne": "A summary of what changes is waiting for you.",
+      "lireCourt": "Read",
+      "benevole": "The organization’s owner needs to accept the new terms.",
+      "merci": "Terms accepted. Thank you!",
+      "historiqueTitre": "Terms of use",
+      "historique": "Terms of use accepted on {date} by {nom} (version {version}).",
+      "historiqueSansNom": "Terms of use accepted on {date} (version {version})."
     }
   },
   "plateforme": {
