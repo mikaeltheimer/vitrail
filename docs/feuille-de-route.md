@@ -8,7 +8,6 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 
 | Qui | Tâche | Branche | Fichiers principaux |
 |---|---|---|---|
-| Mika | Contribution du donateur et commission plafonnée (K1 compris), en 5 PR : A1 moteur sans branchement (#15), A2 branchement des paiements (#16), B contribution sur la page de don (#17), fusionnées dans `mika/nouveau-modele` ; **D textes (conditions §4 et §5, vitrine, inscription, remboursement, reçu fiscal conditionnel)** en cours ; D8 écran d'acceptation des conditions (migration 28, #19) ; C forfait dans la console et Studio (#20) ; **avis au 100e donateur et totaux de Studio** (migration 29) en cours. Tout passe par la branche d'intégration `mika/nouveau-modele`, puis une seule PR vers `main`. Spécification : `claude/donivers-2026-11-16-contribution-donateur.md` | `mika/nouveau-modele` ← `mika/textes-d` ← `mika/conditions-d8` ← `mika/forfait-c` ← `mika/avis-taxes-29` | `lib/contribution.ts`, `lib/platform-fee.ts`, `lib/tax.ts`, `lib/platform-settings.ts`, migration `2026-11-27-contribution-donateur` ; ensuite `lib/payments.ts`, `lib/refunds.ts`, webhook Stripe, `ClaimPanel.tsx`, console ; pour D : `messages/*.json`, `app/plateforme/page.tsx`, `components/plateforme/LegalDoc.tsx`, `lib/identity*.ts`, `lib/email.ts` ; pour D8 : `lib/terms.ts`, `lib/launch.ts`, `components/console/Conditions.tsx`, migration `2026-11-28-acceptation-conditions` ; pour C : `lib/billing.ts`, `components/console/Forfait.tsx`, `Dons.tsx`, export, Studio ; pour la 29 : `lib/billing-notice.ts`, `lib/email.ts`, webhook Stripe, migration `2026-11-29-avis-seuil-et-taxes` |
 | Mika | Studio : page « Parcours » (à traiter, organismes par étape, fiche), onglet Chiffres, fonction SQL des totaux ; textes restés sur « Plus » / « Mon vitrail » | `mika/studio` | `app/studio`, `components/studio/`, `lib/studio-stats.ts`, `app/api/studio`, migration `2026-11-25-studio-totaux` |
 | Mika | Nouveau symbole « B » (5 pièces, plomb 2, lumière du vitrail), un seul symbole à toutes les tailles | `mika/logo-b` | `scripts/logo.py`, `public/brand/`, `components/plateforme/Brand.tsx`, `components/Signature.tsx`, `lib/shareImage.tsx`, `app/layout.tsx` |
 
@@ -24,8 +23,19 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Avant le 4 décembre (Mika)
 
-- K1 : moteur de la commission. K2 : affichage (carte « Votre forfait », Réglages › Paiements, export), acceptation des conditions dans la console, avis au 100e donateur.
-- Lancement de l'École : Stripe réel, coordonnées juridiques, `PAYMENT_MODE=stripe`, purge des dons de démo, « Mettre en ligne », forfait Supabase Pro.
+- **École** : terminer son inscription Stripe en production (pas prête au 16 nov.), puis « Vérifier » dans Réglages › Paiements (province) ; acceptation des nouvelles conditions dans sa console par la personne autorisée de l'École ; coordonnées juridiques.
+- **Webhook Connect de production** : ajouter `charge.updated` (frais Stripe réels connus après coup).
+- **Essai réel** : un don de 5 $ sur l'École, puis son remboursement (clés de production, webhook, aucune commission).
+- Lancement : `PAYMENT_MODE=stripe`, purge des dons de démo, « Mettre en ligne », forfait Supabase Pro.
+- Envoyer à l'avocat la liste cumulée (conditions provisoires, présélection de la contribution, acceptation par l'École) ; questions au comptable (province et assiette des taxes, mentions, notes de crédit).
+- Mise à jour de Next.js (avis de sécurité modéré, `use cache` et `unstable_cache` non utilisés) : petite PR, testée.
+
+## Après le lancement, avant janvier (nouveau modèle)
+
+- **Reçus fiscaux** : section facultative pour l'adresse du donateur (exigée sur un reçu officiel), avant le premier organisme de bienfaisance qui les délivre.
+- **Nettoyage**, une fois le nouveau code stable en production : `feeCents` et la clé `stripe.frais` dans `startCheckout`, `console.remboursement.detail`, la colonne `fee_cents`, la colonne `frais_couverts` du CSV.
+- **Studio** : formulaire pour modifier les tranches de la contribution (aujourd'hui dans Supabase, `platform_settings`), avec validation et historique.
+- Ajuster le calcul des taxes selon les réponses du comptable.
 
 ## Règles qui durent
 
@@ -40,6 +50,7 @@ Choisies pour ne pas croiser le chemin critique (paiements, commission, migratio
 
 ## Terminé récemment
 
+- **Nouveau modèle en production** (#22, fusionnée le 16 nov. ; migrations 27, 28 et 29 appliquées en production juste avant ; École exemptée en production). Contribution facultative du donateur, présélectionnée, par tranches (15 %, 8 %, 7 %, dans `platform_settings`) ; elle paie d'abord les frais Stripe, puis la commission ; plafond de 495 $ partagé avec les donateurs dès le premier donateur ; prix taxes incluses. Conditions §4 et §5 réécrites (`TERMS_VERSION` = `2026-11-18-provisoire`), écran d'acceptation dans la console (« Mettre en ligne » refusé tant qu'elles ne sont pas acceptées). Console : carte « Votre forfait », détail des frais par don, Réglages › Paiements, numéro d'organisme de bienfaisance (mentions du reçu fiscal), CSV. Studio : forfait par organisme, taxes par province, acceptation de la suggestion. Avis au propriétaire au 100e donateur. PR #15 à #21 ; spécification `claude/donivers-2026-11-16-contribution-donateur.md`.
 - Vocabulaire et écran (#14, validé par Mika le 16 nov.) : « morceau » ne s'emploie plus, ni en français ni en anglais ; « don » / « donation » pour l'acte (« Faire un don », « Retrouver mon don », « Agrandir mon don »), « fragment » pour l'objet de verre (« glass fragment ») ; compteur en donateurs ; slogan « Chaque don, un fragment d'univers. » / « Every donation, a fragment of the universe. ». `/ecran` : bandeau d'appel toujours visible en bas, entre la signature et le QR, la scène centrée au-dessus (`BAND_EM`) ; la pause d'appel se fond dans le bandeau (écran intégré inchangé). Panneau de don : phrase toujours affichée sur le vitrail public (arrivées par QR).
 - Panneau de don lisible (validé par Mika le 14 nov.) : textes agrandis (14 px au moins, 16 à 18 px pour le texte courant et les champs), gris plus contrastés ; sur téléphone, formulaire plein écran qui ne bouge pas pendant la saisie (il épouse la partie visible quand le clavier de l'iPhone s'ouvre), titre fixé en haut, bouton « Voir mon morceau dans le vitrail » qui le replie en une barre « Revenir à mon don » ; « Plus votre don est grand, plus votre morceau l'est aussi » sous le montant ; nom dans un encadré doré comme le témoignage. Tous les organismes, vitrail et `/don`. Décision : sur téléphone, remplir correctement compte plus que voir son morceau en direct ; on le découvre une fois créé.
 - Écran jumelé de la démo (#12) : le QR de `/ecran` de la démo porte un code de séance ; les dons d'essai faits par ce QR n'apparaissent que sur cet écran (12 h, 60 par séance ; migration 26, table `demo_screen_pieces`, appliquée à donivers-test et en production le 14 nov.). Règles : migration d'ajout permise sur donivers-test avant la fusion (`CLAUDE.md`, section 4), numéro de migration pris au moment de l'écrire.
