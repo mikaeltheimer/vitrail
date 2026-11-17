@@ -1430,19 +1430,19 @@
     "tousLesTextes": "All texts",
     "langues": "Languages",
     "publier": "Publish",
-    "publierConfirmer": "Publish these changes to your real stained glass? Everyone will see them.",
+    "publierTitre": "Publish to your real stained glass?",
+    "publierTexte": "Your changes will be visible to everyone, online and on the big screen.",
+    "pasMaintenant": "Not now",
     "publie": "Published: your real stained glass is up to date.",
     "abandonner": "Discard changes",
     "abandonnerAide": "Go back to the published version",
-    "abandonnerConfirmer": "Discard all unpublished changes?",
+    "abandonnerTitre": "Discard your changes?",
+    "abandonnerTexte": "Unpublished changes will be lost and the sandbox will go back to the published version.",
+    "garder": "Keep my changes",
     "aJour": "Nothing to publish",
     "erreur": "Something went wrong.",
     "fermer": "Close",
     "compris": "Got it",
-    "introTitre": "Welcome to the sandbox",
-    "intro1": "The sandbox is a copy of your stained glass, for your team only: make pretend donations, project the screen, try moderation. Nothing here is real.",
-    "intro2": "It is also where you customize your stained glass: with “Edit”, click a text, the logo or the icon outlined in dashes. You see the result right away, in place.",
-    "intro3": "Your changes stay in the sandbox until you click “Publish”: they then go to your real stained glass.",
     "modifierChamp": "Edit: {champ}",
     "francais": "French",
     "anglais": "English",
@@ -1497,7 +1497,54 @@
     "moderationTitre": "In the sandbox, you are the team.",
     "moderationTexte": "Moderation is on: this donation awaits your approval before it appears. Approve it in the console; the stained glass will update by itself.",
     "modererMaintenant": "Moderate now",
-    "aModerer": "{count, plural, one {# to moderate} other {# to moderate}}"
+    "aModerer": "{count, plural, one {# to moderate} other {# to moderate}}",
+    "guide": {
+      "titre": "Set up your stained glass",
+      "puce": "Guide · {fait} of {total}",
+      "intro": "Your stained glass is already set up, with suggested texts. Customize what matters, try it out, then publish. Nothing here is real: it is a copy for your team only.",
+      "sectionAtelier": "In the sandbox",
+      "sectionConsole": "In the console, before going live",
+      "sectionEnLigne": "Going live",
+      "enLigne": "Your stained glass is live.",
+      "rienAPublier": "Nothing to publish for now.",
+      "ouvrir": "Open",
+      "etats": {
+        "aFaire": "To do",
+        "propose": "Suggested",
+        "fait": "Done"
+      },
+      "etapes": {
+        "presentation": {
+          "titre": "Introduce your organization",
+          "aide": "Start here: who you are, in a few lines."
+        },
+        "why": {
+          "titre": "Why give",
+          "aide": "A text is suggested. Say what the money will be used for."
+        },
+        "logo": {
+          "titre": "Logo and icon",
+          "aide": "Without an icon, your initials are shown."
+        },
+        "titreQuestion": {
+          "titre": "Title and question",
+          "aide": "The suggested texts work; your call."
+        },
+        "don": {
+          "titre": "Make a pretend donation",
+          "aide": "See what your donors will experience."
+        },
+        "publier": {
+          "titre": "Publish",
+          "aide": "Your changes go to your real stained glass."
+        }
+      },
+      "console": {
+        "stripe": "Payments (Stripe)",
+        "juridique": "Legal details",
+        "conditions": "Terms acceptance"
+      }
+    }
   },
   "acces": {
     "metaConsole": "Console — {brand}",

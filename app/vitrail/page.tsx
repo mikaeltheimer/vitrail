@@ -1099,6 +1099,16 @@ function Vitrail() {
   useEffect(() => {
     frameTopRef.current = HEADER_HEIGHT + barOffset + 8
   }, [barOffset])
+  // Guide de l'atelier, « Faites un don fictif » : il demande le panneau de don de la page
+  useEffect(() => {
+    if (!atelierBar) return
+    const open = () => {
+      setAboutOpen(false)
+      api.current.openClaim()
+    }
+    window.addEventListener('donivers:don-fictif', open)
+    return () => window.removeEventListener('donivers:don-fictif', open)
+  }, [atelierBar])
   // Le panneau change de taille (contenu, clavier, « Voir mon morceau ») : le morceau est recadré au-dessus
   useEffect(() => {
     const el = claimPanelRef.current

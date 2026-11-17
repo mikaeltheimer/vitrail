@@ -1430,19 +1430,19 @@
     "tousLesTextes": "Tous les textes",
     "langues": "Langues",
     "publier": "Publier",
-    "publierConfirmer": "Publier ces changements sur votre vrai vitrail ? Ils seront visibles de tous.",
+    "publierTitre": "Publier sur votre vrai vitrail ?",
+    "publierTexte": "Vos changements seront visibles de tous, en ligne et sur le grand écran.",
+    "pasMaintenant": "Pas maintenant",
     "publie": "Publié : votre vrai vitrail est à jour.",
     "abandonner": "Annuler les changements",
     "abandonnerAide": "Revenir à la version publiée",
-    "abandonnerConfirmer": "Annuler tous les changements non publiés ?",
+    "abandonnerTitre": "Annuler vos changements ?",
+    "abandonnerTexte": "Les changements non publiés seront perdus et l’atelier reviendra à la version publiée.",
+    "garder": "Garder mes changements",
     "aJour": "Rien à publier",
     "erreur": "Une erreur est survenue.",
     "fermer": "Fermer",
     "compris": "Compris",
-    "introTitre": "Bienvenue dans l’atelier",
-    "intro1": "L’atelier est une copie de votre vitrail, réservée à votre équipe : faites-y des dons fictifs, projetez l’écran, essayez la modération. Rien n’y est réel.",
-    "intro2": "C’est aussi ici que vous personnalisez votre vitrail : avec « Modifier », cliquez sur un texte, le logo ou l’icône entourés d’un pointillé. Vous voyez le résultat tout de suite, à sa place.",
-    "intro3": "Vos changements restent dans l’atelier jusqu’à ce que vous cliquiez sur « Publier » : ils passent alors sur votre vrai vitrail.",
     "modifierChamp": "Modifier : {champ}",
     "francais": "Français",
     "anglais": "Anglais",
@@ -1497,7 +1497,54 @@
     "moderationTitre": "Dans l’atelier, l’équipe, c’est vous.",
     "moderationTexte": "La modération est activée : ce don attend votre approbation avant d’apparaître. Approuvez-le dans la console, le vitrail se mettra à jour tout seul.",
     "modererMaintenant": "Modérer maintenant",
-    "aModerer": "{count, plural, one {# à modérer} other {# à modérer}}"
+    "aModerer": "{count, plural, one {# à modérer} other {# à modérer}}",
+    "guide": {
+      "titre": "Préparer votre vitrail",
+      "puce": "Guide · {fait} sur {total}",
+      "intro": "Votre vitrail est déjà prêt, avec des textes proposés. Personnalisez ce qui compte, essayez-le, puis publiez. Ici, rien n’est réel : c’est une copie réservée à votre équipe.",
+      "sectionAtelier": "Dans l’atelier",
+      "sectionConsole": "Dans la console, avant la mise en ligne",
+      "sectionEnLigne": "Mise en ligne",
+      "enLigne": "Votre vitrail est en ligne.",
+      "rienAPublier": "Rien à publier pour l’instant.",
+      "ouvrir": "Ouvrir",
+      "etats": {
+        "aFaire": "À faire",
+        "propose": "Proposé",
+        "fait": "Fait"
+      },
+      "etapes": {
+        "presentation": {
+          "titre": "Présentez votre organisme",
+          "aide": "Commencez ici : qui vous êtes, en quelques lignes."
+        },
+        "why": {
+          "titre": "Pourquoi donner",
+          "aide": "Un texte est proposé. Dites à quoi servira l’argent."
+        },
+        "logo": {
+          "titre": "Logo et icône",
+          "aide": "Sans icône, vos initiales s’affichent."
+        },
+        "titreQuestion": {
+          "titre": "Titre et question",
+          "aide": "Les textes proposés conviennent ; à vous de voir."
+        },
+        "don": {
+          "titre": "Faites un don fictif",
+          "aide": "Voyez ce que vivront vos donateurs."
+        },
+        "publier": {
+          "titre": "Publiez",
+          "aide": "Vos changements passent sur votre vrai vitrail."
+        }
+      },
+      "console": {
+        "stripe": "Paiements (Stripe)",
+        "juridique": "Coordonnées juridiques",
+        "conditions": "Acceptation des conditions"
+      }
+    }
   },
   "acces": {
     "metaConsole": "Console — {brand}",
