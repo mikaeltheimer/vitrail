@@ -816,7 +816,10 @@
       "masque": "masqué",
       "sansCourriel": "sans courriel",
       "supprime": "Renseignements supprimés",
-      "limite": "Seuls les 200 plus récents sont affichés : cherchez pour trouver les autres."
+      "limite": "Seuls les 200 plus récents sont affichés : cherchez pour trouver les autres.",
+      "colDonateur": "Donateur",
+      "colDernierDon": "Dernier don",
+      "colTotal": "Total"
     },
     "journal": {
       "vues": "Affichage de l’onglet Dons",
@@ -1118,7 +1121,8 @@
         "stripeATerminer": "Inscription à terminer",
         "stripeNonConnecte": "Non connecté",
         "demo": "{count, plural, one {# don à supprimer avant l’ouverture} other {# dons à supprimer avant l’ouverture}}"
-      }
+      },
+      "choisir": "Choisissez un réglage dans la liste."
     },
     "adresse": {
       "titre": "Adresse du vitrail",

@@ -816,7 +816,10 @@
       "masque": "hidden",
       "sansCourriel": "no email",
       "supprime": "Information deleted",
-      "limite": "Only the 200 most recent are shown: search to find the others."
+      "limite": "Only the 200 most recent are shown: search to find the others.",
+      "colDonateur": "Donor",
+      "colDernierDon": "Last donation",
+      "colTotal": "Total"
     },
     "journal": {
       "vues": "Donations tab view",
@@ -1118,7 +1121,8 @@
         "stripeATerminer": "Sign-up to finish",
         "stripeNonConnecte": "Not connected",
         "demo": "{count, plural, one {# donation to delete before opening} other {# donations to delete before opening}}"
-      }
+      },
+      "choisir": "Choose a setting from the list."
     },
     "adresse": {
       "titre": "Stained-glass address",

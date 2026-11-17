@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import type { Act, ConsoleData, Role } from './types'
-import { GREEN, Icon, RED, Section, useDay, useTime } from './ui'
+import { GREEN, Icon, RED, Section, useDay, useDesktop, useTime } from './ui'
 import { CourrielsForm, JuridiqueForm, SiteWebForm, useIdentity, type Identity } from './MonVitrail'
 import Adresse from './Adresse'
 import { ForfaitInfo } from './Forfait'
@@ -45,16 +45,17 @@ export default function Plus({
 
 function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Plus>[0]) {
   const t = useTranslations('console.reglages')
+  const desktop = useDesktop()
   const { identity, reload } = useIdentity()
-  if (!screen) return <Menu data={data} identity={identity} go={go} />
-  const title = t(`ecrans.${screen}`)
-  return (
+  const body = screen && (
     <div className="space-y-4">
-      <button className="muted flex items-center gap-1 text-sm hover:!text-[var(--text)]" onClick={() => go(null)}>
-        <Icon name="retour" size={16} />
-        {t('retour')}
-      </button>
-      <h2 className="text-lg font-bold">{title}</h2>
+      {!desktop && (
+        <button className="muted flex items-center gap-1 text-sm hover:!text-[var(--text)]" onClick={() => go(null)}>
+          <Icon name="retour" size={16} />
+          {t('retour')}
+        </button>
+      )}
+      <h2 className="text-lg font-bold lg:text-xl">{t(`ecrans.${screen}`)}</h2>
       {screen === 'adresse' && (
         <div className="space-y-6">
           {data.address && <Adresse address={data.address} onError={onError} />}
@@ -76,11 +77,23 @@ function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Pl
       {!identity && (screen === 'adresse' || screen === 'juridique' || screen === 'courriels') && <p className="card muted text-sm">{t('chargement')}</p>}
     </div>
   )
+  // Ordinateur : le menu reste à gauche, l'écran choisi s'ouvre à côté (formulaires limités à 680 px, plus lisibles)
+  if (desktop)
+    return (
+      <div className="flex items-start gap-6">
+        <div className="w-[340px] flex-none">
+          <Menu data={data} identity={identity} go={go} current={screen} />
+        </div>
+        <div className="min-w-0 max-w-[680px] flex-1">{body || <p className="card muted text-sm">{t('choisir')}</p>}</div>
+      </div>
+    )
+  if (!screen) return <Menu data={data} identity={identity} go={go} current={null} />
+  return body
 }
 
 type Row = { key: string; icon: string; title: string; status: string; attention?: boolean; onClick?: () => void; href?: string }
 
-function Menu({ data, identity, go }: { data: ConsoleData; identity: Identity | null; go: (s: Screen) => void }) {
+function Menu({ data, identity, go, current }: { data: ConsoleData; identity: Identity | null; go: (s: Screen) => void; current: Screen | null }) {
   const t = useTranslations('console.reglages')
   const day = useDay()
   const missing = data.identityMissing.length
@@ -160,13 +173,13 @@ function Menu({ data, identity, go }: { data: ConsoleData; identity: Identity | 
               )
               const cls = `console-row flex w-full items-center gap-3 px-4 py-3.5 text-left text-[15px] !text-[var(--text)] ${i ? 'border-t' : ''}`
               return (
-                <li key={r.key} style={{ borderColor: 'var(--line)' }} className={i ? 'border-t' : ''}>
+                <li key={r.key} style={{ borderColor: 'var(--line)', background: r.key === current ? 'rgba(240,178,74,0.10)' : undefined }} className={i ? 'border-t' : ''}>
                   {r.href ? (
                     <a href={r.href} className={cls.replace('border-t', '')}>
                       {inner}
                     </a>
                   ) : (
-                    <button onClick={r.onClick} className={cls.replace('border-t', '')}>
+                    <button onClick={r.onClick} aria-current={r.key === current ? 'page' : undefined} className={cls.replace('border-t', '')}>
                       {inner}
                     </button>
                   )}
