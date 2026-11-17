@@ -29,6 +29,9 @@ import { platformDomain } from '@/lib/hosts'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/** Campagnes fermées jusqu'à l'étape L2 (leur commission n'existe pas encore). */
+const CAMPAIGNS_OPEN = false
+
 
 // ── Lecture : tout ce que la console affiche ──────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -347,8 +350,10 @@ export async function POST(request: NextRequest) {
       return removed.error ? oops(removed.error) : NextResponse.json({ ok: true })
     }
 
-    // Interim : « créer un événement » crée une campagne (un vitrail à elle, adresse /<identifiant>)
+    // Campagnes : bientôt (D6 du plan K). Leur commission (2,8 % jusqu'à 195 $ par campagne) arrive avec elles (étape L2) ;
+    // d'ici là, un don de campagne ne paierait que la contribution. Le code qui suit reste pour l'étape L2.
     case 'createEvent': {
+      if (!CAMPAIGNS_OPEN) return fail('campagnesBientot')
       const name = str(b.name).trim()
       if (name.length < 2 || name.length > 80) return fail(err('campagneNom', { min: 2, max: 80 }))
       const goal = Math.round(Number(b.goalCents) || 0)

@@ -9,7 +9,8 @@ import { isOrgPhotoUrl } from '@/lib/photos'
 import { isLocale } from '@/i18n/config'
 import { getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { applyRefund, reconcileCharge, recordDispute, refundPlatformFee } from '@/lib/refunds'
-import { isAccountReady, orgByAccount, setAccountReady } from '@/lib/connect'
+import { isAccountReady, orgByAccount, provinceOfAccount, setAccountReady } from '@/lib/connect'
+import { settleDonation } from '@/lib/settlement'
 
 export const runtime = 'nodejs'
 
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
   // ── Le compte de l'organisme a changé (identité vérifiée, paiements activés…) ──
   if (event.type === 'account.updated') {
     const acct = event.data.object as Stripe.Account
-    await setAccountReady(orgId, acct.id, isAccountReady(acct))
+    await setAccountReady(orgId, acct.id, isAccountReady(acct), provinceOfAccount(acct))
     return ok()
   }
 
@@ -94,9 +95,13 @@ export async function POST(request: NextRequest) {
     // Frais couverts par le donateur : payés, mais hors du don (morceau et total gardent des chiffres ronds)
     const fee = parseInt(m.feeCents ?? '', 10)
     const feeCents = Number.isFinite(fee) && fee > 0 && fee < session.amount_total ? fee : 0
-    // Notre commission, fixée à la création du paiement
+    // Ce que garde Donivers, fixé à la création du paiement (S + P) ; le règlement le corrige ensuite sous verrou
     const pf = parseInt(m.platformFee ?? '', 10)
     const platformFeeCents = Number.isFinite(pf) && pf > 0 && pf < session.amount_total ? pf : 0
+    // Contribution à Donivers : payée, hors du don (le reçu, le fragment et le total ne portent que le don)
+    const intMeta = (v: string | undefined) => { const x = parseInt(v ?? '', 10); return Number.isFinite(x) && x >= 0 ? x : null }
+    const contributionCents = Math.min(intMeta(m.contribution) ?? 0, Math.max(0, session.amount_total - feeCents - 1))
+    const amountCents = session.amount_total - feeCents - contributionCents
     const baseUrl = orgBaseUrl(org.slug)
 
     try {
@@ -115,9 +120,16 @@ export async function POST(request: NextRequest) {
           photoUrl: isOrgPhotoUrl(m.photo, org.id) ? m.photo : null,
         },
         color: color.ok ? color.value : defaultColorFor(email),
-        amountCents: session.amount_total - feeCents,
+        amountCents,
         feeCents,
         platformFeeCents,
+        contribution: {
+          cents: contributionCents,
+          surplusCents: Math.min(intMeta(m.contributionSurplus) ?? 0, platformFeeCents),
+          stripeFeeEstimatedCents: intMeta(m.stripeFeeEstimate),
+          suggestedCents: intMeta(m.contributionSuggested),
+          bracketsVersion: m.contributionVersion ? m.contributionVersion.slice(0, 40) : null,
+        },
         source: 'stripe',
         providerRef: session.id,
         channel: cleanChannel(m.channel),
@@ -129,7 +141,6 @@ export async function POST(request: NextRequest) {
         // ni retarder la réponse à Stripe : il part après.
         const locale = isLocale(m.lang) ? m.lang : 'fr'
         const { donorId } = result
-        const amountCents = session.amount_total
         after(async () => {
           try {
             await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
@@ -138,6 +149,10 @@ export async function POST(request: NextRequest) {
           }
         })
       }
+      // Règlement (plafond, frais réels, excédent rendu, taxes) : après le courriel (programmé pour
+      // après la réponse), et aussi au rejeu : s'il échoue, le webhook répond 500, Stripe rejoue, le don est un doublon
+      const intent = typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null)
+      await settleDonation(getStripe(), { donationId: result.donationId, accountId: event.account, paymentIntentId: intent, contributionCents, orgProvince: org.taxProvince })
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
       return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur

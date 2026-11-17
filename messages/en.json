@@ -85,6 +85,7 @@
     "vitrailInconnu": "Unknown stained glass.",
     "vitrailPermanent": "The permanent stained glass always belongs to the organization; each campaign has its own address.",
     "campagneNom": "The campaign name must be {min} to {max} characters long.",
+    "campagnesBientot": "Campaigns are coming soon.",
     "campagneNomLettres": "The name must contain letters or numbers.",
     "objectifNegatif": "The goal can’t be negative.",
     "stripeNonConfigure": "Payments aren’t set up on the platform yet. Please let Studio Existence know.",
@@ -462,6 +463,7 @@
   "stripe": {
     "don": "Donation — {org}",
     "frais": "Transaction fees (covered by you)",
+    "contribution": "Transaction fees and contribution to Donivers",
     "description": "Donation — {org}"
   },
   "courriel": {
