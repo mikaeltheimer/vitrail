@@ -1181,9 +1181,9 @@ revoke all on all functions in schema public from public, anon, authenticated;
 -- ── Réglages de la plateforme : valeurs de départ (tranches de la contribution, frais Stripe estimés, taxes) ───────────
 insert into public.platform_settings (key, value) values
   ('contribution_brackets', '{
-     "version": "2026-11-16",
+     "version": "2026-11-17",
      "brackets": [{"upToCents": 25000, "rate": 0.15}, {"upToCents": 100000, "rate": 0.08}, {"rate": 0.07}],
-     "menuRates": [0.05, 0.10, 0.15],
+     "menuRates": [0.10, 0.15],
      "stripeFeeEstimate": {"rate": 0.029, "fixedCents": 30}
    }'::jsonb),
   -- À confirmer avec le comptable (lib/tax.ts) : TPS + TVQ au Québec, TVH dans les provinces harmonisées, TPS ailleurs
