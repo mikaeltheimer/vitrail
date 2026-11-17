@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildMagicLink, buildModeration, buildReceipt, buildReminder, sendEmail, type Built, type EmailKind, type ModerationEvent } from '@/lib/email'
+import { PRICING } from '@/lib/platform-fee'
+import { buildMagicLink, buildModeration, buildReceipt, buildReminder, buildThresholdNotice, sendEmail, type Built, type EmailKind, type ModerationEvent } from '@/lib/email'
 import { escapeHtml, renderEmail } from '@/lib/emailTemplate'
 import { siteUrl } from '@/lib/env'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
@@ -15,13 +16,14 @@ export const dynamic = 'force-dynamic'
 
 // Aperçu des courriels pour l'équipe (console en français) : /api/admin/courriels, connecté à /admin.
 //  - GET sans paramètre : la liste (reçu, lien personnel, rappel ; français et anglais).
-//  - GET ?type=recu|lien|rappel|modpub|modtem|modphotopub|modphoto|modtout&lang=fr|en : le courriel tel qu'il part (ajouter &format=text pour la version texte).
+//  - GET ?type=recu|lien|rappel|modpub|modtem|modphotopub|modphoto|modtout|centieme&lang=fr|en : le courriel tel qu'il part (ajouter &format=text pour la version texte).
 //  - POST (formulaire de la liste) : envoie un courriel d'essai, sur un exemple, à l'adresse indiquée.
 // Les liens des exemples portent un jeton bidon : ils mènent à « ce lien a expiré ». Rien n'est lu ni écrit chez les donateurs.
 
 const TYPES = {
   recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts, charityNumber?: string): Built => buildReceipt({ amountCents: 2500, contributionCents: 375, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org, charityNumber }) },
   lien: { label: 'Lien personnel (« Retrouver mon don »)', kind: 'magic_link' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildMagicLink({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
+  centieme: { label: 'Avis au propriétaire : 100e donateur', kind: 'fee_threshold' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildThresholdNotice({ locale, orgName: org.name, donorsPaidCents: 6400, capCents: PRICING.capCents, rate: PRICING.rate, consoleUrl: `${siteUrl()}/admin` }) },
   rappel: { label: 'Rappel du lendemain (témoignage)', kind: 'reminder' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReminder({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
   ...(Object.fromEntries(
     (

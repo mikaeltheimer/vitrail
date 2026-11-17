@@ -75,6 +75,16 @@ export interface StudioBilling {
   settledAt: string | null
 }
 
+/** Taxes comprises dans ce que garde Donivers, par province (studio_tax_totals). */
+export interface TaxRow { province: string; taxCents: number; taxSinceCents: number }
+export const taxRow = (r: Record<string, unknown>): TaxRow => ({ province: String(r.tax_province), taxCents: n(r.tax_cents), taxSinceCents: n(r.tax_since_cents) })
+
+/** Contribution suggérée acceptée telle quelle, par tranche de don (studio_suggestion_stats). */
+export interface SuggestionRow { tranche: 'moins-250' | '250-1000' | 'plus-1000'; donations: number; accepted: number; nothing: number; donationsSince: number; acceptedSince: number }
+export const suggestionRow = (r: Record<string, unknown>): SuggestionRow => ({
+  tranche: r.tranche as SuggestionRow['tranche'], donations: n(r.donations), accepted: n(r.accepted), nothing: n(r.nothing), donationsSince: n(r.donations_since), acceptedSince: n(r.accepted_since),
+})
+
 export function studioBilling(r: Record<string, unknown>): StudioBilling {
   return {
     model: r.fee_model === 'exempt' ? 'exempt' : 'capped',

@@ -211,6 +211,35 @@ async function main() {
   const b4 = await billing.billingSummary('inconnu', f.DEFAULT_BILLING_SCHEDULE)
   check('aucune ligne : gratuit, zéro partout', b4.donorsCounted === 0 && b4.paidCents === 0 && b4.stripeCoveredCents === 0)
 
+  console.log('Avis au 100e donateur (D7)')
+  const notice = await import('../lib/billing-notice')
+  const { forgetTenantCache } = await import('../lib/tenant')
+  const seedNotice = (extra: Record<string, unknown> = {}) => {
+    reset()
+    forgetTenantCache()
+    tables.organizations = [{ id: 'lac', status: 'live', name_fr: 'Théâtre du Lac', practice_of: null, showcase: false, locales: ['fr'], texts: {}, legal: {}, theme: {}, fee_threshold_reached_at: '2027-02-03T00:00:00Z', fee_threshold_notified_at: null, ...extra }]
+    tables.organization_slugs = [{ slug: 'lac', organization_id: 'lac', is_current: true }]
+    tables.memberships = [{ account_id: 'a1', organization_id: 'lac', role: 'owner' }, { account_id: 'a2', organization_id: 'lac', role: 'volunteer' }]
+    tables.accounts = [{ id: 'a1', email: 'julie@lac.ca' }, { id: 'a2', email: 'benevole@lac.ca' }]
+    tables.organization_billing = [{ organization_id: 'lac', cumul_cents: 6_400, donor_covered_cents: 6_400, fees_net_cents: 0 }]
+    tables.email_log = []
+  }
+  seedNotice()
+  const n1 = await notice.notifyThresholdIfNeeded('lac')
+  const sentKinds = (tables.email_log ?? []).filter(l => l.kind === 'fee_threshold')
+  // Sans RESEND_API_KEY, le courriel est consigné « skipped » et compte 0 envoi : on vérifie le journal
+  check('seuil franchi : avis au propriétaire seulement', n1 === 0 && sentKinds.length === 1 && sentKinds[0].to_email === 'julie@lac.ca' && !!tables.organizations[0].fee_threshold_notified_at)
+  check('une seule fois (webhook rejoué)', (await notice.notifyThresholdIfNeeded('lac')) === 0 && (tables.email_log ?? []).filter(l => l.kind === 'fee_threshold').length === 1)
+  seedNotice({ fee_threshold_reached_at: null })
+  check('seuil pas franchi : rien', (await notice.notifyThresholdIfNeeded('lac')) === 0)
+  seedNotice({ fee_schedule: { model: 'exempt', scope: 'principal' } })
+  check('partenaire fondateur : rien', (await notice.notifyThresholdIfNeeded('lac')) === 0 && !tables.organizations[0].fee_threshold_notified_at)
+  const { buildThresholdNotice } = await import('../lib/email')
+  const mail = JSON.stringify(buildThresholdNotice({ locale: 'fr', orgName: 'Théâtre du Lac', donorsPaidCents: 6_400, capCents: 49_500, rate: 0.028, consoleUrl: 'https://lac.test/admin' }))
+  check('courriel : 2,8 %, 495 $, 64 $ déjà réglés', mail.includes('2,8') && mail.includes('495') && mail.includes('64') && mail.includes('100e'))
+  const sansDonateurs = JSON.stringify(buildThresholdNotice({ locale: 'en', orgName: 'Lake', donorsPaidCents: 0, capCents: 49_500, rate: 0.028, consoleUrl: 'x' }))
+  check('sans contribution : pas de phrase sur les donateurs', !sansDonateurs.includes('already paid'))
+
   console.log('Réglages de la plateforme')
   reset()
   settings.clearPlatformSettingsCache()
