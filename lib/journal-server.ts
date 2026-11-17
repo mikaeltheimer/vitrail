@@ -4,7 +4,7 @@
 import { getDb } from './db'
 import { fetchWhere } from './donations'
 import { FEE_COLUMNS } from './billing'
-import { donationFees, type FeeRow } from './platform-fee'
+import { orgFees, type FeeRow } from './platform-fee'
 import { PAYMENTS, localToUtc, summarize, type JournalFilter, type JournalResponse, type JournalRow, type Payment } from './journal'
 
 export interface RawDonation extends FeeRow {
@@ -66,13 +66,6 @@ export function matchesFilter(n: RawDonation, donor: RawDonor | undefined, f: Jo
   return true
 }
 
-/** Frais Stripe que l'organisme paie lui-même pour ce don (la part non couverte par la contribution du donateur). */
-export function orgStripeFee(n: FeeRow): { cents: number; estimated: boolean } | null {
-  const f = donationFees(n)
-  if (!f || f.stripeFeeCents === null) return null
-  return { cents: Math.max(0, f.stripeFeeCents - f.stripeCoveredCents), estimated: f.stripeFeeEstimated }
-}
-
 export async function donationJournal(orgId: string, f: JournalFilter, owner: boolean): Promise<JournalResponse> {
   const { donations, donors } = await donationsInRange(orgId, f)
   const kept = donations.filter(n => matchesFilter(n, donors.get(n.donor_id), f))
@@ -90,14 +83,26 @@ export async function donationJournal(orgId: string, f: JournalFilter, owner: bo
       donor: d ? { name: d.display_name ?? '', color: d.color ?? '#F0B24A', hidden: !!d.hidden, erased: !!d.erased_at } : null,
     }
   })
-  let fees = 0
+  // Frais : seulement la part qui concerne l'organisme (propriétaire), jamais le montant des contributions
+  const t = { stripeOrg: 0, stripeDonor: 0, comOrg: 0, comDonor: 0 }
   let estimated = false
   if (owner)
     for (const n of kept) {
-      const x = orgStripeFee(n)
+      const x = orgFees(n)
       if (!x) continue
-      fees += x.cents
-      if (x.estimated && x.cents > 0) estimated = true
+      t.stripeOrg += x.stripeOrgCents
+      t.stripeDonor += x.stripeDonorCents
+      t.comOrg += x.commissionOrgCents
+      t.comDonor += x.commissionDonorCents
+      if (x.stripeFeeEstimated && x.stripeFeeCents) estimated = true
     }
-  return { rows, summary: { ...summarize(rows), stripeFeesCents: owner ? fees : null, stripeFeesEstimated: owner && estimated } }
+  return {
+    rows,
+    summary: {
+      ...summarize(rows),
+      stripeFeesCents: owner ? t.stripeOrg : null,
+      stripeFeesEstimated: owner && estimated,
+      fees: owner ? { stripeDonorCents: t.stripeDonor, commissionOrgCents: t.comOrg, commissionDonorCents: t.comDonor } : null,
+    },
+  }
 }

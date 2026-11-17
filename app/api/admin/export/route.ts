@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { fetchWhere } from '@/lib/donations'
 import { failer } from '@/lib/errors'
-import { donationFees } from '@/lib/platform-fee'
+import { orgFees } from '@/lib/platform-fee'
 import { parseFilter, utcToLocal } from '@/lib/journal'
 import { donationsInRange, matchesFilter, type RawDonor } from '@/lib/journal-server'
 
@@ -47,22 +47,25 @@ export async function GET(request: NextRequest) {
     const donations = all.filter(n => matchesFilter(n, byId.get(n.donor_id) as RawDonor | undefined, filter))
     donations.sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)))
     body = csv([
-      // contribution, frais_stripe, commission_organisme (C, 16 nov.) ; frais_couverts reste pour les dons d'avant (ancienne case)
-      // date_locale (17 nov.) : l'heure de l'organisme, celle des filtres de la console
-      ['date', 'date_locale', 'courriel', 'nom', 'don', 'contribution', 'frais_stripe', 'commission_organisme', 'frais_couverts', 'rembourse', 'net', 'litige', 'mode', 'provenance'],
+      // Frais (17 nov.) : seulement ce qui concerne l'organisme, jamais le montant de la contribution du donateur (Mika).
+      // frais_stripe_* et commission_* : vides pour un don sans frais connus (comptant, amorçage, dons d'avant le 16 nov.).
+      // frais_couverts reste pour les dons d'avant (ancienne case). date_locale : l'heure de l'organisme, celle des filtres.
+      ['date', 'date_locale', 'courriel', 'nom', 'don', 'frais_stripe_organisme', 'frais_stripe_donateur', 'frais_stripe_estimes', 'commission_organisme', 'commission_donateur', 'frais_couverts', 'rembourse', 'net', 'litige', 'mode', 'provenance'],
       ...donations.map(n => {
         const d = byId.get(n.donor_id)
         const email = String(d?.email ?? '')
-        const f = donationFees(n)
+        const f = orgFees(n)
         return [
           n.created_at,
           utcToLocal(new Date(n.created_at)).replace('T', ' '),
           email.endsWith('.invalid') ? '' : email,
           d?.display_name ?? '',
           money(Number(n.amount_cents)),
-          f ? money(f.contributionCents) : '',
-          f && f.stripeFeeCents !== null ? money(f.stripeFeeCents) : '',
-          f ? money(f.orgCommissionCents) : '',
+          f && f.stripeFeeCents !== null ? money(f.stripeOrgCents) : '',
+          f && f.stripeFeeCents !== null ? money(f.stripeDonorCents) : '',
+          f && f.stripeFeeCents !== null && f.stripeFeeEstimated ? 'oui' : '',
+          f ? money(f.commissionOrgCents) : '',
+          f ? money(f.commissionDonorCents) : '',
           money(Number(n.fee_cents ?? 0)),
           money(Number(n.refunded_cents)),
           money(Number(n.amount_cents) - Number(n.refunded_cents)),

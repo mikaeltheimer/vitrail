@@ -38,7 +38,7 @@ async function main() {
   })
   tables.donations = [
     don('avant', 'orgA', 'd1', '2026-12-04T21:59:59.000Z', 1000), // 16 h 59 : hors période
-    don('n1', 'orgA', 'd1', '2026-12-04T22:00:00.000Z', 5000, { donor_contribution_cents: 300, stripe_fee_actual_cents: 175 }), // contribution > frais : 0 $ pour l'organisme
+    don('n1', 'orgA', 'd1', '2026-12-04T22:00:00.000Z', 5000, { donor_contribution_cents: 300, stripe_fee_actual_cents: 175, platform_fee_cents: 140, contribution_surplus_cents: 125 }), // contribution > frais : 0 $ pour l'organisme ; 125 $ du plafond réglés par la contribution
     don('n2', 'orgA', 'd1', '2026-12-05T02:00:00.000Z', 10000, { refunded_cents: 10000, stripe_fee_estimated_cents: 320, channel: null }), // remboursé plus tard : compte à la date du don
     don('n3', 'orgA', 'd2', '2026-12-05T04:30:00.000Z', 2500, { source: 'cash', channel: null }),
     don('apres', 'orgA', 'd1', '2026-12-05T07:00:00.000Z', 700), // 2 h : « au » exclu
@@ -51,10 +51,16 @@ async function main() {
   check('par mode de paiement (net)', j.summary.byPayment.stripe.cents === 5000 && j.summary.byPayment.stripe.count === 2 && j.summary.byPayment.cash.cents === 2500)
   check('donateurs distincts', j.summary.donors === 2)
   check('frais Stripe à la charge de l’organisme (estimés)', j.summary.stripeFeesCents === 320 && j.summary.stripeFeesEstimated, j.summary)
+  check('frais payés par les donateurs, commission par l’organisme et par les contributions', JSON.stringify(j.summary.fees) === JSON.stringify({ stripeDonorCents: 175, commissionOrgCents: 15, commissionDonorCents: 125 }), j.summary.fees)
+  const { orgFees } = await import('../lib/platform-fee')
+  const of = orgFees(tables.donations.find(n => n.id === 'n1') as never)
+  check('orgFees : la part de l’organisme, jamais la contribution', !!of && of.stripeOrgCents === 0 && of.stripeDonorCents === 175 && !('contributionCents' in of), of)
+  const refunded = orgFees({ source: 'stripe', amount_cents: 5000, refunded_cents: 5000, donor_contribution_cents: 300, stripe_fee_actual_cents: 175 })
+  check('don remboursé : les frais Stripe restent à l’organisme', refunded?.stripeOrgCents === 175 && refunded?.stripeDonorCents === 0, refunded)
   check('provenance : sans provenance = direct, comptant = aucune', j.rows.find(r => r.id === 'n2')?.channel === 'direct' && j.rows.find(r => r.id === 'n3')?.channel === null)
   check('aucune contribution dans la réponse', !JSON.stringify(j).includes('contribution'))
   const v = await donationJournal('orgA', soir, false)
-  check('bénévole : pas de frais Stripe', v.summary.stripeFeesCents === null && !v.summary.stripeFeesEstimated)
+  check('bénévole : pas de frais', v.summary.stripeFeesCents === null && !v.summary.stripeFeesEstimated && v.summary.fees === null)
   check('filtre mode de paiement', (await donationJournal('orgA', { ...soir, paiement: 'cash' }, true)).rows.map(r => r.id).join() === 'n3')
   check('filtre provenance (le comptant n’a pas de provenance)', (await donationJournal('orgA', { ...soir, provenance: 'bar' }, true)).rows.map(r => r.id).join() === 'n1')
   check('filtre donateur (courriel fictif ignoré)', (await donationJournal('orgA', { ...soir, q: 'invalid' }, true)).rows.length === 0 && (await donationJournal('orgA', { ...soir, q: 'jea' }, true)).rows.length === 1)

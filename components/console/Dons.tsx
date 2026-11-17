@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Act, ConsoleData, DonorRow } from './types'
-import type { DonationFees } from '@/lib/platform-fee'
+import type { OrgFees } from '@/lib/platform-fee'
 import { PANEL_PAD, RED, GREEN, Section, Sheet, useDesktop, useTime } from './ui'
 import { askConfirm } from '@/components/ConfirmDialog'
 import Journal from './Journal'
@@ -179,14 +179,15 @@ interface Detail {
     id: string
     amount_cents: number
     fee_cents: number | null
-    donor_contribution_cents?: number | null
+    /** Total payé (don + frais couverts + contribution), sans le détail de la contribution. */
+    paid_cents: number
     refunded_cents: number
     dispute_status: 'open' | 'won' | 'lost' | null
     source: string
     channel: string | null
     created_at: string
-    /** Détail des frais d'un don par carte (propriétaire seulement). */
-    fees?: DonationFees | null
+    /** Frais d'un don par carte, la part qui concerne l'organisme (propriétaire seulement). */
+    fees?: OrgFees | null
   }[]
   emails: { id: string; created_at: string; kind: string; status: string; to_email: string; error: string | null }[]
 }
@@ -341,14 +342,17 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
                           <span style={{ color: RED }}> · {n.refunded_cents >= n.amount_cents ? t('rembourse') : t('remboursePartiel', { montant: money(n.refunded_cents) })}</span>
                         )}
                         <span className="muted block text-xs">{time(n.created_at)}</span>
-                        {n.fees && (
+                        {n.fees && n.fees.stripeFeeCents !== null && (
                           <span className="muted block text-xs">
-                            {t('detailForfait', {
-                              contribution: money(n.fees.contributionCents),
-                              frais: n.fees.stripeFeeCents === null ? '—' : n.fees.stripeFeeEstimated ? t('fraisEstimes', { frais: money(n.fees.stripeFeeCents) }) : money(n.fees.stripeFeeCents),
-                              commission: money(n.fees.orgCommissionCents),
+                            {t('detailFrais', {
+                              frais: n.fees.stripeFeeEstimated ? t('fraisEstimes', { frais: money(n.fees.stripeFeeCents) }) : money(n.fees.stripeFeeCents),
+                              vous: money(n.fees.stripeOrgCents),
+                              donateur: money(n.fees.stripeDonorCents),
                             })}
                           </span>
+                        )}
+                        {n.fees && n.fees.commissionOrgCents + n.fees.commissionDonorCents > 0 && (
+                          <span className="muted block text-xs">{t('detailCommission', { vous: money(n.fees.commissionOrgCents), donateur: money(n.fees.commissionDonorCents) })}</span>
                         )}
                       </span>
                       {refundable && (
@@ -436,8 +440,9 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
   const t = useTranslations('console.remboursement')
   const tc = useTranslations('console')
   const money = useMoney()
-  const extra = (donation.fee_cents ?? 0) + (donation.donor_contribution_cents ?? 0)
-  const paid = donation.amount_cents + extra
+  const paid = Math.max(donation.paid_cents ?? 0, donation.amount_cents)
+  // Au-delà du don et des frais couverts (ancienne case) : la contribution, dont le montant n'est pas montré à l'organisme
+  const contribution = paid - donation.amount_cents - (donation.fee_cents ?? 0) > 0
   const back = donation.amount_cents > 0 ? Math.round((donation.refunded_cents * paid) / donation.amount_cents) : 0
   const remaining = Math.max(0, paid - back)
   const [all, setAll] = useState(true)
@@ -449,8 +454,8 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
     <div className="mt-3 space-y-3 rounded-xl border p-3" style={{ borderColor: 'rgba(240,120,140,0.45)' }}>
       <p>
         {t('paiement', { montant: money(paid) })}
-        {(donation.donor_contribution_cents ?? 0) > 0 ? (
-          <span className="muted"> {t('detailContribution', { don: money(donation.amount_cents), contribution: money(extra) })}</span>
+        {contribution ? (
+          <span className="muted"> {t('detailPaiement', { don: money(donation.amount_cents) })}</span>
         ) : (
           (donation.fee_cents ?? 0) > 0 && <span className="muted"> {t('detail', { don: money(donation.amount_cents), frais: money(donation.fee_cents ?? 0) })}</span>
         )}
