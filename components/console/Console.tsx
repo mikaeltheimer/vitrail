@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useConsole } from './useConsole'
 import { Icon, RED, GREEN } from './ui'
 import Accueil from './Accueil'
-import Dons from './Dons'
+import Dons, { type DonsView } from './Dons'
 import Moderation from './Moderation'
 import Diffuser from './Diffuser'
 import Plus, { SCREENS, needsAttention, type Screen } from './Plus'
@@ -17,7 +17,8 @@ const TABS: Tab[] = ['accueil', 'dons', 'moderation', 'diffuser', 'plus']
 
 // Console de l'organisme, rangée par tâche (Accueil, Dons, Modération, Diffuser, Réglages). Pensée pour le téléphone :
 // barre d'onglets en bas sur petit écran, en haut sur grand écran. Le bénévole n'a pas Réglages (identifiant « plus »).
-// L'onglet est dans l'adresse (#dons, #plus/juridique) : un lien ou un retour arrière ramène au même endroit.
+// L'onglet est dans l'adresse (#dons, #dons/donateurs, #plus/juridique) : un lien ou un retour arrière ramène au même endroit.
+// Les filtres du journal des dons suivent un « ? » (#dons?periode=hier) ; Journal.tsx les lit et les écrit.
 export default function Console() {
   const t = useTranslations('console')
   const c = useConsole()
@@ -27,6 +28,9 @@ export default function Console() {
   const [screen, setScreen] = useState<Screen | null>(null)
   const [donorId, setDonorId] = useState<string | null>(null)
   const [cashOpen, setCashOpen] = useState(false)
+  const [donsView, setDonsView] = useState<DonsView>('journal')
+  // Filtres du journal gardés pendant un passage par « Donateurs »
+  const journalQuery = useRef('')
   // Nouvelles conditions à accepter (propriétaire) : plein écran, sauf si « Plus tard » a déjà été choisi dans cet onglet
   const termsVersion = owner && data?.terms && !data.terms.accepted ? data.terms.version : null
   // Lu après le premier rendu (sessionStorage n'existe pas côté serveur) : rien ne s'affiche avant de savoir
@@ -40,9 +44,11 @@ export default function Console() {
 
   useEffect(() => {
     const read = () => {
-      const [h, sub] = window.location.hash.slice(1).split('/') as [Tab, Screen | undefined]
+      const [path] = window.location.hash.slice(1).split('?')
+      const [h, sub] = path.split('/') as [Tab, string | undefined]
       setTabState(TABS.includes(h) ? h : 'accueil')
-      setScreen(h === 'plus' && sub && SCREENS.includes(sub) ? sub : null)
+      setScreen(h === 'plus' && sub && SCREENS.includes(sub as Screen) ? (sub as Screen) : null)
+      setDonsView(h === 'dons' && sub === 'donateurs' ? 'donateurs' : 'journal')
     }
     const first = setTimeout(read, 0)
     window.addEventListener('hashchange', read)
@@ -54,10 +60,20 @@ export default function Console() {
     }
   }, [])
   const setTab = (next: Tab, sub: Screen | null = null) => {
-    window.history.pushState(null, '', next === 'accueil' ? window.location.pathname : `#${next}${next === 'plus' && sub ? `/${sub}` : ''}`)
+    // Les filtres du journal survivent à un passage par un autre onglet
+    if (tab === 'dons' && donsView === 'journal') journalQuery.current = window.location.hash.split('?')[1] ?? ''
+    const query = next === 'dons' && journalQuery.current ? `?${journalQuery.current}` : ''
+    window.history.pushState(null, '', next === 'accueil' ? window.location.pathname : `#${next}${next === 'plus' && sub ? `/${sub}` : ''}${query}`)
     setTabState(next)
     setScreen(next === 'plus' ? sub : null)
+    if (next === 'dons') setDonsView('journal')
     window.scrollTo({ top: 0 })
+  }
+  const setView = (v: DonsView) => {
+    if (v === donsView) return
+    if (v === 'donateurs') journalQuery.current = window.location.hash.split('?')[1] ?? ''
+    window.history.pushState(null, '', v === 'donateurs' ? '#dons/donateurs' : `#dons${journalQuery.current ? `?${journalQuery.current}` : ''}`)
+    setDonsView(v)
   }
 
   // Ce qui attend l'équipe dans la file de modération (le chiffre de la pastille)
@@ -157,7 +173,7 @@ export default function Console() {
         {c.loadError && <p style={{ color: RED }}>{t('chargementImpossible', { erreur: c.loadError })}</p>}
         {!data && !c.loadError && <p className="muted">{t('chargement')}</p>}
         {data && tab === 'accueil' && <Accueil data={data} act={c.act} setTab={setTab} openDonor={id => { setDonorId(id); setTab('dons') }} openCash={() => { setCashOpen(true); setTab('dons') }} open={c.open} />}
-        {data && tab === 'dons' && <Dons data={data} act={c.act} donorId={donorId} setDonorId={setDonorId} cashOpen={cashOpen} setCashOpen={setCashOpen} />}
+        {data && tab === 'dons' && <Dons data={data} act={c.act} donorId={donorId} setDonorId={setDonorId} cashOpen={cashOpen} setCashOpen={setCashOpen} view={donsView} setView={setView} />}
         {data && tab === 'moderation' && <Moderation data={data} act={c.act} notify={c.notifyDonor} setNotify={c.setNotifyDonor} />}
         {data && tab === 'diffuser' && <Diffuser data={data} />}
         {data && tab === 'plus' && owner && <Plus data={data} act={c.act} open={c.open} onError={text => c.setToast({ ok: false, text })} screen={screen} go={s => setTab('plus', s)} />}
