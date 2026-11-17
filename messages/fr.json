@@ -1755,8 +1755,7 @@
   },
   "contribution": {
     "titre": "Soutenir Donivers (facultatif)",
-    "texteOrgPaie": "Donivers est l’outil qui fait vivre ce vitrail. Votre contribution paie d’abord les frais de paiement ; le reste aide Donivers à continuer, et aide {org} à utiliser Donivers sans frais.",
-    "texte": "Donivers est l’outil qui fait vivre ce vitrail. Votre contribution paie d’abord les frais de paiement ; le reste aide Donivers à continuer.",
+    "texte": "Donivers est l’outil qui fait vivre ce vitrail. Votre contribution paie d’abord les frais de paiement ; le reste aide Donivers à continuer, et aide {org} à utiliser Donivers sans frais.",
     "choix": "Montant de la contribution",
     "suggere": "{montant} (suggéré)",
     "pourcent": "{taux} ({montant})",

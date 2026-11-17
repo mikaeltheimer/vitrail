@@ -24,8 +24,6 @@ export interface ContributionConfig {
   stripeFeeEstimate: StripeFeeEstimate;
   /** Commission qui s'appliquerait à ce don (0 si aucune) : pour dire si la contribution couvre TOUT. */
   commissionRate: number;
-  /** L'organisme paie Donivers, ou paiera après son 100e donateur. */
-  orgPays: boolean;
   /** L'organisme a un numéro d'organisme de bienfaisance. */
   charity: boolean;
 }
@@ -36,7 +34,6 @@ const FALLBACK: ContributionConfig = {
   menuRates: DEFAULT_CONTRIBUTION_SETTINGS.menuRates,
   stripeFeeEstimate: DEFAULT_CONTRIBUTION_SETTINGS.stripeFeeEstimate,
   commissionRate: 0,
-  orgPays: false,
   charity: false,
 };
 
@@ -163,7 +160,9 @@ export default function ContributionBlock({
         </p>
       )}
       <p style={{ ...hintStyle, lineHeight: 1.5 }}>
-        {config.orgPays ? t("texteOrgPaie", { org: orgName }) : t("texte")}{" "}
+        {/* Vrai pour tout organisme (Mika, 16 nov.) : ce sont les contributions qui permettent un modèle où Donivers
+            ne coûte plus rien aux organismes après 495 $ */}
+        {t("texte", { org: orgName })}{" "}
         <button type="button" onClick={() => setWhy((w) => !w)} aria-expanded={why} style={linkButton}>
           {why ? t("masquer") : t("enSavoirPlus")}
         </button>

@@ -164,7 +164,7 @@ async function main() {
 
   console.log('Choix du donateur (panneau de don)')
   const block = await import('../components/vitrail/ContributionBlock')
-  const cfg = { version: 'v', brackets: B, menuRates: [0.05, 0.1, 0.15], stripeFeeEstimate: est, commissionRate: 0, orgPays: false, charity: false }
+  const cfg = { version: 'v', brackets: B, menuRates: [0.05, 0.1, 0.15], stripeFeeEstimate: est, commissionRate: 0, charity: false }
   check('présélection : la suggestion', block.contributionFor('suggested', '', 12_500, cfg).cents === 1_875)
   check('un pourcentage du menu', block.contributionFor('rate:0.05', '', 12_500, cfg).cents === 625)
   check('autre montant, virgule ou point', block.contributionFor('other', '20,50', 12_500, cfg).cents === 2_050 && block.contributionFor('other', '20.5 $', 12_500, cfg).cents === 2_050)

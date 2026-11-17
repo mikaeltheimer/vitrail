@@ -13,7 +13,6 @@ export const dynamic = 'force-dynamic'
  * les tranches et le menu, l'estimation des frais Stripe, et deux oui/non sur l'organisme, rien de plus.
  * - commissionRate : taux de la commission qui s'appliquerait à ce don (0 avant le 100e donateur, une fois acquitté,
  *   pour un organisme exempté ou une campagne). Sert seulement à dire si la contribution couvre TOUT.
- * - orgPays : l'organisme paie Donivers, ou paiera après son 100e donateur (la contribution l'aide à ne pas payer).
  * - charity : l'organisme a un numéro d'organisme de bienfaisance (mention du reçu fiscal sur la ligne du don).
  * Le serveur recalcule tout à la création du paiement : rien de ceci n'est cru sur parole.
  */
@@ -27,11 +26,9 @@ export async function GET(request: NextRequest) {
   const stripeFeeEstimate = stripeFeeEstimateFor(contribution.stripeFeeEstimate, schedule.stripeFeeEstimate)
 
   let commissionRate = 0
-  let orgPays = false
   if (schedule.model === 'capped' && vitrail.kind === 'permanent') {
     const state = await billingStateOf(org.id).catch(() => null)
     if (state && !state.settled) {
-      orgPays = true
       if (state.thresholdReached || state.donorsCounted >= schedule.freeDonors) commissionRate = schedule.rate
     }
   }
@@ -41,7 +38,7 @@ export async function GET(request: NextRequest) {
   const charity = typeof legal.charityNumber === 'string' && legal.charityNumber.trim().length > 0
 
   return NextResponse.json(
-    { version: contribution.version, brackets: contribution.brackets, menuRates: contribution.menuRates, stripeFeeEstimate, commissionRate, orgPays, charity },
+    { version: contribution.version, brackets: contribution.brackets, menuRates: contribution.menuRates, stripeFeeEstimate, commissionRate, charity },
     { headers: { 'Cache-Control': 'no-store' } },
   )
 }

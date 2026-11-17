@@ -1755,8 +1755,7 @@
   },
   "contribution": {
     "titre": "Support Donivers (optional)",
-    "texteOrgPaie": "Donivers is the tool behind this stained glass. Your contribution first pays the payment fees; the rest helps Donivers keep going, and helps {org} use Donivers at no cost.",
-    "texte": "Donivers is the tool behind this stained glass. Your contribution first pays the payment fees; the rest helps Donivers keep going.",
+    "texte": "Donivers is the tool behind this stained glass. Your contribution first pays the payment fees; the rest helps Donivers keep going, and helps {org} use Donivers at no cost.",
     "choix": "Contribution amount",
     "suggere": "{montant} (suggested)",
     "pourcent": "{taux} ({montant})",
