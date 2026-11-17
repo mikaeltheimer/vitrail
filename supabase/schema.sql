@@ -1,5 +1,7 @@
--- Donivers — schéma complet de la base (état au 2026-11-16 : migrations jusqu'à 2026-11-29-avis-seuil-et-taxes.sql comprise ;
--- la 19 ne touche que des données ; la 23 n'existe pas). Migrations 28 et 29 : pg_dump d'une base construite avec ce
+-- Donivers — schéma complet de la base (état au 2026-11-17 : migrations jusqu'à 2026-12-01-changement-courriel.sql comprise ;
+-- la 19 et la 30 ne touchent que des données ; la 23 n'existe pas). Migration 31 (2026-12-01) : pg_dump d'une base construite
+-- avec ce fichier, comparé à celui de la même base après la migration (table email_changes, sa clé, son index, sa clé
+-- étrangère et sa RLS ; contrainte email_log_kind_check élargie). Migrations 28 et 29 : pg_dump d'une base construite avec ce
 -- fichier, comparé à celui de la même base après les deux migrations (table terms_acceptances, colonne
 -- fee_threshold_notified_at, contrainte email_log_kind_check élargie, studio_tax_totals et studio_suggestion_stats, ces
 -- deux dernières à la fin avec studio_org_stats). Avant : mis à jour par pg_dump d'une base construite avec ce fichier
@@ -407,6 +409,17 @@ CREATE TABLE public.edit_tokens (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE public.email_changes (
+    token_hash text NOT NULL,
+    account_id uuid NOT NULL,
+    old_email text NOT NULL,
+    new_email text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    CONSTRAINT email_changes_new_email_check CHECK (((new_email = lower(new_email)) AND (POSITION(('@'::text) IN (new_email)) > 1)))
+);
+
 CREATE TABLE public.email_log (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -420,7 +433,7 @@ CREATE TABLE public.email_log (
     status text DEFAULT 'queued'::text NOT NULL,
     error text,
     organization_id uuid,
-    CONSTRAINT email_log_kind_check CHECK ((kind = ANY (ARRAY['receipt'::text, 'magic_link'::text, 'reminder'::text, 'moderation'::text, 'invitation'::text, 'password_reset'::text, 'signup_code'::text, 'access_request'::text, 'fee_threshold'::text]))),
+    CONSTRAINT email_log_kind_check CHECK ((kind = ANY (ARRAY['receipt'::text, 'magic_link'::text, 'reminder'::text, 'moderation'::text, 'invitation'::text, 'password_reset'::text, 'signup_code'::text, 'access_request'::text, 'fee_threshold'::text, 'email_change'::text, 'email_changed'::text]))),
     CONSTRAINT email_log_locale_check CHECK ((locale = ANY (ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT email_log_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'delivered'::text, 'delayed'::text, 'bounced'::text, 'complained'::text, 'failed'::text, 'skipped'::text])))
 );
@@ -774,6 +787,9 @@ ALTER TABLE ONLY public.donors
 ALTER TABLE ONLY public.edit_tokens
     ADD CONSTRAINT edit_tokens_pkey PRIMARY KEY (token_hash);
 
+ALTER TABLE ONLY public.email_changes
+    ADD CONSTRAINT email_changes_pkey PRIMARY KEY (token_hash);
+
 ALTER TABLE ONLY public.email_log
     ADD CONSTRAINT email_log_pkey PRIMARY KEY (id);
 
@@ -851,6 +867,8 @@ CREATE INDEX donations_donor_idx ON public.donations USING btree (donor_id);
 
 CREATE INDEX donations_vitrail_idx ON public.donations USING btree (vitrail_id);
 
+CREATE INDEX email_changes_account_id_idx ON public.email_changes USING btree (account_id);
+
 CREATE INDEX email_log_created_idx ON public.email_log USING btree (created_at DESC);
 
 CREATE INDEX email_log_donor_idx ON public.email_log USING btree (donor_id, kind);
@@ -918,6 +936,9 @@ ALTER TABLE ONLY public.donors
 
 ALTER TABLE ONLY public.edit_tokens
     ADD CONSTRAINT edit_tokens_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.donors(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.email_changes
+    ADD CONSTRAINT email_changes_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.email_log
     ADD CONSTRAINT email_log_donor_org_fk FOREIGN KEY (donor_id, organization_id) REFERENCES public.donors(id, organization_id) ON DELETE SET NULL (donor_id);
@@ -993,6 +1014,8 @@ ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donors ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.edit_tokens ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.email_changes ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.email_log ENABLE ROW LEVEL SECURITY;
 
