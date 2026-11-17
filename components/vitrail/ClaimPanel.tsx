@@ -147,6 +147,7 @@ export default function ClaimPanel({
   const tp = useTranslations("photo");
   const te = useTranslations("erreurs");
   const tc = useTranslations("commun");
+  const ti = useTranslations("identite");
   const org = useOrg();
   const charity = useCharityNumber();
   const money = useMoney();
@@ -569,10 +570,15 @@ export default function ClaimPanel({
             color: "rgba(255,255,255,0.85)",
           }}
         >
-          {t.rich("destination", {
-            org: org.name,
-            b: (chunks) => <strong style={{ color: GOLD }}>{chunks}</strong>,
-          })}{" "}
+          {/* Le texte proposé nomme déjà l'organisme (« Votre don aide {org}… ») : sans cette phrase, il se répéterait */}
+          {org.why !== ti("why", { org: org.name }) && (
+            <>
+              {t.rich("destination", {
+                org: org.name,
+                b: (chunks) => <strong style={{ color: GOLD }}>{chunks}</strong>,
+              })}{" "}
+            </>
+          )}
           <Editable field="why">{org.why}</Editable>
         </span>
       </div>

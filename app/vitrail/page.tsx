@@ -1353,8 +1353,9 @@ function Vitrail() {
             style={{
               position: 'fixed',
               left: mobile ? 16 : 24,
-              // sous la barre de l'atelier sur téléphone, qui passe parfois sur deux lignes (62 = haut de la barre)
-              top: mobile ? (atelierBar ? 62 + atelierBarHeight + 12 : HEADER_HEIGHT + 14) : HEADER_HEIGHT + 20,
+              // Sous la barre de l'atelier (62 = haut de la barre) : sur téléphone, elle passe parfois sur deux lignes ; sur
+              // ordinateur, centrée, elle recouvrait un titre de plus de 30 caractères environ
+              top: atelierBar ? 62 + atelierBarHeight + 12 : mobile ? HEADER_HEIGHT + 14 : HEADER_HEIGHT + 20,
               maxWidth: mobile ? 'calc(100% - 32px)' : 'min(30em, 40vw)',
               margin: 0,
               fontSize: mobile ? '20px' : 'clamp(24px, 2.4vw, 34px)',
