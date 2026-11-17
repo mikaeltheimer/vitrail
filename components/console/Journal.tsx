@@ -11,8 +11,8 @@ import { Icon, RED } from './ui'
 // Journal des dons : chaque don d'une période (heure de l'organisme), filtré par mode de paiement, provenance et
 // donateur, avec un résumé fait pour les comptes d'une soirée (net, par mode de paiement, comptant à rapprocher de la
 // caisse). Les filtres vivent dans l'adresse (#dons?periode=hier, #dons?du=…&au=…) : un rechargement garde la vue.
-// Les contributions des donateurs ne sont pas affichées (décision de Mika, 17 nov.) ; les frais Stripe à la charge
-// de l'organisme le sont, pour le propriétaire.
+// Les contributions des donateurs ne sont jamais affichées (décision de Mika, 17 nov.) ; le propriétaire voit la part
+// qui le concerne : frais Stripe payés par lui et par ses donateurs, commission payée par lui et par les contributions.
 
 const PAGE = 50
 
@@ -285,6 +285,17 @@ export default function Journal({ data, onOpenDonor }: { data: ConsoleData; onOp
                     {sum.stripeFeesEstimated && ` · ${t('fraisStripeEstimes')}`}
                   </span>
                   <b className="tabular-nums text-lg">{money(sum.stripeFeesCents)}</b>
+                  {sum.fees && sum.fees.stripeDonorCents > 0 && <span className="muted block text-xs">{t('fraisStripeDonateurs', { montant: money(sum.fees.stripeDonorCents) })}</span>}
+                </span>
+              </div>
+            )}
+            {owner && sum.fees && sum.fees.commissionOrgCents + sum.fees.commissionDonorCents > 0 && (
+              <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-dashed px-4 py-3" style={{ borderColor: 'var(--line)' }}>
+                <Icon name="document" size={20} color="var(--muted)" />
+                <span className="min-w-0">
+                  <span className="muted block text-xs">{t('commission')}</span>
+                  <b className="tabular-nums text-lg">{money(sum.fees.commissionOrgCents)}</b>
+                  {sum.fees.commissionDonorCents > 0 && <span className="muted block text-xs">{t('commissionDonateurs', { montant: money(sum.fees.commissionDonorCents) })}</span>}
                 </span>
               </div>
             )}

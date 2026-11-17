@@ -57,6 +57,8 @@ export interface DonationFees {
   stripeFeeEstimated: boolean
   /** Ce que l'organisme a payé à Donivers sur ce don, net des remboursements (même calcul que la vue organization_billing). */
   orgCommissionCents: number
+  /** Part de la commission (le plafond, après les donateurs gratuits) réglée par la contribution du donateur, nette des remboursements. */
+  donorCommissionCents: number
   /** Frais Stripe payés par la contribution, nets des remboursements (la contribution remboursée ne paie plus rien). */
   stripeCoveredCents: number
 }
@@ -78,7 +80,40 @@ export function donationFees(r: FeeRow): DonationFees | null {
     stripeFeeCents: stripeFee,
     stripeFeeEstimated: actual === null && estimated !== null,
     orgCommissionCents: Math.max(0, retained - donorPart),
+    donorCommissionCents: Math.min(donorPart, retained),
     stripeCoveredCents: stripeFee === null ? 0 : Math.round(Math.min(contribution, stripeFee) * kept),
+  }
+}
+
+/**
+ * Ce qu'un organisme voit des frais d'un don (console, export) : seulement ce qui le concerne. Jamais le montant de la
+ * contribution du donateur, qui révélerait en partie les revenus de Donivers (Mika, 17 nov.).
+ */
+export interface OrgFees {
+  /** Frais Stripe du paiement (réels, sinon estimés) ; null si inconnus. */
+  stripeFeeCents: number | null
+  stripeFeeEstimated: boolean
+  /** Frais Stripe payés par l'organisme (non couverts par la contribution). */
+  stripeOrgCents: number
+  /** Frais Stripe payés par le donateur (couverts par sa contribution). */
+  stripeDonorCents: number
+  /** Commission payée par l'organisme. */
+  commissionOrgCents: number
+  /** Commission (plafond) réglée par la contribution du donateur. */
+  commissionDonorCents: number
+}
+
+export function orgFees(r: FeeRow): OrgFees | null {
+  const f = donationFees(r)
+  if (!f) return null
+  const covered = f.stripeFeeCents === null ? 0 : Math.min(f.stripeCoveredCents, f.stripeFeeCents)
+  return {
+    stripeFeeCents: f.stripeFeeCents,
+    stripeFeeEstimated: f.stripeFeeEstimated,
+    stripeOrgCents: f.stripeFeeCents === null ? 0 : Math.max(0, f.stripeFeeCents - covered),
+    stripeDonorCents: covered,
+    commissionOrgCents: f.orgCommissionCents,
+    commissionDonorCents: f.donorCommissionCents,
   }
 }
 

@@ -158,6 +158,11 @@ export interface JournalSummary {
   stripeFeesCents: number | null
   /** Une partie des frais est estimée (frais réels pas encore connus de Stripe). */
   stripeFeesEstimated: boolean
+  /**
+   * Propriétaire seulement (sinon null) : frais Stripe payés par les donateurs (leurs contributions), commission payée par
+   * l'organisme, part du plafond réglée par les contributions. Jamais le montant des contributions (Mika, 17 nov.).
+   */
+  fees: { stripeDonorCents: number; commissionOrgCents: number; commissionDonorCents: number } | null
 }
 
 export interface JournalResponse {
@@ -166,7 +171,7 @@ export interface JournalResponse {
 }
 
 /** Résumé d'une sélection : chaque don compte à sa date, remboursements déduits. */
-export function summarize(rows: JournalRow[]): Omit<JournalSummary, 'stripeFeesCents' | 'stripeFeesEstimated'> {
+export function summarize(rows: JournalRow[]): Omit<JournalSummary, 'stripeFeesCents' | 'stripeFeesEstimated' | 'fees'> {
   const byPayment = Object.fromEntries(PAYMENTS.map(p => [p, { cents: 0, count: 0 }])) as JournalSummary['byPayment']
   let gross = 0
   let refunded = 0

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { FEE_COLUMNS } from '@/lib/billing'
-import { donationFees, type FeeRow } from '@/lib/platform-fee'
+import { orgFees, type FeeRow } from '@/lib/platform-fee'
 import { getDb } from '@/lib/db'
 import { hasEmailLog } from '@/lib/schema'
 import { failer, internalError } from '@/lib/errors'
@@ -49,19 +49,21 @@ export async function GET(request: NextRequest) {
       mailing_consent_at: d.mailing_consent_at ?? null,
       erased_at: d.erased_at ?? null,
     },
-    // Détail des frais de chaque don par carte (C) : propriétaire seulement ; les colonnes brutes ne sortent pas d'ici
+    // Détail des frais de chaque don par carte : propriétaire seulement, et seulement la part qui concerne l'organisme
+    // (jamais le montant de la contribution, Mika 17 nov.). Les colonnes brutes ne sortent pas d'ici.
     donations: ((donations.data ?? []) as unknown as (FeeRow & Record<string, unknown>)[]).map(d => ({
       id: d.id,
       amount_cents: d.amount_cents,
       fee_cents: d.fee_cents,
-      donor_contribution_cents: d.donor_contribution_cents,
+      // Le total payé (don + frais couverts + contribution), pour le remboursement, sans détailler la contribution
+      paid_cents: Number(d.amount_cents) + Number(d.fee_cents ?? 0) + Number(d.donor_contribution_cents ?? 0),
       refunded_cents: d.refunded_cents,
       dispute_status: d.dispute_status,
       dispute_due_by: d.dispute_due_by,
       source: d.source,
       channel: d.channel,
       created_at: d.created_at,
-      fees: a.ctx.role === 'owner' ? donationFees(d) : null,
+      fees: a.ctx.role === 'owner' ? orgFees(d) : null,
     })),
     emails: (emails as { data: unknown[] | null }).data ?? [],
   })
