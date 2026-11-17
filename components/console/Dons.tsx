@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Act, ConsoleData, DonorRow } from './types'
+import type { DonationFees } from '@/lib/platform-fee'
 import { RED, GREEN, Section, Sheet, useTime } from './ui'
 
 const toCents = (s: string) => Math.round((parseFloat(s.replace(',', '.')) || 0) * 100)
@@ -128,6 +129,8 @@ interface Detail {
     source: string
     channel: string | null
     created_at: string
+    /** Détail des frais d'un don par carte (propriétaire seulement). */
+    fees?: DonationFees | null
   }[]
   emails: { id: string; created_at: string; kind: string; status: string; to_email: string; error: string | null }[]
 }
@@ -281,6 +284,15 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
                           <span style={{ color: RED }}> · {n.refunded_cents >= n.amount_cents ? t('rembourse') : t('remboursePartiel', { montant: money(n.refunded_cents) })}</span>
                         )}
                         <span className="muted block text-xs">{time(n.created_at)}</span>
+                        {n.fees && (
+                          <span className="muted block text-xs">
+                            {t('detailForfait', {
+                              contribution: money(n.fees.contributionCents),
+                              frais: n.fees.stripeFeeCents === null ? '—' : n.fees.stripeFeeEstimated ? t('fraisEstimes', { frais: money(n.fees.stripeFeeCents) }) : money(n.fees.stripeFeeCents),
+                              commission: money(n.fees.orgCommissionCents),
+                            })}
+                          </span>
+                        )}
                       </span>
                       {refundable && (
                         <button className="chip !px-3" aria-expanded={refunding === n.id} onClick={() => setRefunding(refunding === n.id ? null : n.id)}>

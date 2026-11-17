@@ -15,7 +15,8 @@ mocks['@/lib/email'] = {
 }
 mocks['next/server'] = {
   after: (fn: () => unknown) => { void fn() },
-  NextResponse: { json: (body: unknown, init?: { status?: number }) => ({ status: init?.status ?? 200, body, json: async () => body }) },
+  // Constructeur aussi (export CSV : new NextResponse(texte)) ; json() comme avant
+  NextResponse: Object.assign(function (body: BodyInit, init?: ResponseInit) { return new Response(body, init) }, { json: (body: unknown, init?: { status?: number }) => ({ status: init?.status ?? 200, body, json: async () => body }) }),
 }
 process.env.PLATFORM_DOMAIN = 'donivers.test'
 process.env.STRIPE_SECRET_KEY = 'sk_test_x'
@@ -147,6 +148,13 @@ async function main() {
   check('propriétaire : conditions acceptées', res.status === 200 && (await call('GET', 'ecole.donivers.test')).body !== undefined)
   res = await call('GET', 'ecole.donivers.test')
   check('console : conditions acceptées, par le propriétaire', (res.body as { terms: { accepted: boolean; acceptedBy: string } }).terms.accepted && (res.body as { terms: { acceptedBy: string } }).terms.acceptedBy === 'Ana')
+  // Export CSV des dons : contribution, frais Stripe, commission de l'organisme (C)
+  tables.donations = [...(tables.donations ?? []), { id: 'dx', organization_id: 'orgA', donor_id: null, source: 'stripe', amount_cents: 12_500, refunded_cents: 0, donor_contribution_cents: 1_875, stripe_fee_actual_cents: 447, platform_fee_cents: 1_428, contribution_surplus_cents: 1_428, created_at: '2026-11-17T00:00:00Z' }]
+  const ex = await import('../app/api/admin/export/route')
+  const exUrl = 'https://ecole.donivers.test/api/admin/export?type=dons'
+  const csvRes = (await ex.GET(Object.assign(new Request(exUrl, { headers: { host: 'ecole.donivers.test' } }), { nextUrl: new URL(exUrl) }) as never)) as unknown as Response
+  const csvText = await csvRes.text()
+  check('export : nouvelles colonnes et valeurs', csvRes.status === 200 && csvText.includes('don;contribution;frais_stripe;commission_organisme;frais_couverts') && csvText.includes('125,00;18,75;4,47;0,00'))
   res = await call('POST', 'ecole.donivers.test', { action: 'inviteMember', email: 'Eve@X.ca', role: 'volunteer' })
   check('propriétaire : invitation envoyée par courriel', res.status === 200 && sent.some(x => x.kind === 'invitation' && x.to === 'eve@x.ca'))
   res = await call('POST', 'ecole.donivers.test', { action: 'inviteMember', email: 'bob@x.ca' })

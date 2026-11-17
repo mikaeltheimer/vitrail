@@ -10,6 +10,7 @@ import { fetchWhere, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getOrg, getVitrail, orgBaseUrl, orgName, orgUrl } from '@/lib/tenant'
 import { goLive, practiceOf } from '@/lib/signup'
 import { acceptTerms, termsStatus } from '@/lib/terms'
+import { billingSummary } from '@/lib/billing'
 import { getIdentity, missingForLaunch } from '@/lib/identity'
 import { getPhotoModeration, setPhotoModeration } from '@/lib/settings'
 import { removePhotoFile } from '@/lib/photos'
@@ -127,6 +128,8 @@ export async function GET(request: NextRequest) {
     identityMissing: t.tenant.org.practiceOf ? [] : missingForLaunch((await getIdentity(t.tenant.org))?.legal ?? {}),
     // L'atelier (vitrail d'entraînement en mode Modifier) et si une version personnalisée a déjà été publiée
     atelierUrl: await atelierUrl(t.tenant.org, request),
+    // Carte « Votre forfait » (C) : propriétaire de l'organisme réel seulement (ni atelier, ni démo, ni bénévole)
+    billing: t.role === 'owner' && !t.tenant.org.practiceOf && !t.tenant.org.showcase ? await billingSummary(orgId, t.tenant.org.feeSchedule) : null,
     // Conditions de la plateforme (D8) : version en vigueur acceptée ? Organisme réel seulement (ni atelier, ni démo)
     terms: t.tenant.org.practiceOf || t.tenant.org.showcase ? null : { ...(await termsStatus(t.tenant.org.id)), exempt: t.tenant.org.feeSchedule.model === 'exempt' },
     published: !!(await getDb().from('organizations').select('published_at').eq('id', t.tenant.org.practiceOf ?? t.tenant.org.id).maybeSingle()).data?.published_at,

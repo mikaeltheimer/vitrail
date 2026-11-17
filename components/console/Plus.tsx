@@ -6,6 +6,7 @@ import type { Act, ConsoleData, Role } from './types'
 import { GREEN, Icon, RED, Section, useDay, useTime } from './ui'
 import { CourrielsForm, JuridiqueForm, SiteWebForm, useIdentity, type Identity } from './MonVitrail'
 import Adresse from './Adresse'
+import { ForfaitInfo } from './Forfait'
 import { INTL_TAG, type Locale } from '@/i18n/config'
 
 // Réglages (propriétaire seulement) : un menu groupé, chaque ligne affiche son état et ouvre son propre écran
@@ -69,6 +70,7 @@ function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Pl
       )}
       {screen === 'equipe' && data.team && <Team team={data.team} meId={data.me.accountId} act={act} />}
       {screen === 'paiements' && <Paiements data={data} act={act} open={open} />}
+      {screen === 'paiements' && data.billing && <ForfaitInfo billing={data.billing} />}
       {screen === 'demo' && <DemoData data={data} act={act} />}
       {!identity && (screen === 'adresse' || screen === 'juridique' || screen === 'courriels') && <p className="card muted text-sm">{t('chargement')}</p>}
     </div>

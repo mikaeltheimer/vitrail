@@ -3,14 +3,24 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Mark } from '@/components/plateforme/Brand'
 import { squareJpeg } from '@/lib/photoClient'
-import type { Funnel, PlatformTotals, Stage, StudioOrg, TodoItem } from '@/lib/studio-stats'
+import type { Funnel, PlatformTotals, Stage, StudioBilling, StudioOrg, TodoItem } from '@/lib/studio-stats'
 
 // Section Studio (en français : usage interne de Studio Existence). Voir app/api/studio/route.ts.
 // Piste C « Parcours » (validée par Mika le 12 nov. 2026) : « À traiter » d'abord, puis les organismes rangés par étape,
 // une fiche par organisme ; les chiffres de la plateforme dans leur onglet. Des TOTAUX, jamais des personnes.
 // Plus tard : passer à la piste A (tableau, une ligne par organisme) au-delà d'environ 8 organismes en ligne.
 
-type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string } | null }
+type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string } | null; billing: StudioBilling | null }
+
+/** « Partenaire fondateur », « Acquitté », « 312 $ / 495 $ » ou « Gratuit » (forfait du nouveau modèle). */
+function forfaitLabel(b: StudioBilling | null, money: (c: number) => string): string {
+  if (!b) return '—'
+  if (b.model === 'exempt') return 'Partenaire fondateur'
+  if (b.settledAt) return 'Acquitté'
+  if (b.thresholdAt) return `${money(Math.min(b.cumulCents, b.capCents))} / ${money(b.capCents)}`
+  return 'Gratuit'
+}
+const dateCourte = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
 interface Data {
   me: { email: string; name: string }
   requests: { id: string; org_name: string; name: string; email: string; message: string | null; locale: 'fr' | 'en'; source: string | null; created_at: string }[]
@@ -223,7 +233,7 @@ export default function StudioPanel() {
               <span className="font-semibold" style={{ color: 'var(--text)' }}>Plateforme</span>
               <span>{plural(data.totals.donors, 'donateur', 'donateurs')}</span>
               <span>{money(data.totals.netCents)} nets</span>
-              <span>{money(data.totals.feeCents)} de commission</span>
+              <span>{money(data.totals.feeCents)} reçus par Donivers</span>
               <span>{plural(data.totals.disputesOpen, 'litige ouvert', 'litiges ouverts')}</span>
               <button className="ml-auto underline" onClick={() => go('chiffres')}>Tous les chiffres</button>
             </div>
@@ -474,7 +484,10 @@ function OrgSheet({ o, windowDays, onClose }: { o: Org; windowDays: number; onCl
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
           <Stat label="Dons nets" value={money(s.netCents)} sub={s.offlineNetCents ? `dont ${money(s.offlineNetCents)} hors Stripe` : 'après remboursements'} />
           <Stat label="Dons" value={s.donations.toLocaleString('fr-CA')} sub={s.donations ? `moyenne ${money(Math.round(s.netCents / s.donations))}` : '—'} />
-          <Stat label="Commission nette" value={money(s.feeCents)} sub={`${money(s.feeSinceCents)} en ${windowDays} jours`} />
+          <Stat label="Forfait" value={<span className="text-base">{forfaitLabel(o.billing, money)}</span>} sub={o.billing?.settledAt ? `acquitté le ${dateCourte(o.billing.settledAt)}` : o.billing?.thresholdAt ? `seuil franchi le ${dateCourte(o.billing.thresholdAt)}` : undefined} />
+          <Stat label="Réglé par l’organisme" value={o.billing && o.billing.model !== 'exempt' ? money(o.billing.orgPaidCents) : '—'} />
+          <Stat label="Réglé par les donateurs" value={o.billing && o.billing.model !== 'exempt' ? money(o.billing.donorsPaidCents) : '—'} />
+          <Stat label="Reçus par Donivers" value={money(s.feeCents)} sub={`${money(s.feeSinceCents)} en ${windowDays} jours`} />
           <Stat label="Litiges ouverts" value={<span style={{ color: s.disputesOpen ? ROSE : undefined }}>{s.disputesOpen}</span>} />
           <Stat label="Équipe" value={s.owners + s.volunteers} sub={`${plural(s.owners, 'propriétaire', 'propriétaires')}, ${plural(s.volunteers, 'bénévole', 'bénévoles')}`} />
           <Stat label="Dernier don" value={<span className="text-base">{since(s.lastDonationAt)}</span>} />
@@ -522,7 +535,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
     ['Dons', t.donations.toLocaleString('fr-CA'), t.donationsSince.toLocaleString('fr-CA')],
     ['Montant net', money(t.netCents), money(t.netSinceCents)],
     ['dont hors Stripe (comptant, amorçage)', money(t.offlineNetCents), '—'],
-    ['Commission nette', money(t.feeCents), money(t.feeSinceCents)],
+    ['Reçus par Donivers', money(t.feeCents), money(t.feeSinceCents)],
     ['Litiges ouverts', t.disputesOpen, '—'],
     ['Courriels rebondis', t.bounces, t.bouncesSince],
     ['Plaintes', t.complaints, t.complaintsSince],
@@ -554,7 +567,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
           <Stat label="Membres des équipes" value={t.owners + t.volunteers} sub={`${plural(t.owners, 'propriétaire', 'propriétaires')}, ${plural(t.volunteers, 'bénévole', 'bénévoles')}`} />
         </div>
         <div className="card !p-4">
-          <Stat label="Commission nette" value={money(t.feeCents)} sub={`${money(t.feeSinceCents)} en ${w} jours`} />
+          <Stat label="Reçus par Donivers" value={money(t.feeCents)} sub={`${money(t.feeSinceCents)} en ${w} jours`} />
         </div>
       </section>
 
@@ -620,7 +633,7 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="muted text-[13px]">
-                  {['Organisme', 'Étape', 'Donateurs', 'Dons nets', 'Commission', 'Litiges', 'Dernier don'].map(h => (
+                  {['Organisme', 'Étape', 'Donateurs', 'Dons nets', 'Forfait', 'Réglé par l’organisme', 'Réglé par les donateurs', 'Seuil franchi le', 'Acquitté le', 'Litiges', 'Dernier don'].map(h => (
                     <th key={h} className="whitespace-nowrap px-5 py-3 font-medium">{h}</th>
                   ))}
                 </tr>
@@ -634,7 +647,11 @@ function Figures({ data, onOpen }: { data: Data; onOpen: (id: string) => void })
                     <td className="whitespace-nowrap px-5 py-2.5" style={{ color: STAGE_COLOR[o.stage] }}>{COLUMNS.find(c => c.key === o.stage)?.title ?? 'Suspendu'}</td>
                     <td className="px-5 py-2.5 tabular-nums">{o.stats.donors} / 100</td>
                     <td className="px-5 py-2.5 tabular-nums">{money(o.stats.netCents)}</td>
-                    <td className="px-5 py-2.5 tabular-nums">{money(o.stats.feeCents)}</td>
+                    <td className="whitespace-nowrap px-5 py-2.5">{forfaitLabel(o.billing, money)}</td>
+                    <td className="px-5 py-2.5 tabular-nums">{o.billing && o.billing.model !== 'exempt' ? money(o.billing.orgPaidCents) : '—'}</td>
+                    <td className="px-5 py-2.5 tabular-nums">{o.billing && o.billing.model !== 'exempt' ? money(o.billing.donorsPaidCents) : '—'}</td>
+                    <td className="muted whitespace-nowrap px-5 py-2.5">{dateCourte(o.billing?.thresholdAt ?? null)}</td>
+                    <td className="muted whitespace-nowrap px-5 py-2.5">{dateCourte(o.billing?.settledAt ?? null)}</td>
                     <td className="px-5 py-2.5 tabular-nums" style={{ color: o.stats.disputesOpen ? ROSE : undefined }}>{o.stats.disputesOpen}</td>
                     <td className="muted whitespace-nowrap px-5 py-2.5">{since(o.stats.lastDonationAt)}</td>
                   </tr>

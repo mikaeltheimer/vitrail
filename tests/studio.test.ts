@@ -15,6 +15,7 @@ async function main() {
   const { launchBlockers } = await import('../lib/launch')
   const { TERMS_VERSION: TV } = await import('../lib/terms')
 
+  check('Studio : forfait lu dans la vue', JSON.stringify(s.studioBilling({ fee_model: 'exempt', cap_cents: 49500, fees_net_cents: '320', donor_covered_cents: 2800, cumul_cents: 3120, fee_threshold_reached_at: null, fee_settled_at: null })) === JSON.stringify({ model: 'exempt', capCents: 49500, orgPaidCents: 320, donorsPaidCents: 2800, cumulCents: 3120, thresholdAt: null, settledAt: null }))
   console.log('Prêt à lancer')
   check('rien de prêt : Stripe et coordonnées', JSON.stringify(launchBlockers({ stripe_ready: false, legal: {}, terms_version: TV })) === '["stripe","juridique"]')
   check('Stripe prêt, coordonnées incomplètes', JSON.stringify(launchBlockers({ stripe_ready: true, legal: { ...LEGAL, officerPhone: ' ' }, terms_version: TV })) === '["juridique"]')

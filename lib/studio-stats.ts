@@ -62,6 +62,31 @@ export async function orgStats(db: SupabaseClient, now = Date.now()): Promise<Ma
 
 export type Stage = 'pas-pret' | 'pret' | 'en-ligne' | 'suspendu'
 
+/** Forfait d'un organisme pour Studio (C) : une ligne de la vue organization_billing, des totaux seulement. */
+export interface StudioBilling {
+  model: 'capped' | 'exempt'
+  capCents: number
+  /** Réglé par l'organisme (commissions nettes). */
+  orgPaidCents: number
+  /** Réglé par les donateurs (surplus des contributions). */
+  donorsPaidCents: number
+  cumulCents: number
+  thresholdAt: string | null
+  settledAt: string | null
+}
+
+export function studioBilling(r: Record<string, unknown>): StudioBilling {
+  return {
+    model: r.fee_model === 'exempt' ? 'exempt' : 'capped',
+    capCents: n(r.cap_cents),
+    orgPaidCents: n(r.fees_net_cents),
+    donorsPaidCents: n(r.donor_covered_cents),
+    cumulCents: n(r.cumul_cents),
+    thresholdAt: (r.fee_threshold_reached_at as string | null) ?? null,
+    settledAt: (r.fee_settled_at as string | null) ?? null,
+  }
+}
+
 export interface StudioOrg {
   id: string
   name: string

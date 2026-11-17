@@ -34,7 +34,7 @@ export default async function ConditionsPage() {
   const locale = (identity ? clampLocale(identity.locales, (await getLocale()) as Locale) : await getLocale()) as Locale
   const org = { name: identity ? identity.texts[locale].name : CONFIG.brand.name }
   if (identity?.showcase) return <ShowcaseLegal org={org.name} />
-  const legal: LegalInfo = identity?.legal ?? { entity: '', neq: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
+  const legal: LegalInfo = identity?.legal ?? { entity: '', neq: '', charityNumber: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
   const tags = legalTags(tc('aCompleter'), legal, (await getTranslations('confidentialite'))('retentionDefaut', { org: org.name }))
   const v = {
     org: org.name,

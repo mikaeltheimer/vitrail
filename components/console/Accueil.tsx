@@ -11,6 +11,7 @@ import type { Tab } from './Console'
 import type { Screen } from './Plus'
 import { Icon, RED, GREEN, Section, Sheet, useAgo, useDay } from './ui'
 import { TermsSummary } from './Conditions'
+import { ForfaitCard } from './Forfait'
 
 interface Todo {
   key: string
@@ -244,6 +245,9 @@ export default function Accueil({
           </ul>
         )}
       </Section>
+
+      {/* Le forfait, tout en bas (Mika, 16 nov.) : utile à consulter, jamais urgent */}
+      {data.billing && <ForfaitCard billing={data.billing} onHow={() => setTab('plus', 'paiements')} />}
     </div>
   )
 }
