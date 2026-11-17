@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { estimateStripeFee, type StripeFeeEstimate } from './contribution'
+import { estimateStripeFee, suggestedContribution, type ContributionSettings, type StripeFeeEstimate } from './contribution'
 
 // Commission de la plateforme (Studio Existence) : modèle du 10 novembre (100 donateurs gratuits, puis 2,8 % jusqu'à un
 // cumul de 495 $, puis 0 % pour toujours) et contribution facultative du donateur (16 novembre), qui fait avancer le cumul.
@@ -24,6 +24,16 @@ export const PRICING = {
 /** Commission totale (cents) du vitrail principal pour `donors` donateurs qui donnent chacun `avgCents` une fois. */
 export function pricingExampleCents(donors: number, avgCents: number): number {
   return Math.min(PRICING.capCents, Math.max(0, donors - PRICING.freeDonors) * Math.round(avgCents * PRICING.rate))
+}
+
+/**
+ * La contribution suggérée pour un don suffit-elle à payer la commission de ce don (surplus ≥ commission) ? Vitrine :
+ * « ou rien si le donateur ajoute la contribution suggérée » ne s'affiche que si c'est vrai avec les tranches en vigueur.
+ */
+export function suggestionCoversCommission(donCents: number, settings: ContributionSettings, rate = PRICING.rate): boolean {
+  const c = suggestedContribution(donCents, settings.brackets)
+  const surplus = Math.max(0, c - estimateStripeFee(donCents + c, settings.stripeFeeEstimate))
+  return surplus >= Math.round(donCents * rate)
 }
 
 /** Grille d'un organisme (organizations.fee_schedule). Une grille de l'ancienne forme, sans « model », vaut le modèle par défaut. */

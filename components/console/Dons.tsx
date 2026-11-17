@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { GLASS_COLORS } from '@/lib/config'
+import { CONFIG, GLASS_COLORS } from '@/lib/config'
 import { useGlassName, useMoney } from '@/lib/useI18n'
 import type { Act, ConsoleData, DonorRow } from './types'
 import { RED, GREEN, Section, Sheet, useTime } from './ui'
@@ -403,7 +403,7 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
           />
         </label>
       </div>
-      <p className="muted text-xs">{t('avertissement')}</p>
+      <p className="muted text-xs">{t('avertissement', { brand: CONFIG.brand.name })}</p>
       {!all && amount && !valid && <p style={{ color: RED }}>{t('horsLimite', { max: money(remaining) })}</p>}
       <div className="flex gap-2">
         <button

@@ -190,7 +190,8 @@
     "pasMaintenant": "Not now? Keep this link: it's also in the confirmation email.",
     "agrandir": "Add to my donation",
     "modifier": "Edit my fragment",
-    "piedCourriel": "A confirmation email with these links is on its way to you. No tax receipt is issued at this time."
+    "piedCourriel": "A confirmation email with these links is on its way to you. No tax receipt is issued at this time.",
+    "piedCourrielAvecNumero": "A confirmation email with these links is on its way to you. Your tax receipt is issued by {org}."
   },
   "gerer": {
     "chargement": "Loading…",
@@ -334,6 +335,7 @@
       "etape3": "It joins the stained glass",
       "etape3Texte": "Here, and on the big screen during events.",
       "recu": "This organization is not yet a registered charity, so no tax receipt is issued at this time. Secure payment by Stripe.",
+      "recuAvecNumero": "{org} is a registered charity (no. {numero}): your donation qualifies for a tax receipt, issued by {org}. Secure payment by Stripe.",
       "creation": "Created by <lien>{studio}</lien>."
     },
     "ferme": "This stained glass opens soon: donations are not open yet.",
@@ -414,7 +416,8 @@
     "demo": "Demo mode: no Stripe key is configured. The fragment is added right away, with no payment and no email.",
     "instant": "One moment…",
     "donner": "Donate {montant}",
-    "pied": "What you see is a preview. Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your fragment. No tax receipt at this time.",
+    "pied": "Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your fragment. No tax receipt at this time.",
+    "piedAvecNumero": "Secure payment by Stripe (card, Apple Pay, Google Pay), which will ask for your email address; then you return to your fragment. Your donation qualifies for a tax receipt, issued by {org}.",
     "erreurInattendue": "Unexpected error. Please try again.",
     "listeEnvoi": "I agree to receive news from {org} by email (campaigns, events). I can unsubscribe at any time.",
     "demoVitrine": "Demonstration: go ahead and try it. Nothing is charged or saved; your fragment only exists in this tab.",
@@ -472,6 +475,7 @@
     "recuContribution": "You also added {contribution} in transaction fees and contribution to Donivers, for a total paid of {total}.",
     "recuContributionTaxes": "The contribution includes applicable taxes. It is paid to Studio Existence inc. (GST/HST: {tps}; QST: {tvq}) and does not qualify for a tax receipt.",
     "recuPied": "This email confirms your donation. This organization is not yet a registered charity, so no tax receipt is issued at this time.",
+    "recuPiedAvecNumero": "This email confirms your donation; it is not a tax receipt. Your official tax receipt is issued by {org}, a registered charity (no. {numero}).",
     "lienObjet": "Your link — {org}",
     "lienCorps": "Here is your link to edit your fragment or make it bigger. It stays valid for 30 days.",
     "recuPreheader": "Your fragment is being added to the stained glass.",
@@ -842,7 +846,7 @@
       "tout": "All ({montant})",
       "partie": "Part:",
       "montant": "Amount to refund",
-      "avertissement": "The money returns to the donor’s card within 5 to 10 days. Stripe fees aren’t returned: the organization bears them. Our commission is returned pro rata. The fragment shrinks, or disappears if everything is refunded. This can’t be undone.",
+      "avertissement": "The money returns to the donor’s card within 5 to 10 days, contribution included. Stripe fees aren’t returned: the organization bears them, even if the contribution had paid them. {brand}’s share (commission and contribution) is returned in proportion to the amount refunded. The fragment shrinks, or disappears if everything is refunded. This can’t be undone.",
       "horsLimite": "Between $0.01 and {max}.",
       "confirmer": "Refund {montant} to this donor? This can’t be undone.",
       "enCours": "Refunding…",
@@ -1167,17 +1171,18 @@
     },
     "tarifs": {
       "titre": "Free for your first {gratuit} donors.",
-      "sousTitre": "Then {taux} per donation, until you’ve paid {plafond}. After that, nothing, forever.",
+      "sousTitre": "Then {taux} per donation up to {plafond} in total, taxes included. Your donors can pay it for you.",
       "jauge": "Pricing in three stages",
       "p1Etiquette": "Your first {gratuit} donors",
       "p1Texte": "Nothing to pay.",
       "p2Etiquette": "Starting with your {suivant, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} donor",
-      "p2Texte": "per donation, until you’ve paid {plafond} in total. Collected automatically by Stripe, no invoice.",
+      "p2Texte": "per donation, taxes included, until you’ve paid {plafond} in total. Collected automatically by Stripe, no invoice. When a donor adds a contribution, it pays them for you.",
       "p2Exemple": "On a {don} donation: {commission}.",
+      "p2ExempleContribution": "On a {don} donation: {commission}, or nothing if the donor adds the suggested contribution.",
       "p3Etiquette": "Then, forever",
       "p3Texte": "Unlimited donations, no commission.",
       "exemples": "Examples",
-      "exHypothese": "Each donor gives once; Stripe fees not included.",
+      "exHypothese": "These amounts assume that each donor gives once and that none adds a contribution: this is the most your organization could have to pay. Amounts include taxes.",
       "exPetit": "Small organization",
       "exMoyen": "Mid-sized organization",
       "exGala": "Gala",
@@ -1186,11 +1191,10 @@
       "exReste": "{reste} more at most, then nothing.",
       "exPlafond": "Cap reached: nothing more, ever.",
       "stripeTitre": "Stripe fees",
-      "stripe": "Paid directly to Stripe by your organization: {pct} + {fixe} per Canadian card. Donors can choose to cover them.",
+      "stripe": "Taken by Stripe on each payment: {pct} + {fixe} per Canadian card. When the donor adds a contribution, it pays them first, and your organization receives the full donation. Otherwise, they come out of the donation.",
       "direct": "The money goes straight to your Stripe account: it never passes through {brand}.",
       "gratuitTitre": "Always free",
-      "gratuitTexte": "Exporting your data, donors’ right to remove their content, refunds, moderation. If a donation is refunded, our commission is returned to you pro rata.",
-      "bientot": "Coming soon: stained glass for campaigns ({taux} per donation, up to {campagne} per campaign) and {brand} Pro ({pro} per year)."
+      "gratuitTexte": "Exporting your data, donors’ right to remove their content, refunds, moderation. If a donation is refunded, our share (commission and contribution) is returned in proportion to the amount refunded."
     },
     "garanties": {
       "quebecTitre": "Made in Québec",
@@ -1301,8 +1305,8 @@
     },
     "conditions": {
       "titre": "The terms, in short",
-      "l1": "<b>Free for your first {gratuit} donors.</b> Then {taux} per donation, up to {plafond} in total. After that, nothing, forever.",
-      "l2": "<b>Stripe fees</b> (and any disputes) are borne by your organization, even when a donation is refunded.",
+      "l1": "<b>Free for your first {gratuit} donors.</b> Then {taux} per donation, taxes included, up to {plafond} in total. After that, nothing, forever. Your donors can pay these fees for you by adding an optional contribution to {brand}.",
+      "l2": "<b>Stripe fees</b> are paid first by donors’ contributions; otherwise, your organization bears them, as it does disputes. Stripe doesn’t return them when a donation is refunded.",
       "l3": "Your organization is <b>responsible for its donors’ personal information</b> (Law 25); Studio Existence hosts and processes it on your behalf.",
       "l4": "You moderate what appears on your stained glass.",
       "lire": "Read the full terms of use",
@@ -1617,16 +1621,18 @@
           "titre": "4. Payments",
           "blocs": [
             "Donations are paid by card through Stripe, directly into the organization’s Stripe account. The money never passes through us. The organization opens and manages its Stripe account and accepts Stripe’s terms, which apply between it and Stripe.",
-            "Stripe’s processing fees, refunds, disputes (payment chargebacks) and related fees are borne by the organization. Until the Stripe account is ready, the stained glass accepts no real donations."
+            "Stripe charges processing fees on every payment. When the donor adds a contribution to {brand} (section 5), that contribution pays these fees first, and the organization receives its donation in full. Fees are estimated when the payment is made, at Stripe’s standard rate; if the actual fees are higher (for example, for a foreign card), we return the difference to the organization, up to the amount of the contribution. Without a contribution, or for any part it doesn’t cover, Stripe’s fees are borne by the organization.",
+            "Refunds, disputes (payment chargebacks) and related fees are borne by the organization. Stripe does not return its processing fees when a donation is refunded: they remain the organization’s, even when a contribution had paid them, since the contribution is refunded to the donor along with the donation. Until the Stripe account is ready, the stained glass accepts no real donations."
           ]
         },
         {
-          "titre": "5. Our commission",
+          "titre": "5. Our commission and donor contributions",
           "blocs": [
             "The organization’s first {gratuit} donors give rise to no commission. A donor is a distinct email address; a donor added by hand in the dashboard also counts, and a donor who gives several times counts only once. A donor whose information has been erased still counts.",
-            "Once this threshold is reached, we take a commission of {taux} of the amount of each card donation received on the main stained glass, excluding any processing fees covered by the donor. The threshold is assessed when the payment starts.",
-            "Total commissions on the main stained glass never exceed {plafond}. The donation that reaches this cap pays only the balance. Once the cap is reached, no further commission is taken on the main stained glass for the remainder of the contract, even if a later refund lowers that total.",
-            "The commission is collected automatically by Stripe at the time of payment. If a donation is refunded or a dispute is lost, the corresponding share of the commission is returned. Applicable taxes are added, if any.",
+            "When giving, a donor may add an optional contribution to {brand}. It is paid to {studio}; it is not part of the donation and does not qualify for a tax receipt. It first pays Stripe’s fees (section 4); the rest, called the surplus, is ours. Contributions are never capped: a donor may contribute before or after the cap is reached.",
+            "Once this threshold is reached, each card donation received on the main stained glass gives rise to a commission of {taux} of its amount (excluding the contribution), taxes included. The threshold is assessed when the payment starts. When the surplus of that donation’s contribution reaches the commission, the organization pays nothing on that donation; otherwise, it pays the difference.",
+            "The {plafond} cap, taxes included, counts everything we have received from donations to the main stained glass: commissions paid by the organization and the surplus of its donors’ contributions, from the very first donor. Contributions alone can therefore reach the cap, even before the {suivant} donor. On the donation that reaches the cap, the organization pays only the balance. Once the cap is reached, the organization is paid in full: no further commission is taken on the main stained glass for the remainder of the contract, even if a later refund lowers that total. Donors may still add a contribution.",
+            "The commission and the surplus are collected automatically by Stripe at the time of payment. All our amounts include taxes: GST and QST, or HST, are never added on top; we remit them out of what we receive. If a donation is refunded or a dispute is lost, the corresponding share of what we received (commission and surplus) is returned in proportion to the amount refunded; before the cap is reached, the running total goes down accordingly.",
             "Campaign stained glass and {brand} Pro features, once offered, will have their own prices, shown before anything is turned on. None is charged without the organization’s agreement.",
             "The main stained glass has no subscription and no fixed fee. We may change the commission by giving the organization at least 30 days’ notice; the change applies only to donations received after it takes effect and cannot reinstate a commission on a main stained glass whose cap has been reached.",
             "Special terms agreed in writing with an organization (for example, a commission exemption) take precedence over this section."

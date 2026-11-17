@@ -17,7 +17,7 @@ export interface IdentityRow {
   name_fr: string
   website_url: string | null
   texts: StoredTexts | null
-  legal: Partial<LegalInfo> | null
+  legal: (Partial<LegalInfo> & { charityNumber?: string }) | null
   theme: { logoSize?: [number, number]; iconSize?: [number, number] } | null
   logo_path: string | null
   icon_path: string | null
@@ -87,6 +87,7 @@ export function identityFromRow(r: IdentityRow): Identity {
       retention: legal.retention ?? '',
       updated: legal.updated ?? '',
     },
+    charityNumber: typeof legal.charityNumber === 'string' ? legal.charityNumber.trim() : '',
     senderName: (r.sender_name || texts[locales[0]].name).trim(),
     replyTo: r.reply_to || legal.officerEmail || null,
     showcase: !!r.showcase,
