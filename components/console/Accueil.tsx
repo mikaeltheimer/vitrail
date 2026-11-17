@@ -54,7 +54,7 @@ export default function Accueil({
         key: `litige-${x.id}`,
         icon: 'alerte',
         urgent: true,
-        title: t('litigeTitre', { montant: money(x.amount_cents + (x.fee_cents ?? 0)) }),
+        title: t('litigeTitre', { montant: money(x.amount_cents + (x.fee_cents ?? 0) + (x.donor_contribution_cents ?? 0)) }),
         detail: x.dispute_due_by ? t('litigeDetail', { date: day(x.dispute_due_by) }) : t('litigeDetailSansDate'),
         action: t('repondre'),
         onClick: () => void open('stripeDashboard'),

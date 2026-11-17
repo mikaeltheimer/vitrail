@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic'
 // Les liens des exemples portent un jeton bidon : ils mènent à « ce lien a expiré ». Rien n'est lu ni écrit chez les donateurs.
 
 const TYPES = {
-  recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReceipt({ amountCents: 2500, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
+  recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReceipt({ amountCents: 2500, contributionCents: 375, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
   lien: { label: 'Lien personnel (« Retrouver mon don »)', kind: 'magic_link' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildMagicLink({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
   rappel: { label: 'Rappel du lendemain (témoignage)', kind: 'reminder' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReminder({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
   ...(Object.fromEntries(

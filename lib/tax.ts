@@ -8,6 +8,9 @@
 // - l'assiette (S + P, ou toute la contribution) : c'est l'appelant qui passe le montant, aujourd'hui S + P.
 // Les taux vivent dans la base (platform_settings, clé « tax_rates ») ; DEFAULT_TAX_RATES n'est qu'un filet.
 
+/** Numéros d'inscription de Studio Existence inc., sur les reçus de la contribution (donnés par Mika le 16 nov.). */
+export const STUDIO_TAX_NUMBERS = { gstHst: '744071374 RT0001', qst: '1233689404 TQ0001' } as const
+
 export const PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'] as const
 export type Province = (typeof PROVINCES)[number]
 

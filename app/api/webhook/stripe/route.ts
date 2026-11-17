@@ -11,6 +11,7 @@ import { getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { applyRefund, reconcileCharge, recordDispute, refundPlatformFee } from '@/lib/refunds'
 import { isAccountReady, orgByAccount, provinceOfAccount, setAccountReady } from '@/lib/connect'
 import { settleDonation } from '@/lib/settlement'
+import { getDb } from '@/lib/db'
 
 export const runtime = 'nodejs'
 
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
         const { donorId } = result
         after(async () => {
           try {
-            await sendReceipt({ to: email, amountCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
+            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
           } catch (e) {
             console.error('Courriel de reçu non envoyé :', e)
           }
@@ -156,6 +157,33 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
       return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
+    }
+    return ok()
+  }
+
+  // ── Frais Stripe réels connus après coup (balance transaction asynchrone) : le règlement corrige le surplus ──
+  if (event.type === 'charge.updated') {
+    const charge = event.data.object as Stripe.Charge
+    const intent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id
+    if (!intent || !charge.balance_transaction || !charge.paid) return ok()
+    try {
+      const session = (await getStripe().checkout.sessions.list({ payment_intent: intent, limit: 1 }, { stripeAccount: event.account })).data[0]
+      if (!session || session.metadata?.orgId !== orgId) return ok() // pas un paiement de Donivers
+      const { data: don, error } = await getDb()
+        .from('donations')
+        .select('id,donor_contribution_cents,stripe_fee_actual_cents')
+        .eq('organization_id', orgId)
+        .eq('provider_ref', session.id)
+        .maybeSingle()
+      if (error) throw error
+      // Don pas encore enregistré : Stripe rejouera (checkout.session.completed le réglera de toute façon)
+      if (!don) return NextResponse.json({ error: 'Don pas encore enregistré' }, { status: 500 }) // i18n-ok : réponse à Stripe
+      if (don.stripe_fee_actual_cents !== null) return ok()
+      const org = await getOrg(orgId)
+      await settleDonation(getStripe(), { donationId: don.id, accountId: event.account, paymentIntentId: intent, contributionCents: don.donor_contribution_cents ?? 0, orgProvince: org?.taxProvince ?? null })
+    } catch (e) {
+      console.error('Frais réels non réglés :', e)
+      return NextResponse.json({ error: 'Règlement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
     }
     return ok()
   }

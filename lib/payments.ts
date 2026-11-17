@@ -60,6 +60,12 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
   const mode = paymentModeFor(req.tenant.org)
   if (mode === 'off') throw new Error('Les paiements ne sont pas activés.')
 
+  // Tranches de la contribution : celles de l'organisme s'il en a, sinon celles de la plateforme
+  const schedule = req.tenant.org.feeSchedule
+  const settings = await platformSettings()
+  const contribution = contributionSettingsFor(settings.contribution, schedule.contributionBrackets)
+  const suggested = req.contributionShown ? suggestedContribution(req.amountCents, contribution.brackets) : null
+
   if (mode === 'demo') {
     const ref = `demo_${randomUUID()}`
     await recordDonation({
@@ -73,6 +79,11 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
       feeCents: req.feeCents,
       source: 'demo',
       providerRef: ref,
+      // Démo et atelier : la contribution choisie est gardée (l'organisme voit ce que ses donateurs feraient), sans
+      // surplus ni commission : aucun argent ne circule (décision 5 du 16 nov.)
+      ...((req.contributionCents ?? 0) > 0 || suggested !== null
+        ? { contribution: { cents: req.contributionCents ?? 0, surplusCents: 0, stripeFeeEstimatedCents: null, suggestedCents: suggested, bracketsVersion: suggested !== null ? contribution.version.slice(0, 40) : null } }
+        : {}),
       channel: req.channel,
       locale: req.locale,
       mailingConsent: req.mailingConsent,
@@ -84,9 +95,6 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
   const accountId = req.tenant.org.stripeAccountId
   if (!accountId) throw new Error("L'organisme n'a pas de compte Stripe connecté.")
   // La règle de la spécification (section 1), « au début du paiement » (D2) ; le webhook la règle ensuite sous verrou
-  const schedule = req.tenant.org.feeSchedule
-  const settings = await platformSettings()
-  const contribution = contributionSettingsFor(settings.contribution, schedule.contributionBrackets)
   const stripeFee = stripeFeeEstimateFor(contribution.stripeFeeEstimate, schedule.stripeFeeEstimate)
   // Campagnes : pas encore de commission (étape L2, createEvent désactivé) ; la contribution reste possible
   const principal = req.tenant.vitrail.kind === 'permanent'
@@ -99,7 +107,6 @@ export async function startCheckout(req: CheckoutRequest): Promise<{ url: string
     stripeFee,
   })
   const platformFee = fees.applicationFeeCents
-  const suggested = req.contributionShown ? suggestedContribution(req.amountCents, contribution.brackets) : null
 
   const urls = returnUrls(req.returnTo, '{CHECKOUT_SESSION_ID}', req.locale, req.baseUrl, vitrailPath(req.tenant.vitrail))
   const t = translatorFor(req.locale)

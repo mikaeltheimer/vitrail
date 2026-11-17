@@ -258,9 +258,20 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('donivers-platform-fee:' || v_org::text, 0));
 
   select dn.id, dn.source, dn.vitrail_id, dn.platform_fee_cents, dn.platform_fee_waived_cents, dn.platform_fee_settled_at,
-         dn.donor_contribution_cents, dn.contribution_surplus_cents
+         dn.platform_fee_refunded_cents, dn.donor_contribution_cents, dn.contribution_surplus_cents, dn.stripe_fee_actual_cents
     into d from public.donations dn where dn.id = p_donation for update;
   if d.platform_fee_settled_at is not null then
+    -- Frais réels arrivés après le règlement (charge.updated : Stripe crée la balance transaction de façon asynchrone) :
+    -- on corrige le surplus une seule fois ; la différence s'ajoute à l'excédent rendu
+    if p_stripe_fee_actual is not null and d.stripe_fee_actual_cents is null then
+      v_s := least(d.contribution_surplus_cents, greatest(0, d.donor_contribution_cents - p_stripe_fee_actual));
+      v_waived := least(d.platform_fee_cents - d.platform_fee_refunded_cents, d.platform_fee_waived_cents + (d.contribution_surplus_cents - v_s));
+      update public.donations
+         set contribution_surplus_cents = v_s, platform_fee_waived_cents = v_waived, stripe_fee_actual_cents = p_stripe_fee_actual
+       where id = p_donation;
+      return query select v_waived, v_s, false, true;
+      return;
+    end if;
     return query select d.platform_fee_waived_cents, d.contribution_surplus_cents, false, true;
     return;
   end if;

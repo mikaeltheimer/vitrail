@@ -67,6 +67,11 @@ async function main() {
   check('expéditeur : le nom de l\'organisme', e.from.fromName === 'Lake Theatre')
   const r = buildReceipt({ amountCents: 2500, token: 'x', locale: e.locale, baseUrl: 'https://lac.test', org: e.build.org })
   check('reçu : nom et question de l\'organisme', r.subject.includes('Lake Theatre') && JSON.stringify(r.content).includes('Why do you support Lake Theatre?'))
+  check('reçu sans contribution : aucune ligne de contribution', !JSON.stringify(r.content.paragraphs).includes('Donivers'))
+  const rc = buildReceipt({ amountCents: 12500, contributionCents: 1875, token: 'x', locale: 'fr', baseUrl: 'https://lac.test', org: e.build.org })
+  const txt = JSON.stringify(rc.content)
+  check('reçu avec contribution : le don seul, puis la contribution et le total', txt.includes('125\u00a0$') && txt.includes('18,75') && txt.includes('143,75'))
+  check('reçu avec contribution : taxes comprises et numéros de Studio Existence', txt.includes('744071374 RT0001') && txt.includes('1233689404 TQ0001') && txt.includes('reçu fiscal'))
 
   console.log('Mise en ligne')
   check('tout manque (NEQ et conservation facultatifs)', shared.missingForLaunch({}).length === 5)

@@ -23,6 +23,7 @@
     "autreQuestion": "Une autre question"
   },
   "erreurs": {
+    "contributionTropHaute": "La contribution ne peut pas dépasser votre don.",
     "courrielRequis": "Courriel requis.",
     "courrielInvalide": "Ce courriel ne semble pas valide.",
     "montantInvalide": "Montant invalide.",
@@ -399,7 +400,6 @@
     "destination": "Votre don soutient <b>{org}</b>.",
     "montant": "Montant",
     "typique": "La plupart des gens donnent {montant}.",
-    "frais": "J'ajoute {frais} pour couvrir les frais de transaction : l'organisme reçoit {montant} au complet.",
     "part": "Votre part du vitrail",
     "plusGrandQue": "Plus grand que",
     "plusGrandQueValeur": "{count, plural, one {# fragment} other {# fragments}} sur {total}",
@@ -469,6 +469,8 @@
   "courriel": {
     "recuObjet": "Merci pour votre don — {org}",
     "recuConfirmation": "Votre don de {montant} est enregistré et votre fragment s'ajoute au vitrail.",
+    "recuContribution": "Vous avez aussi ajouté {contribution} de frais de transaction et de contribution à Donivers, pour un total payé de {total}.",
+    "recuContributionTaxes": "La contribution comprend les taxes applicables. Elle est versée à Studio Existence inc. (TPS/TVH : {tps} ; TVQ : {tvq}) et ne donne pas droit à un reçu fiscal.",
     "recuPied": "Ce courriel confirme votre don. Cet organisme n'est pas encore enregistré comme organisme de bienfaisance : aucun reçu fiscal n'est émis pour le moment.",
     "lienObjet": "Votre lien — {org}",
     "lienCorps": "Voici votre lien pour modifier votre fragment ou l'agrandir. Il reste valable 30 jours.",
@@ -617,7 +619,7 @@
     "dons": {
       "titre": "Les dons",
       "paiement": "Les dons se font en dollars canadiens, par carte, par l'intermédiaire de Stripe. Le don minimal est de {min} et le don maximal, de {max}.",
-      "frais": "Vous pouvez choisir de couvrir les frais de transaction : cette part est facultative et s'ajoute à votre don.",
+      "frais": "Vous pouvez ajouter une contribution facultative à Donivers. Elle paie d’abord les frais de transaction de votre don ; le reste va à Donivers. C’est un paiement à Studio Existence inc., taxes incluses : elle ne fait pas partie de votre don et ne donne pas droit à un reçu fiscal. Si votre don est remboursé, la contribution l’est dans la même proportion.",
       "definitif": "Un don est volontaire et, en principe, définitif. En cas d'erreur (montant, paiement en double) ou de paiement non autorisé, écrivez-nous dans les 30 jours : nous vous rembourserons. Toute autre demande de remboursement est laissée à la discrétion de {org}.",
       "recus": "Les reçus officiels pour fins d'impôt relèvent de {org} : écrivez-nous pour savoir si votre don y donne droit.",
       "taille": "La taille d'un fragment reflète le montant des dons. Elle et son emplacement peuvent changer à mesure que le vitrail grandit."
@@ -836,6 +838,7 @@
     "remboursement": {
       "paiement": "Paiement : {montant}",
       "detail": "(don {don} + frais couverts {frais})",
+      "detailContribution": "(don {don} + contribution à Donivers {contribution})",
       "tout": "Tout ({montant})",
       "partie": "Une partie :",
       "montant": "Montant à rembourser",
@@ -1749,5 +1752,36 @@
     "reessayer": "Réessayer",
     "code": "Code de l’erreur : {digest}",
     "decouvrir": "Découvrir {brand}"
+  },
+  "contribution": {
+    "titre": "Soutenir Donivers (facultatif)",
+    "texte": "Donivers est l’outil qui fait vivre ce vitrail. Votre contribution paie d’abord les frais de paiement ; le reste aide Donivers à continuer, et aide {org} à utiliser Donivers sans frais.",
+    "choix": "Montant de la contribution",
+    "suggere": "{montant} (suggéré)",
+    "pourcent": "{taux} ({montant})",
+    "autre": "Autre montant",
+    "rien": "Ne rien ajouter",
+    "autreLabel": "Votre contribution",
+    "tropHaute": "La contribution ne peut pas dépasser votre don.",
+    "couvreTout": "{org} reçoit vos {montant} en entier, sans aucuns frais.",
+    "couvrePartie": "Votre contribution couvre une partie des frais.",
+    "sansContribution": "Les frais de paiement (environ {frais}) seront pris sur votre don.",
+    "enSavoirPlus": "En savoir plus",
+    "masquer": "Masquer",
+    "recapDon": "Votre don à {org}",
+    "recapRecu": "donne droit à un reçu fiscal",
+    "recapContribution": "Frais de transaction et contribution à Donivers",
+    "recapContributionNote": "taxes incluses, sans reçu fiscal",
+    "recapTotal": "Total",
+    "pqTitre": "Pourquoi une contribution ?",
+    "pqIntro": "Donivers est l’outil qui permet à {org} de recevoir vos dons en ligne et de les faire vivre dans son vitrail. Il est conçu à Sutton, au Québec, par Studio Existence.",
+    "pqOuTitre": "Où va votre contribution",
+    "pqOu": "Elle paie d’abord les frais de paiement de votre don, demandés par la banque et Stripe. Le reste va à Donivers et sert à faire fonctionner et améliorer la plateforme. Les contributions des donateurs paient aussi l’utilisation de Donivers à la place des organismes.",
+    "pqRecoitTitre": "Ce que reçoit {org}",
+    "pqRecoit": "Votre don en entier, quand votre contribution couvre les frais. Sinon, les frais sont pris sur votre don.",
+    "pqFacultatifTitre": "C’est facultatif",
+    "pqFacultatif": "Le montant suggéré n’est qu’une suggestion. Vous pouvez le changer ou ne rien ajouter : votre don compte de la même façon, et votre fragment prend sa place dans le vitrail.",
+    "pqSavoirTitre": "Bon à savoir",
+    "pqSavoir": "La contribution est un paiement à Studio Existence inc. (taxes incluses). Elle ne fait pas partie de votre don et ne donne pas droit à un reçu fiscal."
   }
 }

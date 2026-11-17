@@ -122,6 +122,7 @@ interface Detail {
     id: string
     amount_cents: number
     fee_cents: number | null
+    donor_contribution_cents?: number | null
     refunded_cents: number
     dispute_status: 'open' | 'won' | 'lost' | null
     source: string
@@ -361,12 +362,13 @@ function DonorSheet({ id, data, act, onClose, onOpen }: { id: string; data: Cons
   )
 }
 
-/** Remboursement : montant du PAIEMENT (don + frais couverts), tout ce qui reste par défaut. Confirmé, et définitif. */
+/** Remboursement : montant du PAIEMENT (don + contribution + frais couverts), tout ce qui reste par défaut. Confirmé, et définitif. */
 function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donations'][number]; onCancel: () => void; onSubmit: (cents: number | null) => Promise<void> }) {
   const t = useTranslations('console.remboursement')
   const tc = useTranslations('console')
   const money = useMoney()
-  const paid = donation.amount_cents + (donation.fee_cents ?? 0)
+  const extra = (donation.fee_cents ?? 0) + (donation.donor_contribution_cents ?? 0)
+  const paid = donation.amount_cents + extra
   const back = donation.amount_cents > 0 ? Math.round((donation.refunded_cents * paid) / donation.amount_cents) : 0
   const remaining = Math.max(0, paid - back)
   const [all, setAll] = useState(true)
@@ -378,7 +380,11 @@ function RefundPanel({ donation, onCancel, onSubmit }: { donation: Detail['donat
     <div className="mt-3 space-y-3 rounded-xl border p-3" style={{ borderColor: 'rgba(240,120,140,0.45)' }}>
       <p>
         {t('paiement', { montant: money(paid) })}
-        {(donation.fee_cents ?? 0) > 0 && <span className="muted"> {t('detail', { don: money(donation.amount_cents), frais: money(donation.fee_cents ?? 0) })}</span>}
+        {(donation.donor_contribution_cents ?? 0) > 0 ? (
+          <span className="muted"> {t('detailContribution', { don: money(donation.amount_cents), contribution: money(extra) })}</span>
+        ) : (
+          (donation.fee_cents ?? 0) > 0 && <span className="muted"> {t('detail', { don: money(donation.amount_cents), frais: money(donation.fee_cents ?? 0) })}</span>
+        )}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2">

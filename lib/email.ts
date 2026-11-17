@@ -1,3 +1,4 @@
+import { STUDIO_TAX_NUMBERS } from './tax'
 import { CONFIG, brandFor } from './config'
 import { clampLocale, identityOrNeutral, type Identity, type OrgTexts } from './identity'
 import { getDb } from './db'
@@ -202,7 +203,10 @@ export interface Built {
 
 export interface ReceiptInput {
   to: string
+  /** Le don seul (le montant du fragment). */
   amountCents: number
+  /** Contribution à Donivers payée en plus (0 ou absente : aucune ligne). */
+  contributionCents?: number
   token: string
   locale: Locale
   donorId?: string | null
@@ -212,7 +216,7 @@ export interface ReceiptInput {
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
 // Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
-export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts }): Built {
   const t = translatorFor(i.locale)
   const org = i.org
   return {
@@ -222,6 +226,13 @@ export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'token' | 'lo
       heading: t('courriel.recuTitre'),
       paragraphs: [
         t('courriel.recuConfirmation', { montant: formatMoney(i.amountCents, i.locale) }),
+        // Contribution à Donivers : à part du don, taxes comprises, sans reçu fiscal (spécification du 16 nov., 2.2)
+        ...(i.contributionCents && i.contributionCents > 0
+          ? [
+              t('courriel.recuContribution', { contribution: formatMoney(i.contributionCents, i.locale), total: formatMoney(i.amountCents + i.contributionCents, i.locale) }),
+              t('courriel.recuContributionTaxes', { tps: STUDIO_TAX_NUMBERS.gstHst, tvq: STUDIO_TAX_NUMBERS.qst }),
+            ]
+          : []),
         `${org.testimonial.question} ${org.testimonial.cta} ${org.testimonial.lead}`,
       ],
       button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },

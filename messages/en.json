@@ -23,6 +23,7 @@
     "autreQuestion": "Another question"
   },
   "erreurs": {
+    "contributionTropHaute": "Your contribution can’t be more than your donation.",
     "courrielRequis": "Email address required.",
     "courrielInvalide": "This email address doesn't look valid.",
     "montantInvalide": "Invalid amount.",
@@ -399,7 +400,6 @@
     "destination": "Your donation supports <b>{org}</b>.",
     "montant": "Amount",
     "typique": "Most people give {montant}.",
-    "frais": "I'm adding {frais} to cover transaction fees, so the organization receives the full {montant}.",
     "part": "Your share of the stained glass",
     "plusGrandQue": "Bigger than",
     "plusGrandQueValeur": "{count, plural, one {# fragment} other {# fragments}} of {total}",
@@ -469,6 +469,8 @@
   "courriel": {
     "recuObjet": "Thank you for your donation — {org}",
     "recuConfirmation": "Your donation of {montant} has been recorded and your fragment is being added to the stained glass.",
+    "recuContribution": "You also added {contribution} in transaction fees and contribution to Donivers, for a total paid of {total}.",
+    "recuContributionTaxes": "The contribution includes applicable taxes. It is paid to Studio Existence inc. (GST/HST: {tps}; QST: {tvq}) and does not qualify for a tax receipt.",
     "recuPied": "This email confirms your donation. This organization is not yet a registered charity, so no tax receipt is issued at this time.",
     "lienObjet": "Your link — {org}",
     "lienCorps": "Here is your link to edit your fragment or make it bigger. It stays valid for 30 days.",
@@ -617,7 +619,7 @@
     "dons": {
       "titre": "Donations",
       "paiement": "Donations are made in Canadian dollars, by card, through Stripe. The minimum donation is {min} and the maximum is {max}.",
-      "frais": "You may choose to cover the transaction fees: this share is optional and added to your donation.",
+      "frais": "You may add an optional contribution to Donivers. It first pays the transaction fees on your donation; the rest goes to Donivers. It is a payment to Studio Existence inc., taxes included: it is not part of your donation and does not qualify for a tax receipt. If your donation is refunded, the contribution is refunded in the same proportion.",
       "definitif": "A donation is voluntary and, as a rule, final. If there is an error (amount, double payment) or an unauthorized payment, write to us within 30 days: we will refund you. Any other refund request is at the discretion of {org}.",
       "recus": "Official receipts for income tax purposes are handled by {org}: write to us to find out whether your donation qualifies.",
       "taille": "The size of a fragment reflects the amount of donations. Its size and position may change as the stained glass grows."
@@ -836,6 +838,7 @@
     "remboursement": {
       "paiement": "Payment: {montant}",
       "detail": "(donation {don} + covered fees {frais})",
+      "detailContribution": "(donation {don} + contribution to Donivers {contribution})",
       "tout": "All ({montant})",
       "partie": "Part:",
       "montant": "Amount to refund",
@@ -1749,5 +1752,36 @@
     "reessayer": "Try again",
     "code": "Error code: {digest}",
     "decouvrir": "Discover {brand}"
+  },
+  "contribution": {
+    "titre": "Support Donivers (optional)",
+    "texte": "Donivers is the tool behind this stained glass. Your contribution first pays the payment fees; the rest helps Donivers keep going, and helps {org} use Donivers at no cost.",
+    "choix": "Contribution amount",
+    "suggere": "{montant} (suggested)",
+    "pourcent": "{taux} ({montant})",
+    "autre": "Other amount",
+    "rien": "Add nothing",
+    "autreLabel": "Your contribution",
+    "tropHaute": "Your contribution can’t be more than your donation.",
+    "couvreTout": "{org} receives your full {montant}, with no fees.",
+    "couvrePartie": "Your contribution covers part of the fees.",
+    "sansContribution": "Payment fees (about {frais}) will be taken from your donation.",
+    "enSavoirPlus": "Learn more",
+    "masquer": "Hide",
+    "recapDon": "Your donation to {org}",
+    "recapRecu": "eligible for a tax receipt",
+    "recapContribution": "Transaction fees and contribution to Donivers",
+    "recapContributionNote": "taxes included, no tax receipt",
+    "recapTotal": "Total",
+    "pqTitre": "Why a contribution?",
+    "pqIntro": "Donivers is the tool that lets {org} receive your donations online and bring them to life in its stained glass. It is made in Sutton, Québec, by Studio Existence.",
+    "pqOuTitre": "Where your contribution goes",
+    "pqOu": "It first pays the payment fees on your donation, charged by the bank and Stripe. The rest goes to Donivers and keeps the platform running and improving. Donors’ contributions also pay for Donivers on behalf of organizations.",
+    "pqRecoitTitre": "What {org} receives",
+    "pqRecoit": "Your full donation, when your contribution covers the fees. Otherwise, the fees come out of your donation.",
+    "pqFacultatifTitre": "It’s optional",
+    "pqFacultatif": "The suggested amount is only a suggestion. You can change it or add nothing: your donation counts just the same, and your fragment takes its place in the stained glass.",
+    "pqSavoirTitre": "Good to know",
+    "pqSavoir": "The contribution is a payment to Studio Existence inc. (taxes included). It is not part of your donation and does not qualify for a tax receipt."
   }
 }

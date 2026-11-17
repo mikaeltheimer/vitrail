@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const [donations, emails] = await Promise.all([
     db
       .from('donations')
-      .select('id,amount_cents,fee_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at')
+      .select('id,amount_cents,fee_cents,donor_contribution_cents,refunded_cents,dispute_status,dispute_due_by,source,channel,created_at')
       .eq('organization_id', orgId)
       .eq('donor_id', id)
       .order('created_at', { ascending: false }),
