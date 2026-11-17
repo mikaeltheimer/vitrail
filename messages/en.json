@@ -543,7 +543,14 @@
     "codePreheader": "It is valid for 15 minutes.",
     "codeTitre": "Confirm your address",
     "codeCorps": "Enter this code to confirm the address of your {brand} access. It is valid for 15 minutes.",
-    "codeIgnorer": "Didn’t ask for this? Ignore this email."
+    "codeIgnorer": "Didn’t ask for this? Ignore this email.",
+    "centiemeObjet": "{org}: your 100th donor!",
+    "centiemePreheader": "What changes from now on, in two lines.",
+    "centiemeTitre": "Your 100th donor!",
+    "centiemeBravo": "Congratulations: {org} just welcomed its 100th donor.",
+    "centiemeEnsuite": "From now on, each donation gives rise to a {taux} commission, taxes included, up to {plafond} in total. When a donor adds a contribution, it pays it.",
+    "centiemeDonateurs": "Your donors have already paid {montant} of {plafond}.",
+    "centiemeBouton": "See my plan"
   },
   "confidentialite": {
     "retour": "← Back to the stained glass",
@@ -729,7 +736,8 @@
         "reminder": "Next-day reminder",
         "moderation": "Moderation notice",
         "invitation": "Invitation",
-        "password_reset": "Password"
+        "password_reset": "Password",
+        "fee_threshold": "Notice: 100th donor"
       }
     },
     "accueil": {

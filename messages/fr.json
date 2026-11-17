@@ -543,7 +543,14 @@
     "codePreheader": "Il vaut 15 minutes.",
     "codeTitre": "Confirmez votre adresse",
     "codeCorps": "Saisissez ce code pour confirmer l’adresse de votre accès à {brand}. Il vaut 15 minutes.",
-    "codeIgnorer": "Vous n’avez rien demandé ? Ignorez ce courriel."
+    "codeIgnorer": "Vous n’avez rien demandé ? Ignorez ce courriel.",
+    "centiemeObjet": "{org} : votre 100e donateur!",
+    "centiemePreheader": "Ce qui change à partir de maintenant, en deux lignes.",
+    "centiemeTitre": "Votre 100e donateur!",
+    "centiemeBravo": "Bravo : {org} vient d’accueillir son 100e donateur.",
+    "centiemeEnsuite": "À partir de maintenant, chaque don donne lieu à une commission de {taux}, taxes incluses, jusqu’à {plafond} au total. Quand un donateur ajoute une contribution, c’est elle qui la paie.",
+    "centiemeDonateurs": "Vos donateurs ont déjà réglé {montant} sur {plafond}.",
+    "centiemeBouton": "Voir mon forfait"
   },
   "confidentialite": {
     "retour": "← Retour au vitrail",
@@ -729,7 +736,8 @@
         "reminder": "Rappel du lendemain",
         "moderation": "Avis de modération",
         "invitation": "Invitation",
-        "password_reset": "Mot de passe"
+        "password_reset": "Mot de passe",
+        "fee_threshold": "Avis : 100e donateur"
       }
     },
     "accueil": {

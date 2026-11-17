@@ -15,7 +15,7 @@ import type { Locale } from '@/i18n/config'
 // (Resend en panne, journal absent) est écrit dans la console et le journal, et le don ou la demande suit son cours.
 // Sans RESEND_API_KEY (développement), le courriel est simplement écrit dans la console du serveur.
 
-export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request'
+export type EmailKind = 'receipt' | 'magic_link' | 'reminder' | 'moderation' | 'invitation' | 'password_reset' | 'signup_code' | 'access_request' | 'fee_threshold'
 
 export type EmailStatus = 'queued' | 'sent' | 'delivered' | 'delayed' | 'bounced' | 'complained' | 'failed' | 'skipped'
 
@@ -419,6 +419,46 @@ export function buildPasswordReset(i: { token: string; locale: Locale; baseUrl: 
 
 export async function sendPasswordReset(i: { to: string; token: string; locale: Locale; baseUrl: string; organizationId?: string | null }): Promise<boolean> {
   return sendEmail({ kind: 'password_reset', to: i.to, locale: i.locale, organizationId: i.organizationId ?? null, ...buildPasswordReset(i) })
+}
+
+// ── Forfait : avis au propriétaire (plateforme) ───────────────────────────────
+
+export interface ThresholdNoticeInput {
+  to: string
+  locale: Locale
+  orgName: string
+  /** Ce que les donateurs ont déjà réglé du plafond (0 : la phrase est omise). */
+  donorsPaidCents: number
+  capCents: number
+  rate: number
+  consoleUrl: string
+  organizationId: string
+}
+
+/** Le 100e donateur est compté (D7) : ce qui change à partir de maintenant, et le rôle de la contribution. */
+export function buildThresholdNotice(i: Omit<ThresholdNoticeInput, 'to' | 'organizationId'>): Built {
+  const t = translatorFor(i.locale)
+  const taux = new Intl.NumberFormat(i.locale === 'en' ? 'en-CA' : 'fr-CA', { style: 'percent', maximumFractionDigits: 1 }).format(i.rate)
+  const plafond = formatMoney(i.capCents, i.locale)
+  return {
+    subject: t('courriel.centiemeObjet', { org: i.orgName }),
+    content: {
+      preheader: t('courriel.centiemePreheader'),
+      heading: t('courriel.centiemeTitre'),
+      paragraphs: [
+        t('courriel.centiemeBravo', { org: i.orgName }),
+        t('courriel.centiemeEnsuite', { taux, plafond }),
+        ...(i.donorsPaidCents > 0 ? [t('courriel.centiemeDonateurs', { montant: formatMoney(i.donorsPaidCents, i.locale), plafond })] : []),
+      ],
+      button: { label: t('courriel.centiemeBouton'), url: i.consoleUrl },
+      linkHelp: t('courriel.lienAlt'),
+      footer: [`${brandFor(i.locale).poweredBy} · ${CONFIG.brand.studioLegal.name}`],
+    },
+  }
+}
+
+export async function sendThresholdNotice(i: ThresholdNoticeInput): Promise<boolean> {
+  return sendEmail({ kind: 'fee_threshold', to: i.to, locale: i.locale, organizationId: i.organizationId, ...buildThresholdNotice(i) })
 }
 
 // ── Inscription des organismes (plateforme) ────────────────────────────────────

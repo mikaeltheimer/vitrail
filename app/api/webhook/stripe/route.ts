@@ -11,6 +11,7 @@ import { getOrg, getVitrail, orgBaseUrl } from '@/lib/tenant'
 import { applyRefund, reconcileCharge, recordDispute, refundPlatformFee } from '@/lib/refunds'
 import { isAccountReady, orgByAccount, provinceOfAccount, setAccountReady } from '@/lib/connect'
 import { settleDonation } from '@/lib/settlement'
+import { notifyThresholdIfNeeded } from '@/lib/billing-notice'
 import { getDb } from '@/lib/db'
 
 export const runtime = 'nodejs'
@@ -154,6 +155,8 @@ export async function POST(request: NextRequest) {
       // après la réponse), et aussi au rejeu : s'il échoue, le webhook répond 500, Stripe rejoue, le don est un doublon
       const intent = typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null)
       await settleDonation(getStripe(), { donationId: result.donationId, accountId: event.account, paymentIntentId: intent, contributionCents, orgProvince: org.taxProvince })
+      // Le règlement a peut-être franchi le seuil gratuit : avis au propriétaire, une seule fois (D7), après la réponse
+      after(() => notifyThresholdIfNeeded(org.id).then(() => undefined, e => console.error('Avis du 100e donateur non envoyé :', e)))
     } catch (e) {
       console.error('Enregistrement du don échoué :', e)
       return NextResponse.json({ error: 'Enregistrement échoué' }, { status: 500 }) // i18n-ok : réponse à Stripe, pas au visiteur
