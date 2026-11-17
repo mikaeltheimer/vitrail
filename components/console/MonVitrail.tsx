@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { LEGAL_KEYS, LEGAL_MAX, LEGAL_REQUIRED, formatPhone, type LegalKey } from '@/lib/identity-shared'
+import { LEGAL_KEYS, LEGAL_MAX, LEGAL_REQUIRED, formatPhone, normalizeCharityNumber, type LegalKey } from '@/lib/identity-shared'
 import { RED } from './ui'
 
 // Ce qui ne se voit pas sur le vitrail (propriétaire, organisme réel) : site web, coordonnées juridiques, courriels.
@@ -43,13 +43,18 @@ export function useIdentity() {
 }
 
 /** Un formulaire sur une partie des coordonnées : brouillon local, enregistrement de l'ensemble, barre collante. */
-function useIdentityForm(identity: Identity, reload: () => Promise<Identity | null>) {
+function useIdentityForm(identity: Identity, reload: () => Promise<Identity | null>, check?: { invalid: (form: Editable) => boolean; onInvalid: () => void }) {
   const t = useTranslations('console.monVitrail')
   const [form, setForm] = useState<Editable>(() => editable(identity))
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const dirty = useMemo(() => JSON.stringify(editable(identity)) !== JSON.stringify(form), [identity, form])
   const save = async () => {
+    // Une case mal remplie a son message SOUS la case (pas dans la barre) : on n'envoie rien
+    if (check?.invalid(form)) {
+      check.onInvalid()
+      return
+    }
     setBusy(true)
     setMsg(null)
     const res = await fetch('/api/admin/identite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
@@ -82,7 +87,19 @@ function useIdentityForm(identity: Identity, reload: () => Promise<Identity | nu
 export function JuridiqueForm({ identity, reload }: { identity: Identity; reload: () => Promise<Identity | null> }) {
   const t = useTranslations('console.monVitrail')
   const tl = useTranslations('confidentialite')
-  const { form, setForm, bar } = useIdentityForm(identity, reload)
+  const te = useTranslations('erreurs')
+  // Numéro de bienfaisance : validé dans le navigateur (même règle que le serveur), message sous la case
+  const [charityTouched, setCharityTouched] = useState(false)
+  const charityBad = (f: Editable) => normalizeCharityNumber(f.legal.charityNumber ?? '') === null
+  const { form, setForm, bar } = useIdentityForm(identity, reload, {
+    invalid: charityBad,
+    // La case peut être hors de l'écran : on y place le curseur, son message est juste dessous
+    onInvalid: () => {
+      setCharityTouched(true)
+      document.getElementById('charity-champ')?.focus()
+    },
+  })
+  const charityError = charityTouched && charityBad(form)
   const [customRetention, setCustomRetention] = useState(!!identity.legal.retention?.trim())
   const setLegal = (k: LegalKey, v: string) => setForm({ ...form, legal: { ...form.legal, [k]: v } })
   return (
@@ -106,6 +123,10 @@ export function JuridiqueForm({ identity, reload }: { identity: Identity; reload
               ) : (
                 <input
                   className="field"
+                  id={k === 'charityNumber' ? 'charity-champ' : undefined}
+                  aria-invalid={k === 'charityNumber' && charityError ? true : undefined}
+                  aria-describedby={k === 'charityNumber' ? (charityError ? 'charity-erreur' : 'charity-aide') : undefined}
+                  style={k === 'charityNumber' && charityError ? { borderColor: RED } : undefined}
                   type={k === 'officerEmail' ? 'email' : k === 'officerPhone' ? 'tel' : 'text'}
                   inputMode={k === 'officerPhone' ? 'tel' : undefined}
                   autoComplete={k === 'officerPhone' ? 'tel' : undefined}
@@ -114,11 +135,27 @@ export function JuridiqueForm({ identity, reload }: { identity: Identity; reload
                   value={form.legal[k] ?? ''}
                   onChange={e => setLegal(k, e.target.value)}
                   // Le téléphone se met en forme quand on quitte la case : +1 514 666 7766
-                  onBlur={k === 'officerPhone' ? e => setLegal(k, formatPhone(e.target.value)) : undefined}
+                  // Le numéro de bienfaisance prend sa forme normale (123456789 RR 0001) ou montre son erreur sous la case
+                  onBlur={
+                    k === 'officerPhone'
+                      ? e => setLegal(k, formatPhone(e.target.value))
+                      : k === 'charityNumber'
+                        ? e => {
+                            const c = normalizeCharityNumber(e.target.value)
+                            if (c !== null && c !== e.target.value) setLegal(k, c)
+                            setCharityTouched(true)
+                          }
+                        : undefined
+                  }
                 />
               )}
               {k === 'neq' && <span className="muted block text-xs">{t('neqAide')}</span>}
-              {k === 'charityNumber' && <span className="muted block text-xs">{t('charityNumberAide', { org: identity.orgName })}</span>}
+              {k === 'charityNumber' && charityError && (
+                <span id="charity-erreur" role="alert" className="block text-xs" style={{ color: RED }}>
+                  {te('charityNumberInvalide')}
+                </span>
+              )}
+              {k === 'charityNumber' && <span id="charity-aide" className="muted block text-xs">{t('charityNumberAide', { org: identity.orgName })}</span>}
             </label>
           )
         })}
