@@ -8,11 +8,15 @@ import type { Act, ConsoleData, DonorRow } from './types'
 import type { DonationFees } from '@/lib/platform-fee'
 import { RED, GREEN, Section, Sheet, useTime } from './ui'
 import { askConfirm } from '@/components/ConfirmDialog'
+import Journal from './Journal'
+
+export type DonsView = 'journal' | 'donateurs'
 
 const toCents = (s: string) => Math.round((parseFloat(s.replace(',', '.')) || 0) * 100)
 const noEmail = (e: string) => e.endsWith('.invalid')
 
-// Dons : les donateurs (un morceau chacun), la fiche d'un donateur, le don comptant, les exports.
+// Dons : le journal des dons (par période), les donateurs (un morceau chacun), la fiche d'un donateur, le don comptant,
+// les exports. « Dons » et « Donateurs » sont deux vues du même onglet (#dons et #dons/donateurs).
 export default function Dons({
   data,
   act,
@@ -20,6 +24,8 @@ export default function Dons({
   setDonorId,
   cashOpen,
   setCashOpen,
+  view,
+  setView,
 }: {
   data: ConsoleData
   act: Act
@@ -27,7 +33,10 @@ export default function Dons({
   setDonorId: (id: string | null) => void
   cashOpen: boolean
   setCashOpen: (v: boolean) => void
+  view: DonsView
+  setView: (v: DonsView) => void
 }) {
+  const tj = useTranslations('console.journal')
   const t = useTranslations('console.dons')
   const money = useMoney()
   const time = useTime()
@@ -44,18 +53,22 @@ export default function Dons({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        <button className="btn" onClick={() => setCashOpen(true)}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div role="group" aria-label={tj('vues')} className="inline-flex gap-1 rounded-xl border p-1" style={{ borderColor: 'var(--line)', background: 'rgba(255,255,255,0.03)' }}>
+          {(['journal', 'donateurs'] as const).map(v => (
+            <button key={v} className="chip !border-0 !px-4 !py-2 text-sm" aria-pressed={view === v} onClick={() => setView(v)}>
+              {tj(`vue.${v}`)}
+            </button>
+          ))}
+        </div>
+        <button className="btn !w-auto !py-2.5 !text-[15px]" onClick={() => setCashOpen(true)}>
           {t('ajouterComptant')}
         </button>
-        {owner && (
-          <a className="btn btn-ghost" href="/api/admin/export?type=dons">
-            {t('exporterDons')}
-          </a>
-        )}
       </div>
 
-      {owner && (
+      {view === 'journal' && <Journal data={data} onOpenDonor={setDonorId} />}
+
+      {view === 'donateurs' && owner && (
         <div className="card flex flex-wrap items-center justify-between gap-3 text-sm">
           <span>
             <b>{t('listeEnvoi', { count: data.mailingCount })}</b>
@@ -69,6 +82,7 @@ export default function Dons({
         </div>
       )}
 
+      {view === 'donateurs' && (
       <Section title={t('donateurs', { count: donors.length })}>
         <input className="field" type="search" placeholder={t('chercher')} value={search} onChange={e => setSearch(e.target.value)} aria-label={t('chercher')} />
         {donors.length === 0 ? (
@@ -96,6 +110,7 @@ export default function Dons({
         )}
         {donors.length > 200 && <p className="muted text-xs">{t('limite')}</p>}
       </Section>
+      )}
 
       {donorId && <DonorSheet id={donorId} data={data} act={act} onClose={() => setDonorId(null)} onOpen={setDonorId} />}
       {cashOpen && <CashSheet act={act} onClose={() => setCashOpen(false)} />}

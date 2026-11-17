@@ -120,6 +120,19 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M3 12a9 3 0 0 0 18 0" />
     </>
   ),
+  calendrier: (
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </>
+  ),
+  telecharger: (
+    <>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M12 15V3" />
+    </>
+  ),
   chevron: <path d="m9 18 6-6-6-6" />,
   retour: <path d="m15 18-6-6 6-6" />,
   externe: <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />,
