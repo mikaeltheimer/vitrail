@@ -74,6 +74,9 @@ const goldButtonStyle: React.CSSProperties = {
   boxShadow: '0 8px 30px rgba(240,178,74,0.25)',
 }
 
+// Liseré sombre : le bouton doré se détache de n'importe quel verre, même jaune (Mika, 17 nov.)
+const GOLD_RING = '0 0 0 3px rgba(11,10,18,0.9), 0 8px 28px rgba(0,0,0,0.45)'
+
 // ── Vitrail de démonstration : dons fictifs du visiteur (étape G) ──
 // Les morceaux vivent dans l'onglet (sessionStorage), survivent à un rechargement et disparaissent à sa fermeture ; aucun
 // autre visiteur ne les voit. Le serveur refuse toute écriture sur la démo, sauf l'écran jumelé (plus bas).
@@ -269,7 +272,8 @@ function Vitrail() {
     closeClaim: () => void
     /** Recadre l'aperçu du morceau (le panneau a changé de taille). */
     reframe: () => void
-  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {}, reframe: () => {} })
+    dismissIntro: () => void
+  }>({ select: () => {}, home: () => {}, step: () => {}, meet: () => {}, zoomBy: () => {}, panTo: () => {}, preview: () => {}, openClaim: () => {}, closeClaim: () => {}, reframe: () => {}, dismissIntro: () => {} })
 
   // ═════════════════════════════════ Moteur : caméra, rendu, gestes ═════════════════════════════════
   useEffect(() => {
@@ -504,7 +508,7 @@ function Vitrail() {
     const reframe = () => {
       if (w.claim && w.previewOn) frameFor(framing === 'detail')
     }
-    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim(), reframe }
+    api.current = { select, home, step, meet, zoomBy, panTo, preview: (d, g) => void preview(d, g), openClaim, closeClaim: () => void closeClaim(), reframe, dismissIntro: () => endIntro(true) }
 
     // ── Ouverture : travelling arrière d'un morceau moyen jusqu'au vitrail entier ──
     const endIntro = (hide: boolean) => {
@@ -1145,6 +1149,16 @@ function Vitrail() {
       window.removeEventListener('resize', measure)
     }
   }, [hasSnap, mobile, atelierBar, atelierBarHeight, bannerH])
+  // Téléphone : hauteur de la fiche d'un fragment, pour placer « Faire un don » juste au-dessus
+  const [sheetH, setSheetH] = useState(0)
+  const sheetShown = mobile && sheetOpen && !!piece
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!sheetShown || !el) return
+    const ro = new ResizeObserver(() => setSheetH(el.offsetHeight))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [sheetShown, piece?.id])
   const colorById = useMemo(() => new Map(ranked.map(p => [p.id, p.color])), [ranked])
 
   // Mini-cartes : polygones des morceaux (SVG) ; le cadre de la vue est mis à jour par le moteur
@@ -1207,21 +1221,29 @@ function Vitrail() {
             />
           )}
           {piece && !sheetOpen && (
-            <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: piece.color, padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontFamily: MONO, zIndex: 90, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+            <div style={{ position: 'fixed', bottom: 'calc(82px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: piece.color, padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontFamily: MONO, zIndex: 90, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
               {t('touchez')}
             </div>
           )}
+          {/* « Faire un don » en bas à gauche, à portée du pouce, à la place de « Un fragment au hasard » (qui reste dans
+              la fiche d'un fragment) ; juste au-dessus de la fiche quand elle est ouverte (Mika, 17 nov.) */}
           {!claimOpen && !closed && intro === 'off' && count > 0 && (
-            <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, position: 'fixed', top: `${barOffset ? titleBottom + 10 : HEADER_HEIGHT + 16}px`, right: '16px', zIndex: 120 }}>
-              {claimLabel}
-            </button>
-          )}
-          {!claimOpen && intro === 'off' && count > 1 && !sheetOpen && !piece && (
             <button
-              onClick={() => api.current.meet()}
-              style={{ position: 'fixed', left: '16px', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 120, padding: '11px 16px', borderRadius: '999px', border: '1px solid rgba(240,178,74,0.5)', background: 'rgba(12,10,18,0.85)', backdropFilter: 'blur(6px)', color: GOLD, fontFamily: MONO, fontSize: '13px', fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+              onClick={() => api.current.openClaim()}
+              style={{
+                ...goldButtonStyle,
+                position: 'fixed',
+                left: '16px',
+                bottom: piece && sheetOpen && sheetH ? `${sheetH + 12}px` : 'calc(20px + env(safe-area-inset-bottom))',
+                zIndex: 120,
+                padding: '13px 22px',
+                fontSize: '15px',
+                boxShadow: GOLD_RING,
+                transition: 'bottom 0.25s ease',
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
-              {t('hasard')}
+              {claimLabel}
             </button>
           )}
         </>
@@ -1266,13 +1288,21 @@ function Vitrail() {
               <div key="intro-final" style={{ fontFamily: MONO, fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)', textShadow: '0 0 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.95), 0 1px 18px rgba(0,0,0,0.9)', fontVariantNumeric: 'tabular-nums' }}>
                 {ti('ligne', { org: org.name, count })}
               </div>
-              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>{ti('phrase')}</div>
-              <button
-                onClick={() => api.current.openClaim()}
-                style={{ ...goldButtonStyle, padding: '13px 22px', fontSize: '15px', pointerEvents: introCta ? 'auto' : 'none', opacity: introCta ? 1 : 0, transition: 'opacity 0.8s ease' }}
-              >
-                {claimLabel}
-              </button>
+              <div style={{ ...introTitleStyle, fontSize: 'clamp(26px, 4.2vw, 42px)', lineHeight: 1.12, marginTop: '-6px' }}>{ti('phrase', { org: org.name })}</div>
+              {/* Deux actions, chacune fait ce qu'elle dit (Mika, 17 nov.) : donner, ou fermer l'ouverture pour explorer */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', pointerEvents: introCta ? 'auto' : 'none', opacity: introCta ? 1 : 0, transition: 'opacity 0.8s ease' }}>
+                {!closed && (
+                  <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, padding: '13px 22px', fontSize: '15px', boxShadow: GOLD_RING }}>
+                    {claimLabel}
+                  </button>
+                )}
+                <button
+                  onClick={() => api.current.dismissIntro()}
+                  style={{ ...goldButtonStyle, padding: '13px 22px', fontSize: '15px', background: 'rgba(12,10,18,0.85)', color: '#F4EFE6', border: '1px solid rgba(244,239,230,0.35)', backdropFilter: 'blur(6px)', boxShadow: 'none' }}
+                >
+                  {ti('explorer')}
+                </button>
+              </div>
             </>
           )}
         </div>
