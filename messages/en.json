@@ -239,7 +239,8 @@
     "intro": {
       "compteur": "{count, plural, =0 {0 donors} one {# donor} other {# donors}}",
       "ligne": "{org} · {count, plural, =0 {0 donors} one {# donor} other {# donors}}",
-      "phrase": "Every fragment is a donation that keeps the organization going."
+      "phrase": "Every fragment is a donation that keeps {org} going.",
+      "explorer": "Explore the stained glass"
     },
     "toast": {
       "ajoute": "{nom} just donated",
@@ -2050,7 +2051,7 @@
   },
   "contribution": {
     "titre": "Cover the fees for {org} (optional)",
-    "texte": "Donivers is the tool behind this stained glass. Your contribution first pays the payment fees; the rest helps Donivers keep going, and helps {org} use Donivers at no cost.",
+    "texte": "Your contribution first pays the payment fees; the rest helps Donivers keep going, and helps {org} use Donivers at no cost.",
     "choix": "Contribution amount",
     "suggere": "{montant} (suggested)",
     "pourcent": "{taux} ({montant})",

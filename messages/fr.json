@@ -239,7 +239,8 @@
     "intro": {
       "compteur": "{count, plural, =0 {0 donateur} one {# donateur} other {# donateurs}}",
       "ligne": "{org} · {count, plural, =0 {0 donateur} one {# donateur} other {# donateurs}}",
-      "phrase": "Chaque fragment est un don qui fait vivre l'organisme."
+      "phrase": "Chaque fragment est un don qui fait vivre {org}.",
+      "explorer": "Explorer le vitrail"
     },
     "toast": {
       "ajoute": "{nom} vient de faire un don",
@@ -2050,7 +2051,7 @@
   },
   "contribution": {
     "titre": "Couvrez les frais pour {org} (facultatif)",
-    "texte": "Donivers est l’outil qui fait vivre ce vitrail. Votre contribution paie d’abord les frais de paiement ; le reste aide Donivers à continuer, et aide {org} à utiliser Donivers sans frais.",
+    "texte": "Votre contribution paie d’abord les frais de paiement ; le reste aide Donivers à continuer, et aide {org} à utiliser Donivers sans frais.",
     "choix": "Montant de la contribution",
     "suggere": "{montant} (suggéré)",
     "pourcent": "{taux} ({montant})",
