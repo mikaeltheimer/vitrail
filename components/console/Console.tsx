@@ -9,7 +9,7 @@ import Dons, { type DonsView } from './Dons'
 import Moderation from './Moderation'
 import Diffuser from './Diffuser'
 import Plus, { SCREENS, needsAttention, type Screen } from './Plus'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import LanguageToggle from './LanguageToggle'
 import { TermsScreen, laterKey, readLater } from './Conditions'
 import Compte from './Compte'
 
@@ -159,8 +159,11 @@ export default function Console() {
               <span className="flex-1">{t('entrainement.ouvrir')}</span>
             </a>
           )}
+          <div className="px-3 pt-3">
+            <LanguageToggle />
+          </div>
           {data && (
-            <div className="pt-3">
+            <div className="pt-2">
               <Account data={data} side onChanged={() => void c.load()} />
             </div>
           )}
@@ -312,9 +315,13 @@ function Account({ data, side = false, onChanged }: { data: NonNullable<ReturnTy
           <button className="btn btn-ghost w-full" onClick={() => (setOpenMenu(false), setCompte(true))}>
             {t('compte.menu')}
           </button>
-          <p>
-            <LanguageSwitch style={{ textDecoration: 'underline' }} />
-          </p>
+          {/* Téléphone et tablette : la langue se choisit ici (sur ordinateur, la bascule est dans le menu latéral) */}
+          {!side && (
+            <div className="flex items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--line)' }}>
+              <span className="muted">{t('langue.titre')}</span>
+              <LanguageToggle />
+            </div>
+          )}
           <button
             className="btn btn-ghost w-full"
             onClick={async () => {

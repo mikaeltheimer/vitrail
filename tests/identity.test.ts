@@ -166,7 +166,7 @@ async function main() {
   console.log('Sortes de pages et initiales')
   process.env.PLATFORM_DOMAIN = 'donivers.test'
   check('vitrine', surfaceOf('donivers.test', '/') === 'platform' && surfaceOf('x.vercel.app', '/inscription') === 'platform')
-  check('console', surfaceOf('lac.donivers.test', '/admin') === 'console' && surfaceOf('lac.donivers.test', '/api/admin/identite') === 'console')
+  check('console', surfaceOf('lac.donivers.test', '/admin') === 'console' && surfaceOf('lac.donivers.test', '/api/admin/identite') === 'console' && surfaceOf('lac.donivers.test', '/api/compte') === 'console' && surfaceOf('lac.donivers.test', '/api/compte/courriel') === 'console' && surfaceOf('lac.donivers.test', '/api/comptes') === 'org')
   check('page d\'organisme', surfaceOf('lac.donivers.test', '/vitrail') === 'org' && surfaceOf('lac.donivers.test', '/adminx') === 'org')
   check('initiales', orgInitials("École d'art de Sutton") === 'ÉS' && orgInitials('Lake Theatre') === 'LT' && orgInitials('Photogravie') === 'P')
   console.log('Questions du témoignage')

@@ -65,6 +65,7 @@ const PLATFORM_PATHS = ['/plateforme', '/inscription', '/studio', '/connexion']
 
 export function surfaceOf(host: string | null | undefined, path: string): Surface {
   if (isPlatformHost(host) || PLATFORM_PATHS.some(p => path === p || path.startsWith(`${p}/`)) || path.startsWith('/api/plateforme') || path.startsWith('/api/inscription') || path.startsWith('/api/studio')) return 'platform'
-  if (path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/admin')) return 'console'
+  // /api/compte (Mon compte) suit la console : ses messages sont dans la langue choisie dans la console
+  if (path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/admin') || path === '/api/compte' || path.startsWith('/api/compte/')) return 'console'
   return 'org'
 }
