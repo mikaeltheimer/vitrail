@@ -34,6 +34,16 @@ export async function hasMessageQuestion(): Promise<boolean> {
   return questionCache.ok
 }
 
+/** Dates du consentement à la citation (migration 2026-12-02-dates-consentement-citation.sql) : donors.quote_consent_at, quote_withdrawn_at. */
+let quoteDatesCache: { ok: boolean; at: number } | null = null
+export async function hasQuoteConsentDates(): Promise<boolean> {
+  if (quoteDatesCache && Date.now() - quoteDatesCache.at < 60_000) return quoteDatesCache.ok
+  const { error } = await getDb().from('donors').select('quote_consent_at,quote_withdrawn_at').limit(1)
+  if (error) console.error('Dates du consentement à la citation absentes : lancez supabase/migrations/2026-12-02-dates-consentement-citation.sql')
+  quoteDatesCache = { ok: !error, at: Date.now() }
+  return quoteDatesCache.ok
+}
+
 /** Journal des courriels (migration 2026-11-05-journal-courriels.sql) : table email_log. */
 let emailLogCache: { ok: boolean; at: number } | null = null
 export async function hasEmailLog(): Promise<boolean> {

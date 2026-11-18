@@ -12,6 +12,10 @@ export interface DonorRow {
   message: string | null
   message_status?: 'approved' | 'pending'
   quote_consent?: boolean
+  /** Date du dernier consentement à la citation (null : donné avant le 18 nov. 2026, ou jamais). */
+  quote_consent_at?: string | null
+  message_question?: string | null
+  updated_at?: string
   photo_url: string | null
   photo_status: 'approved' | 'pending'
   color: string

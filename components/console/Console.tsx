@@ -251,7 +251,7 @@ export default function Console() {
           {!data && !c.loadError && <p className="muted">{t('chargement')}</p>}
           {data && tab === 'accueil' && <Accueil data={data} act={c.act} setTab={setTab} openDonor={id => { setDonorId(id); setTab('dons') }} openCash={() => { setCashOpen(true); setTab('dons') }} open={c.open} />}
           {data && tab === 'dons' && <Dons data={data} act={c.act} donorId={donorId} setDonorId={setDonorId} cashOpen={cashOpen} setCashOpen={setCashOpen} view={donsView} setView={setView} />}
-          {data && tab === 'moderation' && <Moderation data={data} act={c.act} notify={c.notifyDonor} setNotify={c.setNotifyDonor} />}
+          {data && tab === 'moderation' && <Moderation data={data} act={c.act} notify={c.notifyDonor} setNotify={c.setNotifyDonor} openDonor={id => { setDonorId(id); setTab('dons') }} />}
           {data && tab === 'diffuser' && <Diffuser data={data} />}
           {data && tab === 'plus' && owner && <Plus data={data} act={c.act} open={c.open} onError={text => c.setToast({ ok: false, text })} screen={screen} go={s => setTab('plus', s)} />}
         </main>
