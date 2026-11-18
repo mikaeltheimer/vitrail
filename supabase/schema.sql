@@ -386,6 +386,8 @@ CREATE TABLE public.donors (
     mailing_withdrawn_at timestamp with time zone,
     erased_at timestamp with time zone,
     message_question text,
+    quote_consent_at timestamp with time zone,
+    quote_withdrawn_at timestamp with time zone,
     CONSTRAINT donors_email_check CHECK ((email = lower(email))),
     CONSTRAINT donors_locale_check CHECK ((locale = ANY (ARRAY['fr'::text, 'en'::text]))),
     CONSTRAINT donors_mailing_consent_locale_check CHECK ((mailing_consent_locale = ANY (ARRAY['fr'::text, 'en'::text]))),
