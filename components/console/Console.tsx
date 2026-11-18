@@ -196,7 +196,6 @@ export default function Console() {
                 {t('entrainement.ouvrir')}
               </a>
             )}
-            <LanguageToggle />
             {data && <Account data={data} onChanged={() => void c.load()} />}
           </div>
         </header>
@@ -316,6 +315,13 @@ function Account({ data, side = false, onChanged }: { data: NonNullable<ReturnTy
           <button className="btn btn-ghost w-full" onClick={() => (setOpenMenu(false), setCompte(true))}>
             {t('compte.menu')}
           </button>
+          {/* Téléphone et tablette : la langue se choisit ici (sur ordinateur, la bascule est dans le menu latéral) */}
+          {!side && (
+            <div className="flex items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--line)' }}>
+              <span className="muted">{t('langue.titre')}</span>
+              <LanguageToggle />
+            </div>
+          )}
           <button
             className="btn btn-ghost w-full"
             onClick={async () => {

@@ -4,7 +4,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { LOCALE_COOKIE, LOCALES, englishEnabled, type Locale } from '@/i18n/config'
 
-// Langue de la console : une bascule FR | EN toujours visible (menu latéral sur ordinateur, en-tête sur téléphone).
+// Langue de la console : une bascule FR | EN, toujours visible dans le menu latéral sur ordinateur, dans le menu du
+// compte sur téléphone et tablette (Mika, 17 nov. : pas besoin de l'avoir toujours à l'écran sur téléphone).
 // C'est un choix personnel (cookie), indépendant des langues que l'organisme offre sur son vitrail : la console a sa
 // propre surface, que i18n/request.ts ne limite pas. Rien quand l'anglais est coupé sur la plateforme.
 function rememberLocale(l: Locale) {
