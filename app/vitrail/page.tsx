@@ -1175,7 +1175,7 @@ function Vitrail() {
 
   return (
     <>
-    {showcase && <DemoBanner mobile={mobile} open={toolsOpen} onOpen={() => setToolsOpen(o => !o)} />}
+    {showcase && <DemoBanner mobile={mobile} open={toolsOpen} onOpen={() => setToolsOpen(o => !o)} project={!!identity?.showcaseProject} />}
     {/* Sur la démo, toute la page (éléments fixes compris : le cadre leur sert de repère) passe sous le bandeau */}
     <div className="h-screen overflow-hidden" style={{ background: '#0B0A12', ...(bannerH ? { position: 'fixed', inset: `${bannerH}px 0 0 0`, height: 'auto', transform: 'translateZ(0)', ['--demo-bandeau' as string]: `${bannerH}px` } : {}) }}>
       <Header
@@ -1453,7 +1453,7 @@ function Vitrail() {
     </div>
     {/* Hors du cadre de la page : placés d'après la position de la souris, ou par-dessus tout (bandeau compris) */}
     {!mobile && !claimOpen && <HoverCard piece={hoveredPiece} />}
-    {showcase && toolsOpen && <DemoToolsDrawer mobile={mobile} onClose={() => !emailOpen && setToolsOpen(false)} onEmail={() => setEmailOpen({ paidCents: EMAIL_PREVIEW_CENTS })} />}
+    {showcase && toolsOpen && <DemoToolsDrawer mobile={mobile} onClose={() => !emailOpen && setToolsOpen(false)} onEmail={() => setEmailOpen({ paidCents: EMAIL_PREVIEW_CENTS })} project={!!identity?.showcaseProject} />}
     {emailOpen && <DemoEmailPreview paidCents={emailOpen.paidCents} onClose={() => setEmailOpen(null)} />}
     </>
   )

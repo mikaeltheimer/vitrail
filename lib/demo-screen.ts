@@ -36,8 +36,11 @@ function demoQuestions(): string[] {
 
 export const isScreenCode = (code: unknown): code is string => typeof code === 'string' && SCREEN_CODE_RE.test(code)
 
-/** Mêmes règles que les vrais dons pour le nom, le témoignage, la couleur et le montant. */
-export function validateScreenPiece(input: unknown): Result<ScreenPieceInput> {
+/**
+ * Mêmes règles que les vrais dons pour le nom, le témoignage, la couleur et le montant. `questions` : celles d'une
+ * démonstration par projet (les siennes) ; sans elles, celles de la démo de la vitrine.
+ */
+export function validateScreenPiece(input: unknown, questions: string[] = demoQuestions()): Result<ScreenPieceInput> {
   const b = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>
   let name: string | null = null
   if (b.name != null && b.name !== '') {
@@ -56,7 +59,7 @@ export function validateScreenPiece(input: unknown): Result<ScreenPieceInput> {
     if (typeof b.photo !== 'string' || b.photo.length > SCREEN_PHOTO_MAX || !PHOTO_RE.test(b.photo)) return { ok: false, error: err('impossibleIci') }
     photo = b.photo
   }
-  const question = message.value ? cleanQuestion(b.question, demoQuestions()) : null
+  const question = message.value ? cleanQuestion(b.question, questions) : null
   return { ok: true, value: { name, message: message.value, question, color: color.value, amountCents: amount.value, photo } }
 }
 
