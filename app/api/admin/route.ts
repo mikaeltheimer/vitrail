@@ -6,7 +6,7 @@ import { paymentModeFor } from '@/lib/env'
 import { requireAdmin, createInvitation, normalizeEmail, organizationsOf, removeMember, revokeInvitation, teamOf, type Role } from '@/lib/auth'
 import { sendInvitation, sendMagicLink } from '@/lib/email'
 import { createToken } from '@/lib/donations'
-import { fetchWhere, recordDonation } from '@/lib/donations'
+import { fetchWhere, quoteConsentDates, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getOrg, getVitrail, orgBaseUrl, orgName, orgUrl } from '@/lib/tenant'
 import { goLive, practiceOf } from '@/lib/signup'
 import { acceptTerms, termsStatus } from '@/lib/terms'
@@ -19,7 +19,7 @@ import { dashboardLink, refreshAccount, startOnboarding } from '@/lib/connect'
 import { getStripe } from '@/lib/payments'
 import { refundDonationFromConsole } from '@/lib/refunds'
 import { baseUrlOf } from '@/lib/tenant'
-import { hasEmailLog, hasTestimonialColumns } from '@/lib/schema'
+import { hasEmailLog, hasMessageQuestion, hasQuoteConsentDates, hasTestimonialColumns } from '@/lib/schema'
 import { defaultColorFor, validateAmountCents, validateColor, validateEmail, validateProfile } from '@/lib/validate'
 import { err, failer, internalError, money } from '@/lib/errors'
 import { notifyModeration } from '@/lib/moderation'
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   const orgId = t.tenant.org.id
   const perm = t.tenant.vitrail
   const db = getDb()
-  const donorCols: string = `id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at,erased_at${(await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''}`
+  const donorCols: string = `id,email,display_name,show_name,message,photo_url,photo_status,color,hidden,created_at,updated_at,erased_at${(await hasTestimonialColumns()) ? ',message_status,quote_consent' : ''}${(await hasMessageQuestion()) ? ',message_question' : ''}${(await hasQuoteConsentDates()) ? ',quote_consent_at' : ''}`
 
   const [donorsRes, vitrauxRes, vitrailTotalsRes, donationsRes, moderation, allDonations, visitRows, reportsRes, disputesRes] = await Promise.all([
     db.from('donors').select(donorCols).eq('organization_id', orgId).order('created_at', { ascending: false }).limit(1000),
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
   }
   const before = async (cols: string) => {
     const { data } = await db.from('donors').select(cols).eq('id', str(b.donorId)).eq('organization_id', orgId).maybeSingle()
-    return (data ?? {}) as unknown as { display_name?: string; show_name?: boolean; message?: string | null; photo_url?: string | null; photo_status?: string; message_status?: string }
+    return (data ?? {}) as unknown as { display_name?: string; show_name?: boolean; message?: string | null; photo_url?: string | null; photo_status?: string; message_status?: string; quote_consent?: boolean }
   }
 
   switch (b.action) {
@@ -279,9 +279,10 @@ export async function POST(request: NextRequest) {
       return error ? oops(error) : NextResponse.json({ ok: true })
     }
     case 'removeMessage': {
-      const prev = await before('message')
+      const withQuote = await hasTestimonialColumns()
+      const prev = await before(withQuote ? 'message,quote_consent' : 'message')
       const patch: Record<string, unknown> = { message: null, updated_at: new Date().toISOString() }
-      if (await hasTestimonialColumns()) Object.assign(patch, { message_status: 'approved', quote_consent: false })
+      if (withQuote) Object.assign(patch, { message_status: 'approved', quote_consent: false }, await quoteConsentDates(!!prev.quote_consent, false))
       const { error } = await db.from('donors').update(patch).eq('id', str(b.donorId)).eq('organization_id', orgId)
       if (!error && prev.message?.trim()) tell(str(b.donorId), 'message_removed')
       return error ? oops(error) : NextResponse.json({ ok: true })

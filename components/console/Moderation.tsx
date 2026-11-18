@@ -1,12 +1,17 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { askConfirm } from '@/components/ConfirmDialog'
+import { isQuotable, shownTestimonials, signatureOf } from '@/lib/testimonials'
 import type { Act, ConsoleData } from './types'
-import { Section, useAgo } from './ui'
+import { GREEN, Section, useAgo, useDay } from './ui'
 
 // Modération : photos et témoignages en attente, signalements. Une décision = un geste. Le donateur est prévenu par
 // courriel (sauf si la case est décochée : pourriel, abus). Mode : publication immédiate, ou après approbation.
-export default function Moderation({ data, act, notify, setNotify }: { data: ConsoleData; act: Act; notify: boolean; setNotify: (v: boolean) => void }) {
+// Puis tous les témoignages affichés (Mika, 18 nov.) : relire sans attendre un signalement, et savoir lesquels
+// l'organisme peut citer (filtre, copie, export).
+export default function Moderation({ data, act, notify, setNotify, openDonor }: { data: ConsoleData; act: Act; notify: boolean; setNotify: (v: boolean) => void; openDonor: (id: string) => void }) {
   const t = useTranslations('console.moderation')
   const ago = useAgo()
   const photos = data.donors.filter(d => d.photo_url && d.photo_status === 'pending')
@@ -111,6 +116,120 @@ export default function Moderation({ data, act, notify, setNotify }: { data: Con
           })}
         </Section>
       )}
+
+      <Testimonials data={data} act={act} openDonor={openDonor} />
     </div>
+  )
+}
+
+function Testimonials({ data, act, openDonor }: { data: ConsoleData; act: Act; openDonor: (id: string) => void }) {
+  const t = useTranslations('console.temoignages')
+  const tm = useTranslations('console.moderation')
+  const day = useDay()
+  const owner = data.me.role === 'owner'
+  const [filter, setFilter] = useState<'tous' | 'citables'>('tous')
+  const [q, setQ] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
+  const all = useMemo(() => shownTestimonials(data.donors), [data.donors])
+  const quotable = all.filter(isQuotable)
+  const needle = q.trim().toLocaleLowerCase()
+  const list = (filter === 'citables' ? quotable : all).filter(d => !needle || `${d.display_name ?? ''} ${d.message ?? ''}`.toLocaleLowerCase().includes(needle))
+
+  const copy = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(id)
+      setTimeout(() => setCopied(c => (c === id ? null : c)), 2000)
+    } catch {
+      // Presse-papiers refusé (navigateur, iframe) : rien à faire, le texte reste sélectionnable
+    }
+  }
+
+  return (
+    <Section title={t('titre', { count: all.length })}>
+      <p className="muted max-w-3xl text-sm">{t('regle')}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label={t('filtre')} className="inline-flex gap-1 rounded-xl border p-1" style={{ borderColor: 'var(--line)', background: 'rgba(255,255,255,0.03)' }}>
+          <button className="chip !border-0 !px-3 !py-1.5 text-sm" aria-pressed={filter === 'tous'} onClick={() => setFilter('tous')}>
+            {t('tous', { count: all.length })}
+          </button>
+          <button className="chip !border-0 !px-3 !py-1.5 text-sm" aria-pressed={filter === 'citables'} onClick={() => setFilter('citables')}>
+            {t('citables', { count: quotable.length })}
+          </button>
+        </div>
+        <input className="field !w-auto min-w-[200px] flex-1 !py-2 md:max-w-xs" type="search" placeholder={t('chercher')} aria-label={t('chercher')} value={q} onChange={e => setQ(e.target.value)} />
+        {owner && (filter === 'tous' ? all : quotable).length > 0 && (
+          <a className="chip !px-3 text-sm !text-[var(--text)]" href={`/api/admin/export?type=temoignages${filter === 'citables' ? '&filtre=citables' : ''}`}>
+            {filter === 'citables' ? t('exporterCitables') : t('exporter')}
+          </a>
+        )}
+      </div>
+
+      {list.length === 0 ? (
+        <p className="card muted text-sm">{all.length === 0 ? t('aucun') : filter === 'citables' && !needle ? t('aucunCitable') : t('aucunResultat')}</p>
+      ) : (
+        <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+          {list.map(d => {
+            const ok = isQuotable(d)
+            const sig = signatureOf(d)
+            const photo = d.photo_url && d.photo_status !== 'pending' ? d.photo_url : null
+            return (
+              <article key={d.id} className="card space-y-3 text-sm">
+                <header className="flex items-center gap-3">
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photo} alt="" className="h-11 w-11 flex-none rounded-lg object-cover" />
+                  ) : (
+                    <span aria-hidden="true" className="h-11 w-11 flex-none rounded-lg" style={{ background: d.color, opacity: 0.85 }} />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <b className="block truncate text-[15px]">{sig ?? tm('anonyme')}</b>
+                    {d.updated_at && <span className="muted text-xs">{day(d.updated_at)}</span>}
+                  </span>
+                  {ok ? (
+                    <span className="flex-none rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: 'rgba(240,178,74,0.16)', color: 'var(--accent)' }}>
+                      {d.quote_consent_at ? (
+                        <>
+                          {/* Sur mobile, le badge court laisse la place au nom ; la date passe dans l'info-bulle */}
+                          <span className="sm:hidden" title={t('citableDepuis', { date: day(d.quote_consent_at) })}>{t('citable')}</span>
+                          <span className="hidden sm:inline">{t('citableDepuis', { date: day(d.quote_consent_at) })}</span>
+                        </>
+                      ) : (
+                        t('citable')
+                      )}
+                    </span>
+                  ) : (
+                    <span className="muted flex-none rounded-full px-2.5 py-0.5 text-xs" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      {t('nonCitable')}
+                    </span>
+                  )}
+                </header>
+                {d.message_question && <p className="muted text-xs">{d.message_question}</p>}
+                <p className="text-[15px] italic leading-relaxed">« {d.message?.trim()} »</p>
+                <div className="flex flex-wrap gap-2">
+                  {ok && (
+                    <button className="chip !px-3 text-sm" onClick={() => void copy(d.id, `« ${d.message?.trim()} » — ${sig ?? tm('anonyme')}`)}>
+                      {copied === d.id ? <span style={{ color: GREEN }}>{t('copie')}</span> : t('copier')}
+                    </button>
+                  )}
+                  <button className="chip !px-3 text-sm" onClick={() => openDonor(d.id)}>
+                    {t('fiche')}
+                  </button>
+                  <button
+                    className="chip !px-3 text-sm"
+                    onClick={async () => {
+                      const yes = await askConfirm({ title: t('retirerTitre'), text: t('retirerTexte'), confirmLabel: t('retirer'), cancelLabel: t('annuler'), danger: true })
+                      if (yes) void act({ action: 'removeMessage', donorId: d.id }, tm('temoignageRefuse'))
+                    }}
+                  >
+                    {t('retirer')}
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </Section>
   )
 }

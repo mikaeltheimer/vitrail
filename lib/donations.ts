@@ -6,7 +6,7 @@ import { ANON_LABEL, CONFIG } from './config'
 import { removePhotoFile } from './photos'
 import { newPhotoStatus } from './settings'
 import type { Tenant } from './tenant'
-import { hasLocaleColumn, hasMessageQuestion, hasTestimonialColumns } from './schema'
+import { hasLocaleColumn, hasMessageQuestion, hasTestimonialColumns, hasQuoteConsentDates } from './schema'
 import type { Locale } from '@/i18n/config'
 import type { DonorProfileInput } from './validate'
 import type { EventInfo, Piece, RecentDonation, Snapshot } from './types'
@@ -121,6 +121,7 @@ export async function recordDonation(i: RecordInput): Promise<RecordResult> {
     if (await hasTestimonialColumns()) {
       insert.message_status = i.profile.message ? await newPhotoStatus(i.organizationId) : 'approved'
       insert.quote_consent = i.profile.quoteConsent
+      Object.assign(insert, await quoteConsentDates(false, i.profile.quoteConsent))
     }
     if (i.profile.message && i.profile.question && (await hasMessageQuestion())) insert.message_question = i.profile.question
     if (i.locale && (await hasLocaleColumn())) insert.locale = i.locale
@@ -180,6 +181,7 @@ export async function updateDonorProfile(
   color?: string,
   previousPhotoUrl?: string | null,
   previousMessage?: string | null,
+  previousQuoteConsent = false,
 ): Promise<void> {
   const patch: Record<string, unknown> = {
     display_name: profile.name,
@@ -194,6 +196,7 @@ export async function updateDonorProfile(
   if (await hasTestimonialColumns()) {
     if (profile.message !== previousMessage) patch.message_status = profile.message ? await newPhotoStatus(orgId) : 'approved'
     patch.quote_consent = profile.quoteConsent
+    Object.assign(patch, await quoteConsentDates(previousQuoteConsent, profile.quoteConsent))
   }
   // La question suit le témoignage : changée seulement quand le témoignage change (l'équipe qui corrige un nom ne l'efface pas)
   if (profile.message !== previousMessage && (await hasMessageQuestion())) patch.message_question = profile.message ? (profile.question ?? null) : null
@@ -274,6 +277,16 @@ export async function getDonorView(donorId: string, orgId: string): Promise<Dono
   }
 }
 
+/**
+ * Dates du consentement à la citation (comme pour la liste d'envoi) : la date du consentement quand la case passe à
+ * oui, la date du retrait quand elle passe à non. Rien quand elle ne change pas. Vide si la migration n'est pas passée.
+ */
+export async function quoteConsentDates(previous: boolean, next: boolean): Promise<Record<string, string | null>> {
+  if (previous === next || !(await hasQuoteConsentDates())) return {}
+  const now = new Date().toISOString()
+  return next ? { quote_consent_at: now, quote_withdrawn_at: null } : { quote_withdrawn_at: now }
+}
+
 /** Ajoute ou remplace le témoignage d'un morceau, sans toucher au reste (bandeau de remerciement, lien reçu par courriel). */
 export async function updateTestimonial(donor: DonorView, message: string | null, quoteConsent: boolean, question: string | null = null): Promise<{ pending: boolean }> {
   const patch: Record<string, unknown> = { message, updated_at: new Date().toISOString() }
@@ -285,6 +298,7 @@ export async function updateTestimonial(donor: DonorView, message: string | null
       pending = patch.message_status === 'pending'
     } else pending = donor.messagePending
     patch.quote_consent = quoteConsent && !!message
+    Object.assign(patch, await quoteConsentDates(donor.quoteConsent, quoteConsent && !!message))
   }
   const { error } = await getDb().from('donors').update(patch).eq('id', donor.id).eq('organization_id', donor.organizationId)
   if (error) throw error

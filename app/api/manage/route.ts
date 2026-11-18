@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // photoPath absent = on garde la photo actuelle ; vide = on la retire ; un chemin = nouvelle photo
     if (body.photoPath === undefined) profile.value.photoUrl = donor.photoUrl
     const color = validateColor(body.color)
-    await updateDonorProfile(orgId, donor.id, profile.value, color.ok ? color.value : undefined, donor.photoUrl, donor.message)
+    await updateDonorProfile(orgId, donor.id, profile.value, color.ok ? color.value : undefined, donor.photoUrl, donor.message, donor.quoteConsent)
     return NextResponse.json({ ok: true })
   }
 

@@ -131,6 +131,19 @@ async function main() {
   check('nouveau témoignage : nouvelle question', eve().message_question === 'Un souvenir ?')
   await updateTestimonial((await getDonorView(told.donorId, 'orgA'))!, null, false, 'Un souvenir ?')
   check('témoignage retiré : question retirée', eve().message_question === null)
+
+  console.log('Dates du consentement à la citation')
+  const cited = await recordDonation({ organizationId: 'orgA', vitrailId: 'permA', email: 'cite@x.ca', profile: { ...profile, message: 'À citer.', quoteConsent: true }, color: '#fff', amountCents: 1000, source: 'stripe', providerRef: 'cs_test_c1111111' })
+  const lise = () => tables.donors.find(d => d.id === cited.donorId)!
+  check('don avec consentement : date gardée', !!lise().quote_consent_at && !lise().quote_withdrawn_at)
+  check('don sans consentement : aucune date', !eve().quote_consent_at && !tables.donors.find(d => d.id === quiet.donorId)!.quote_consent_at)
+  const firstAt = String(lise().quote_consent_at)
+  await updateTestimonial((await getDonorView(cited.donorId, 'orgA'))!, 'À citer, corrigé.', true, null)
+  check('consentement inchangé : la date reste', lise().quote_consent_at === firstAt)
+  await updateTestimonial((await getDonorView(cited.donorId, 'orgA'))!, 'À citer, corrigé.', false, null)
+  check('consentement retiré : date du retrait', !!lise().quote_withdrawn_at && lise().quote_consent === false)
+  await updateTestimonial((await getDonorView(cited.donorId, 'orgA'))!, 'À citer, corrigé.', true, null)
+  check('consentement redonné : nouvelle date, retrait effacé', !!lise().quote_consent_at && lise().quote_withdrawn_at === null)
   done()
 }
 main().catch(e => { console.error(e); process.exit(1) })

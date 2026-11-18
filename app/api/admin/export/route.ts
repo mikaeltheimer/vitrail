@@ -5,12 +5,15 @@ import { failer } from '@/lib/errors'
 import { orgFees } from '@/lib/platform-fee'
 import { parseFilter, utcToLocal } from '@/lib/journal'
 import { donationsInRange, matchesFilter, type RawDonor } from '@/lib/journal-server'
+import { isQuotable, shownTestimonials, signatureOf, type TestimonialDonor } from '@/lib/testimonials'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // Exports CSV (propriétaire) : ?type=dons (les dons, filtrés comme le journal de la console : ?du=&au=&paiement=&provenance=&q=) ou ?type=liste (donateurs qui ont accepté de recevoir les
-// nouvelles de l'organisme, avec la date et la version du consentement : c'est la preuve exigée par la loi anti-pourriel).
+// nouvelles de l'organisme, avec la date et la version du consentement : c'est la preuve exigée par la loi anti-pourriel)
+// ou ?type=temoignages (témoignages affichés ; ?filtre=citables pour ceux que l'organisme peut citer, avec la date du
+// consentement ; jamais le courriel ni la photo, que le consentement ne couvre pas).
 // Séparateur « ; » et BOM : Excel en français ouvre le fichier correctement.
 
 const cell = (v: unknown): string => {
@@ -77,6 +80,21 @@ export async function GET(request: NextRequest) {
     ])
     const range = filter.du || filter.au ? `-${(filter.du ?? 'debut').replace(':', 'h')}_${(filter.au ?? 'fin').replace(':', 'h')}` : `-${day}`
     name = `dons-${org.slug}${range}.csv`
+  } else if (type === 'temoignages') {
+    const onlyQuotable = request.nextUrl.searchParams.get('filtre') === 'citables'
+    const list = shownTestimonials(donors as unknown as TestimonialDonor[]).filter(d => !onlyQuotable || isQuotable(d))
+    body = csv([
+      ['signature', 'temoignage', 'question', 'citable', 'consentement_le', 'modifie_le'],
+      ...list.map(d => [
+        signatureOf(d) ?? 'Anonyme', // i18n-ok : les exports CSV sont en français, comme leurs en-têtes
+        d.message?.trim() ?? '',
+        d.message_question ?? '',
+        isQuotable(d) ? 'oui' : 'non',
+        isQuotable(d) ? (d.quote_consent_at ? utcToLocal(new Date(d.quote_consent_at)).replace('T', ' ') : 'inconnue') : '',
+        d.updated_at ? utcToLocal(new Date(d.updated_at)).slice(0, 10) : '',
+      ]),
+    ])
+    name = `temoignages${onlyQuotable ? '-citables' : ''}-${org.slug}-${day}.csv`
   } else {
     return failer(request)('exportInconnu')
   }

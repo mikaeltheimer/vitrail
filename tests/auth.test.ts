@@ -156,6 +156,24 @@ async function main() {
   const csvText = await csvRes.text()
   check('export : nouvelles colonnes et valeurs', csvRes.status === 200 && csvText.includes('don;frais_stripe_organisme;frais_stripe_donateur;frais_stripe_estimes;commission_organisme;commission_donateur;frais_couverts') && csvText.includes('125,00;0,00;4,47;;0,00;14,28;0,00'), csvText.split('\r\n').slice(0, 3))
   check('export : aucune contribution', !csvText.includes('contribution') && !csvText.includes('18,75'))
+  // Export des témoignages (18 nov.) : affichés seulement (ni en attente, ni masqués, ni effacés), filtre citables, jamais le courriel
+  tables.donors = [
+    ...(tables.donors ?? []),
+    { id: 'tq1', organization_id: 'orgA', email: 'cite@x.ca', display_name: 'Lise', show_name: true, message: 'Merci =pour tout', message_status: 'approved', quote_consent: true, quote_consent_at: '2026-11-18T15:00:00Z', color: '#fff', hidden: false, updated_at: '2026-11-18T15:00:00Z' },
+    { id: 'tq2', organization_id: 'orgA', email: 'non@x.ca', display_name: 'Paul', show_name: false, message: 'Bravo', message_status: 'approved', quote_consent: false, color: '#fff', hidden: false, updated_at: '2026-11-17T15:00:00Z' },
+    { id: 'tq3', organization_id: 'orgA', email: 'att@x.ca', display_name: 'Zoé', show_name: true, message: 'En attente', message_status: 'pending', quote_consent: true, color: '#fff', hidden: false },
+    { id: 'tq4', organization_id: 'orgA', email: 'cache@x.ca', display_name: 'Max', show_name: true, message: 'Masqué', message_status: 'approved', quote_consent: true, color: '#fff', hidden: true },
+    { id: 'tq5', organization_id: 'orgB', email: 'b@x.ca', display_name: 'Ailleurs', show_name: true, message: 'Autre organisme', message_status: 'approved', quote_consent: true, color: '#fff', hidden: false },
+  ]
+  const tmText = async (q: string) => {
+    const u = `https://ecole.donivers.test/api/admin/export?type=temoignages${q}`
+    return ((await ex.GET(Object.assign(new Request(u, { headers: { host: 'ecole.donivers.test' } }), { nextUrl: new URL(u) }) as never)) as unknown as Response).text()
+  }
+  const tmAll = await tmText('')
+  check('témoignages : affichés de cet organisme seulement', tmAll.includes('Lise') && tmAll.includes('Bravo') && !tmAll.includes('En attente') && !tmAll.includes('Masqué') && !tmAll.includes('Autre organisme'), tmAll.split('\r\n'))
+  check('témoignages : nom caché = Anonyme, jamais le courriel', tmAll.includes('Anonyme;Bravo') && !tmAll.includes('Paul') && !tmAll.includes('@x.ca'))
+  const tmQ = await tmText('&filtre=citables')
+  check('témoignages citables : avec la date du consentement', tmQ.includes('Lise;Merci =pour tout;;oui;2026-11-18') && !tmQ.includes('Bravo'), tmQ.split('\r\n'))
   res = await call('POST', 'ecole.donivers.test', { action: 'inviteMember', email: 'Eve@X.ca', role: 'volunteer' })
   check('propriétaire : invitation envoyée par courriel', res.status === 200 && sent.some(x => x.kind === 'invitation' && x.to === 'eve@x.ca'))
   res = await call('POST', 'ecole.donivers.test', { action: 'inviteMember', email: 'bob@x.ca' })
