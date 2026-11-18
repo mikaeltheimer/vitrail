@@ -228,6 +228,7 @@
   "vitrail": {
     "canvasAria": "Le vitrail de dons",
     "ajouter": "Faire un don",
+    "ajouterAide": "Ajoutez votre fragment au vitrail.",
     "hasard": "✦ Un fragment au hasard",
     "hasardTitre": "Aller vers un fragment du vitrail, au hasard",
     "trouver": "Trouver mon fragment",
