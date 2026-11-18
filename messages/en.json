@@ -367,11 +367,14 @@
     "demoOutils": {
       "bandeau": "<b>Demonstration:</b> the organization, donors and donations are fictional.",
       "bandeauCourt": "<b>Demo:</b> it's all fictional.",
+      "bandeauProjet": "<b>Demonstration:</b> the donors, testimonials and donations are fictional.",
+      "bandeauProjetCourt": "<b>Demo:</b> fictional donors and donations.",
       "bouton": "See the organization's tools",
       "boutonCourt": "The tools",
       "surtitre": "Demonstration",
       "titre": "The organization's tools",
       "intro": "With its stained glass, every organization gets these tools, ready to use. Here, they show the demo's fictional stained glass.",
+      "introProjet": "With its stained glass, every organization gets these tools, ready to use. Here, they show this demonstration: its donors and donations are fictional.",
       "ecran": {
         "titre": "Projection screen",
         "texte": "Made for a TV or a projector during an event: fragments and testimonials scroll by, and every new donation appears live. Open it to see it in motion.",
@@ -1762,6 +1765,7 @@
   "demoJuridique": {
     "titre": "Demonstration stained glass",
     "texte": "{org} is a fictional organization. This stained glass shows what {brand} looks like: its donors, testimonials and donations are made up, you can’t donate here, and it collects no personal information. No privacy policy or terms of use apply to it.",
+    "texteProjet": "This stained glass is a {brand} demonstration prepared for {org}. Its donors, testimonials and donations are made up, you can’t donate here, and it collects no personal information. No privacy policy or terms of use apply to it.",
     "contact": "{brand} is designed and operated by {studio}. Questions: <courriel>{email}</courriel>."
   },
   "legalPlateforme": {

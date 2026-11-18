@@ -16,7 +16,7 @@ const CREAM = '#F4EFE6'
 const SANS = "'DM Sans', sans-serif"
 
 /** Bandeau noir d'une ligne, en haut de la page, impossible à fermer. Version courte sur téléphone. */
-export function DemoBanner({ mobile, open, onOpen }: { mobile: boolean; open: boolean; onOpen: () => void }) {
+export function DemoBanner({ mobile, open, onOpen, project }: { mobile: boolean; open: boolean; onOpen: () => void; project?: boolean }) {
   const t = useTranslations('vitrail.demoOutils')
   return (
     <div
@@ -43,7 +43,7 @@ export function DemoBanner({ mobile, open, onOpen }: { mobile: boolean; open: bo
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
         <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: GOLD, boxShadow: '0 0 8px rgba(240,178,74,0.8)', flex: 'none' }} />
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.rich(mobile ? 'bandeauCourt' : 'bandeau', { b: chunks => <b style={{ fontWeight: 600 }}>{chunks}</b> })}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.rich(project ? (mobile ? 'bandeauProjetCourt' : 'bandeauProjet') : mobile ? 'bandeauCourt' : 'bandeau', { b: chunks => <b style={{ fontWeight: 600 }}>{chunks}</b> })}</span>
       </span>
       <button
         onClick={onOpen}
@@ -102,10 +102,10 @@ function ScaledFrame({ src, width, height, title, srcDoc }: { src?: string; srcD
   )
 }
 
-function Card({ n, title, text, children, actions }: { n: number; title: string; text: string; children: React.ReactNode; actions?: React.ReactNode }) {
+function Card({ n, title, text, children, actions }: { n: number; title: string; text: string; children?: React.ReactNode; actions?: React.ReactNode }) {
   return (
     <section style={{ display: 'grid', gap: 12, padding: 14, borderRadius: 16, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div style={{ borderRadius: 10, overflow: 'hidden', background: '#0B0A12', border: '1px solid rgba(255,255,255,0.08)' }}>{children}</div>
+      {children && <div style={{ borderRadius: 10, overflow: 'hidden', background: '#0B0A12', border: '1px solid rgba(255,255,255,0.08)' }}>{children}</div>}
       <div style={{ display: 'grid', gap: 4 }}>
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 10, fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 19, lineHeight: 1.2, color: CREAM }}>
           <span aria-hidden style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: GOLD }}>
@@ -149,7 +149,9 @@ function Thumb({ href, label, children }: { href: string; label: string; childre
 }
 
 /** Le tiroir des outils : à droite sur ordinateur, en bas sur téléphone. Le bandeau reste visible au-dessus. */
-export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean; onClose: () => void; onEmail: () => void }) {
+// `project` (démonstration par projet) : les captures fixes montrent l'organisme fictif de la vitrine, pas celui de la
+// démonstration ; elles sont donc retirées (l'écran garde son bouton, la carte de la console disparaît).
+export function DemoToolsDrawer({ mobile, onClose, onEmail, project }: { mobile: boolean; onClose: () => void; onEmail: () => void; project?: boolean }) {
   const t = useTranslations('vitrail.demoOutils')
   const tc = useTranslations('commun')
   const locale = useLocale()
@@ -169,7 +171,7 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
     }
   }, [locale])
 
-  const intro = <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.45, color: 'rgba(244,239,230,0.7)' }}>{t('intro')}</p>
+  const intro = <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.45, color: 'rgba(244,239,230,0.7)' }}>{t(project ? 'introProjet' : 'intro')}</p>
   const screen = locale === 'en' ? '/screen' : '/ecran'
   // Captures fixes (npm run captures:demo)
   const shotLocale = locale === 'en' ? 'en' : 'fr'
@@ -224,12 +226,14 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
             }
           >
             {/* Une image fixe : l'expérience complète, c'est la page /ecran elle-même */}
-            <a href={screen} target="_blank" rel="noopener" tabIndex={-1} style={{ display: 'block' }}>
-              <img src={`/demo/ecran-${shotLocale}.jpg`} alt={t('ecran.alt')} width={1600} height={900} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </a>
+            {!project && (
+              <a href={screen} target="_blank" rel="noopener" tabIndex={-1} style={{ display: 'block' }}>
+                <img src={`/demo/ecran-${shotLocale}.jpg`} alt={t('ecran.alt')} width={1600} height={900} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
+              </a>
+            )}
           </Card>
 
-          <Card n={2} title={t('console.titre')} text={t('console.texte')}>
+          {!project && <Card n={2} title={t('console.titre')} text={t('console.texte')}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start', padding: '14px 14px 12px', background: 'linear-gradient(180deg, #1a1722, #0f0d15)' }}>
               <Thumb href={shot('accueil')} label={t('console.accueil')}>
                 <img src={shot('accueil')} alt={t('console.accueilAlt')} width={390} height={844} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
@@ -238,10 +242,10 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
                 <img src={shot('moderation')} alt={t('console.moderationAlt')} width={390} height={844} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
               </Thumb>
             </div>
-          </Card>
+          </Card>}
 
           <Card
-            n={3}
+            n={project ? 2 : 3}
             title={t('partage.titre')}
             text={t('partage.texte')}
             actions={
@@ -253,7 +257,7 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
             <img src={`/api/og?lang=${locale}`} alt={t('partage.alt')} width={1200} height={630} loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
           </Card>
 
-          <Card n={4} title={t('affiche.titre')} text={t('affiche.texte')}>
+          <Card n={project ? 3 : 4} title={t('affiche.titre')} text={t('affiche.texte')}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start', padding: '14px 14px 12px', background: 'linear-gradient(180deg, #1a1722, #0f0d15)' }}>
               <Thumb href="/affiche?format=lettre" label={t('affiche.lettre')}>
                 <ScaledFrame src="/affiche?format=lettre&apercu" width={816} height={1056} title={t('affiche.lettre')} />
@@ -265,7 +269,7 @@ export function DemoToolsDrawer({ mobile, onClose, onEmail }: { mobile: boolean;
           </Card>
 
           <Card
-            n={5}
+            n={project ? 4 : 5}
             title={t('courriel.titre')}
             text={t('courriel.texte')}
             actions={

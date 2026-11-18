@@ -39,6 +39,8 @@ export interface Identity {
   replyTo: string | null
   /** Vitrail de démonstration (organisme fictif, lecture seule). */
   showcase: boolean
+  /** Démonstration par projet (lib/demo-projets.ts) : préparée au nom d'un organisme précis ; seuls les donateurs et les dons sont fictifs. */
+  showcaseProject: boolean
 }
 
 /** Champs que l'organisme rédige, par langue. */

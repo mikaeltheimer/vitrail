@@ -5,6 +5,7 @@ import { Mark } from '@/components/plateforme/Brand'
 import { squareJpeg } from '@/lib/photoClient'
 import type { Funnel, PlatformTotals, Stage, StudioBilling, StudioOrg, SuggestionRow, TaxRow, TodoItem } from '@/lib/studio-stats'
 import { askConfirm } from '@/components/ConfirmDialog'
+import DemosProjet from './DemosProjet'
 
 // Section Studio (en français : usage interne de Studio Existence). Voir app/api/studio/route.ts.
 // Piste C « Parcours » (validée par Mika le 12 nov. 2026) : « À traiter » d'abord, puis les organismes rangés par étape,
@@ -251,6 +252,7 @@ export default function StudioPanel() {
       {tab === 'entretien' && (
         <div className="max-w-[760px] space-y-7">
           <DemoCard />
+          <DemosProjet />
           <PhotoMaintenance />
         </div>
       )}

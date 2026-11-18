@@ -9,6 +9,7 @@ import { forgetIdentity, QUESTION_FIELDS } from './identity'
 import { hasMessageQuestion } from './schema'
 import {
   DEMO_NAME, DEMO_SLUG, DEMO_TEXTS, FIRST_NAMES_EN, FIRST_NAMES_FR, LAST_NAMES_EN, LAST_NAMES_FR, TESTIMONIALS_EN, TESTIMONIALS_FR,
+  type DemoTestimonial,
 } from './demo-data'
 
 // Vitrail de démonstration (étape C) : un organisme FICTIF (`showcase`), en lecture seule, montré par la vitrine.
@@ -17,7 +18,7 @@ import {
 // Les photos sont téléversées par Studio (jamais de banque d'images de visages) et attribuées au hasard aux morceaux nommés.
 
 export const DEMO_DONORS = 200
-const SEED = 20261204
+export const SEED = 20261204
 const DAY = 86_400_000
 
 /** Générateur pseudo-aléatoire à graine (mulberry32) : la démo est reproductible. */
@@ -58,11 +59,31 @@ export interface DemoDonor {
   donations: { amountCents: number; at: string }[]
 }
 
+/**
+ * Ce que disent les donateurs fictifs d'une démo : les témoignages de chaque langue, la question à laquelle chacun répond,
+ * et la part de donateurs anglophones. La démo de la vitrine a le sien (le Centre communautaire) ; les démonstrations par
+ * projet ont un contenu neutre (lib/demo-projets.ts).
+ */
+export interface DemoContent {
+  testimonialsFr: readonly DemoTestimonial[]
+  testimonialsEn: readonly DemoTestimonial[]
+  question: (locale: 'fr' | 'en', q: 1 | 2 | 3) => string | null
+  /** Part de donateurs anglophones, de 0 (organisme en français seulement) à 1 (en anglais seulement). */
+  englishShare: number
+}
+
+const VILLAGE: DemoContent = {
+  testimonialsFr: TESTIMONIALS_FR,
+  testimonialsEn: TESTIMONIALS_EN,
+  question: (locale, q) => DEMO_TEXTS[locale]?.[QUESTION_FIELDS[q - 1]] ?? null,
+  englishShare: 0.22,
+}
+
 /** Les donateurs de la démo, toujours les mêmes pour une graine donnée ; dates placées avant `now`. */
-export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED): DemoDonor[] {
+export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED, content: DemoContent = VILLAGE): DemoDonor[] {
   const r = rng(seed)
-  const testimonialsFr = [...TESTIMONIALS_FR]
-  const testimonialsEn = [...TESTIMONIALS_EN]
+  const testimonialsFr = [...content.testimonialsFr]
+  const testimonialsEn = [...content.testimonialsEn]
   const usedNames = new Set<string>()
   const amount = () => {
     let x = r.next() * totalWeight
@@ -74,7 +95,7 @@ export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED
 
   const out: DemoDonor[] = []
   for (let i = 0; i < count; i++) {
-    const english = r.chance(0.22)
+    const english = r.chance(content.englishShare)
     const named = r.chance(0.72)
     let displayName = ANON_LABEL
     if (named) {
@@ -94,7 +115,7 @@ export function generateDemoDonors(now: number, count = DEMO_DONORS, seed = SEED
     const pool = english ? testimonialsEn : testimonialsFr
     const told = pool.length && r.chance(named ? 0.55 : 0.12) ? pool.splice(Math.floor(r.next() * pool.length), 1)[0] : null
     const message = told?.text ?? null
-    const question = told ? (DEMO_TEXTS[english ? 'en' : 'fr']?.[QUESTION_FIELDS[told.q - 1]] ?? null) : null
+    const question = told ? content.question(english ? 'en' : 'fr', told.q) : null
     const times = r.chance(0.12) ? r.int(2, 3) : 1
     const donations = Array.from({ length: times }, () => ({ amountCents: amount(), at: new Date(when()).toISOString() })).sort((a, b) => a.at.localeCompare(b.at))
     out.push({
@@ -137,6 +158,11 @@ async function demoOrgId(): Promise<string | null> {
 export async function demoState(): Promise<DemoState> {
   const orgId = await demoOrgId()
   if (!orgId) return { exists: false, orgId: null, donors: 0, totalCents: 0, photos: 0, namedWithoutPhoto: 0 }
+  return demoStateOf(orgId)
+}
+
+/** L'état d'un organisme de démonstration donné (l'appelant a vérifié que c'en est un). */
+export async function demoStateOf(orgId: string): Promise<DemoState> {
   const db = getDb()
   const [{ data: donors }, { data: totals }] = await Promise.all([
     db.from('donors').select('id,show_name,photo_url').eq('organization_id', orgId),
@@ -193,8 +219,18 @@ async function ensureDemoOrg(): Promise<{ orgId: string; vitrailId: string }> {
  * Les photos déjà téléversées sont gardées et redistribuées au hasard entre les nouveaux morceaux nommés.
  */
 export async function generateDemo(now = Date.now()): Promise<DemoState> {
-  const db = getDb()
   const { orgId, vitrailId } = await ensureDemoOrg()
+  await fillDemo(orgId, vitrailId, now)
+  return demoState()
+}
+
+/**
+ * Remplit un organisme de démonstration : efface ses donateurs et leurs dons, puis en recrée DEMO_DONORS. L'appelant a
+ * vérifié que l'organisme est une démonstration (`showcase`) : cette fonction efface sans demander.
+ */
+export async function fillDemo(orgId: string, vitrailId: string, now: number, opts: { seed?: number; content?: DemoContent } = {}): Promise<void> {
+  const db = getDb()
+  const seed = opts.seed ?? SEED
 
   const { data: old } = await db.from('donors').select('photo_url').eq('organization_id', orgId)
   const photos = ((old ?? []) as { photo_url: string | null }[]).map(d => d.photo_url).filter((u): u is string => !!u && pathFromPublicUrl(u, orgId) !== null)
@@ -203,8 +239,8 @@ export async function generateDemo(now = Date.now()): Promise<DemoState> {
   const delDonors = await db.from('donors').delete().eq('organization_id', orgId)
   if (delDonors.error) throw delDonors.error
 
-  const donors = generateDemoDonors(now)
-  const r = rng(SEED + 1)
+  const donors = generateDemoDonors(now, DEMO_DONORS, seed, opts.content)
+  const r = rng(seed + 1)
   const shuffled = [...photos].sort(() => r.next() - 0.5)
   const named = donors.filter(d => d.showName)
   const withPhoto = new Map(named.slice(0, shuffled.length).map((d, i) => [d.index, shuffled[i]]))
@@ -236,12 +272,14 @@ export async function generateDemo(now = Date.now()): Promise<DemoState> {
     const { error: dErr } = await db.from('donations').insert(donationRows.slice(i, i + 200))
     if (dErr) throw dErr
   }
-  return demoState()
 }
 
-/** Une photo téléversée par Studio : rangée chez la démo, donnée à un morceau nommé qui n'en a pas (au hasard). */
-export async function addDemoPhoto(bytes: Buffer): Promise<{ ok: true } | { ok: false; reason: 'noDemo' | 'full' }> {
-  const orgId = await demoOrgId()
+/**
+ * Une photo téléversée par Studio : rangée chez la démo, donnée à un morceau nommé qui n'en a pas (au hasard).
+ * `demoId` : une démonstration par projet (vérifiée par l'appelant) ; sans lui, la démo de la vitrine.
+ */
+export async function addDemoPhoto(bytes: Buffer, demoId?: string): Promise<{ ok: true } | { ok: false; reason: 'noDemo' | 'full' }> {
+  const orgId = demoId ?? (await demoOrgId())
   if (!orgId) return { ok: false, reason: 'noDemo' }
   const db = getDb()
   const { data } = await db.from('donors').select('id').eq('organization_id', orgId).eq('show_name', true).is('photo_url', null)
@@ -260,8 +298,8 @@ export async function addDemoPhoto(bytes: Buffer): Promise<{ ok: true } | { ok: 
 }
 
 /** Retire toutes les photos de la démo (fiches et fichiers). */
-export async function removeDemoPhotos(): Promise<number> {
-  const orgId = await demoOrgId()
+export async function removeDemoPhotos(demoId?: string): Promise<number> {
+  const orgId = demoId ?? (await demoOrgId())
   if (!orgId) return 0
   const db = getDb()
   const { data } = await db.from('donors').select('photo_url').eq('organization_id', orgId).not('photo_url', 'is', null)

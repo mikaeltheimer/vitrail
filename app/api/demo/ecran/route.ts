@@ -3,6 +3,7 @@ import { err, errorResponse } from '@/lib/errors'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
 import { requireTenant } from '@/lib/tenant'
 import { addScreenPiece, isScreenCode, screenPhoto, screenPieces, validateScreenPiece } from '@/lib/demo-screen'
+import { questionsOf } from '@/lib/identity'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,12 +17,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MAX_BODY = 1_200_000
 const NO_STORE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }
 
-async function demoOrg(request: NextRequest): Promise<{ orgId: string } | { response: Response }> {
+async function demoOrg(request: NextRequest): Promise<{ orgId: string; org: { id: string; practiceOf: string | null } } | { response: Response }> {
   const t = await requireTenant(request)
   if ('response' in t) return t
   // Les vrais organismes n'ont que de vrais dons : ce chemin n'existe que pour la démo
   if (!t.tenant.org.showcase) return { response: errorResponse(request, err('impossibleIci'), 404) }
-  return { orgId: t.tenant.org.id }
+  return { orgId: t.tenant.org.id, org: t.tenant.org }
 }
 
 export async function GET(request: NextRequest) {
@@ -54,7 +55,9 @@ export async function POST(request: NextRequest) {
     if ('response' in o) return o.response
     const body = (await request.json().catch(() => null)) as { code?: unknown; piece?: unknown } | null
     if (!isScreenCode(body?.code)) return errorResponse(request, err('impossibleIci'), 400)
-    const piece = validateScreenPiece(body.piece)
+    // La question acceptée est une de celles que CET organisme de démonstration pose (démo de la vitrine ou par projet)
+    const questions = await questionsOf(o.org)
+    const piece = validateScreenPiece(body.piece, questions.length ? questions : undefined)
     if (!piece.ok) return errorResponse(request, piece.error)
     const r = await addScreenPiece(o.orgId, body.code, piece.value)
     if (r === 'plein') return errorResponse(request, err('tropDeTentatives'), 429)

@@ -12,6 +12,7 @@ Source commune de « qui fait quoi ». Mise à jour dans la PR quand une tâche 
 | Mika | Confirmations dans une fenêtre Donivers (console et Studio) au lieu de celle du navigateur | `mika/confirmations` | `components/ConfirmDialog.tsx`, `components/console/`, `components/studio/StudioPanel.tsx` |
 | Mika | Textes proposés : titre « Notre communauté, enfin visible », « Pourquoi donner » réécrit ; atelier : « Texte proposé », « Partir de ce texte », piste pour la présentation. Puis guide de l'atelier (`mika/guide-atelier`) | `mika/textes-proposes` | `messages/`, `components/atelier/Atelier.tsx`, `app/api/atelier/route.ts`, `lib/identity.ts` |
 | Mika | Nouveau symbole « B » (5 pièces, plomb 2, lumière du vitrail), un seul symbole à toutes les tailles | `mika/logo-b` | `scripts/logo.py`, `public/brand/`, `components/plateforme/Brand.tsx`, `components/Signature.tsx`, `lib/shareImage.tsx`, `app/layout.tsx` |
+| Joaquim | Démonstrations par projet : depuis Studio, un vitrail de démonstration au nom d'un organisme précis (nom, logo, textes, adresse), donateurs fictifs, pour les rencontres de vente et d'accueil. Sans migration (organisme `showcase` marqué `theme.demoProjet`). **À valider par Mika avant fusion** : touche Studio et le tiroir de la démo ; témoignages neutres et libellés à relire | `joaquim/demos-par-projet` | `lib/demo-projets.ts`, `lib/demo.ts`, `lib/demo-data.ts`, `app/api/studio/demos/`, `components/studio/DemosProjet.tsx`, `components/vitrail/DemoTools.tsx`, `messages/` |
 
 ## Prochaines tâches proposées pour Joaquim (avant le 4 décembre)
 

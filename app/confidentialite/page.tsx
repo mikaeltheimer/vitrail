@@ -32,7 +32,7 @@ export default async function ConfidentialitePage() {
   const { identity } = await requestIdentity()
   const locale = (identity ? clampLocale(identity.locales, (await getLocale()) as Locale) : await getLocale()) as Locale
   const org = { name: identity ? identity.texts[locale].name : CONFIG.brand.name }
-  if (identity?.showcase) return <ShowcaseLegal org={org.name} />
+  if (identity?.showcase) return <ShowcaseLegal org={org.name} project={identity.showcaseProject} />
   const legal: LegalInfo = identity?.legal ?? { entity: '', neq: '', charityNumber: '', address: '', officerName: '', officerEmail: '', officerPhone: '', retention: '', updated: '' }
   const tags = legalTags(tc('aCompleter'), legal, (await getTranslations('confidentialite'))('retentionDefaut', { org: org.name }))
   const v = { org: org.name, brand: CONFIG.brand.name, studio: CONFIG.brand.studio, ...studioVars }

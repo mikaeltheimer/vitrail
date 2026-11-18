@@ -367,11 +367,14 @@
     "demoOutils": {
       "bandeau": "<b>Démonstration :</b> l'organisme, les donateurs et les dons sont fictifs.",
       "bandeauCourt": "<b>Démo :</b> tout est fictif.",
+      "bandeauProjet": "<b>Démonstration :</b> les donateurs, les témoignages et les dons sont fictifs.",
+      "bandeauProjetCourt": "<b>Démo :</b> dons et donateurs fictifs.",
       "bouton": "Voir les outils de l'organisme",
       "boutonCourt": "Les outils",
       "surtitre": "Démonstration",
       "titre": "Les outils de l'organisme",
       "intro": "Avec son vitrail, chaque organisme reçoit ces outils, prêts à l'emploi. Ici, ils montrent le vitrail fictif de la démo.",
+      "introProjet": "Avec son vitrail, chaque organisme reçoit ces outils, prêts à l'emploi. Ici, ils montrent cette démonstration : ses donateurs et ses dons sont fictifs.",
       "ecran": {
         "titre": "Écran de projection",
         "texte": "Fait pour une télé ou un projecteur, pendant un événement : les fragments et les témoignages défilent, et chaque nouveau don apparaît en direct. Ouvrez-le pour le voir en mouvement.",
@@ -1762,6 +1765,7 @@
   "demoJuridique": {
     "titre": "Un vitrail de démonstration",
     "texte": "{org} est un organisme fictif. Ce vitrail sert à montrer {brand} : ses donateurs, ses témoignages et ses dons sont inventés, on ne peut pas y donner, et il ne recueille aucun renseignement personnel. Aucune politique de confidentialité ni condition d’utilisation ne s’y applique donc.",
+    "texteProjet": "Ce vitrail est une démonstration de {brand}, préparée pour {org}. Ses donateurs, ses témoignages et ses dons sont inventés, on ne peut pas y donner, et il ne recueille aucun renseignement personnel. Aucune politique de confidentialité ni condition d’utilisation ne s’y applique donc.",
     "contact": "{brand} est conçu et exploité par {studio}. Pour toute question : <courriel>{email}</courriel>."
   },
   "legalPlateforme": {
