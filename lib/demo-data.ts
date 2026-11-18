@@ -171,7 +171,7 @@ export const TESTIMONIALS_EN: DemoTestimonial[] = [
 export const NEUTRAL_TESTIMONIALS_FR: DemoTestimonial[] = [
   { q: 1, text: 'Parce que cette cause me tient à cœur.' },
   { q: 1, text: 'Pour que ça continue, tout simplement.' },
-  { q: 1, text: 'Je donne au nom de toute notre famille.' },
+  { q: 1, text: 'De la part de toute la famille.' },
   { q: 1, text: 'On m’a aidée un jour. C’est mon tour.' },
   { q: 1, text: 'Un petit geste, avec beaucoup de cœur.' },
   { q: 1, text: 'Pour l’équipe et les bénévoles, qui ne comptent pas leurs heures.' },
@@ -187,7 +187,7 @@ export const NEUTRAL_TESTIMONIALS_FR: DemoTestimonial[] = [
   { q: 1, text: 'Parce qu’ensemble, on va plus loin.' },
   { q: 1, text: 'Un don pour dire merci.' },
   { q: 1, text: 'Pour que les portes restent ouvertes à tout le monde.' },
-  { q: 1, text: 'Parce que j’y ai reçu bien plus que ce que je donne.' },
+  { q: 1, text: 'Parce que j’ai reçu bien plus que ce que je donne aujourd’hui.' },
   { q: 1, text: 'De la part de toute l’équipe du bureau.' },
   { q: 1, text: 'Pour ma fille, qui y a trouvé sa place.' },
   { q: 1, text: 'Parce que c’est ici que ça se passe, près de chez nous.' },
