@@ -760,6 +760,11 @@
       "annuler": "Annuler",
       "oublie": "Mot de passe oublié ? Déconnectez-vous, puis utilisez « Mot de passe oublié » sur la page de connexion."
     },
+    "langue": {
+      "titre": "Langue de la console",
+      "fr": "FR",
+      "en": "EN"
+    },
     "roles": {
       "owner": "propriétaire",
       "volunteer": "bénévole"

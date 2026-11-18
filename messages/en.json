@@ -760,6 +760,11 @@
       "annuler": "Cancel",
       "oublie": "Forgot your password? Sign out, then use “Forgot password” on the sign-in page."
     },
+    "langue": {
+      "titre": "Console language",
+      "fr": "FR",
+      "en": "EN"
+    },
     "roles": {
       "owner": "owner",
       "volunteer": "volunteer"
