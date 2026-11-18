@@ -28,7 +28,7 @@ export interface PreviewDraft {
  * Aperçu du morceau de verre qu'on va créer : le vrai vitrail, avec le nouveau morceau inséré à sa taille,
  * la caméra centrée dessus, son nom, son message et sa photo. Se met à jour à chaque frappe.
  */
-export default function DonationPreview({ pieces, draft, size = 340 }: { pieces: Piece[]; draft: PreviewDraft; size?: number }) {
+export default function DonationPreview({ pieces, draft, size = 340, edit = false }: { pieces: Piece[]; draft: PreviewDraft; size?: number; /** « Mon fragment » : le morceau existant garde sa taille et prend les modifications en cours (nom, mot, photo, verre). */ edit?: boolean }) {
   const t = useTranslations('apercu')
   const text = useSceneText()
   const ref = useRef<HTMLCanvasElement>(null)
@@ -51,9 +51,10 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
 
   // Le vitrail tel qu'il serait avec ce don
   const hypothetical = useMemo<Piece[]>(() => {
+    if (existing && edit) return pieces
     if (existing) return pieces.map(p => (p.id === existing.id ? { ...p, amountCents: p.amountCents + amount } : p))
     return [...pieces, { id: draftId, name: null, message: null, photoUrl: null, color: draft.color, amountCents: amount }]
-  }, [pieces, existing, draftId, amount, draft.color])
+  }, [pieces, existing, edit, draftId, amount, draft.color])
 
   useEffect(() => {
     return images.subscribe(() => setImageVersion(v => v + 1))
@@ -81,7 +82,7 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     const map = pieceMap(hypothetical)
-    if (!existing) {
+    if (!existing || edit) {
       map.set(draftId, {
         color: draft.color,
         name: draft.showName ? draft.name.trim() || t('votreNom') : null,
@@ -100,7 +101,7 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
       focusId: draftId,
       text,
     })
-  }, [tiles, hypothetical, existing, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size, t, text])
+  }, [tiles, hypothetical, existing, edit, draftId, draft.color, draft.showName, draft.name, draft.message, draft.photoSrc, images, imageVersion, fontsVersion, size, t, text])
 
   return (
     <figure className="m-0">
@@ -108,7 +109,7 @@ export default function DonationPreview({ pieces, draft, size = 340 }: { pieces:
         {tiles ? <canvas ref={ref} style={{ width: size, height: size, display: 'block' }} aria-label={t('aria')} /> : null}
       </div>
       <figcaption className="muted mt-2 text-center text-xs">
-        {t('legende')}
+        {edit ? t('legendeModif') : t('legende')}
       </figcaption>
     </figure>
   )
