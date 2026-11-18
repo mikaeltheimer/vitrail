@@ -228,6 +228,7 @@
   "vitrail": {
     "canvasAria": "The donation stained glass",
     "ajouter": "Donate",
+    "ajouterAide": "Add your fragment to the stained glass.",
     "hasard": "✦ A random fragment",
     "hasardTitre": "Go to a fragment of the stained glass, at random",
     "trouver": "Find my fragment",

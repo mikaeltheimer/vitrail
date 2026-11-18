@@ -76,6 +76,8 @@ const goldButtonStyle: React.CSSProperties = {
 
 // Liseré sombre : le bouton doré se détache de n'importe quel verre, même jaune (Mika, 17 nov.)
 const GOLD_RING = '0 0 0 3px rgba(11,10,18,0.9), 0 8px 28px rgba(0,0,0,0.45)'
+/** Hauteur du bouton de don sous le titre (ordinateur), pour ranger les dons récents dessous. */
+const HERO_CTA_H = 52
 
 // ── Vitrail de démonstration : dons fictifs du visiteur (étape G) ──
 // Les morceaux vivent dans l'onglet (sessionStorage), survivent à un rechargement et disparaissent à sa fermeture ; aucun
@@ -1092,6 +1094,8 @@ function Vitrail() {
   const count = ranked.length
   const claimLabel = t('ajouter')
   const closed = snap?.mode === 'off' && !showcase
+  // Ordinateur : bouton de don sous le titre (en plus de celui de l'en-tête)
+  const heroCta = !mobile && !!snap && !claimOpen && !closed && intro === 'off' && count > 0
   const atelier = useAtelier()
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
@@ -1253,7 +1257,8 @@ function Vitrail() {
       {!mobile && count > 0 && (
         <>
           <DesktopSearch ranked={ranked} bottom={mine ? 348 : 302} onPick={id => api.current.select(id, true)} />
-          <SideButton bottom={mine ? 302 : 256} gold onClick={() => api.current.meet()} title={t('hasardTitre')}>
+          {/* Neutre, comme « Tout voir » : le doré est réservé au don (Mika, 17 nov.) */}
+          <SideButton bottom={mine ? 302 : 256} onClick={() => api.current.meet()} title={t('hasardTitre')}>
             {t('hasard')}
           </SideButton>
           {mine && (
@@ -1318,7 +1323,17 @@ function Vitrail() {
           </button>
         </div>
       )}
-      <Ticker top={titleBottom + 12} recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
+      {/* Ordinateur : « Faire un don » sous le titre, là où le regard arrive après l'avoir lu (Mika, 17 nov.) ; les dons
+          récents se rangent dessous */}
+      {heroCta && (
+        <div style={{ position: 'fixed', left: 24, top: titleBottom + 18, zIndex: 110, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button onClick={() => api.current.openClaim()} style={{ ...goldButtonStyle, padding: '14px 28px', fontSize: '17px', fontWeight: 700, boxShadow: GOLD_RING }}>
+            {claimLabel}
+          </button>
+          <span style={{ color: 'rgba(244,239,230,0.8)', fontSize: 15, textShadow: '0 1px 10px rgba(0,0,0,0.8)' }}>{t('ajouterAide')}</span>
+        </div>
+      )}
+      <Ticker top={heroCta ? titleBottom + 18 + HERO_CTA_H + 14 : titleBottom + 12} recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
 
       {/* ── À propos de la collecte ── */}
       {aboutOpen && (
@@ -1874,11 +1889,13 @@ function Header({
           </a>
         )}
         <LanguageSwitch style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginLeft: 16 }} />
+        {/* Simple lien, comme « À propos » : le bouton doré est sous le titre (Mika, 17 nov.). Reste le seul accès au don
+            pendant l'ouverture, quand le bouton sous le titre est caché */}
         {claimLabel && (
           <button
             type="button"
             onClick={onClaim}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 18px', marginLeft: '12px', background: GOLD, color: '#1A1208', border: 0, borderRadius: '999px', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(240,178,74,0.22)' }}
+            style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', background: 'none', border: 0, cursor: 'pointer', marginLeft: 16, whiteSpace: 'nowrap', padding: 0 }}
           >
             {claimLabel}
           </button>
@@ -1891,13 +1908,14 @@ const menuLink: React.CSSProperties = { padding: '12px 0', color: '#F4EFE6', tex
 
 // ═════════════════════════════════ Colonne de gauche (ordinateur) ═════════════════════════════════
 function SideButton({ bottom, gold, color, onClick, title, children }: { bottom: number; gold?: boolean; color?: string; onClick: () => void; title?: string; children: React.ReactNode }) {
-  const c = gold ? GOLD : color ?? '#fff'
+  const c = gold ? GOLD : color ?? 'rgba(244,239,230,0.85)'
   const bg = gold ? 'rgba(30, 24, 8, 0.92)' : 'rgba(6,6,10,0.9)'
+  const edge = gold ? 'rgba(240,178,74,0.55)' : color ?? 'rgba(255,255,255,0.14)'
   return (
     <button
       onClick={onClick}
       title={title}
-      style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', padding: '10px 16px', background: bg, border: `1px solid ${gold ? 'rgba(240,178,74,0.55)' : c}`, borderRadius: '8px', color: c, fontSize: gold ? '12.5px' : '12px', fontWeight: gold ? 700 : 400, fontFamily: MONO, cursor: 'pointer', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', transition: 'background 0.2s' }}
+      style={{ position: 'fixed', bottom: `${bottom}px`, left: '24px', width: '220px', padding: '10px 16px', background: bg, border: `1px solid ${edge}`, borderRadius: '8px', color: c, fontSize: gold ? '12.5px' : '12.5px', fontWeight: gold ? 700 : 500, fontFamily: MONO, cursor: 'pointer', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', transition: 'background 0.2s' }}
       onMouseOver={e => (e.currentTarget.style.background = gold ? 'rgba(240,178,74,0.18)' : 'rgba(255,255,255,0.12)')}
       onMouseOut={e => (e.currentTarget.style.background = bg)}
     >
