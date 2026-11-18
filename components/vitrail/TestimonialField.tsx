@@ -1,9 +1,7 @@
 'use client'
 
 // Champ « témoignage » : la question est posée par le conteneur ; ici, le texte (un exemple en placeholder pour
-// inspirer), un compteur et le consentement à la citation. Le consentement est toujours visible (Mika, 18 nov. : caché
-// tant qu'on n'avait rien écrit, on le croyait disparu) ; il ne vaut que s'il y a un témoignage (vérifié au serveur).
-// Sert au panneau de don (vitrail, /don), à « Mon fragment » et au témoignage après le don.
+// inspirer), un compteur et le consentement à la citation, qui n'apparaît qu'une fois le texte commencé.
 
 import { type CSSProperties } from 'react'
 import { useTranslations } from 'next-intl'
@@ -22,10 +20,7 @@ interface Props {
 
 export default function TestimonialField({ value, onChange, consent, onConsent, rows = 4, autoFocus }: Props) {
   const t = useTranslations('temoignage')
-  const ti = useTranslations('identite')
   const org = useOrg()
-  // Libellé de l'organisme, sinon le texte neutre (identité pas encore chargée, essais locaux)
-  const consentLabel = org.testimonial.consent || ti('consent', { org: org.name })
   const left = CONFIG.messageMax - value.length
 
   return (
@@ -45,10 +40,12 @@ export default function TestimonialField({ value, onChange, consent, onConsent, 
         <span>{t('aide')}</span>
         <span style={{ fontFamily: "'DM Sans', sans-serif", color: left < 40 ? '#F0B24A' : undefined, flexShrink: 0 }}>{left}</span>
       </div>
-      <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '15px', color: 'rgba(255,255,255,0.82)', cursor: 'pointer', lineHeight: 1.45 }}>
-        <input type="checkbox" checked={consent} onChange={e => onConsent(e.target.checked)} style={{ accentColor: '#F0B24A', marginTop: '3px', width: '18px', height: '18px', flex: 'none' }} />
-        <span>{consentLabel}</span>
-      </label>
+      {value.trim() && (
+        <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '15px', color: 'rgba(255,255,255,0.82)', cursor: 'pointer', lineHeight: 1.45 }}>
+          <input type="checkbox" checked={consent} onChange={e => onConsent(e.target.checked)} style={{ accentColor: '#F0B24A', marginTop: '2px' }} />
+          <span>{org.testimonial.consent}</span>
+        </label>
+      )}
     </div>
   )
 }
