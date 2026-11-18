@@ -161,7 +161,8 @@
   "apercu": {
     "votreNom": "Your name",
     "aria": "Preview of your glass fragment",
-    "legende": "Preview of your fragment, circled in gold. Its exact position changes as other donations arrive."
+    "legende": "Preview of your fragment, circled in gold. Its exact position changes as other donations arrive.",
+    "legendeModif": "Preview of your fragment with your changes, outlined in gold."
   },
   "temoignage": {
     "aide": "Shown with your fragment, here and on the big screen."
@@ -210,11 +211,7 @@
     "titre": "My fragment of the stained glass",
     "sousTitre": "{org} · {montant} donated",
     "temoignageAttente": "Your testimonial will appear as soon as the team has read it.",
-    "afficherNom": "Show my name on the screen",
-    "afficherNomAide": "Otherwise, your donation appears as “Anonymous” (with your photo and your note, if you add them).",
-    "nomPlaceholder": "Displayed name",
     "photoAttente": "Your photo will appear on the screen as soon as the team has approved it.",
-    "couleur": "Your glass colour",
     "enregistre": "Saved. Your fragment is up to date on the screen.",
     "enregistrement": "Saving…",
     "enregistrer": "Save",
@@ -223,7 +220,19 @@
     "listeEnvoi": "Receive news from {org} by email",
     "listeEnvoiAide": "Campaigns and events. Uncheck to leave its mailing list, at any time.",
     "listeEnvoiOui": "Done: you’ll receive its news.",
-    "listeEnvoiNon": "Done: you’ve left its mailing list."
+    "listeEnvoiNon": "Done: you’ve left its mailing list.",
+    "modifier": "Your fragment",
+    "modifierAide": "Change what appears on your fragment, here and on the big screen.",
+    "nomAnonyme": "Leave empty to stay anonymous.",
+    "toutRetirer": "Remove everything from my fragment",
+    "toutRetirerAide": "Removes your name, your testimonial and your photo. Your donation stays in the stained glass, as an anonymous fragment.",
+    "toutRetirerTitre": "Remove everything from your fragment?",
+    "toutRetirerTexte": "Your name, testimonial and photo will be removed right away, here and on the big screen. Your donation stays in the stained glass, as an anonymous fragment.",
+    "toutRetirerOui": "Remove everything",
+    "annuler": "Cancel",
+    "retire": "Done: your fragment is now anonymous, with no testimonial or photo.",
+    "agrandirTitre": "Add to my donation",
+    "agrandirAide": "Add an amount: your fragment grows in the stained glass."
   },
   "vitrail": {
     "canvasAria": "The donation stained glass",

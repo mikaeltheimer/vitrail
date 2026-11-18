@@ -161,7 +161,8 @@
   "apercu": {
     "votreNom": "Votre nom",
     "aria": "Aperçu de votre fragment de verre",
-    "legende": "Aperçu de votre fragment, cerclé d'or. Sa place exacte change à mesure que d'autres dons arrivent."
+    "legende": "Aperçu de votre fragment, cerclé d'or. Sa place exacte change à mesure que d'autres dons arrivent.",
+    "legendeModif": "Aperçu de votre fragment avec vos modifications, cerclé d’or."
   },
   "temoignage": {
     "aide": "Affiché avec votre fragment, ici et sur le grand écran."
@@ -210,11 +211,7 @@
     "titre": "Mon fragment de vitrail",
     "sousTitre": "{org} · {montant} donnés",
     "temoignageAttente": "Votre témoignage apparaîtra dès que l'équipe l'aura lu.",
-    "afficherNom": "Afficher mon nom sur l'écran",
-    "afficherNomAide": "Sinon, votre don apparaît comme « Anonyme » (avec votre photo et votre mot, si vous en ajoutez).",
-    "nomPlaceholder": "Nom affiché",
     "photoAttente": "Votre photo apparaîtra sur l'écran dès que l'équipe l'aura approuvée.",
-    "couleur": "Couleur de votre verre",
     "enregistre": "Enregistré. Votre fragment est à jour sur l'écran.",
     "enregistrement": "Enregistrement…",
     "enregistrer": "Enregistrer",
@@ -223,7 +220,19 @@
     "listeEnvoi": "Recevoir les nouvelles de {org} par courriel",
     "listeEnvoiAide": "Campagnes et événements. Décochez pour vous retirer de sa liste d’envoi, à tout moment.",
     "listeEnvoiOui": "C’est noté : vous recevrez ses nouvelles.",
-    "listeEnvoiNon": "C’est noté : vous êtes retiré de sa liste d’envoi."
+    "listeEnvoiNon": "C’est noté : vous êtes retiré de sa liste d’envoi.",
+    "modifier": "Votre fragment",
+    "modifierAide": "Changez ce qui s’affiche sur votre fragment, ici et sur le grand écran.",
+    "nomAnonyme": "Laissez vide pour rester anonyme.",
+    "toutRetirer": "Tout retirer de mon fragment",
+    "toutRetirerAide": "Retire votre nom, votre témoignage et votre photo. Votre don reste dans le vitrail, comme fragment anonyme.",
+    "toutRetirerTitre": "Tout retirer de votre fragment ?",
+    "toutRetirerTexte": "Votre nom, votre témoignage et votre photo seront retirés tout de suite, ici et sur le grand écran. Votre don reste dans le vitrail, comme fragment anonyme.",
+    "toutRetirerOui": "Tout retirer",
+    "annuler": "Annuler",
+    "retire": "C’est fait : votre fragment est maintenant anonyme, sans témoignage ni photo.",
+    "agrandirTitre": "Agrandir mon don",
+    "agrandirAide": "Ajoutez un montant : votre fragment grandit dans le vitrail."
   },
   "vitrail": {
     "canvasAria": "Le vitrail de dons",

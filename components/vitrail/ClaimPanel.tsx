@@ -15,17 +15,17 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { INTL_TAG, type Locale } from "@/i18n/config";
 import { useCharityNumber, useOrg } from "@/lib/useOrg";
-import { useCount, useGlassName, useMoney, useOrdinal } from "@/lib/useI18n";
+import { useCount, useMoney, useOrdinal } from "@/lib/useI18n";
 import { CONFIG, GLASS_COLORS } from "@/lib/config";
 import { currentGlass } from "@/lib/theme";
 import ContributionBlock, { ContributionRecap, contributionFor, useContributionConfig, type ContributionChoice } from "./ContributionBlock";
 import { PhotoError, squareJpeg, uploadPhoto } from "@/lib/photoClient";
-import TestimonialField from "./TestimonialField";
-import { AnotherQuestion, useQuestionPicker } from "./QuestionPicker";
+import FragmentFields from "./FragmentFields";
+import { GOLD, SectionHead, hintStyle, linkButtonStyle, secondaryStyle, sectionStyle } from "./claimUi";
+import { useQuestionPicker } from "./QuestionPicker";
 import { OrgMark } from '@/components/OrgBrand';
 import Editable from '@/components/atelier/Editable';
 
-const GOLD = "#F0B24A";
 
 export interface ClaimDraft {
   name: string | null;
@@ -153,7 +153,6 @@ export default function ClaimPanel({
   const money = useMoney();
   const count = useCount();
   const ordinal = useOrdinal();
-  const glassName = useGlassName();
   const locale = useLocale() as Locale;
   const page = variant === "page";
   const overlayMobile = isMobile && !page;
@@ -677,137 +676,65 @@ export default function ClaimPanel({
       {!agrandir && (
         <section style={sectionStyle} aria-labelledby="claim-s2">
           <SectionHead n={2} id="claim-s2" title={t("sectionMorceau")} note={t("facultatif")} />
-          {/* ---------- Nom affiché : avant le témoignage (en dernier, on l'oubliait) ---------- */}
-          {/* Même encadré doré que le témoignage : ce sont les deux choses qui s'affichent sur le morceau */}
-          <label style={{ ...cardStyle, display: "grid", gap: "8px" }}>
-            <span>
-              <span style={cardTitleStyle}>{t("nomTitre")}</span>
-              <span style={{ display: "block", fontSize: "17px", color: GOLD, marginTop: "2px" }}>{t("nomAide")}</span>
-            </span>
-            <input
-              type="text"
-              value={name}
-              maxLength={CONFIG.nameMax}
-              placeholder={t("nomPlaceholder")}
-              onChange={(e) => setName(e.target.value)}
-              style={{ ...inputStyle, fontSize: "18px", padding: "14px" }}
-              autoComplete="nickname"
-            />
-            {name.trim().length === 1 && (
-              <span style={{ fontSize: "15px", color: "#f87171" }}>
-                {t("nomCourt")}
-              </span>
-            )}
-          </label>
-
-          {/* ---------- Témoignage : bien en vue, sous le nom (c'est ce qui rend le vitrail vivant) ---------- */}
-          <div style={{ ...cardStyle, display: "grid", gap: "8px" }}>
-            <div>
-              <div
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  color: "#F4EFE6",
-                  lineHeight: 1.3,
-                }}
-              >
-                <Editable field="question">{picker.question}</Editable>
-              </div>
-              <div style={{ fontSize: "17px", color: GOLD, marginTop: "2px" }}>
-                {org.testimonial.cta}
-              </div>
-            </div>
-            <TestimonialField
-              value={message}
-              onChange={setMessage}
-              consent={quoteConsent}
-              onConsent={setQuoteConsent}
-              rows={3}
-            />
-            {picker.canChange && <AnotherQuestion onClick={picker.next} />}
-          </div>
-
-          {/* ---------- Le morceau ---------- */}
-          <div style={{ display: "grid", gap: "6px" }}>
-            <span style={labelStyle}>{t("verre")}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {GLASS_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setColor(c.value)}
-                  title={glassName(c)}
-                  aria-label={glassName(c)}
-                  aria-pressed={color === c.value}
+          <FragmentFields
+            name={name}
+            onName={setName}
+            message={message}
+            onMessage={setMessage}
+            quoteConsent={quoteConsent}
+            onQuoteConsent={setQuoteConsent}
+            picker={picker}
+            color={color}
+            onColor={setColor}
+            photo={
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {photo.src && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photo.src}
+                  alt=""
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "50%",
-                    background: c.value,
-                    border:
-                      color === c.value
-                        ? "2px solid #fff"
-                        : "2px solid transparent",
-                    boxShadow:
-                      color === c.value ? `0 0 10px ${c.value}` : "none",
-                    cursor: "pointer",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "8px",
+                    objectFit: "cover",
                   }}
                 />
-              ))}
-            </div>
-          </div>
-
-
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {photo.src && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={photo.src}
-                alt=""
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "8px",
-                  objectFit: "cover",
-                }}
-              />
-            )}
-            <button
-              type="button"
-              disabled={photoBusy}
-              onClick={() => fileRef.current?.click()}
-              style={secondaryStyle}
-            >
-              {photoBusy
-                ? tp("envoi")
-                : photo.src
-                  ? tp("changer")
-                  : tp("ajouter")}
-            </button>
-            {photo.src && !photoBusy && (
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  photoBlob.current = null;
-                  setPhoto({ src: null, path: null });
-                }}
-                style={linkButtonStyle}
+                disabled={photoBusy}
+                onClick={() => fileRef.current?.click()}
+                style={secondaryStyle}
               >
-                {tp("retirer")}
+                {photoBusy
+                  ? tp("envoi")
+                  : photo.src
+                    ? tp("changer")
+                    : tp("ajouter")}
               </button>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFile}
-              hidden
-            />
-          </div>
-
-          <p style={{ ...hintStyle, marginTop: "-6px" }}>
-            {t("facultatifs")}
-          </p>
+              {photo.src && !photoBusy && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    photoBlob.current = null;
+                    setPhoto({ src: null, path: null });
+                  }}
+                  style={linkButtonStyle}
+                >
+                  {tp("retirer")}
+                </button>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFile}
+                hidden
+              />
+            </div>
+            }
+          />
         </section>
       )}
 
@@ -997,47 +924,14 @@ function quickAmounts(typicalCents: number | null): number[] {
   return base.map((v) => (v === nearest ? typical : v)).sort((x, y) => x - y);
 }
 
-function SectionHead({ n, id, title, note }: { n: number; id: string; title: string; note?: string }) {
-  return (
-    <h3 id={id} style={{ margin: 0, display: "flex", alignItems: "center", gap: "10px", fontSize: "19px", fontWeight: 700, color: "#F4EFE6" }}>
-      <span aria-hidden style={sectionNumberStyle}>
-        {n}
-      </span>
-      {title}
-      {note && <span style={{ fontSize: "15px", fontWeight: 400, color: "rgba(255,255,255,0.72)" }}>{note}</span>}
-    </h3>
-  );
-}
 
 // ---------- Styles ----------
-const labelStyle: CSSProperties = {
-  fontSize: "14px",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "rgba(255,255,255,0.82)",
-};
 const dtStyle: CSSProperties = { color: "rgba(255,255,255,0.82)" };
 const monoStyle: CSSProperties = {
   margin: 0,
   fontFamily: "'DM Sans', sans-serif",
   textAlign: "right",
   fontVariantNumeric: "tabular-nums",
-};
-const hintStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "16px",
-  color: "rgba(255,255,255,0.82)",
-  lineHeight: 1.5,
-};
-const inputStyle: CSSProperties = {
-  font: "500 16px 'DM Sans', sans-serif", // 16 px minimum : sinon Safari (iPhone) agrandit la page au toucher du champ
-  color: "#F4EFE6",
-  background: "#0B0A12",
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: "8px",
-  padding: "10px 12px",
-  width: "100%",
-  boxSizing: "border-box",
 };
 const goldStyle: CSSProperties = {
   flex: 1,
@@ -1050,27 +944,6 @@ const goldStyle: CSSProperties = {
   fontSize: "17px",
   fontWeight: 600,
   cursor: "pointer",
-};
-const secondaryStyle: CSSProperties = {
-  padding: "10px 14px",
-  background: "rgba(255,255,255,0.08)",
-  color: "#F4EFE6",
-  border: "1px solid rgba(255,255,255,0.15)",
-  borderRadius: "8px",
-  fontFamily: "'DM Sans', sans-serif",
-  fontSize: "17px",
-  cursor: "pointer",
-};
-const linkButtonStyle: CSSProperties = {
-  background: "none",
-  border: 0,
-  padding: 0,
-  color: "rgba(255,255,255,0.82)",
-  fontFamily: "'DM Sans', sans-serif",
-  fontSize: "16px",
-  cursor: "pointer",
-  textDecoration: "underline",
-  textUnderlineOffset: "3px",
 };
 const pageStyle: CSSProperties = {
   position: "relative",
@@ -1096,15 +969,6 @@ const stickyBar: CSSProperties = {
   background: "linear-gradient(rgba(20,18,29,0), rgba(20,18,29,0.98) 30%)",
   borderRadius: "0 0 14px 14px",
 };
-/** Encadré doré du nom et du témoignage. */
-const cardStyle: CSSProperties = {
-  padding: "14px",
-  borderRadius: "10px",
-  border: "1px solid rgba(240,178,74,0.45)",
-  background: "rgba(240,178,74,0.07)",
-  boxShadow: "0 0 24px rgba(240,178,74,0.08)",
-};
-const cardTitleStyle: CSSProperties = { display: "block", fontSize: "18px", fontWeight: 700, color: "#F4EFE6", lineHeight: 1.3 };
 const stickyHeadStyle: CSSProperties = {
   position: "sticky",
   top: "-16px",
@@ -1133,19 +997,6 @@ const closeStyle: CSSProperties = {
   fontSize: "24px",
   cursor: "pointer",
   lineHeight: 1,
-};
-const sectionStyle: CSSProperties = { display: "grid", gap: "12px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.12)" };
-const sectionNumberStyle: CSSProperties = {
-  flex: "none",
-  width: "28px",
-  height: "28px",
-  borderRadius: "50%",
-  border: `1.5px solid ${GOLD}`,
-  color: GOLD,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "15px",
 };
 const chipStyle: CSSProperties = {
   font: "600 17px 'DM Sans', sans-serif",

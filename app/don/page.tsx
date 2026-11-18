@@ -12,9 +12,11 @@ import type { Snapshot } from '@/lib/types'
 import BrandFooter from '@/components/BrandFooter'
 import { OrgLogo } from '@/components/OrgBrand'
 import Editable from '@/components/atelier/Editable'
+import DonLayout, { previewSize } from '@/components/DonLayout'
 
-// Formulaire de don sur téléphone (affiches à code QR) : le même panneau que « Ajouter mon morceau » sur le vitrail,
-// en pleine page, avec l'aperçu du morceau au-dessus. Avec un lien magique (?t=…), le donateur agrandit son morceau.
+// Formulaire de don (affiches à code QR) : le même panneau que « Ajouter mon morceau » sur le vitrail, en pleine page.
+// Téléphone : l'aperçu du morceau au-dessus ; ordinateur : l'aperçu à gauche, fixe, le formulaire à droite (DonLayout).
+// Avec un lien magique (?t=…), le donateur agrandit son morceau.
 
 export default function DonPage() {
   return (
@@ -42,9 +44,10 @@ function DonForm() {
   const [magicEmail, setMagicEmail] = useState('')
   const [magicSent, setMagicSent] = useState(false)
   const [mobile, setMobile] = useState(true)
+  const [preview, setPreview] = useState(300)
 
   useEffect(() => {
-    const m = () => setMobile(window.innerWidth < 640)
+    const m = () => (setMobile(window.innerWidth < 640), setPreview(previewSize(window.innerWidth)))
     m()
     window.addEventListener('resize', m)
     return () => window.removeEventListener('resize', m)
@@ -114,8 +117,8 @@ function DonForm() {
     setMagicSent(true)
   }
 
-  return (
-    <main className="mx-auto w-full max-w-md px-4 pb-16 pt-6">
+  const aside = (
+    <>
       <header className="mb-5 text-center">
         <Editable field="logo" block style={{ width: 'fit-content', margin: '0 auto' }}>
           <OrgLogo className="mx-auto mb-4" style={{ width: 180 }} nameStyle={{ fontSize: 22 }} />
@@ -145,16 +148,12 @@ function DonForm() {
         </section>
       )}
 
-      {cancelled && <p className="card mb-5 text-sm">{t('annule')}</p>}
-      {linkExpired && <p className="card mb-5 text-sm">{t('lienExpire')}</p>}
-      {mode === 'off' && <p className="card mb-5 text-sm">{t('ferme')}</p>}
-
       {/* Aperçu du morceau, comme sur le vitrail */}
       {snap && draft && (
-        <section className="mb-4">
+        <section className="mb-4 lg:mb-0">
           <DonationPreview
             pieces={snap.pieces}
-            size={mobile ? 300 : 340}
+            size={preview}
             draft={{
               donorId: agrandir ? known!.donorId : null,
               showName: !!draft.name,
@@ -167,6 +166,18 @@ function DonForm() {
           />
         </section>
       )}
+
+    </>
+  )
+
+  return (
+    <DonLayout
+      aside={aside}
+      footer={<BrandFooter className="mt-10 text-center" />}
+    >
+      {cancelled && <p className="card mb-5 text-sm">{t('annule')}</p>}
+      {linkExpired && <p className="card mb-5 text-sm">{t('lienExpire')}</p>}
+      {mode === 'off' && <p className="card mb-5 text-sm">{t('ferme')}</p>}
 
       {ready && mode !== 'off' && (
         <ClaimPanel
@@ -214,7 +225,6 @@ function DonForm() {
           </Link>
         </p>
       </footer>
-      <BrandFooter className="mt-10 text-center" />
-    </main>
+    </DonLayout>
   )
 }
