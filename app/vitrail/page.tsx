@@ -1889,11 +1889,13 @@ function Header({
           </a>
         )}
         <LanguageSwitch style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginLeft: 16 }} />
+        {/* Simple lien, comme « À propos » : le bouton doré est sous le titre (Mika, 17 nov.). Reste le seul accès au don
+            pendant l'ouverture, quand le bouton sous le titre est caché */}
         {claimLabel && (
           <button
             type="button"
             onClick={onClaim}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '11px 24px', marginLeft: '16px', background: GOLD, color: '#1A1208', border: 0, borderRadius: '999px', fontFamily: "'DM Sans', sans-serif", fontSize: '16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(240,178,74,0.28)' }}
+            style={{ fontSize: '14px', color: 'rgba(255,255,255,0.75)', background: 'none', border: 0, cursor: 'pointer', marginLeft: 16, whiteSpace: 'nowrap', padding: 0 }}
           >
             {claimLabel}
           </button>
