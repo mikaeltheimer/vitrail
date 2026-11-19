@@ -15,13 +15,15 @@ import type { Locale } from '@/i18n/config'
 // brouillon (visible ici seulement) ; « Publier » les fait passer sur le vrai vitrail. Voir lib/atelier.ts.
 // Pour les visiteurs et les bénévoles, l'atelier n'affiche rien de plus (l'API refuse : pas propriétaire).
 
-export type EditTarget = TextField | 'logo' | 'icon'
+export type EditTarget = TextField | 'logo' | 'icon' | 'total'
 
 interface AtelierState {
   editing: boolean
   open: (target: EditTarget) => void
   /** Hauteur de la barre de l'atelier (une ou deux lignes sur téléphone) : la page range son titre dessous. */
   barHeight: number
+  /** Montant collecté affiché, tel que dans le brouillon (aperçu avant de publier). */
+  showTotal: boolean
 }
 const Ctx = createContext<AtelierState | null>(null)
 export const useAtelier = () => useContext(Ctx)
@@ -35,6 +37,8 @@ interface Draft {
   fallbackName: string
   locales: Locale[]
   texts: StoredTexts
+  /** Montant collecté affiché sur le vitrail (absent d'une vieille réponse : affiché). */
+  showTotal?: boolean
   logoUrl: string | null
   iconUrl: string | null
   /** Textes proposés par langue, « {org} » à remplacer (absents d'une vieille réponse : aucun texte proposé). */
@@ -208,7 +212,7 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ editing: editing && !hiddenHere, open: f => setTarget(f), barHeight: hiddenHere ? 0 : barHeight }}>
+    <Ctx.Provider value={{ editing: editing && !hiddenHere, open: f => setTarget(f), barHeight: hiddenHere ? 0 : barHeight, showTotal: draft.showTotal !== false }}>
       <OrgIdentityProvider identity={shown} surface={surface}>
         {children}
         {!hiddenHere && (
@@ -285,7 +289,18 @@ export default function Atelier({ children }: { children: React.ReactNode }) {
           }
         }} />}
         {target === 'tout' && <AllTexts draft={draft} onPick={f => setTarget(f)} onClose={() => setTarget(null)} />}
-        {target && target !== 'langues' && target !== 'tout' && target !== 'guide' && target !== 'logo' && target !== 'icon' && (
+        {target === 'total' && (
+          <TotalSheet
+            value={draft.showTotal !== false}
+            onClose={() => setTarget(null)}
+            save={async v => {
+              setDraft({ ...draft, showTotal: v, pending: true })
+              const d = await post({ action: 'save', showTotal: v })
+              if (d) apply(d)
+            }}
+          />
+        )}
+        {target && target !== 'langues' && target !== 'tout' && target !== 'guide' && target !== 'logo' && target !== 'icon' && target !== 'total' && (
           <TextSheet key={target} field={target} draft={draft} pageLocale={pageLocale} setText={setText} onClose={() => setTarget(null)} />
         )}
         {(target === 'logo' || target === 'icon') && <ImageSheet type={target} url={target === 'logo' ? draft.logoUrl : draft.iconUrl} onDone={load} onClose={() => setTarget(null)} />}
@@ -437,11 +452,24 @@ function AllTexts({ draft, onPick, onClose }: { draft: Draft; onPick: (f: EditTa
   const t = useTranslations('atelier')
   const primary = draft.locales[0]
   // Les questions facultatives s'éditent avec la première (même fenêtre)
-  const items: EditTarget[] = ['logo', 'icon', ...TEXT_FIELDS.filter(f => f !== 'question2' && f !== 'question3')]
+  const items: EditTarget[] = ['logo', 'icon', ...TEXT_FIELDS.filter(f => f !== 'question2' && f !== 'question3'), 'total']
   return (
     <Sheet title={t('tousLesTextes')} onClose={onClose} closeLabel={t('fermer')}>
       <ul className="space-y-1">
         {items.map(f => {
+          if (f === 'total') {
+            return (
+              <li key={f}>
+                <button className="console-row flex w-full items-start gap-3 rounded-xl p-2 text-left" onClick={() => onPick(f)}>
+                  <span className="flex-1">
+                    <span className="block font-semibold">{t('champs.total')}</span>
+                    <span className="muted block text-xs">{t('ou.total')}</span>
+                  </span>
+                  <span className="muted text-xs">{draft.showTotal !== false ? t('montant.affiche') : t('montant.masque')}</span>
+                </button>
+              </li>
+            )
+          }
           const value = f === 'logo' ? draft.logoUrl : f === 'icon' ? draft.iconUrl : draft.texts[primary]?.[f]
           return (
             <li key={f}>
@@ -458,6 +486,30 @@ function AllTexts({ draft, onPick, onClose }: { draft: Draft; onPick: (f: EditTa
           )
         })}
       </ul>
+    </Sheet>
+  )
+}
+
+/** Montant collecté : affiché ou masqué sur le vitrail (dans le brouillon, comme le reste ; « Publier » l'applique). */
+function TotalSheet({ value, save, onClose }: { value: boolean; save: (v: boolean) => Promise<void>; onClose: () => void }) {
+  const t = useTranslations('atelier')
+  return (
+    <Sheet title={t('champs.total')} onClose={onClose} closeLabel={t('fermer')}>
+      <div className="space-y-3 text-sm">
+        <div role="radiogroup" aria-label={t('champs.total')} className="space-y-2">
+          {[true, false].map(v => (
+            <label key={String(v)} className="console-row flex cursor-pointer items-start gap-3 rounded-xl border p-3" style={{ borderColor: value === v ? '#F0B24A' : 'var(--line)' }}>
+              <input type="radio" name="montant" className="mt-1" checked={value === v} onChange={() => void save(v)} />
+              <span>
+                <span className="block font-semibold">{v ? t('montant.afficher') : t('montant.masquer')}</span>
+                <span className="muted block text-xs">{v ? t('montant.afficherAide') : t('montant.masquerAide')}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="muted text-xs">{t('montant.objectif')}</p>
+        <p className="muted text-xs">{t('montant.publier')}</p>
+      </div>
     </Sheet>
   )
 }

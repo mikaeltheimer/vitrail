@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 
 // L'atelier (vitrail d'entraînement, propriétaire) : brouillon de l'identité, publication, abandon.
 //   GET : le brouillon (ou la version publiée), et s'il attend d'être publié. 403 pour qui n'est pas propriétaire.
-//   POST { action: 'save', locales?, texts? } | { action: 'publish' } | { action: 'discard' }
+//   POST { action: 'save', locales?, texts?, showTotal? } | { action: 'publish' } | { action: 'discard' }
 // Messages d'erreur en français seulement (comme le reste de l'API de la console).
 
 
@@ -68,6 +68,7 @@ async function state(orgId: string, atelierId: string, request: NextRequest) {
     fallbackName,
     locales: draft.locales,
     texts: draft.texts,
+    showTotal: draft.showTotal !== false,
     logoUrl: assetUrl(draft.logo_path),
     iconUrl: assetUrl(draft.icon_path),
     proposed: proposedTemplates(),
@@ -86,7 +87,8 @@ export async function POST(request: NextRequest) {
   const fail = failer(request)
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
   if (b.action === 'save') {
-    const patch: { locales?: Locale[]; texts?: StoredTexts } = {}
+    const patch: { locales?: Locale[]; texts?: StoredTexts; showTotal?: boolean } = {}
+    if (typeof b.showTotal === 'boolean') patch.showTotal = b.showTotal
     if (b.locales !== undefined) {
       const l = validateLocales(b.locales)
       if (!l) return fail('languesChoisir')

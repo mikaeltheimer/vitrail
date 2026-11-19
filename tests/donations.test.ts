@@ -102,6 +102,12 @@ async function main() {
   check('campagne : son objectif', gala.event?.goalCents === 500000)
   check('les requêtes sont filtrées par vitrail et par organisme', calls.some(c => c.table === 'vitrail_donor_totals' && c.filters.some(([k, v]) => k === 'vitrail_id' && v === 'gala')) && calls.some(c => c.table === 'donors' && c.filters.some(([k, v]) => k === 'organization_id' && v === 'orgA')))
   check('version différente par vitrail', sp.version !== gala.version)
+  check('derniers dons : jamais le montant', sp.recent.every(d => !('amountCents' in d)))
+  check('montant collecté affiché par défaut', sp.showTotal === true)
+  const hiddenTotal = await getSnapshot({ ...tenantA, vitrail: { ...(tenantA.vitrail as object), showTotal: false } as never })
+  check('montant masqué par l\'organisme', hiddenTotal.showTotal === false)
+  const goalHidden = await getSnapshot({ ...tenantA, vitrail: { ...(tenantA.vitrail as object), id: 'gala', kind: 'campaign', slug: 'gala-2027', name: 'Gala', goalCents: 500000, showTotal: false } as never })
+  check('avec un objectif, le montant reste affiché', goalHidden.showTotal === true)
 
   console.log('Liste d\'envoi')
   const { MAILING_CONSENT_VERSION } = await import('../lib/consent')

@@ -303,7 +303,6 @@
     "ticker": {
       "titre": "Derniers dons",
       "replier": "Replier",
-      "amasses": "amassés",
       "ajoute": "{nom} vient de faire un don",
       "ago": {
         "maintenant": "à l’instant",
@@ -488,7 +487,8 @@
     "description": "Donivers — {org} : chaque don devient un fragment du vitrail. {slogan}",
     "vitrailTitre": "Le vitrail — {org}",
     "vitrailDescription": "Chaque don devient un fragment de verre. Explorez le vitrail et ajoutez le vôtre.",
-    "ogTotal": "{montant} amassés · {count, plural, one {# donateur} other {# donateurs}}"
+    "ogTotal": "{montant} amassés · {count, plural, one {# donateur} other {# donateurs}}",
+    "ogDonateurs": "{count, plural, one {# donateur} other {# donateurs}}"
   },
   "stripe": {
     "don": "Don — {org}",
@@ -1665,7 +1665,8 @@
       "question3": "Troisième question (facultative)",
       "placeholder": "Pistes pour le témoignage",
       "logo": "Logo",
-      "icon": "Icône"
+      "icon": "Icône",
+      "total": "Montant collecté"
     },
     "ou": {
       "name": "En-tête du vitrail, courriels, aperçu des liens partagés.",
@@ -1677,7 +1678,18 @@
       "question3": "Une troisième question, tirée au hasard avec les autres dans le panneau de don.",
       "placeholder": "Texte grisé du champ de témoignage.",
       "logo": "Panneau « À propos », page de don, grand écran, aperçu des liens partagés.",
-      "icon": "En-tête du vitrail et panneau de don. Sans icône : vos initiales."
+      "icon": "En-tête du vitrail et panneau de don. Sans icône : vos initiales.",
+      "total": "En-tête du vitrail, panneau « À propos » et grand écran. Masqué : le nombre de donateurs prend sa place."
+    },
+    "montant": {
+      "affiche": "Affiché",
+      "masque": "Masqué",
+      "afficher": "Afficher le montant collecté",
+      "masquer": "Afficher seulement le nombre de donateurs",
+      "afficherAide": "Par exemple « 2 450 $ amassés · 38 donateurs ».",
+      "masquerAide": "Par exemple « 38 donateurs ». Le montant reste visible dans votre console.",
+      "objectif": "Un vitrail avec un objectif affiche toujours le montant, pour montrer où en est la collecte.",
+      "publier": "Le changement se voit tout de suite ici, et sur votre vitrail en ligne une fois publié."
     },
     "textes": "Textes",
     "annulerCourt": "Annuler",

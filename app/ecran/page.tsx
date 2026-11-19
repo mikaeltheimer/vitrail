@@ -766,18 +766,25 @@ export default function Ecran() {
         {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) */}
         {count > 0 && (
         <>
+        {/* Montant masqué par l'organisme (réglage du vitrail) : le nombre de donateurs prend sa place */}
+        {snap?.showTotal !== false ? (
         <div style={{ marginTop: '0.9em', fontFamily: MONO }}>
           <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{money(raised)}</span>
           <span style={{ fontSize: '1em', color: 'rgba(255,255,255,0.6)', marginLeft: '0.5em' }}>{event && event.goalCents > 0 ? t('sur', { montant: money(event.goalCents) }) : t('amasses')}</span>
         </div>
+        ) : (
+        <div style={{ marginTop: '0.9em', fontFamily: MONO, fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{t('donateurs', { count })}</div>
+        )}
         {pct > 0 && (
           <div style={{ height: '0.35em', borderRadius: '1em', background: 'rgba(255,255,255,0.12)', marginTop: '0.5em', overflow: 'hidden', width: '18em' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: GOLD, transition: 'width 1.5s ease' }} />
           </div>
         )}
+        {snap?.showTotal !== false && (
         <div style={{ fontFamily: MONO, fontSize: '0.95em', color: 'rgba(255,255,255,0.55)', marginTop: '0.5em' }}>
           {t('donateurs', { count })}
         </div>
+        )}
         </>
         )}
       </div>

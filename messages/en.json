@@ -303,7 +303,6 @@
     "ticker": {
       "titre": "Latest donations",
       "replier": "Collapse",
-      "amasses": "raised",
       "ajoute": "{nom} just donated",
       "ago": {
         "maintenant": "just now",
@@ -488,7 +487,8 @@
     "description": "Donivers — {org}: explore the stained glass, one fragment for every donation. {slogan}",
     "vitrailTitre": "The stained glass — {org}",
     "vitrailDescription": "Every donation becomes a glass fragment. Explore the stained glass and add yours.",
-    "ogTotal": "{montant} raised · {count, plural, one {# donor} other {# donors}}"
+    "ogTotal": "{montant} raised · {count, plural, one {# donor} other {# donors}}",
+    "ogDonateurs": "{count, plural, one {# donor} other {# donors}}"
   },
   "stripe": {
     "don": "Donation — {org}",
@@ -1665,7 +1665,8 @@
       "question3": "Third question (optional)",
       "placeholder": "Testimonial prompts",
       "logo": "Logo",
-      "icon": "Icon"
+      "icon": "Icon",
+      "total": "Amount raised"
     },
     "ou": {
       "name": "Stained glass header, emails, link previews.",
@@ -1677,7 +1678,18 @@
       "question3": "A third question, drawn at random with the others in the donation panel.",
       "placeholder": "Greyed text in the testimonial field.",
       "logo": "“About” panel, donation page, big screen, link previews.",
-      "icon": "Stained glass header and donation panel. Without an icon: your initials."
+      "icon": "Stained glass header and donation panel. Without an icon: your initials.",
+      "total": "Stained glass header, “About” panel and big screen. Hidden: the number of donors takes its place."
+    },
+    "montant": {
+      "affiche": "Shown",
+      "masque": "Hidden",
+      "afficher": "Show the amount raised",
+      "masquer": "Show only the number of donors",
+      "afficherAide": "For example “$2,450 raised · 38 donors”.",
+      "masquerAide": "For example “38 donors”. The amount stays visible in your console.",
+      "objectif": "A stained glass with a goal always shows the amount, to show how the fundraiser is going.",
+      "publier": "You see the change here right away, and on your live stained glass once published."
     },
     "textes": "Texts",
     "annulerCourt": "Discard",

@@ -1,4 +1,5 @@
 import { getDb } from './db'
+import { hasShowTotal } from './schema'
 import { siteUrl } from './env'
 import { parseBillingSchedule, type BillingSchedule } from './platform-fee'
 
@@ -61,6 +62,8 @@ export interface VitrailRow {
   state: 'active' | 'closed'
   inMain: boolean
   goalCents: number
+  /** Le montant collecté s'affiche sur le vitrail (absent : oui ; toujours, s'il y a un objectif). */
+  showTotal?: boolean
 }
 
 export interface Tenant {
@@ -217,7 +220,9 @@ export async function getOrg(orgId: string): Promise<OrgRow | null> {
   })
 }
 
-const VITRAIL_COLS = 'id,organization_id,kind,slug,name,state,in_main,goal_cents'
+const VITRAIL_BASE_COLS = 'id,organization_id,kind,slug,name,state,in_main,goal_cents'
+// show_total : migration 2026-12-03 (sans elle, le montant reste affiché comme avant)
+const vitrailCols = async () => `${VITRAIL_BASE_COLS}${(await hasShowTotal()) ? ',show_total' : ''}`
 const toVitrail = (r: Record<string, unknown>): VitrailRow => ({
   id: r.id as string,
   organizationId: r.organization_id as string,
@@ -227,31 +232,32 @@ const toVitrail = (r: Record<string, unknown>): VitrailRow => ({
   state: r.state as VitrailRow['state'],
   inMain: !!r.in_main,
   goalCents: Number(r.goal_cents ?? 0),
+  showTotal: r.show_total !== false,
 })
 
 /** Un vitrail, à condition qu'il appartienne à CET organisme (jamais un identifiant pris tel quel dans une requête). */
 export async function getVitrail(orgId: string, vitrailId: string): Promise<VitrailRow | null> {
   return remember(`vitrail:${orgId}:${vitrailId}`, async () => {
-    const { data, error } = await getDb().from('vitraux').select(VITRAIL_COLS).eq('id', vitrailId).eq('organization_id', orgId).maybeSingle()
+    const { data, error } = await getDb().from('vitraux').select(await vitrailCols()).eq('id', vitrailId).eq('organization_id', orgId).maybeSingle()
     if (error) throw error
-    return data ? toVitrail(data) : null
+    return data ? toVitrail(data as unknown as Record<string, unknown>) : null
   })
 }
 
 export async function getPermanentVitrail(orgId: string): Promise<VitrailRow | null> {
   return remember(`perm:${orgId}`, async () => {
-    const { data, error } = await getDb().from('vitraux').select(VITRAIL_COLS).eq('organization_id', orgId).eq('kind', 'permanent').maybeSingle()
+    const { data, error } = await getDb().from('vitraux').select(await vitrailCols()).eq('organization_id', orgId).eq('kind', 'permanent').maybeSingle()
     if (error) throw error
-    return data ? toVitrail(data) : null
+    return data ? toVitrail(data as unknown as Record<string, unknown>) : null
   })
 }
 
 export async function getCampaignBySlug(orgId: string, slug: string): Promise<VitrailRow | null> {
   if (!CAMPAIGN_SLUG_RE.test(slug) || (RESERVED_CAMPAIGN_SLUGS as readonly string[]).includes(slug)) return null // pas de requête pour une adresse qui ne peut pas exister
   return remember(`camp:${orgId}:${slug}`, async () => {
-    const { data, error } = await getDb().from('vitraux').select(VITRAIL_COLS).eq('organization_id', orgId).eq('kind', 'campaign').eq('slug', slug).maybeSingle()
+    const { data, error } = await getDb().from('vitraux').select(await vitrailCols()).eq('organization_id', orgId).eq('kind', 'campaign').eq('slug', slug).maybeSingle()
     if (error) throw error
-    return data ? toVitrail(data) : null
+    return data ? toVitrail(data as unknown as Record<string, unknown>) : null
   })
 }
 

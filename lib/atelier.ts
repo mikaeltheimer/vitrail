@@ -5,13 +5,16 @@ import { forgetTenantCache } from './tenant'
 import { TEXT_FIELDS, TEXT_MAX, parseLocales, type StoredTexts, type TextField } from './identity-shared'
 import { isLocale, type Locale } from '@/i18n/config'
 import { err, type AppError } from './errors'
+import { hasShowTotal } from './schema'
 
 // L'ATELIER : le vitrail d'entraînement sert aussi à personnaliser le vitrail. On y modifie un BROUILLON de l'identité
 // (langues, textes, logo, icône), visible seulement dans l'atelier ; « Publier » le fait passer sur le vrai vitrail.
 // Les coordonnées juridiques, le site web et les courriels se règlent dans la console (Réglages), sans brouillon.
 //
 // organizations.draft (organisme réel) = null (aucun changement en cours) ou
-//   { locales, texts, logo_path, icon_path, logoSize, iconSize } : copie complète, partie de la version publiée.
+//   { locales, texts, logo_path, icon_path, logoSize, iconSize, showTotal } : copie complète, partie de la version publiée.
+// showTotal (montant collecté affiché, Mika, 19 nov. 2026) se publie dans vitraux.show_total du vitrail permanent, celui
+// de l'organisme et celui de l'atelier (l'aperçu suit).
 
 export interface Draft {
   locales: Locale[]
@@ -20,6 +23,8 @@ export interface Draft {
   icon_path: string | null
   logoSize: [number, number] | null
   iconSize: [number, number] | null
+  /** Absent d'un brouillon d'avant le 19 nov. : la valeur publiée. */
+  showTotal?: boolean
 }
 
 interface PublishedRow {
@@ -51,10 +56,19 @@ function publishedAsDraft(r: PublishedRow): Draft {
   }
 }
 
+/** Montant collecté affiché sur le vitrail permanent de l'organisme (vrai sans la migration 2026-12-03). */
+async function publishedShowTotal(orgId: string): Promise<boolean> {
+  if (!(await hasShowTotal())) return true
+  const { data, error } = await getDb().from('vitraux').select('show_total').eq('organization_id', orgId).eq('kind', 'permanent').maybeSingle()
+  if (error) throw error
+  return (data as { show_total?: boolean } | null)?.show_total !== false
+}
+
 /** Le brouillon en cours, ou la version publiée s'il n'y en a pas ; `pending` : des changements attendent d'être publiés. */
 export async function loadDraft(orgId: string): Promise<{ draft: Draft; pending: boolean; fallbackName: string }> {
   const r = await row(orgId)
-  return { draft: r.draft ?? publishedAsDraft(r), pending: !!r.draft, fallbackName: r.name_fr }
+  const draft = r.draft ?? publishedAsDraft(r)
+  return { draft: { ...draft, showTotal: draft.showTotal ?? (await publishedShowTotal(orgId)) }, pending: !!r.draft, fallbackName: r.name_fr }
 }
 
 async function writeDraft(orgId: string, draft: Draft | null) {
@@ -91,9 +105,14 @@ export function validateTexts(v: unknown): { ok: true; texts: StoredTexts } | { 
 }
 
 /** Enregistre langues et textes du brouillon (le reste du brouillon est gardé). */
-export async function saveDraft(orgId: string, patch: { locales?: Locale[]; texts?: StoredTexts }): Promise<Draft> {
+export async function saveDraft(orgId: string, patch: { locales?: Locale[]; texts?: StoredTexts; showTotal?: boolean }): Promise<Draft> {
   const { draft } = await loadDraft(orgId)
-  const next: Draft = { ...draft, ...(patch.locales ? { locales: patch.locales } : {}), ...(patch.texts ? { texts: { ...draft.texts, ...patch.texts } } : {}) }
+  const next: Draft = {
+    ...draft,
+    ...(patch.locales ? { locales: patch.locales } : {}),
+    ...(patch.texts ? { texts: { ...draft.texts, ...patch.texts } } : {}),
+    ...(typeof patch.showTotal === 'boolean' ? { showTotal: patch.showTotal } : {}),
+  }
   await writeDraft(orgId, next)
   return next
 }
@@ -134,6 +153,13 @@ export async function publishDraft(orgId: string): Promise<{ ok: boolean }> {
   if (error) throw error
   // L'atelier porte le même nom (en-tête de sa console)
   await db.from('organizations').update({ name_fr: name }).eq('practice_of', orgId)
+  // Montant collecté : sur le vitrail permanent de l'organisme et sur celui de l'atelier
+  if (typeof d.showTotal === 'boolean' && (await hasShowTotal())) {
+    const { data: practice } = await db.from('organizations').select('id').eq('practice_of', orgId)
+    const ids = [orgId, ...((practice ?? []) as { id: string }[]).map(p => p.id)]
+    const res = await db.from('vitraux').update({ show_total: d.showTotal }).in('organization_id', ids).eq('kind', 'permanent')
+    if (res.error) throw res.error
+  }
   await removeFiles(orgId, [old.logo !== d.logo_path ? old.logo : null, old.icon !== d.icon_path ? old.icon : null])
   forgetTenantCache()
   forgetIdentity()
