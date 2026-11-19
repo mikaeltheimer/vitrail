@@ -87,6 +87,7 @@
     "vitrailPermanent": "Le vitrail permanent est toujours celui de l’organisme ; chaque campagne a sa propre adresse.",
     "campagneNom": "Le nom de la campagne doit compter de {min} à {max} caractères.",
     "campagnesBientot": "Les campagnes arrivent bientôt.",
+    "montantIndisponible": "Ce réglage n’est pas encore disponible. Réessayez plus tard.",
     "campagneNomLettres": "Le nom doit contenir des lettres ou des chiffres.",
     "objectifNegatif": "L’objectif ne peut pas être négatif.",
     "stripeNonConfigure": "Les paiements ne sont pas encore configurés sur la plateforme. Prévenez Studio Existence.",
@@ -1186,7 +1187,8 @@
         "equipe": "Équipe",
         "courriels": "Courriels aux donateurs",
         "paiements": "Paiements (Stripe)",
-        "demo": "Dons de démonstration"
+        "demo": "Dons de démonstration",
+        "montant": "Montant collecté"
       },
       "ecrans": {
         "adresse": "Adresse et site web",
@@ -1194,7 +1196,8 @@
         "equipe": "Équipe",
         "courriels": "Courriels aux donateurs",
         "paiements": "Paiements",
-        "demo": "Dons de démonstration"
+        "demo": "Dons de démonstration",
+        "montant": "Montant collecté"
       },
       "etats": {
         "atelierEnAttente": "Des changements attendent d’être publiés",
@@ -1210,9 +1213,24 @@
         "stripePret": "Prêt à recevoir des dons",
         "stripeATerminer": "Inscription à terminer",
         "stripeNonConnecte": "Non connecté",
-        "demo": "{count, plural, one {# don à supprimer avant l’ouverture} other {# dons à supprimer avant l’ouverture}}"
+        "demo": "{count, plural, one {# don à supprimer avant l’ouverture} other {# dons à supprimer avant l’ouverture}}",
+        "montantAffiche": "Affiché",
+        "montantMasque": "Masqué",
+        "montantObjectif": "Affiché (objectif)"
       },
-      "choisir": "Choisissez un réglage dans la liste."
+      "choisir": "Choisissez un réglage dans la liste.",
+      "montant": {
+        "titre": "Montant collecté",
+        "intro": "Ce qui s’affiche dans l’en-tête du vitrail, le panneau « À propos de la collecte », le grand écran et l’aperçu des liens partagés. Le montant reste toujours visible ici, dans votre console.",
+        "afficher": "Afficher le montant collecté",
+        "masquer": "Afficher seulement le nombre de donateurs",
+        "afficherAide": "Par exemple « 2 450 $ amassés · 38 donateurs ».",
+        "masquerAide": "Par exemple « 38 donateurs ».",
+        "objectif": "Votre vitrail a un objectif : le montant reste affiché, pour montrer où en est la collecte.",
+        "tousLesVitraux": "S’applique tout de suite à votre vitrail en ligne et à l’atelier. Le même réglage se trouve dans l’atelier.",
+        "brouillon": "S’applique tout de suite à votre vitrail en ligne. Les changements qui attendent dans l’atelier prennent aussi ce réglage.",
+        "enregistre": "Réglage enregistré."
+      }
     },
     "adresse": {
       "titre": "Adresse du vitrail",

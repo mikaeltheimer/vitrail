@@ -64,6 +64,8 @@ export interface ConsoleData {
   atelierUrl: string | null
   /** Une version personnalisée a déjà été publiée depuis l'atelier. */
   published: boolean
+  /** Montant collecté affiché sur le vitrail permanent (absent avant la migration 2026-12-03 : affiché). */
+  showTotal?: boolean
   /** Carte « Votre forfait » (C) : propriétaire de l'organisme réel seulement, sinon null. */
   billing: BillingSummary | null
   /** Conditions de la plateforme (D8) : version en vigueur acceptée ? null pour l'atelier et la démo. */

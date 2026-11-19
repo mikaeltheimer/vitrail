@@ -9,6 +9,7 @@ import { createToken } from '@/lib/donations'
 import { fetchWhere, quoteConsentDates, recordDonation } from '@/lib/donations'
 import { CAMPAIGN_SLUG_RE, RESERVED_CAMPAIGN_SLUGS, forgetTenantCache, getOrg, getVitrail, orgBaseUrl, orgName, orgUrl } from '@/lib/tenant'
 import { goLive, practiceOf } from '@/lib/signup'
+import { setShowTotal } from '@/lib/atelier'
 import { acceptTerms, termsStatus } from '@/lib/terms'
 import { billingSummary } from '@/lib/billing'
 import { getIdentity, missingForLaunch } from '@/lib/identity'
@@ -132,6 +133,8 @@ export async function GET(request: NextRequest) {
     billing: t.role === 'owner' && !t.tenant.org.practiceOf && !t.tenant.org.showcase ? await billingSummary(orgId, t.tenant.org.feeSchedule) : null,
     // Conditions de la plateforme (D8) : version en vigueur acceptée ? Organisme réel seulement (ni atelier, ni démo)
     terms: t.tenant.org.practiceOf || t.tenant.org.showcase ? null : { ...(await termsStatus(t.tenant.org.id)), exempt: t.tenant.org.feeSchedule.model === 'exempt' },
+    // Montant collecté affiché sur le vitrail permanent (toujours, s'il a un objectif)
+    showTotal: perm.showTotal !== false,
     published: !!(await getDb().from('organizations').select('published_at').eq('id', t.tenant.org.practiceOf ?? t.tenant.org.id).maybeSingle()).data?.published_at,
     summary: {
       totalCents: Number(vitrailTotals.get(perm.id)?.total_cents ?? 0),
@@ -185,10 +188,10 @@ export async function GET(request: NextRequest) {
 const OWNER_ONLY = new Set([
   'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'purgeDemo', 'createEvent', 'updateEvent',
   'mergeDonors', 'inviteMember', 'removeMember', 'revokeInvitation', 'changeDonorEmail', 'goLive', 'eraseDonor',
-  'checkAddress', 'changeAddress', 'acceptTerms',
+  'checkAddress', 'changeAddress', 'acceptTerms', 'setShowTotal',
 ])
 // Ce qui n'a pas de sens dans l'entraînement : l'argent réel, Stripe, l'équipe (c'est celle de l'organisme réel)
-const NOT_IN_PRACTICE = new Set(['refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive', 'checkAddress', 'changeAddress', 'acceptTerms'])
+const NOT_IN_PRACTICE = new Set(['setShowTotal', 'refundDonation', 'connectStripe', 'stripeDashboard', 'refreshStripe', 'inviteMember', 'removeMember', 'revokeInvitation', 'goLive', 'checkAddress', 'changeAddress', 'acceptTerms'])
 
 /** Le vitrail de l'atelier, ouvert en mode Modifier. */
 async function atelierUrl(org: { id: string; slug: string; practiceOf: string | null }, request: NextRequest): Promise<string | null> {
@@ -552,6 +555,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Accepter la version en vigueur des conditions de la plateforme (D8), au nom de l'organisme : propriétaire seulement
+    // Montant collecté affiché sur le vitrail (Réglages) ; le même réglage se fait aussi dans l'atelier (brouillon)
+    case 'setShowTotal': {
+      if (typeof b.showTotal !== 'boolean') return fail('actionInconnue')
+      const r = await setShowTotal(orgId, b.showTotal)
+      return r.ok ? NextResponse.json({ ok: true }) : fail('montantIndisponible')
+    }
+
     case 'acceptTerms': {
       if (t.tenant.org.showcase) return fail('impossibleIci')
       const r = await acceptTerms(orgId, t.account.id, b.version)

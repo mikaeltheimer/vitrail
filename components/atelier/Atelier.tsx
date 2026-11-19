@@ -499,7 +499,7 @@ function TotalSheet({ value, save, onClose }: { value: boolean; save: (v: boolea
         <div role="radiogroup" aria-label={t('champs.total')} className="space-y-2">
           {[true, false].map(v => (
             <label key={String(v)} className="console-row flex cursor-pointer items-start gap-3 rounded-xl border p-3" style={{ borderColor: value === v ? '#F0B24A' : 'var(--line)' }}>
-              <input type="radio" name="montant" className="mt-1" checked={value === v} onChange={() => void save(v)} />
+              <input type="radio" name="montant" className="mt-1" style={{ accentColor: '#F0B24A' }} checked={value === v} onChange={() => void save(v)} />
               <span>
                 <span className="block font-semibold">{v ? t('montant.afficher') : t('montant.masquer')}</span>
                 <span className="muted block text-xs">{v ? t('montant.afficherAide') : t('montant.masquerAide')}</span>

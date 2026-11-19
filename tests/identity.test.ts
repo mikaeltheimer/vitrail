@@ -162,6 +162,14 @@ async function main() {
   check('abandon : retour au réglage publié', back.showTotal === false && vt('pe') === false)
   check('valeur non booléenne ignorée', (await st({ action: 'save', showTotal: 'non' })).showTotal === false)
   await apost({ action: 'discard' })
+  // Depuis la console (Réglages) : tout de suite, et le brouillon en cours suit (une publication ne le défait pas)
+  const { setShowTotal } = await import('../lib/atelier')
+  await apost({ action: 'save', texts: { fr: { why: 'Brouillon en cours.' } } })
+  await setShowTotal('ecole', true)
+  check('console : vitrail de l\'organisme et de l\'atelier, tout de suite', vt('pe') === true && vt('px') === true && vt('camp') === true && vt('autre') === true)
+  check('console : le brouillon en cours suit', (await st({ action: 'save', texts: {} })).showTotal === true)
+  await apost({ action: 'publish' })
+  check('console puis publication : le réglage tient', vt('pe') === true)
   console.log('Atelier : images')
   const removed: string[] = []
   const fdb = (await import('./fake-db')).fakeDb as unknown as { storage?: unknown }

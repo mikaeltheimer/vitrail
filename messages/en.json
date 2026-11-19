@@ -87,6 +87,7 @@
     "vitrailPermanent": "The permanent stained glass always belongs to the organization; each campaign has its own address.",
     "campagneNom": "The campaign name must be {min} to {max} characters long.",
     "campagnesBientot": "Campaigns are coming soon.",
+    "montantIndisponible": "This setting isn’t available yet. Please try again later.",
     "campagneNomLettres": "The name must contain letters or numbers.",
     "objectifNegatif": "The goal can’t be negative.",
     "stripeNonConfigure": "Payments aren’t set up on the platform yet. Please let Studio Existence know.",
@@ -1186,7 +1187,8 @@
         "equipe": "Team",
         "courriels": "Emails to donors",
         "paiements": "Payments (Stripe)",
-        "demo": "Demo donations"
+        "demo": "Demo donations",
+        "montant": "Amount raised"
       },
       "ecrans": {
         "adresse": "Address and website",
@@ -1194,7 +1196,8 @@
         "equipe": "Team",
         "courriels": "Emails to donors",
         "paiements": "Payments",
-        "demo": "Demo donations"
+        "demo": "Demo donations",
+        "montant": "Amount raised"
       },
       "etats": {
         "atelierEnAttente": "Changes are waiting to be published",
@@ -1210,9 +1213,24 @@
         "stripePret": "Ready to receive donations",
         "stripeATerminer": "Sign-up to finish",
         "stripeNonConnecte": "Not connected",
-        "demo": "{count, plural, one {# donation to delete before opening} other {# donations to delete before opening}}"
+        "demo": "{count, plural, one {# donation to delete before opening} other {# donations to delete before opening}}",
+        "montantAffiche": "Shown",
+        "montantMasque": "Hidden",
+        "montantObjectif": "Shown (goal)"
       },
-      "choisir": "Choose a setting from the list."
+      "choisir": "Choose a setting from the list.",
+      "montant": {
+        "titre": "Amount raised",
+        "intro": "What shows in the stained glass header, the “About the fundraiser” panel, the big screen and shared link previews. The amount always stays visible here, in your console.",
+        "afficher": "Show the amount raised",
+        "masquer": "Show only the number of donors",
+        "afficherAide": "For example “$2,450 raised · 38 donors”.",
+        "masquerAide": "For example “38 donors”.",
+        "objectif": "Your stained glass has a goal: the amount stays visible, to show how the fundraiser is going.",
+        "tousLesVitraux": "Applies right away to your live stained glass and to the sandbox. The same setting is in the sandbox.",
+        "brouillon": "Applies right away to your live stained glass. Changes waiting in the sandbox take this setting too.",
+        "enregistre": "Setting saved."
+      }
     },
     "adresse": {
       "titre": "Stained-glass address",

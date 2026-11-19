@@ -166,6 +166,23 @@ export async function publishDraft(orgId: string): Promise<{ ok: boolean }> {
   return { ok: true }
 }
 
+/**
+ * Montant collecté, depuis la console (Réglages) : s'applique tout de suite au vitrail permanent de l'organisme et à
+ * celui de l'atelier ; un brouillon en cours prend la même valeur, pour qu'une publication ne la défasse pas.
+ */
+export async function setShowTotal(orgId: string, value: boolean): Promise<{ ok: boolean }> {
+  if (!(await hasShowTotal())) return { ok: false }
+  const db = getDb()
+  const { data: practice } = await db.from('organizations').select('id').eq('practice_of', orgId)
+  const ids = [orgId, ...((practice ?? []) as { id: string }[]).map(p => p.id)]
+  const res = await db.from('vitraux').update({ show_total: value }).in('organization_id', ids).eq('kind', 'permanent')
+  if (res.error) throw res.error
+  const r = await row(orgId)
+  if (r.draft) await writeDraft(orgId, { ...r.draft, showTotal: value })
+  forgetTenantCache()
+  return { ok: true }
+}
+
 /** Abandonner le brouillon : l'atelier revient à la version publiée ; ses images non publiées sont effacées. */
 export async function discardDraft(orgId: string): Promise<void> {
   const r = await row(orgId)
