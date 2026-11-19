@@ -87,6 +87,7 @@
     "vitrailPermanent": "Le vitrail permanent est toujours celui de l’organisme ; chaque campagne a sa propre adresse.",
     "campagneNom": "Le nom de la campagne doit compter de {min} à {max} caractères.",
     "campagnesBientot": "Les campagnes arrivent bientôt.",
+    "montantIndisponible": "Ce réglage n’est pas encore disponible. Réessayez plus tard.",
     "campagneNomLettres": "Le nom doit contenir des lettres ou des chiffres.",
     "objectifNegatif": "L’objectif ne peut pas être négatif.",
     "stripeNonConfigure": "Les paiements ne sont pas encore configurés sur la plateforme. Prévenez Studio Existence.",
@@ -303,7 +304,6 @@
     "ticker": {
       "titre": "Derniers dons",
       "replier": "Replier",
-      "amasses": "amassés",
       "ajoute": "{nom} vient de faire un don",
       "ago": {
         "maintenant": "à l’instant",
@@ -488,7 +488,8 @@
     "description": "Donivers — {org} : chaque don devient un fragment du vitrail. {slogan}",
     "vitrailTitre": "Le vitrail — {org}",
     "vitrailDescription": "Chaque don devient un fragment de verre. Explorez le vitrail et ajoutez le vôtre.",
-    "ogTotal": "{montant} amassés · {count, plural, one {# donateur} other {# donateurs}}"
+    "ogTotal": "{montant} amassés · {count, plural, one {# donateur} other {# donateurs}}",
+    "ogDonateurs": "{count, plural, one {# donateur} other {# donateurs}}"
   },
   "stripe": {
     "don": "Don — {org}",
@@ -1186,7 +1187,8 @@
         "equipe": "Équipe",
         "courriels": "Courriels aux donateurs",
         "paiements": "Paiements (Stripe)",
-        "demo": "Dons de démonstration"
+        "demo": "Dons de démonstration",
+        "montant": "Montant collecté"
       },
       "ecrans": {
         "adresse": "Adresse et site web",
@@ -1194,7 +1196,8 @@
         "equipe": "Équipe",
         "courriels": "Courriels aux donateurs",
         "paiements": "Paiements",
-        "demo": "Dons de démonstration"
+        "demo": "Dons de démonstration",
+        "montant": "Montant collecté"
       },
       "etats": {
         "atelierEnAttente": "Des changements attendent d’être publiés",
@@ -1210,9 +1213,24 @@
         "stripePret": "Prêt à recevoir des dons",
         "stripeATerminer": "Inscription à terminer",
         "stripeNonConnecte": "Non connecté",
-        "demo": "{count, plural, one {# don à supprimer avant l’ouverture} other {# dons à supprimer avant l’ouverture}}"
+        "demo": "{count, plural, one {# don à supprimer avant l’ouverture} other {# dons à supprimer avant l’ouverture}}",
+        "montantAffiche": "Affiché",
+        "montantMasque": "Masqué",
+        "montantObjectif": "Affiché (objectif)"
       },
-      "choisir": "Choisissez un réglage dans la liste."
+      "choisir": "Choisissez un réglage dans la liste.",
+      "montant": {
+        "titre": "Montant collecté",
+        "intro": "Ce qui s’affiche dans l’en-tête du vitrail, le panneau « À propos de la collecte », le grand écran et l’aperçu des liens partagés. Le montant reste toujours visible ici, dans votre console.",
+        "afficher": "Afficher le montant collecté",
+        "masquer": "Afficher seulement le nombre de donateurs",
+        "afficherAide": "Par exemple « 2 450 $ amassés · 38 donateurs ».",
+        "masquerAide": "Par exemple « 38 donateurs ».",
+        "objectif": "Votre vitrail a un objectif : le montant reste affiché, pour montrer où en est la collecte.",
+        "tousLesVitraux": "S’applique tout de suite à votre vitrail en ligne et à l’atelier. Le même réglage se trouve dans l’atelier.",
+        "brouillon": "S’applique tout de suite à votre vitrail en ligne. Les changements qui attendent dans l’atelier prennent aussi ce réglage.",
+        "enregistre": "Réglage enregistré."
+      }
     },
     "adresse": {
       "titre": "Adresse du vitrail",
@@ -1665,7 +1683,8 @@
       "question3": "Troisième question (facultative)",
       "placeholder": "Pistes pour le témoignage",
       "logo": "Logo",
-      "icon": "Icône"
+      "icon": "Icône",
+      "total": "Montant collecté"
     },
     "ou": {
       "name": "En-tête du vitrail, courriels, aperçu des liens partagés.",
@@ -1677,7 +1696,18 @@
       "question3": "Une troisième question, tirée au hasard avec les autres dans le panneau de don.",
       "placeholder": "Texte grisé du champ de témoignage.",
       "logo": "Panneau « À propos », page de don, grand écran, aperçu des liens partagés.",
-      "icon": "En-tête du vitrail et panneau de don. Sans icône : vos initiales."
+      "icon": "En-tête du vitrail et panneau de don. Sans icône : vos initiales.",
+      "total": "En-tête du vitrail, panneau « À propos » et grand écran. Masqué : le nombre de donateurs prend sa place."
+    },
+    "montant": {
+      "affiche": "Affiché",
+      "masque": "Masqué",
+      "afficher": "Afficher le montant collecté",
+      "masquer": "Afficher seulement le nombre de donateurs",
+      "afficherAide": "Par exemple « 2 450 $ amassés · 38 donateurs ».",
+      "masquerAide": "Par exemple « 38 donateurs ». Le montant reste visible dans votre console.",
+      "objectif": "Un vitrail avec un objectif affiche toujours le montant, pour montrer où en est la collecte.",
+      "publier": "Le changement se voit tout de suite ici, et sur votre vitrail en ligne une fois publié."
     },
     "textes": "Textes",
     "annulerCourt": "Annuler",

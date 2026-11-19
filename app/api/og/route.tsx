@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
     }
     const s = await getSnapshot(tenant.tenant)
     pieces = toSvg(s.pieces)
-    if (s.pieces.length) total = translatorFor(locale)('meta.ogTotal', { montant: formatMoney(s.totalCents, locale), count: s.pieces.length })
+    // Montant masqué par l'organisme : le nombre de donateurs seulement
+    if (s.pieces.length) total = s.showTotal !== false ? translatorFor(locale)('meta.ogTotal', { montant: formatMoney(s.totalCents, locale), count: s.pieces.length }) : translatorFor(locale)('meta.ogDonateurs', { count: s.pieces.length })
   } catch {}
   const t = translatorFor(locale)
   return shareImage({

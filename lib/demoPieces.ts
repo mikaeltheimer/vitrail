@@ -32,7 +32,7 @@ export function withDemoPieces(s: Snapshot, local: readonly ScreenPiece[]): Snap
     arrival: last + i + 1,
     since: at,
   }))
-  const recent: RecentDonation[] = [...local].reverse().map(p => ({ id: p.id, donorId: p.id, name: p.name, message: p.message, photoUrl: p.photoUrl, amountCents: p.amountCents, at: p.at }))
+  const recent: RecentDonation[] = [...local].reverse().map(p => ({ id: p.id, donorId: p.id, name: p.name, message: p.message, photoUrl: p.photoUrl, at: p.at }))
   const sum = local.reduce((n, p) => n + p.amountCents, 0)
   return {
     ...s,

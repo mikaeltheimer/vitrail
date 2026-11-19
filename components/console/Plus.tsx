@@ -15,8 +15,8 @@ import { askConfirm } from '@/components/ConfirmDialog'
 // accueille les ajouts à venir (forfait, exports, Pro) sans redevenir un long défilement.
 // Dans l'atelier : seulement « Repartir à neuf » et le retour à la console de l'organisme.
 
-export type Screen = 'adresse' | 'juridique' | 'equipe' | 'courriels' | 'paiements' | 'demo'
-export const SCREENS: Screen[] = ['adresse', 'juridique', 'equipe', 'courriels', 'paiements', 'demo']
+export type Screen = 'adresse' | 'montant' | 'juridique' | 'equipe' | 'courriels' | 'paiements' | 'demo'
+export const SCREENS: Screen[] = ['adresse', 'montant', 'juridique', 'equipe', 'courriels', 'paiements', 'demo']
 
 /** Ce qui demande une action dans Réglages (le point sur l'onglet et sur les lignes). */
 export function needsAttention(data: ConsoleData): boolean {
@@ -62,6 +62,7 @@ function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Pl
           {identity && <SiteWebForm identity={identity} reload={reload} />}
         </div>
       )}
+      {screen === 'montant' && <Montant data={data} act={act} pending={!!identity?.pending} />}
       {screen === 'juridique' && identity && <JuridiqueForm identity={identity} reload={reload} />}
       {screen === 'juridique' && <TermsHistory data={data} />}
       {screen === 'courriels' && (
@@ -91,6 +92,37 @@ function Settings({ data, act, open, onError, screen, go }: Parameters<typeof Pl
   return body
 }
 
+/** Montant collecté : affiché ou masqué sur le vitrail (même réglage que dans l'atelier, appliqué tout de suite). */
+function Montant({ data, act, pending }: { data: ConsoleData; act: Act; pending: boolean }) {
+  const t = useTranslations('console.reglages.montant')
+  const value = data.showTotal !== false
+  const [busy, setBusy] = useState(false)
+  const choose = async (v: boolean) => {
+    if (v === value || busy) return
+    setBusy(true)
+    await act({ action: 'setShowTotal', showTotal: v }, t('enregistre'))
+    setBusy(false)
+  }
+  return (
+    <div className="space-y-3">
+      <p className="muted max-w-2xl text-sm">{t('intro')}</p>
+      <div role="radiogroup" aria-label={t('titre')} className="max-w-2xl space-y-2">
+        {[true, false].map(v => (
+          <label key={String(v)} className="card flex cursor-pointer items-start gap-3 text-sm" style={{ borderColor: value === v ? 'var(--accent)' : undefined }}>
+            <input type="radio" name="montant" className="mt-1" style={{ accentColor: 'var(--accent)' }} checked={value === v} disabled={busy} onChange={() => void choose(v)} />
+            <span>
+              <span className="block font-semibold">{v ? t('afficher') : t('masquer')}</span>
+              <span className="muted block text-xs">{v ? t('afficherAide') : t('masquerAide')}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {!!data.summary.goalCents && <p className="card text-sm">{t('objectif')}</p>}
+      <p className="muted max-w-2xl text-xs">{pending ? t('brouillon') : t('tousLesVitraux')}</p>
+    </div>
+  )
+}
+
 type Row = { key: string; icon: string; title: string; status: string; attention?: boolean; onClick?: () => void; href?: string }
 
 function Menu({ data, identity, go, current }: { data: ConsoleData; identity: Identity | null; go: (s: Screen) => void; current: Screen | null }) {
@@ -116,6 +148,7 @@ function Menu({ data, identity, go, current }: { data: ConsoleData; identity: Id
           href: data.atelierUrl,
         }] : []),
         { key: 'adresse', icon: 'globe', title: t('lignes.adresse'), status: data.address ? `${data.address.current}.${data.address.domain}` : '', onClick: () => go('adresse') },
+        { key: 'montant', icon: 'billet', title: t('lignes.montant'), status: data.summary.goalCents ? t('etats.montantObjectif') : data.showTotal !== false ? t('etats.montantAffiche') : t('etats.montantMasque'), onClick: () => go('montant') },
       ],
     },
     {

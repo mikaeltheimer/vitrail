@@ -398,7 +398,6 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
       name: d.show_name ? d.display_name : null,
       message: d.message_status === 'pending' ? null : d.message,
       photoUrl: d.photo_status === 'approved' ? d.photo_url : null,
-      amountCents: r.net_cents,
       at: r.created_at,
     }))
 
@@ -417,6 +416,7 @@ export async function getSnapshot(tenant: Tenant): Promise<Snapshot> {
     mode: paymentModeFor(org),
     ...(org.showcase ? { showcase: true } : {}),
     event,
+    showTotal: vitrail.showTotal !== false || vitrail.goalCents > 0,
     totalCents,
     donationsCount: Number(vtRes.data?.donations_count ?? 0),
     pieces,

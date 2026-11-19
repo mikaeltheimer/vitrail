@@ -87,6 +87,7 @@
     "vitrailPermanent": "The permanent stained glass always belongs to the organization; each campaign has its own address.",
     "campagneNom": "The campaign name must be {min} to {max} characters long.",
     "campagnesBientot": "Campaigns are coming soon.",
+    "montantIndisponible": "This setting isn’t available yet. Please try again later.",
     "campagneNomLettres": "The name must contain letters or numbers.",
     "objectifNegatif": "The goal can’t be negative.",
     "stripeNonConfigure": "Payments aren’t set up on the platform yet. Please let Studio Existence know.",
@@ -303,7 +304,6 @@
     "ticker": {
       "titre": "Latest donations",
       "replier": "Collapse",
-      "amasses": "raised",
       "ajoute": "{nom} just donated",
       "ago": {
         "maintenant": "just now",
@@ -488,7 +488,8 @@
     "description": "Donivers — {org}: explore the stained glass, one fragment for every donation. {slogan}",
     "vitrailTitre": "The stained glass — {org}",
     "vitrailDescription": "Every donation becomes a glass fragment. Explore the stained glass and add yours.",
-    "ogTotal": "{montant} raised · {count, plural, one {# donor} other {# donors}}"
+    "ogTotal": "{montant} raised · {count, plural, one {# donor} other {# donors}}",
+    "ogDonateurs": "{count, plural, one {# donor} other {# donors}}"
   },
   "stripe": {
     "don": "Donation — {org}",
@@ -1186,7 +1187,8 @@
         "equipe": "Team",
         "courriels": "Emails to donors",
         "paiements": "Payments (Stripe)",
-        "demo": "Demo donations"
+        "demo": "Demo donations",
+        "montant": "Amount raised"
       },
       "ecrans": {
         "adresse": "Address and website",
@@ -1194,7 +1196,8 @@
         "equipe": "Team",
         "courriels": "Emails to donors",
         "paiements": "Payments",
-        "demo": "Demo donations"
+        "demo": "Demo donations",
+        "montant": "Amount raised"
       },
       "etats": {
         "atelierEnAttente": "Changes are waiting to be published",
@@ -1210,9 +1213,24 @@
         "stripePret": "Ready to receive donations",
         "stripeATerminer": "Sign-up to finish",
         "stripeNonConnecte": "Not connected",
-        "demo": "{count, plural, one {# donation to delete before opening} other {# donations to delete before opening}}"
+        "demo": "{count, plural, one {# donation to delete before opening} other {# donations to delete before opening}}",
+        "montantAffiche": "Shown",
+        "montantMasque": "Hidden",
+        "montantObjectif": "Shown (goal)"
       },
-      "choisir": "Choose a setting from the list."
+      "choisir": "Choose a setting from the list.",
+      "montant": {
+        "titre": "Amount raised",
+        "intro": "What shows in the stained glass header, the “About the fundraiser” panel, the big screen and shared link previews. The amount always stays visible here, in your console.",
+        "afficher": "Show the amount raised",
+        "masquer": "Show only the number of donors",
+        "afficherAide": "For example “$2,450 raised · 38 donors”.",
+        "masquerAide": "For example “38 donors”.",
+        "objectif": "Your stained glass has a goal: the amount stays visible, to show how the fundraiser is going.",
+        "tousLesVitraux": "Applies right away to your live stained glass and to the sandbox. The same setting is in the sandbox.",
+        "brouillon": "Applies right away to your live stained glass. Changes waiting in the sandbox take this setting too.",
+        "enregistre": "Setting saved."
+      }
     },
     "adresse": {
       "titre": "Stained-glass address",
@@ -1665,7 +1683,8 @@
       "question3": "Third question (optional)",
       "placeholder": "Testimonial prompts",
       "logo": "Logo",
-      "icon": "Icon"
+      "icon": "Icon",
+      "total": "Amount raised"
     },
     "ou": {
       "name": "Stained glass header, emails, link previews.",
@@ -1677,7 +1696,18 @@
       "question3": "A third question, drawn at random with the others in the donation panel.",
       "placeholder": "Greyed text in the testimonial field.",
       "logo": "“About” panel, donation page, big screen, link previews.",
-      "icon": "Stained glass header and donation panel. Without an icon: your initials."
+      "icon": "Stained glass header and donation panel. Without an icon: your initials.",
+      "total": "Stained glass header, “About” panel and big screen. Hidden: the number of donors takes its place."
+    },
+    "montant": {
+      "affiche": "Shown",
+      "masque": "Hidden",
+      "afficher": "Show the amount raised",
+      "masquer": "Show only the number of donors",
+      "afficherAide": "For example “$2,450 raised · 38 donors”.",
+      "masquerAide": "For example “38 donors”. The amount stays visible in your console.",
+      "objectif": "A stained glass with a goal always shows the amount, to show how the fundraiser is going.",
+      "publier": "You see the change here right away, and on your live stained glass once published."
     },
     "textes": "Texts",
     "annulerCourt": "Discard",

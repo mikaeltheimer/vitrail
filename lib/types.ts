@@ -23,7 +23,7 @@ export interface RecentDonation {
   name: string | null
   message: string | null
   photoUrl: string | null
-  amountCents: number
+  // Jamais le montant : aucun donateur n'a consenti à ce que le montant de son don soit public (Mika, 19 nov. 2026)
   at: string
 }
 
@@ -42,6 +42,8 @@ export interface Snapshot {
   /** Vitrail de démonstration : donateurs et dons fictifs, rien ne s'y enregistre (affiché comme tel). */
   showcase?: boolean
   event: EventInfo | null
+  /** Le montant collecté s'affiche (réglage du vitrail, toujours vrai s'il y a un objectif). Absent : affiché. */
+  showTotal?: boolean
   totalCents: number
   donationsCount: number
   pieces: Piece[]

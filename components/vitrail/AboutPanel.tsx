@@ -18,6 +18,7 @@ const GOLD = '#F0B24A'
 export default function AboutPanel({
   isMobile,
   totalCents,
+  showTotal = true,
   goalCents,
   donors,
   onClaim,
@@ -25,6 +26,8 @@ export default function AboutPanel({
 }: {
   isMobile: boolean
   totalCents: number
+  /** Montant masqué par l'organisme : le nombre de donateurs prend sa place. */
+  showTotal?: boolean
   goalCents: number
   donors: number
   onClaim: () => void
@@ -91,18 +94,24 @@ export default function AboutPanel({
 
         {/* Où en est la collecte */}
         <div style={{ padding: 16, borderRadius: 12, background: 'rgba(240,178,74,0.06)', border: '1px solid rgba(240,178,74,0.25)' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, color: GOLD }}>{money(totalCents)}</span>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{goalCents > 0 ? td('sur', { montant: money(goalCents) }) : te('amasses')}</span>
-          </div>
+          {showTotal ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, color: GOLD }}>{money(totalCents)}</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{goalCents > 0 ? td('sur', { montant: money(goalCents) }) : te('amasses')}</span>
+            </div>
+          ) : (
+            <span style={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, color: GOLD }}>{te('donateurs', { count: donors })}</span>
+          )}
           {goalCents > 0 && (
             <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)', marginTop: 10, overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: GOLD, borderRadius: 3 }} />
             </div>
           )}
-          <div style={{ fontFamily: MONO, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>
-            {te('donateurs', { count: donors })}
-          </div>
+          {showTotal && (
+            <div style={{ fontFamily: MONO, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>
+              {te('donateurs', { count: donors })}
+            </div>
+          )}
         </div>
 
         <div>

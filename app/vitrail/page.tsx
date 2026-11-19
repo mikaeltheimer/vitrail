@@ -1100,6 +1100,8 @@ function Vitrail() {
   const atelierBar = !!atelier
   const atelierEditing = !!atelier?.editing
   const atelierBarHeight = atelier?.barHeight ?? 0
+  // Montant collecté : réglage du vitrail (celui du brouillon dans l'atelier), toujours affiché s'il y a un objectif
+  const showTotal = (snap?.event?.goalCents ?? 0) > 0 || (atelier?.showTotal ?? snap?.showTotal !== false)
   // Téléphone, atelier : la barre de l'atelier (fixe, 62 px du haut) occupe le haut de l'écran ; tout ce qui s'ancre
   // sous l'en-tête (annonce d'un don, carte de bienvenue) descend d'autant, et le bouton d'ajout passe sous le titre
   // (qu'il ne doit pas couvrir : on le modifie d'un toucher).
@@ -1182,6 +1184,7 @@ function Vitrail() {
         mobile={mobile}
         count={count}
         totalCents={totalCents}
+        showTotal={showTotal}
         goalCents={snap?.event?.goalCents ?? 0}
         eventCents={snap?.event?.totalCents ?? 0}
         onAbout={() => {
@@ -1333,13 +1336,14 @@ function Vitrail() {
           <span style={{ color: 'rgba(244,239,230,0.8)', fontSize: 15, textShadow: '0 1px 10px rgba(0,0,0,0.8)' }}>{t('ajouterAide')}</span>
         </div>
       )}
-      <Ticker top={heroCta ? titleBottom + 18 + HERO_CTA_H + 14 : titleBottom + 12} recent={snap?.recent ?? []} totalCents={totalCents} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
+      <Ticker top={heroCta ? titleBottom + 18 + HERO_CTA_H + 14 : titleBottom + 12} recent={snap?.recent ?? []} isMobile={mobile} hidden={intro !== 'off' || count === 0 || claimOpen || (mobile && sheetOpen)} onVisit={id => api.current.select(id, true)} />
 
       {/* ── À propos de la collecte ── */}
       {aboutOpen && (
         <AboutPanel
           isMobile={mobile}
           totalCents={snap?.event?.goalCents ? snap.event.totalCents : totalCents}
+          showTotal={showTotal}
           goalCents={snap?.event?.goalCents ?? 0}
           donors={count}
           onClaim={() => {
@@ -1688,6 +1692,7 @@ function Header({
   mobile,
   count,
   totalCents,
+  showTotal,
   goalCents,
   eventCents,
   onAbout,
@@ -1704,6 +1709,7 @@ function Header({
   mobile: boolean
   count: number
   totalCents: number
+  showTotal: boolean
   goalCents: number
   eventCents: number
   onAbout: () => void
@@ -1758,7 +1764,9 @@ function Header({
           {brand}
           {count > 0 ? (
           <button onClick={onAbout} style={{ fontFamily: MONO, fontSize: '13px', whiteSpace: 'nowrap', background: 'none', border: 0, color: '#F4EFE6', padding: 0, display: 'grid', justifyItems: 'center', gap: 3 }}>
-            <span style={{ fontWeight: 700, color: GOLD }}>{money(raised)}</span>
+            <Editable field="total">
+              <span style={{ fontWeight: 700, color: GOLD }}>{showTotal ? money(raised) : t('donateurs', { count })}</span>
+            </Editable>
             {goalCents > 0 && (
               <span style={{ width: 64, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
                 <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: GOLD }} />
@@ -1866,12 +1874,19 @@ function Header({
       {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) : « 0 $ · 0 donateur » souligne le vide */}
       {count > 0 && (
       <button onClick={onAbout} title={t('apropos')} style={{ flex: 'none', padding: '0 16px', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: '14px', letterSpacing: '0.02em', background: 'none', border: 0, color: '#F4EFE6', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 5 }}>
-        <span>
-          <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{money(raised)}</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>{goalCents > 0 ? t('amassesSur', { montant: money(goalCents) }) : t('amasses')}</span>
-          <span style={{ color: 'rgba(255,255,255,0.35)', margin: '0 8px' }}>·</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)' }}>{t('donateurs', { count })}</span>
-        </span>
+        <Editable field="total">
+          {showTotal ? (
+            <span>
+              <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{money(raised)}</span>
+              <span style={{ color: 'rgba(255,255,255,0.6)', marginLeft: '8px' }}>{goalCents > 0 ? t('amassesSur', { montant: money(goalCents) }) : t('amasses')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.35)', margin: '0 8px' }}>·</span>
+              <span style={{ color: 'rgba(255,255,255,0.6)' }}>{t('donateurs', { count })}</span>
+            </span>
+          ) : (
+            // Montant masqué par l'organisme : le nombre de donateurs prend sa place
+            <span style={{ fontWeight: 700, fontSize: '20px', color: GOLD }}>{t('donateurs', { count })}</span>
+          )}
+        </Editable>
         {goalCents > 0 && (
           <span style={{ width: '100%', height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
             <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: GOLD }} />

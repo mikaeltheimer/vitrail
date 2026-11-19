@@ -44,6 +44,16 @@ export async function hasQuoteConsentDates(): Promise<boolean> {
   return quoteDatesCache.ok
 }
 
+/** Afficher le montant collecté (migration 2026-12-03-afficher-montant.sql) : vitraux.show_total. */
+let showTotalCache: { ok: boolean; at: number } | null = null
+export async function hasShowTotal(): Promise<boolean> {
+  if (showTotalCache && Date.now() - showTotalCache.at < 60_000) return showTotalCache.ok
+  const { error } = await getDb().from('vitraux').select('show_total').limit(1)
+  if (error) console.error('Réglage du montant affiché absent : lancez supabase/migrations/2026-12-03-afficher-montant.sql')
+  showTotalCache = { ok: !error, at: Date.now() }
+  return showTotalCache.ok
+}
+
 /** Journal des courriels (migration 2026-11-05-journal-courriels.sql) : table email_log. */
 let emailLogCache: { ok: boolean; at: number } | null = null
 export async function hasEmailLog(): Promise<boolean> {

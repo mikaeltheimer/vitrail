@@ -1,11 +1,12 @@
 'use client'
 
-// « Derniers dons » : en haut à gauche (en haut à gauche, sous l'en-tête),
-// une pastille repliée ou un panneau ouvert ; chaque don mène à son morceau. L'état ouvert/fermé est retenu.
+// « Derniers dons » : en haut à gauche, sous le titre du vitrail ; une pastille repliée ou un panneau ouvert ; chaque
+// don mène à son morceau. L'état ouvert/fermé est retenu. Aucun montant (Mika, 19 nov. 2026) : le total collé au nom du
+// dernier donateur se lisait comme le montant de son don, et aucun donateur n'a consenti à ce que le sien soit public.
+// Le total, quand l'organisme l'affiche, est dans l'en-tête et dans « À propos de la collecte ».
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useMoney } from '@/lib/useI18n'
 import type { RecentDonation } from '@/lib/types'
 
 const MONO = "'DM Sans', sans-serif"
@@ -22,11 +23,10 @@ function ago(iso: string, t: Ago): string {
 }
 
 /** `top` : position verticale (sous le titre du vitrail, qui est en haut à gauche). */
-export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit, top = 72 }: { recent: RecentDonation[]; totalCents: number; isMobile: boolean; hidden: boolean; onVisit: (donorId: string) => void; top?: number }) {
+export default function Ticker({ recent, isMobile, hidden, onVisit, top = 72 }: { recent: RecentDonation[]; isMobile: boolean; hidden: boolean; onVisit: (donorId: string) => void; top?: number }) {
   const t = useTranslations('vitrail.ticker')
   const ta = useTranslations('vitrail.ticker.ago')
   const tc = useTranslations('commun')
-  const money = useMoney()
   const [open, setOpen] = useState(false)
   useEffect(() => {
     try {
@@ -67,12 +67,8 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit, 
           maxWidth: isMobile ? 'calc(100% - 32px - 170px)' : 360,
         }}
       >
-        <span style={{ color: GOLD, fontWeight: 700 }}>{money(totalCents)}</span>
-        {!isMobile && (
-          <span style={{ color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            · {t('ajoute', { nom: last.name ?? tc('anonyme') })}
-          </span>
-        )}
+        <span aria-hidden="true" style={{ width: 7, height: 7, flex: 'none', borderRadius: 99, background: GOLD }} />
+        <span style={{ color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('ajoute', { nom: last.name ?? tc('anonyme') })}</span>
         <span style={{ color: 'rgba(255,255,255,0.4)' }}>▾</span>
       </button>
     )
@@ -86,8 +82,6 @@ export default function Ticker({ recent, totalCents, isMobile, hidden, onVisit, 
           ×
         </button>
       </div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: GOLD, fontVariantNumeric: 'tabular-nums' }}>{money(totalCents)}</div>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 12 }}>{t('amasses')}</div>
       <div style={{ display: 'grid', gap: 2 }}>
         {recent.slice(0, 8).map(d => (
           <button

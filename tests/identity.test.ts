@@ -142,6 +142,34 @@ async function main() {
   await apost({ action: 'save', texts: { en: { why: 'Oops' } } })
   ar = await apost({ action: 'discard' })
   check('abandon : retour à la version publiée', !ar.body.pending && ar.body.texts.en.why !== 'Oops' && !(ecoleRow.draft))
+  console.log('Atelier : montant collecté affiché')
+  tables.vitraux = [
+    { id: 'pe', organization_id: 'ecole', kind: 'permanent', show_total: true },
+    { id: 'px', organization_id: 'ecole-essai', kind: 'permanent', show_total: true },
+    { id: 'camp', organization_id: 'ecole', kind: 'campaign', show_total: true },
+    { id: 'autre', organization_id: 'lac', kind: 'permanent', show_total: true },
+  ]
+  const vt = (id: string) => tables.vitraux.find(v => v.id === id)!.show_total
+  const st = async (body: unknown) => ((await apost(body)).body as unknown as { showTotal: boolean; pending: boolean })
+  check('affiché par défaut', (await st({ action: 'save', texts: {} })).showTotal === true)
+  const masque = await st({ action: 'save', showTotal: false })
+  check('masqué dans le brouillon, pas encore sur le vitrail', masque.showTotal === false && masque.pending && vt('pe') === true)
+  await apost({ action: 'publish' })
+  check('publié : vitrail permanent de l\'organisme et de l\'atelier', vt('pe') === false && vt('px') === false)
+  check('publié : ni la campagne ni un autre organisme', vt('camp') === true && vt('autre') === true)
+  await apost({ action: 'save', showTotal: true })
+  const back = await st({ action: 'discard' })
+  check('abandon : retour au réglage publié', back.showTotal === false && vt('pe') === false)
+  check('valeur non booléenne ignorée', (await st({ action: 'save', showTotal: 'non' })).showTotal === false)
+  await apost({ action: 'discard' })
+  // Depuis la console (Réglages) : tout de suite, et le brouillon en cours suit (une publication ne le défait pas)
+  const { setShowTotal } = await import('../lib/atelier')
+  await apost({ action: 'save', texts: { fr: { why: 'Brouillon en cours.' } } })
+  await setShowTotal('ecole', true)
+  check('console : vitrail de l\'organisme et de l\'atelier, tout de suite', vt('pe') === true && vt('px') === true && vt('camp') === true && vt('autre') === true)
+  check('console : le brouillon en cours suit', (await st({ action: 'save', texts: {} })).showTotal === true)
+  await apost({ action: 'publish' })
+  check('console puis publication : le réglage tient', vt('pe') === true)
   console.log('Atelier : images')
   const removed: string[] = []
   const fdb = (await import('./fake-db')).fakeDb as unknown as { storage?: unknown }
