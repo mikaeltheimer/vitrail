@@ -653,6 +653,7 @@ CREATE TABLE public.vitraux (
     settings jsonb DEFAULT '{}'::jsonb NOT NULL,
     closed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    show_total boolean DEFAULT true NOT NULL,
     CONSTRAINT vitraux_check CHECK (((kind = 'permanent'::text) = (slug IS NULL))),
     CONSTRAINT vitraux_check1 CHECK (((kind = 'campaign'::text) OR ((state = 'active'::text) AND in_main))),
     CONSTRAINT vitraux_goal_cents_check CHECK ((goal_cents >= 0)),
