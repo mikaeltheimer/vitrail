@@ -5,7 +5,8 @@ import { getDb } from './db'
 import { isErasedEmail } from './erase'
 import { siteUrl } from './env'
 import { renderEmail, type EmailContent, type EmailHeader } from './emailTemplate'
-import { formatMoney } from './format'
+import { formatMoney, formatMoneyExact } from './format'
+import { platformUrl } from './tenant'
 import { translatorFor } from './i18n'
 import { hasEmailLog } from './schema'
 import type { Locale } from '@/i18n/config'
@@ -209,6 +210,8 @@ export interface ReceiptInput {
   contributionCents?: number
   token: string
   locale: Locale
+  /** Le donateur a écrit un témoignage avec ce don : le reçu le remercie au lieu de le lui demander. */
+  hasTestimonial?: boolean
   donorId?: string | null
   organizationId?: string | null
   baseUrl?: string
@@ -216,30 +219,39 @@ export interface ReceiptInput {
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
 // Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
-export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl'> & { org: OrgTexts; charityNumber?: string }): Built {
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl' | 'hasTestimonial'> & { org: OrgTexts; charityNumber?: string }): Built {
   const t = translatorFor(i.locale)
   const org = i.org
+  const contribution = i.contributionCents && i.contributionCents > 0 ? i.contributionCents : 0
+  const money = (c: number) => formatMoneyExact(c, i.locale)
   return {
     subject: t('courriel.recuObjet', { org: org.name }),
     content: {
       preheader: t('courriel.recuPreheader'),
       heading: t('courriel.recuTitre'),
-      paragraphs: [
-        t('courriel.recuConfirmation', { montant: formatMoney(i.amountCents, i.locale) }),
-        // Contribution à Donivers : à part du don, taxes comprises, sans reçu fiscal (spécification du 16 nov., 2.2)
-        ...(i.contributionCents && i.contributionCents > 0
-          ? [
-              t('courriel.recuContribution', { contribution: formatMoney(i.contributionCents, i.locale), total: formatMoney(i.amountCents + i.contributionCents, i.locale) }),
-              t('courriel.recuContributionTaxes', { tps: STUDIO_TAX_NUMBERS.gstHst, tvq: STUDIO_TAX_NUMBERS.qst }),
-            ]
-          : []),
-        `${org.testimonial.question} ${org.testimonial.cta} ${org.testimonial.lead}`,
-      ],
-      button: { label: t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
-      note: t('courriel.recuLienNote'),
+      paragraphs: [t('courriel.recuConfirmation', { org: org.name })],
+      // Récapitulatif : le don, puis la contribution à Donivers et le total payé s'il y en a une (spécification du 16 nov., 2.2)
+      summary: {
+        rows: [
+          { label: t('courriel.recuLigneDon', { org: org.name }), value: money(i.amountCents) },
+          ...(contribution
+            ? [
+                { label: t('courriel.recuLigneContribution'), value: money(contribution) },
+                { label: t('courriel.recuLigneTotal'), value: money(i.amountCents + contribution), total: true },
+              ]
+            : []),
+        ],
+        // Reçu fiscal : seulement si l'organisme a un numéro d'organisme de bienfaisance (le reçu officiel vient de lui)
+        note: i.charityNumber ? t('courriel.recuFiscalAvecNumero', { org: org.name, numero: i.charityNumber }) : t('courriel.recuFiscal'),
+      },
+      prompt: i.hasTestimonial
+        ? { title: t('courriel.recuMerciTemoignage'), text: t('courriel.recuRevoir') }
+        : { title: org.testimonial.question, text: org.testimonial.lead },
+      button: { label: i.hasTestimonial ? t('courriel.recuBoutonFragment') : t('courriel.recuBouton'), url: manageLink(i.token, i.locale, i.baseUrl) },
+      note: i.hasTestimonial ? t('courriel.recuLienNoteCourte') : t('courriel.recuLienNote'),
       linkHelp: t('courriel.lienAlt'),
-      // Reçu fiscal : seulement si l'organisme a un numéro d'organisme de bienfaisance (le reçu officiel vient de lui)
-      footer: [i.charityNumber ? t('courriel.recuPiedAvecNumero', { org: org.name, numero: i.charityNumber }) : t('courriel.recuPied'), ...footerFor(i.locale, i.org.name)],
+      promo: { text: t('courriel.recuPromo'), label: t('courriel.recuPromoLien'), url: platformUrl() },
+      footer: [...(contribution ? [t('courriel.recuContributionTaxes', { tps: STUDIO_TAX_NUMBERS.gstHst, tvq: STUDIO_TAX_NUMBERS.qst })] : []), ...footerFor(i.locale, i.org.name)],
     },
   }
 }

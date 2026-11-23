@@ -18,6 +18,11 @@ export function formatMoney(cents: number, locale: Locale = DEFAULT_LOCALE): str
   return money(locale, cents % 100 === 0).format(cents / 100)
 }
 
+/** Toujours avec les cents : 2500 → « 25,00 $ » ou « $25.00 » (colonnes de montants alignées). */
+export function formatMoneyExact(cents: number, locale: Locale = DEFAULT_LOCALE): string {
+  return money(locale, false).format(cents / 100)
+}
+
 /** Nombre entier groupé selon la langue : 4944 → « 4 944 » ou « 4,944 ». */
 export function formatCount(n: number, locale: Locale = DEFAULT_LOCALE): string {
   return new Intl.NumberFormat(INTL_TAG[locale]).format(n)

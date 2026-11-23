@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/payments'
-import { recordDonation, createToken } from '@/lib/donations'
+import { recordDonation, createToken, getDonorView } from '@/lib/donations'
 import { sendReceipt } from '@/lib/email'
 import { cleanChannel, defaultColorFor, validateColor } from '@/lib/validate'
 import { ANON_LABEL } from '@/lib/config'
@@ -145,7 +145,10 @@ export async function POST(request: NextRequest) {
         const { donorId } = result
         after(async () => {
           try {
-            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, donorId, organizationId: org.id, baseUrl })
+            // Témoignage écrit avec ce don, ou déjà là (donateur qui revient) : le reçu remercie au lieu de demander
+            const donor = await getDonorView(donorId, org.id).catch(() => null)
+            const hasTestimonial = !!(donor?.message ?? m.message)?.trim()
+            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, hasTestimonial, donorId, organizationId: org.id, baseUrl })
           } catch (e) {
             console.error('Courriel de reçu non envoyé :', e)
           }
