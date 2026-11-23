@@ -11,11 +11,17 @@ export interface EmailContent {
   preheader?: string
   heading: string
   paragraphs: string[]
+  /** Récapitulatif chiffré, dans un encadré (la dernière ligne peut être un total, en gras), avec une mention sous l'encadré. */
+  summary?: { rows: { label: string; value: string; total?: boolean }[]; note?: string }
+  /** Invitation mise en avant juste avant le bouton : un titre (en serif) et une phrase. */
+  prompt?: { title: string; text?: string }
   button?: { label: string; url: string }
   /** Petit texte sous le bouton. */
   note?: string
   /** Phrase qui précède le lien de secours (« Le bouton ne fonctionne pas? … »). */
   linkHelp?: string
+  /** Ligne de la plateforme, au-dessus du pied (« Vous voulez collecter des dons… ? Créez votre vitrail »). */
+  promo?: { text: string; label: string; url: string }
   /** Lignes de pied de courriel, en petit. */
   footer: string[]
 }
@@ -46,6 +52,12 @@ export interface EmailHeader {
   logoUrl: string | null
   /** Largeur et hauteur d'origine du logo, pour poser des dimensions explicites (Outlook les exige). */
   logoSize: [number, number] | null
+}
+
+const DONIVERS_LOGO: [number, number] = [535, 112]
+function doniversLogo(height: number): string {
+  const width = Math.round((height * DONIVERS_LOGO[0]) / DONIVERS_LOGO[1])
+  return `<img src="${escapeHtml(`${platformUrl()}/brand/donivers-courriel.png`)}" alt="${escapeHtml(CONFIG.brand.name)}" width="${width}" height="${height}" style="display:block;width:${width}px;height:${height}px;border:0;outline:none;text-decoration:none;font-family:${SERIF};font-size:16px;color:${TEXT}">`
 }
 
 const LOGO_H = 48
@@ -88,6 +100,24 @@ export function renderEmail(c: EmailContent, locale: Locale, header?: EmailHeade
 <a href="${escapeHtml(c.button.url)}" style="display:inline-block;padding:15px 28px;font-family:${SANS};font-size:16px;font-weight:bold;color:${ON_GOLD};text-decoration:none">${escapeHtml(c.button.label)}</a>
 </td></tr></table>`
     : ''
+  const summary = c.summary
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${BG}" style="background:${BG};border:1px solid ${LINE};border-radius:14px;margin:4px 0 ${c.summary.note ? '10px' : '24px'}">
+${c.summary.rows
+  .map((r, i) => {
+    const sep = i > 0 ? `border-top:1px solid ${LINE};` : ''
+    const weight = r.total ? 'font-weight:bold;' : ''
+    const color = r.total ? TEXT : MUTED
+    return `<tr><td style="${sep}padding:12px 16px;font-family:${SANS};font-size:15px;line-height:1.4;color:${color};${weight}">${escapeHtml(r.label)}</td><td align="right" style="${sep}padding:12px 16px;font-family:${SANS};font-size:15px;line-height:1.4;color:${TEXT};white-space:nowrap;${weight}">${escapeHtml(r.value)}</td></tr>`
+  })
+  .join('\n')}
+</table>${c.summary.note ? `<p style="margin:0 0 28px;font-family:${SANS};font-size:13px;line-height:1.5;color:${MUTED}">${escapeHtml(c.summary.note)}</p>` : ''}`
+    : ''
+  const prompt = c.prompt
+    ? `<p style="margin:0 0 8px;font-family:${SERIF};font-size:21px;line-height:1.35;font-weight:500;color:${TEXT}">${escapeHtml(c.prompt.title)}</p>${c.prompt.text ? `<p style="margin:0 0 12px;font-family:${SANS};font-size:15px;line-height:1.55;color:${MUTED}">${escapeHtml(c.prompt.text)}</p>` : ''}`
+    : ''
+  const promo = c.promo
+    ? `<p style="margin:0 0 14px;font-family:${SANS};font-size:13px;line-height:1.5;color:${TEXT}">${escapeHtml(c.promo.text)} <a href="${escapeHtml(c.promo.url)}" style="color:${GOLD};font-weight:bold">${escapeHtml(c.promo.label)}</a></p>`
+    : ''
   const note = c.note ? p(c.note, `font-size:14px;color:${MUTED};`) : ''
   const help =
     c.button && c.linkHelp
@@ -101,6 +131,8 @@ export function renderEmail(c: EmailContent, locale: Locale, header?: EmailHeade
     '<td width="2" bgcolor="' + PANEL + '" style="width:2px;font-size:0;line-height:0">&nbsp;</td>',
   )
   const top = header ? orgHeader(header) : platformHeader(locale)
+  // Courriel d'organisme : le haut lui appartient ; la marque Donivers accompagne l'invitation de la plateforme, au pied
+  const footBrand = header && c.promo ? `<div style="padding:0 0 12px">${doniversLogo(20)}</div>` : ''
 
   const html = `<!doctype html>
 <html lang="${locale}">
@@ -116,12 +148,14 @@ ${top}
 <tr><td style="padding:24px 32px 12px">
 <h1 style="margin:0 0 20px;font-family:${SERIF};font-size:28px;line-height:1.25;font-weight:500;letter-spacing:-0.01em;color:${TEXT}">${escapeHtml(c.heading)}</h1>
 ${c.paragraphs.map(t => p(t)).join('\n')}
+${summary}
+${prompt}
 ${button}
 ${note}
 ${help}
 </td></tr>
 <tr><td style="padding:0 32px 28px">
-<div style="border-top:1px solid ${LINE};padding-top:16px">${footer}</div>
+<div style="border-top:1px solid ${LINE};padding-top:20px">${footBrand}${promo}${footer}</div>
 </td></tr>
 </table>
 </td></tr></table>
@@ -132,9 +166,12 @@ ${help}
     c.heading,
     '',
     ...c.paragraphs.flatMap(t => [t, '']),
+    ...(c.summary ? [...c.summary.rows.map(r => `${r.label}${locale === 'fr' ? '\u00a0: ' : ': '}${r.value}`), '', ...(c.summary.note ? [c.summary.note, ''] : [])] : []),
+    ...(c.prompt ? [c.prompt.title, ...(c.prompt.text ? [c.prompt.text] : []), ''] : []),
     ...(c.button ? [`${c.button.label}${locale === 'fr' ? ' :' : ':'}`, c.button.url, ''] : []),
     ...(c.note ? [c.note, ''] : []),
     '--',
+    ...(c.promo ? [`${c.promo.text} ${c.promo.label}${locale === 'fr' ? '\u00a0: ' : ': '}${c.promo.url}`, ''] : []),
     ...c.footer,
   ].join('\n')
 

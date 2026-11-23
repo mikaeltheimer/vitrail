@@ -238,6 +238,10 @@ export function CourrielsForm({ identity, reload }: { identity: Identity; reload
           <input className="field" type="email" value={form.replyTo} placeholder={form.legal.officerEmail || ''} onChange={e => setForm({ ...form, replyTo: e.target.value })} />
           <span className="muted block text-xs">{t('repondreAide')}</span>
         </label>
+        {/* Aperçu de chaque courriel et envoi d'essai à une adresse au choix (propriétaire seulement, comme Réglages) */}
+        <a className="inline-block text-sm underline" href="/api/admin/courriels" target="_blank" rel="noopener">
+          {t('apercuCourriels')}
+        </a>
       </div>
       {bar}
     </div>

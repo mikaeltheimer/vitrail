@@ -70,13 +70,13 @@ async function main() {
   check('reçu sans contribution : aucune ligne de contribution', !JSON.stringify(r.content.paragraphs).includes('Donivers'))
   const rc = buildReceipt({ amountCents: 12500, contributionCents: 1875, token: 'x', locale: 'fr', baseUrl: 'https://lac.test', org: e.build.org })
   const txt = JSON.stringify(rc.content)
-  check('reçu avec contribution : le don seul, puis la contribution et le total', txt.includes('125\u00a0$') && txt.includes('18,75') && txt.includes('143,75'))
+  check('reçu avec contribution : le don seul, puis la contribution et le total', txt.includes('125,00\u00a0$') && txt.includes('18,75') && txt.includes('143,75'))
   check('reçu avec contribution : taxes comprises et numéros de Studio Existence', txt.includes('744071374 RT0001') && txt.includes('1233689404 TQ0001') && txt.includes('reçu fiscal'))
 
-  check('reçu sans numéro de bienfaisance : pas de reçu fiscal', JSON.stringify(rc.content.footer).includes('pas encore enregistré'))
+  check('reçu sans numéro de bienfaisance : pas de reçu fiscal', rc.content.summary!.note!.includes('aucun reçu fiscal') && !txt.includes('pas encore'))
   const rn = buildReceipt({ amountCents: 12500, token: 'x', locale: 'fr', baseUrl: 'https://lac.test', org: e.build.org, charityNumber: '12345 6789 RR0001' })
-  const pied = JSON.stringify(rn.content.footer)
-  check('reçu avec numéro : émis par l\'organisme, ce courriel n\'en est pas un', pied.includes('12345 6789 RR0001') && pied.includes('n’est pas un reçu fiscal') && !pied.includes('pas encore enregistré'))
+  const pied = rn.content.summary!.note!
+  check('reçu avec numéro : émis par l\'organisme, ce courriel n\'en est pas un', pied.includes('12345 6789 RR0001') && pied.includes("n'est pas un reçu fiscal") && !pied.includes('aucun reçu fiscal'))
   check('identité : numéro de bienfaisance lu dans legal, vide par défaut', e.build.charityNumber === '' && id.identityFromRow({ id: 'z', name_fr: 'Z', website_url: null, texts: {}, legal: { charityNumber: ' 1 RR0001 ' }, theme: {}, logo_path: null, icon_path: null, locales: ['fr'], sender_name: null, reply_to: null }).charityNumber === '1 RR0001')
   const fmt = await import('../lib/format')
   check('ordinaux courts', fmt.shortOrdinal(101, 'fr') === '101e' && fmt.shortOrdinal(1, 'fr') === '1er' && fmt.shortOrdinal(101, 'en') === '101st' && fmt.shortOrdinal(112, 'en') === '112th' && fmt.shortOrdinal(103, 'en') === '103rd')
