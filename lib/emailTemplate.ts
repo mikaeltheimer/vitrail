@@ -11,8 +11,6 @@ export interface EmailContent {
   preheader?: string
   heading: string
   paragraphs: string[]
-  /** Le fragment du donateur : une pastille de sa couleur, avec une phrase à côté (avant les paragraphes). */
-  fragment?: { color: string; text: string }
   /** Récapitulatif chiffré, dans un encadré (la dernière ligne peut être un total, en gras), avec une mention sous l'encadré. */
   summary?: { rows: { label: string; value: string; total?: boolean }[]; note?: string }
   /** Invitation mise en avant juste avant le bouton : un titre (en serif) et une phrase. */
@@ -102,14 +100,6 @@ export function renderEmail(c: EmailContent, locale: Locale, header?: EmailHeade
 <a href="${escapeHtml(c.button.url)}" style="display:inline-block;padding:15px 28px;font-family:${SANS};font-size:16px;font-weight:bold;color:${ON_GOLD};text-decoration:none">${escapeHtml(c.button.label)}</a>
 </td></tr></table>`
     : ''
-  // Couleur limitée à un code hexadécimal (elle finit dans un attribut et un style)
-  const fragment =
-    c.fragment && /^#[0-9a-f]{6}$/i.test(c.fragment.color)
-      ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr>
-<td valign="middle" width="36" style="width:36px"><table role="presentation" width="36" cellpadding="0" cellspacing="0"><tr><td width="36" height="36" bgcolor="${c.fragment.color}" style="width:36px;height:36px;background:${c.fragment.color};border-radius:8px;font-size:0;line-height:0">&nbsp;</td></tr></table></td>
-<td valign="middle" style="padding-left:14px;font-family:${SANS};font-size:16px;line-height:1.5;color:${TEXT}">${escapeHtml(c.fragment.text)}</td>
-</tr></table>`
-      : ''
   const summary = c.summary
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${BG}" style="background:${BG};border:1px solid ${LINE};border-radius:14px;margin:4px 0 ${c.summary.note ? '10px' : '24px'}">
 ${c.summary.rows
@@ -157,7 +147,6 @@ ${top}
 </td></tr>
 <tr><td style="padding:24px 32px 12px">
 <h1 style="margin:0 0 20px;font-family:${SERIF};font-size:28px;line-height:1.25;font-weight:500;letter-spacing:-0.01em;color:${TEXT}">${escapeHtml(c.heading)}</h1>
-${fragment}
 ${c.paragraphs.map(t => p(t)).join('\n')}
 ${summary}
 ${prompt}
@@ -176,7 +165,6 @@ ${help}
   const text = [
     c.heading,
     '',
-    ...(c.fragment ? [c.fragment.text, ''] : []),
     ...c.paragraphs.flatMap(t => [t, '']),
     ...(c.summary ? [...c.summary.rows.map(r => `${r.label}${locale === 'fr' ? '\u00a0: ' : ': '}${r.value}`), '', ...(c.summary.note ? [c.summary.note, ''] : [])] : []),
     ...(c.prompt ? [c.prompt.title, ...(c.prompt.text ? [c.prompt.text] : []), ''] : []),

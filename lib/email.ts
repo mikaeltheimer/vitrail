@@ -214,8 +214,6 @@ export interface ReceiptInput {
   hasTestimonial?: boolean
   /** Nom donné par le donateur (vide ou « Anonyme » : « Merci! » seul). */
   name?: string | null
-  /** Couleur de son fragment (code hexadécimal) : pastille à côté de la confirmation. */
-  color?: string | null
   donorId?: string | null
   organizationId?: string | null
   baseUrl?: string
@@ -223,19 +221,18 @@ export interface ReceiptInput {
 
 // Les courriels partent dans la langue du donateur (celle de son don, ou celle de sa demande de lien).
 // Chaque courriel a une fonction « build » (contenu seul, sans envoi) : l'envoi et l'aperçu de la console partagent le même code.
-export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl' | 'hasTestimonial' | 'name' | 'color'> & { org: OrgTexts; charityNumber?: string }): Built {
+export function buildReceipt(i: Pick<ReceiptInput, 'amountCents' | 'contributionCents' | 'token' | 'locale' | 'baseUrl' | 'hasTestimonial' | 'name'> & { org: OrgTexts; charityNumber?: string }): Built {
   const t = translatorFor(i.locale)
   const org = i.org
   const contribution = i.contributionCents && i.contributionCents > 0 ? i.contributionCents : 0
   const money = (c: number) => formatMoneyExact(c, i.locale)
   const name = i.name?.trim() && i.name.trim() !== ANON_LABEL ? i.name.trim() : ''
-  const confirmation = t('courriel.recuConfirmation', { org: org.name })
   return {
     subject: t('courriel.recuObjet', { org: org.name }),
     content: {
       preheader: t('courriel.recuPreheader'),
       heading: name ? t('courriel.recuTitreNom', { nom: name }) : t('courriel.recuTitre'),
-      ...(i.color ? { fragment: { color: i.color, text: confirmation }, paragraphs: [] } : { paragraphs: [confirmation] }),
+      paragraphs: [t('courriel.recuConfirmation', { org: org.name })],
       // Récapitulatif : le don, puis la contribution à Donivers et le total payé s'il y en a une (spécification du 16 nov., 2.2)
       summary: {
         rows: [

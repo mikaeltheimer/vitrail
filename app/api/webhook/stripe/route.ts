@@ -148,10 +148,9 @@ export async function POST(request: NextRequest) {
             // Témoignage écrit avec ce don, ou déjà là (donateur qui revient) : le reçu remercie au lieu de demander
             const donor = await getDonorView(donorId, org.id).catch(() => null)
             const hasTestimonial = !!(donor?.message ?? m.message)?.trim()
-            // Nom et couleur du fragment tels qu'enregistrés (un donateur qui revient garde les siens)
+            // Nom tel qu'enregistré (un donateur qui revient garde le sien)
             const name = donor?.name ?? m.name
-            const fragmentColor = donor?.color ?? (color.ok ? color.value : null)
-            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, hasTestimonial, name, color: fragmentColor, donorId, organizationId: org.id, baseUrl })
+            await sendReceipt({ to: email, amountCents, contributionCents, token: await createToken(donorId), locale, hasTestimonial, name, donorId, organizationId: org.id, baseUrl })
           } catch (e) {
             console.error('Courriel de reçu non envoyé :', e)
           }

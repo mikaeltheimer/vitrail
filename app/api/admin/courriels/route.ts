@@ -21,8 +21,8 @@ export const dynamic = 'force-dynamic'
 // Les liens des exemples portent un jeton bidon : ils mènent à « ce lien a expiré ». Rien n'est lu ni écrit chez les donateurs.
 
 const TYPES = {
-  recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts, charityNumber?: string): Built => buildReceipt({ amountCents: 2500, contributionCents: 375, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org, charityNumber, name: 'Marie', color: '#5CC0F5' }) },
-  recutem: { label: 'Reçu de don (témoignage déjà écrit)', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts, charityNumber?: string): Built => buildReceipt({ amountCents: 2500, contributionCents: 375, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org, charityNumber, hasTestimonial: true, name: 'Marie', color: '#9450CC' }) },
+  recu: { label: 'Reçu de don', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts, charityNumber?: string): Built => buildReceipt({ amountCents: 2500, contributionCents: 375, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org, charityNumber, name: 'Marie' }) },
+  recutem: { label: 'Reçu de don (témoignage déjà écrit)', kind: 'receipt' as EmailKind, build: (locale: Locale, org: OrgTexts, charityNumber?: string): Built => buildReceipt({ amountCents: 2500, contributionCents: 375, token: 'EXEMPLE', locale, baseUrl: siteUrl(), org, charityNumber, hasTestimonial: true, name: 'Marie' }) },
   lien: { label: 'Lien personnel (« Retrouver mon don »)', kind: 'magic_link' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildMagicLink({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
   centieme: { label: 'Avis au propriétaire : 100e donateur', kind: 'fee_threshold' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildThresholdNotice({ locale, orgName: org.name, donorsPaidCents: 6400, capCents: PRICING.capCents, rate: PRICING.rate, consoleUrl: `${siteUrl()}/admin` }) },
   rappel: { label: 'Rappel du lendemain (témoignage)', kind: 'reminder' as EmailKind, build: (locale: Locale, org: OrgTexts): Built => buildReminder({ token: 'EXEMPLE', locale, baseUrl: siteUrl(), org }) },
