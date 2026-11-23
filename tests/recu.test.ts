@@ -37,6 +37,16 @@ const header = { name: 'Club Test', logoUrl: null, logoSize: null }
   check('anglais', b.content.summary!.rows[2].label === 'Total paid' && b.content.button!.label === 'View or edit my fragment')
 }
 {
+  const b = buildReceipt({ ...base, name: 'Marie', color: '#5CC0F5' })
+  check('nom dans le titre', b.content.heading === 'Merci, Marie\u00a0!')
+  const { html, text } = renderEmail(b.content, 'fr', header)
+  check('pastille de la couleur du fragment', html.includes('bgcolor="#5CC0F5"') && text.includes('votre fragment'))
+  check('anonyme : « Merci ! » seul', buildReceipt({ ...base, name: 'Anonyme' }).content.heading === 'Merci\u00a0!' && buildReceipt({ ...base, name: '  ' }).content.heading === 'Merci\u00a0!')
+  const bad = renderEmail(buildReceipt({ ...base, color: 'red;background:url(x)' }).content, 'fr', header).html
+  check('couleur non hexadécimale : pas de pastille', !bad.includes('url(x)'))
+  check('anglais : nom dans le titre', buildReceipt({ ...base, locale: 'en', org: id.texts.en, name: 'Sam' }).content.heading === 'Thank you, Sam!')
+}
+{
   // Les autres courriels d'organisme n'ont ni invitation ni logo Donivers
   const { html } = renderEmail({ heading: 'H', paragraphs: ['p'], footer: ['f'] }, 'fr', header)
   check('pas de logo Donivers sans invitation', !html.includes('donivers-courriel.png'))
