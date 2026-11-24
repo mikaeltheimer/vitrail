@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       ...org,
       owners: ownersOf.get(o.id as string) ?? [],
       billing: billingOf.get(o.id as string) ?? null,
-      links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request) } : null,
+      links: slug ? { vitrail: orgUrl(slug, '/vitrail', request), ecran: orgUrl(slug, '/ecran', request), affiche: orgUrl(slug, '/affiche', request), courriels: orgUrl(slug, '/api/admin/courriels', request) } : null,
     }
   })
   const since = now - WINDOW_DAYS * 86_400_000

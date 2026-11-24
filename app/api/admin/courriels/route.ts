@@ -4,7 +4,7 @@ import { buildMagicLink, buildModeration, buildReceipt, buildReminder, buildThre
 import { escapeHtml, renderEmail } from '@/lib/emailTemplate'
 import { siteUrl } from '@/lib/env'
 import { clientKey, rateLimit } from '@/lib/ratelimit'
-import { currentAccount, roleIn } from '@/lib/auth'
+import { currentAccount } from '@/lib/auth'
 import { requireTenant, type OrgRow } from '@/lib/tenant'
 import { emailIdentity } from '@/lib/email'
 import { getIdentity, type OrgTexts } from '@/lib/identity'
@@ -14,7 +14,7 @@ import { isLocale, type Locale } from '@/i18n/config'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Aperçu des courriels pour l'équipe (console en français) : /api/admin/courriels, connecté à /admin.
+// Aperçu des courriels pour Studio Existence (en français) : /api/admin/courriels sur l'adresse de l'organisme, lien depuis sa fiche dans /studio.
 //  - GET sans paramètre : la liste (reçu, lien personnel, rappel ; français et anglais).
 //  - GET ?type=recu|recutem|lien|rappel|modpub|modtem|modphotopub|modphoto|modtout|centieme&lang=fr|en : le courriel tel qu'il part (ajouter &format=text pour la version texte).
 //  - POST (formulaire de la liste) : envoie un courriel d'essai, sur un exemple, à l'adresse indiquée.
@@ -50,12 +50,16 @@ const SECURITY = {
   'Cache-Control': 'no-store',
 }
 
-/** Propriétaire de l'organisme de l'adresse (les exemples ne lisent aucune donnée, mais l'envoi d'essai part à une adresse libre). */
-async function ownerOrg(request: NextRequest): Promise<OrgRow | null> {
+/**
+ * Studio Existence seulement (is_studio), sur l'adresse de l'organisme : on y arrive depuis sa fiche dans /studio.
+ * Les propriétaires n'y ont pas accès (décision de Mika, 23 nov.) : l'envoi d'essai part à une adresse libre.
+ * Les exemples ne lisent aucune donnée de donateur.
+ */
+async function studioOrg(request: NextRequest): Promise<OrgRow | null> {
   const t = await requireTenant(request)
   if ('response' in t) return null
   const me = await currentAccount()
-  return me && (await roleIn(me.id, t.tenant.org.id)) === 'owner' ? t.tenant.org : null
+  return me?.isStudio ? t.tenant.org : null
 }
 
 /** Le courriel de l'exemple, avec l'identité de l'organisme (langue limitée aux siennes). */
@@ -75,8 +79,8 @@ form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}input
   )
 
 export async function GET(request: NextRequest) {
-  const org = await ownerOrg(request)
-  if (!org) return page('<p>Connectez-vous d\'abord à la <a href="/admin">console</a> comme propriétaire, puis rouvrez cette adresse.</p>', 403)
+  const org = await studioOrg(request)
+  if (!org) return page('<p>Réservé à Studio Existence : ouvrez cette page depuis la fiche de l\'organisme dans Studio, une fois connecté.</p>', 403)
   const params = request.nextUrl.searchParams
   const type = params.get('type')
   const lang = params.get('lang')
@@ -111,7 +115,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const org = await ownerOrg(request)
+  const org = await studioOrg(request)
   if (!org) return page('<p>Non autorisé.</p>', 403)
   if (!rateLimit(clientKey(request, 'admin-courriels'), 10, 10 * 60_000)) return page('<p>Trop d\'essais. Réessayez dans quelques minutes.</p>', 429)
   const form = await request.formData().catch(() => null)
@@ -123,6 +127,7 @@ export async function POST(request: NextRequest) {
 
   const built = await sample(org, type, lang)
   if (!built) return back(`erreur=${encodeURIComponent('Organisme introuvable.')}`)
-  const ok = await sendEmail({ kind: TYPES[type].kind, to: to.value, locale: built.locale, donorId: null, organizationId: org.id, ...built.from, subject: `[ESSAI] ${built.subject}`, content: built.content })
+  // Hors du journal de l'organisme (organizationId nul) : ses envois d'essai ne regardent pas l'organisme
+  const ok = await sendEmail({ kind: TYPES[type].kind, to: to.value, locale: built.locale, donorId: null, organizationId: null, ...built.from, subject: `[ESSAI] ${built.subject}`, content: built.content })
   return back(ok ? `envoye=${encodeURIComponent(to.value)}` : `erreur=${encodeURIComponent('Le courriel n\'est pas parti (clé Resend absente ou refusée : voir les journaux Vercel).')}`)
 }
