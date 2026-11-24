@@ -1312,7 +1312,6 @@
       "expediteurAide": "Empty: the organization’s name.",
       "repondre": "Reply-to address",
       "repondreAide": "Empty: the privacy officer’s email.",
-      "apercuCourriels": "Preview each email and send a test (page in French)",
       "juridiqueAide": "Used by your Privacy and Terms pages. Quebec’s Law 25 requires a reachable privacy officer: these fields are required before going live.",
       "entity": "Legal name",
       "entityExemple": "E.g.: Friends of the Park Inc.",

@@ -11,7 +11,7 @@ import { askConfirm } from '@/components/ConfirmDialog'
 // une fiche par organisme ; les chiffres de la plateforme dans leur onglet. Des TOTAUX, jamais des personnes.
 // Plus tard : passer à la piste A (tableau, une ligne par organisme) au-delà d'environ 8 organismes en ligne.
 
-type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string } | null; billing: StudioBilling | null }
+type Org = StudioOrg & { owners: { email: string; name: string }[]; links: { vitrail: string; ecran: string; affiche: string; courriels: string } | null; billing: StudioBilling | null }
 
 /** « Partenaire fondateur », « Acquitté », « 312 $ / 495 $ » ou « Gratuit » (forfait du nouveau modèle). */
 function forfaitLabel(b: StudioBilling | null, money: (c: number) => string): string {
@@ -461,6 +461,7 @@ function OrgSheet({ o, windowDays, onClose }: { o: Org; windowDays: number; onCl
                 <a className="underline" href={o.links.vitrail} target="_blank" rel="noreferrer">Vitrail</a>
                 <a className="underline" href={o.links.ecran} target="_blank" rel="noreferrer">Écran</a>
                 <a className="underline" href={o.links.affiche} target="_blank" rel="noreferrer">Affiche</a>
+                <a className="underline" href={o.links.courriels} target="_blank" rel="noreferrer">Courriels (aperçu et essai)</a>
               </p>
             )}
           </div>
