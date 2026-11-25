@@ -13,9 +13,10 @@
 //      scène vit dans la partie droite ; d'un fragment au suivant, la caméra repasse par le vitrail entier sans s'y arrêter.
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
-// ?embed (l'aperçu de la démo sur l'accueil de la plateforme) : une miniature fidèle du grand écran, rendue à 1500 × 1000 px
-// puis réduite par la page qui l'intègre ; mêmes trois temps, sans code QR (signature seule dans le coin, Mika 25 nov.),
-// interrogation lente, rien en mémoire locale, ni plein écran, ni écran tenu allumé.
+// ?embed (l'aperçu de la démo sur l'accueil de la plateforme) : une miniature du grand écran, rendue à 1500 × 1000 px puis
+// réduite par la page qui l'intègre, réduite au temps des donateurs : l'accueil montre que le vitrail est fait de
+// donateurs, sans la présentation de la collecte ni « pourquoi donner » (Mika, 25 nov.). Sans code QR (signature seule
+// dans le coin), interrogation lente, rien en mémoire locale, ni plein écran, ni écran tenu allumé.
 
 import { publicLink } from '@/lib/links'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -138,8 +139,8 @@ export default function Ecran() {
   const showcase = !!snap?.showcase
   const [card, setCard] = useState<Card | null>(null)
   const [cardOut, setCardOut] = useState(false)
-  /** Grand écran : le temps en cours (au départ, le vitrail : l'écran s'ouvre sur sa présentation). */
-  const [phase, setPhase] = useState<Phase>('vitrail')
+  /** Le temps en cours (au départ, le vitrail : l'écran s'ouvre sur sa présentation ; l'aperçu, sur les donateurs, son seul temps). */
+  const [phase, setPhase] = useState<Phase>(embed ? 'donateurs' : 'vitrail')
   const whyLength = useRef(0)
   useEffect(() => {
     whyLength.current = org.why.length
@@ -173,7 +174,7 @@ export default function Ecran() {
     /** Arrivée sur le morceau en scène (performance.now) : il sort alors doucement du vitrail. */
     let spotAt = 0
     /** Grand écran, temps des donateurs : la scène se cadre à droite de la bande (sinon : centrée). */
-    let besideBand = false
+    let besideBand = isEmbed()
     let ready = false
     // Moteur arrêté (démontage, double montage en développement) : plus aucune action, sinon deux visites
     // se disputeraient la carte et on verrait le nom d'un autre morceau pendant le vol
@@ -379,7 +380,22 @@ export default function Ecran() {
       const pending = priority.some(id => tiles.has(id))
       const nothing = !pending && !unseen && eligibleCount() === 0
       const due = performance.now() - lastCtaAt >= CTA_EVERY_MS || nothing
-      if ((due || (hops > 0 && !unseen)) && !pending) {
+      // Aperçu de l'accueil : jamais de pause, les donateurs seulement ; quand tout a été vu, un nouveau tour commence
+      // (rien à montrer : le vitrail entier, puis on réessaie)
+      if (isEmbed()) {
+        if (nothing) {
+          hideCard()
+          stage = null
+          flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
+            timer = setTimeout(next, 5000)
+          })
+          return
+        }
+        if (hops > 0 && !unseen) {
+          hops = 0
+          cycleSeen.clear()
+        }
+      } else if ((due || (hops > 0 && !unseen)) && !pending) {
         hops = 0
         cycleSeen.clear()
         // Fin de la série : la bande s'en va, la scène revient au centre ; temps 1 (le vitrail) puis temps 2 (pourquoi)
@@ -489,7 +505,7 @@ export default function Ecran() {
           first = false
           ready = true
           cam = homeCam()
-          timer = setTimeout(next, 3000)
+          timer = setTimeout(next, isEmbed() ? 1200 : 3000)
         }
         try {
           if (!isEmbed()) localStorage.setItem(CACHE_KEY, JSON.stringify(s))
