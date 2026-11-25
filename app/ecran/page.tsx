@@ -13,8 +13,9 @@
 //      scène vit dans la partie droite ; d'un fragment au suivant, la caméra repasse par le vitrail entier sans s'y arrêter.
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
-// ?embed (la démo dans la vitrine) : l'ancien cycle dans un cadre (légende à côté du fragment, reliée par un fil), sans QR ni en-tête, texte agrandi
-// pour un petit cadre, interrogation lente, rien en mémoire locale ni plein écran.
+// ?embed (l'aperçu de la démo sur l'accueil de la plateforme) : une miniature fidèle du grand écran, rendue à 1500 × 1000 px
+// puis réduite par la page qui l'intègre ; mêmes trois temps, sans code QR (signature seule dans le coin, Mika 25 nov.),
+// interrogation lente, rien en mémoire locale, ni plein écran, ni écran tenu allumé.
 
 import { publicLink } from '@/lib/links'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -49,12 +50,8 @@ const HOLD_MS = 8000 // morceau avec nom, photo ou message
 const HOLD_BARE_MS = 4500 // morceau anonyme
 const READ_MS_PER_CHAR = 45 // témoignage : le temps de le lire (≈ 22 caractères par seconde, à 3 m de l'écran)
 const READ_MAX_MS = 20000
-const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise en page « témoignage »
-const CARD_EM = 28 // légende du morceau en scène (nom, témoignage)
-const CARD_WIDE_EM = 34 // … pour un long témoignage
 /** Grand écran : largeur de la bande des donateurs (temps 3) ; la scène se cadre dans le reste, à droite. */
 const BAND_W_EM = 36
-const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
 // Pause du grand écran (temps 1 et 2 ; l'écran intégré n'en a pas) : à l'ouverture de l'écran, puis dès que
 // CTA_EVERY_MS se sont écoulées depuis la dernière (mesuré en temps, pas en morceaux : un morceau dure de 5 à 30 s selon
 // son témoignage), ou plus tôt quand un petit vitrail a déjà montré tous ses morceaux.
@@ -62,15 +59,12 @@ const CTA_EVERY_MS = 60_000
 const PRES_MS = 9000 // grand écran, temps 1 : le vitrail et sa présentation
 /** Grand écran, temps 2 : le temps de lire « pourquoi donner », 12 à 24 s selon sa longueur. */
 const whyMs = (length: number) => Math.min(24_000, Math.max(12_000, 6000 + length * READ_MS_PER_CHAR))
-// D'un morceau au suivant, la caméra repasse TOUJOURS par le vitrail entier. Écran intégré : recul, court arrêt, puis
-// plongée. Grand écran : un seul mouvement continu qui traverse le vitrail entier sans s'y arrêter (Mika, 25 nov.).
-const OUT_MS = 1900
-const HOME_PAUSE_MS = 700
+// D'un morceau au suivant, la caméra repasse TOUJOURS par le vitrail entier, en un seul mouvement continu qui le
+// traverse sans s'y arrêter (Mika, 25 nov.) ; au début d'une série, la plongée seule.
 const IN_MS = 2600
 const HOP_MS = 4400
 const MAX_ZOOM = 40
-// Mode intégré : texte agrandi (le cadre est petit), interrogation espacée (rien ne change dans une démo)
-const EMBED_SCALE = 1.6
+// Mode intégré : interrogation espacée (rien ne change dans une démo)
 const EMBED_POLL_MS = 60_000
 /** Lu une fois côté navigateur, pour le moteur (hors rendu React). */
 const isEmbed = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed')
@@ -122,9 +116,6 @@ interface Card {
   question: string | null
   color: string
   photoUrl: string | null
-  /** Bord gauche de la légende, en px : juste à droite du morceau, qu'un fil relie à elle. */
-  left: number
-  wide: boolean
   /** Numéro et date d'arrivée : ce que la bande montre d'un donateur sans témoignage. */
   arrival: number | null
   since: string | null
@@ -133,7 +124,6 @@ interface Card {
 export default function Ecran() {
   const embed = useSearchParams().has('embed')
   const t = useTranslations('ecran')
-  const tc = useTranslations('commun')
   const tf = useTranslations('vitrail.fiche')
   const org = useOrg()
   const money = useMoney()
@@ -180,13 +170,10 @@ export default function Ecran() {
     let spot: string | null = null
     /** Morceau mis en scène (vraie photo, sans étiquette) : dès le départ du vol vers lui. */
     let stage: string | null = null
-    /** Fil de lumière entre le morceau et sa légende, en px à l'écran (à la hauteur du centre de l'écran). */
-    let link: { from: number; to: number; color: string; at: number; center: number } | null = null
     /** Arrivée sur le morceau en scène (performance.now) : il sort alors doucement du vitrail. */
     let spotAt = 0
     /** Grand écran, temps des donateurs : la scène se cadre à droite de la bande (sinon : centrée). */
     let besideBand = false
-    let liveScale = 1
     let ready = false
     // Moteur arrêté (démontage, double montage en développement) : plus aucune action, sinon deux visites
     // se disputeraient la carte et on verrait le nom d'un autre morceau pendant le vol
@@ -221,7 +208,7 @@ export default function Ecran() {
     let raf = 0
 
     // La scène : tout l'écran ; au temps des donateurs du grand écran, la partie à droite de la bande
-    const screenEm = () => Math.min(W * 0.011, H * 0.0195) * (isEmbed() ? EMBED_SCALE : 1) // taille de police de l'écran (classe .tv)
+    const screenEm = () => Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
     /** Bords gauche et droit de la scène, en px. */
     const sceneX = (): [number, number] => (besideBand ? [screenEm() * BAND_W_EM, W] : [0, W])
     const homeCam = (): Cam => {
@@ -252,7 +239,7 @@ export default function Ecran() {
 
     /** Grand écran : la scène passe à côté de la bande des donateurs, ou revient au centre. */
     const frameBesideBand = (on: boolean) => {
-      besideBand = on && !isEmbed()
+      besideBand = on
       base = homeCam().zoom
     }
 
@@ -305,38 +292,22 @@ export default function Ecran() {
     }
 
     /**
-     * Mise en scène d'un morceau : il se pose dans la partie gauche de l'écran, sa légende (nom, témoignage) juste à
-     * droite, reliée à lui par un fil de lumière ; le code QR garde le coin en bas à droite. Le morceau porte la photo,
-     * la légende porte les mots : rien n'est montré deux fois.
+     * Mise en scène d'un morceau : il se pose au milieu de la scène, à droite de la bande des donateurs (qui porte les
+     * mots ; le morceau porte la photo), un peu moins haut que l'écran pour laisser respirer le coin du QR.
      */
-    const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number; center: number } => {
-      const embedded = isEmbed()
+    const stageLayout = (tile: Tile): Cam => {
       const em = screenEm()
-      // Écran intégré : la légende à droite, le morceau à gauche, un fil entre les deux. Grand écran : le morceau au milieu
-      // de la scène, à droite de la bande (le coin du QR reste libre en bas, le morceau se centre en hauteur)
-      const cardLeft = W - em * 1.6 - em * (wide ? CARD_WIDE_EM : CARD_EM)
-      const regionL = embedded ? em * 2.4 : sceneX()[0] + em * 3
-      const regionR = embedded ? cardLeft - em * 4.5 : W - em * 4
+      const regionL = sceneX()[0] + em * 3
+      const regionR = W - em * 4
       const sx = (regionL + regionR) / 2
       const halfW = Math.max(W * 0.08, (regionR - regionL) / 2)
-      // Grand écran : un peu moins haut, pour laisser respirer le coin du QR
-      const halfH = H * (embedded ? 0.4 : 0.34)
+      const halfH = H * 0.34
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
       const ex = Math.max(lx - x0, x1 - lx, 1e-6)
       const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
-      const cam = { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
-      // Le fil part du bord droit du morceau, à la hauteur de son centre (là où il croise l'horizontale)
-      let xi = -Infinity
-      const poly = tile.poly
-      for (let i = 0; i < poly.length; i++) {
-        const [ax, ay] = poly[i]
-        const [bx, by] = poly[(i + 1) % poly.length]
-        if ((ay - ly) * (by - ly) <= 0 && ay !== by) xi = Math.max(xi, ax + ((ly - ay) / (by - ay)) * (bx - ax))
-      }
-      if (!Number.isFinite(xi)) xi = x1
-      return { cam, cardLeft, linkFrom: W / 2 + (xi - cam.x) * zoom, center: sx }
+      return { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
     }
 
     // Visite sans répétition : chaque morceau admissible passe une fois par tour, et jamais un morceau vu parmi les
@@ -382,7 +353,6 @@ export default function Ecran() {
     }
 
     const hideCard = () => {
-      link = null
       spotAt = 0
       needs = true
       setCardOut(true)
@@ -396,31 +366,20 @@ export default function Ecran() {
         timer = setTimeout(next, 2000)
         return
       }
-      // Grand écran : la légende reste jusqu'au passage par le vitrail entier (la bande ne se vide pas d'un coup)
-      if (isEmbed() || !besideBand) hideCard()
+      // La légende reste jusqu'au passage par le vitrail entier (la bande ne se vide pas d'un coup)
+      if (!besideBand) hideCard()
       spot = null
       spotAt = 0
-      if (isEmbed()) stage = null
       needs = true
       // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant). Elle vient après CTA_EVERY morceaux,
       // ou plus tôt quand tous les morceaux ont déjà été montrés dans ce cycle (petit vitrail)
       // Seuls les morceaux admissibles comptent : un petit vitrail revient à la pause dès qu'il les a tous montrés,
-      // et un vitrail sans aucun morceau à montrer reste sur la pause (ou, intégré, sur le vitrail entier)
+      // et un vitrail sans aucun morceau à montrer reste sur la pause
       const unseen = [...tiles.keys()].some(id => eligible(id) && !cycleSeen.has(id))
       const pending = priority.some(id => tiles.has(id))
       const nothing = !pending && !unseen && eligibleCount() === 0
       const due = performance.now() - lastCtaAt >= CTA_EVERY_MS || nothing
-      // Intégré : jamais d'encart d'appel ; quand tout a été vu, un nouveau tour commence simplement
-      if (isEmbed() && nothing) {
-        flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
-          timer = setTimeout(next, 5000)
-        })
-        return
-      }
-      if (isEmbed() && hops > 0 && !unseen) {
-        hops = 0
-        cycleSeen.clear()
-      } else if (!isEmbed() && (due || (hops > 0 && !unseen)) && !pending) {
+      if ((due || (hops > 0 && !unseen)) && !pending) {
         hops = 0
         cycleSeen.clear()
         // Fin de la série : la bande s'en va, la scène revient au centre ; temps 1 (le vitrail) puis temps 2 (pourquoi)
@@ -455,23 +414,20 @@ export default function Ecran() {
       fresh.delete(id)
       const p = list.find(x => x.id === id)
       const message = CONFIG.showMessagesOnScreen ? p?.message ?? null : null
-      const wide = isLong(message)
-      const lay = stageLayout(tile, wide)
+      const lay = stageLayout(tile)
       const color = p?.color ?? FALLBACK_GLASS
       // Plongée vers le morceau ; dès son départ, le morceau visé perd ses étiquettes : il arrive « nu », sa légende prend le relais
       const dive = (after: () => void) => {
         stage = id
         needs = true
-        flyTo(lay.cam, IN_MS, 0, after)
+        flyTo(lay, IN_MS, 0, after)
       }
-      // Écran intégré : recul jusqu'au vitrail entier, court arrêt (on le voit en entier), puis plongée. Grand écran : un
-      // seul mouvement à travers le vitrail entier ; au passage, l'ancienne légende s'efface et le morceau visé perd ses
-      // étiquettes
+      // Un seul mouvement à travers le vitrail entier ; au passage, l'ancienne légende s'efface et le morceau visé perd ses
+      // étiquettes (au début d'une série, depuis le vitrail entier : la plongée seule)
       const go = (after: () => void) => {
         if (atHome()) return dive(after)
-        if (isEmbed()) return flyTo(homeCam(), OUT_MS, 0, () => { timer = setTimeout(() => !disposed && dive(after), HOME_PAUSE_MS) })
         stage = null
-        flyVia(homeCam(), lay.cam, HOP_MS, () => {
+        flyVia(homeCam(), lay, HOP_MS, () => {
           hideCard()
           stage = id
         }, after)
@@ -481,8 +437,7 @@ export default function Ecran() {
         spotAt = performance.now()
         needs = true
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, question: message ? p?.question ?? null : null, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide, arrival: p?.arrival ?? null, since: p?.since ?? null })
-        if (isEmbed()) link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now(), center: lay.center }
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, question: message ? p?.question ?? null : null, color, photoUrl: p?.photoUrl ?? null, arrival: p?.arrival ?? null, since: p?.since ?? null })
         const rich = !!(p?.name || p?.photoUrl || message)
         // Le temps de lire le témoignage en entier (et sa question)
         const question = message ? p?.question ?? '' : ''
@@ -673,34 +628,7 @@ export default function Ecran() {
         ctx.lineWidth = 3 / (z * sc)
         ctx.stroke(tile.path)
         ctx.restore()
-        liveScale = sc
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      }
-      // Le fil : du bord du morceau jusqu'à sa légende, dans la couleur du verre
-      if (link && tile) {
-        const a = Math.min(1, (now - link.at) / 700)
-        const y = H / 2
-        // Le fil suit le bord du morceau qui respire (agrandi autour de son centre, placé à l'écran en sx)
-        const centerX = link.center
-        const x0 = centerX + (link.from - centerX) * liveScale + 6
-        const x1 = x0 + (link.to - x0) * (0.5 - Math.cos(Math.PI * a) / 2)
-        const g = ctx.createLinearGradient(x0, y, link.to, y)
-        g.addColorStop(0, hexA(link.color, 0.95))
-        g.addColorStop(1, hexA(link.color, 0.35))
-        ctx.save()
-        ctx.shadowColor = link.color
-        ctx.shadowBlur = 14
-        ctx.strokeStyle = g
-        ctx.lineWidth = 2
-        ctx.beginPath()
-        ctx.moveTo(x0, y)
-        ctx.lineTo(x1, y)
-        ctx.stroke()
-        ctx.fillStyle = link.color
-        ctx.beginPath()
-        ctx.arc(x0, y, 5, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.restore()
       }
     }
     const loop = (now: number) => {
@@ -796,6 +724,8 @@ export default function Ecran() {
 
   // ── Écran toujours allumé, curseur caché, plein écran ──
   useEffect(() => {
+    // Aperçu de l'accueil : ni écran tenu allumé, ni curseur caché, ni plein écran (c'est la page du visiteur)
+    if (isEmbed()) return
     type Lock = { release: () => Promise<void> }
     const wl = (navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<Lock> } }).wakeLock
     let lock: Lock | null = null
@@ -841,15 +771,15 @@ export default function Ecran() {
   const sinceDate = useSinceDate()
   /** Ce que la bande montre d'un donateur sans témoignage : « 142e fragment », « Dans le vitrail depuis le … ». */
   const arrivalText = (n: number) => (n === 1 ? tf('arriveePremier') : tf(isMilestone(n) ? 'arriveePalier' : 'arrivee', { rang: ordinal(n) }))
-  const big = !embed && phase === 'pourquoi'
-  const band = !embed && phase === 'donateurs'
+  const big = phase === 'pourquoi'
+  const band = phase === 'donateurs'
   const empty = !!snap && count === 0
 
   return (
     <main
       className={`tv fixed inset-0 overflow-hidden ${idle && !embed ? 'tv-hide-cursor' : ''}`}
       onClick={toggleFullscreen}
-      style={{ background: '#0B0A12', ...(embed ? { fontSize: `min(${1.1 * EMBED_SCALE}vw, ${1.95 * EMBED_SCALE}vh)` } : {}) }}
+      style={{ background: '#0B0A12' }}
     >
       {/* Temps 2 : le vitrail flouté et assombri derrière « pourquoi donner » */}
       <canvas
@@ -858,22 +788,13 @@ export default function Ecran() {
         style={{ filter: big ? 'blur(10px) brightness(0.38)' : 'none', transform: big ? 'scale(1.03)' : 'none', transition: 'filter 1.4s ease, transform 1.4s ease' }}
       />
 
-      {/* Vitrail vide : le même disque que la page (verre clair, fragment lumineux) ; grand écran : le texte est dans la
-          présentation, en haut à gauche ; intégré : sous le disque */}
+      {/* Vitrail vide : le même disque que la page (verre clair, fragment lumineux) ; le texte est dans la présentation,
+          en haut à gauche */}
       {empty && (
         <div className="absolute" style={{ inset: '2em 0', zIndex: 0 }}>
-          <EmptyVitrail disc={embed ? 0.62 : 0.86}>
-            {embed && (
-              <>
-                <div style={{ fontSize: '1.9em', fontWeight: 600, textShadow: '0 2px 24px rgba(0,0,0,0.9)' }}>{t('vide')}</div>
-                <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.4em', textShadow: '0 1px 14px rgba(0,0,0,0.9)' }}>{t('videTexte')}</div>
-              </>
-            )}
-          </EmptyVitrail>
+          <EmptyVitrail disc={0.86} />
         </div>
       )}
-      {!embed && (
-        <>
       {/* Temps 1 : le vitrail et sa présentation, en haut à gauche, sur un voile sombre (le verre clair peut passer
           dessous). Vitrail vide : le titre dit qu'il attend son premier don, en permanence. */}
       {(phase === 'vitrail' || empty) && (
@@ -910,7 +831,8 @@ export default function Ecran() {
         <div className="tv-banner-in absolute" style={{ left: '5em', right: '24em', top: '50%', transform: 'translateY(-50%)' }}>
           <div style={{ fontSize: '1.15em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('pourquoiSurtitre', { nom: org.name })}</div>
           <div style={{ fontSize: org.why.length > 420 ? '1.6em' : org.why.length > 260 ? '1.95em' : '2.35em', lineHeight: 1.38, marginTop: '0.6em', fontWeight: 500, color: '#F4EFE6', whiteSpace: 'pre-line' }}>{org.why}</div>
-          <div style={{ fontSize: '1.8em', fontWeight: 600, marginTop: '1em', color: GOLD }}>{showcase ? t('pourquoiAppelDemo') : t('pourquoiAppel')} →</div>
+          {/* L'appel pointe vers le QR : pas dans l'aperçu de l'accueil, qui n'en a pas */}
+          {!embed && <div style={{ fontSize: '1.8em', fontWeight: 600, marginTop: '1em', color: GOLD }}>{showcase ? t('pourquoiAppelDemo') : t('pourquoiAppel')} →</div>}
         </div>
       )}
 
@@ -968,6 +890,9 @@ export default function Ecran() {
       {/* Voile sombre derrière le coin : la légende reste lisible quand du verre clair et des noms passent dessous */}
       <div className="pointer-events-none absolute right-0 bottom-0" style={{ width: '30em', height: '24em', background: 'radial-gradient(ellipse at 75% 100%, rgba(11,10,18,0.9) 0%, rgba(11,10,18,0.7) 40%, rgba(11,10,18,0) 72%)' }} />
       <div className="absolute" style={{ right: '2.4em', bottom: '1.8em', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.7em', textAlign: 'center' }}>
+        {/* Aperçu de l'accueil : sans QR ni état, la signature seule (un clic sur l'aperçu ouvre la démo) */}
+        {!embed && (
+          <>
         {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demonstration')}</div>}
         {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demo')}</div>}
         {!online && <div className="muted" style={{ fontSize: '0.85em', maxWidth: '17em' }}>{t('horsLigne')}</div>}
@@ -983,51 +908,11 @@ export default function Ecran() {
           <div style={{ fontWeight: 600, fontSize: big ? '1.35em' : '1.15em', lineHeight: 1.2, color: '#F4EFE6', transition: 'font-size 1s ease' }}>{t('qrLegende')}</div>
           <div style={{ fontSize: '0.8em', opacity: 0.55, marginTop: '0.25em', wordBreak: 'break-all' }}>{target}</div>
         </div>
+          </>
+        )}
         <Signature height="1.4em" link={false} opacity={0.55} />
       </div>
-      <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
-        </>
-      )}
-
-      {/* Écran intégré : la légende du morceau en scène, nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
-      {embed && card && (
-        <div key={card.key} style={{ position: 'absolute', left: card.left, top: '50%', transform: 'translateY(-50%)', width: `${card.wide ? CARD_WIDE_EM : CARD_EM}em`, maxHeight: '86vh' }}>
-          <div
-            className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}
-            style={{ padding: '1.7em 1.9em', borderRadius: '1.1em', background: 'rgba(11,10,18,0.94)', border: `1px solid ${card.color}55`, borderLeft: `0.3em solid ${card.color}`, boxShadow: `0 0 4em ${card.color}26, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}
-          >
-            {/* La photo entière, en vignette à côté du nom (dans le verre, elle est rognée par la forme) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.2em' }}>
-              {card.photoUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={card.photoUrl} alt="" style={{ width: card.wide ? '7em' : '8em', height: card.wide ? '7em' : '8em', objectFit: 'cover', borderRadius: '0.7em', flexShrink: 0, boxShadow: `0 0 0 0.15em ${card.color}88, 0 0.6em 1.6em rgba(0,0,0,0.5)` }} />
-              )}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.85em', letterSpacing: '0.18em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.55)' }}>{card.fresh ? t('vientDeDonner') : t('merciA')}</div>
-                <div style={{ fontFamily: donorNameFamily(), fontSize: card.wide ? '2.3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, marginTop: '0.3em' }}>{card.name ?? tc('anonyme')}</div>
-              </div>
-            </div>
-            {/* La question à laquelle répond le témoignage : un surtitre, comme « Merci à » (la personne reste au premier plan) */}
-            {card.message && card.question && (
-              <div style={{ marginTop: '1.1em', fontSize: '0.85em', letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.35, color: 'rgba(244,239,230,0.55)', textWrap: 'balance' }}>{card.question}</div>
-            )}
-            {card.message && (
-              <div
-                style={{
-                  marginTop: card.question ? '0.35em' : '0.9em',
-                  fontSize: card.message.length > 340 ? '1.12em' : card.wide ? '1.25em' : '1.45em',
-                  lineHeight: 1.5,
-                  color: 'rgba(244,239,230,0.95)',
-                }}
-              >
-                {`${QUOTES[locale][0]}${card.message}${QUOTES[locale][1]}`}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-
+      {!embed && <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />}
     </main>
   )
 }

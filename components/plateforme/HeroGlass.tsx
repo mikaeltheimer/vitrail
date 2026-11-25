@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import MiniGlass from '@/components/MiniGlass'
 import { GLASS_COLORS } from '@/lib/config'
@@ -8,7 +8,8 @@ import type { Piece } from '@/lib/types'
 
 // Le vitrail de l'accueil : le rendu réel (le même que sur la page d'un organisme).
 // Avec la démo (Centre communautaire du Village), sur un grand écran : l'écran de projection de la démo lui-même, intégré
-// (/ecran?embed : le même cycle, sans encart d'appel ni QR). Sur téléphone, ou si le visiteur demande moins
+// (/ecran?embed : une miniature fidèle du grand écran, ses trois temps, sans QR), rendu à sa taille de télé (EMBED_W ×
+// EMBED_H) puis réduit à la largeur du cadre : la mise en page est exactement celle du grand écran. Sur téléphone, ou si le visiteur demande moins
 // d'animations : le vitrail de la démo, fixe et complet. (Un rejeu don par don redessinait tout le pavage à chaque
 // morceau, la graine venant de l'ensemble des identifiants : un saut, pas une arrivée.) Un clic ouvre la démo.
 // Sans démo (base neuve) : des morceaux anonymes générés ici.
@@ -23,6 +24,10 @@ export interface HeroDemo {
 
 /** Assez de place pour l'écran intégré (en dessous, le vitrail fixe suffit et ménage la batterie). */
 const WIDE = '(min-width: 900px) and (prefers-reduced-motion: no-preference)'
+
+/** Taille de rendu de l'écran intégré (3:2, comme le cadre) : celle d'une télé, réduite ensuite. */
+const EMBED_W = 1500
+const EMBED_H = 1000
 
 /** Ajoute ?embed (ou &embed) à une adresse qui a peut-être déjà ?org= (prévisualisation). */
 const embedUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}embed`
@@ -58,6 +63,16 @@ export default function HeroGlass({ demo }: { demo?: HeroDemo | null }) {
   const pieces = demo ? demo.pieces : generated
   const [size, setSize] = useState(420)
   const [wide, setWide] = useState(false)
+  // Largeur du cadre : l'écran intégré y est réduit
+  const frame = useRef<HTMLDivElement>(null)
+  const [frameW, setFrameW] = useState(600)
+  useEffect(() => {
+    const el = frame.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setFrameW(e.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [wide])
 
   // Grand écran : l'écran intégré remplace le vitrail fixe (décidé après le premier rendu, côté navigateur)
   useEffect(() => {
@@ -104,8 +119,15 @@ export default function HeroGlass({ demo }: { demo?: HeroDemo | null }) {
   return (
     <figure className="m-0 flex w-full flex-col items-center gap-3">
       {wide ? (
-        <div className="relative w-full max-w-[600px] overflow-hidden rounded-[20px] border" style={{ aspectRatio: '3 / 2', borderColor: 'rgba(244,239,230,0.12)', background: '#0B0A12' }}>
-          <iframe src={embedUrl(demo.screenUrl)} title={t('demoEcran', { org: demo.name })} loading="lazy" className="pointer-events-none absolute inset-0 h-full w-full border-0" tabIndex={-1} />
+        <div ref={frame} className="relative w-full max-w-[600px] overflow-hidden rounded-[20px] border" style={{ aspectRatio: '3 / 2', borderColor: 'rgba(244,239,230,0.12)', background: '#0B0A12' }}>
+          <iframe
+            src={embedUrl(demo.screenUrl)}
+            title={t('demoEcran', { org: demo.name })}
+            loading="lazy"
+            className="pointer-events-none absolute left-0 top-0 border-0"
+            style={{ width: EMBED_W, height: EMBED_H, transform: `scale(${frameW / EMBED_W})`, transformOrigin: '0 0' }}
+            tabIndex={-1}
+          />
           {/* Le cadre ne reçoit pas les clics : un clic ouvre la démo */}
           <a href={demo.url} target="_blank" rel="noreferrer" className="absolute inset-0" aria-label={t('demoOuvrir', { org: demo.name })} />
         </div>
