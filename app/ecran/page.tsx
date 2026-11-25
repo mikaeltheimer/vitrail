@@ -19,8 +19,8 @@
 // dans le coin), interrogation lente, rien en mémoire locale, ni plein écran, ni écran tenu allumé.
 
 import { publicLink } from '@/lib/links'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
 import QRCode from 'qrcode'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
@@ -67,8 +67,45 @@ const HOP_MS = 4400
 const MAX_ZOOM = 40
 // Mode intégré : interrogation espacée (rien ne change dans une démo)
 const EMBED_POLL_MS = 60_000
-/** Lu une fois côté navigateur, pour le moteur (hors rendu React). */
-const isEmbed = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed')
+/** /integrer : le vitrail intégré sur le site d'un organisme (même page, voir app/integrer). */
+const isIntegrer = () => typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/integrer'
+/** Lu une fois côté navigateur, pour le moteur (hors rendu React). Intégré : l'aperçu de l'accueil, ou /integrer. */
+const isEmbed = () => typeof window !== 'undefined' && (new URLSearchParams(window.location.search).has('embed') || isIntegrer())
+
+/**
+ * Ce que montre l'écran, au-delà des donateurs (toujours là). Grand écran : tout. Aperçu de l'accueil : rien (Mika, 25 nov.).
+ * /integrer : au choix de l'organisme, par l'adresse (`presentation`, `montant`, `pourquoi` à 1) ; par défaut, rien.
+ * Le montant ne s'affiche jamais si l'organisme l'a masqué sur son vitrail (showTotal), ni sans la présentation.
+ */
+type ScreenOptions = { presentation: boolean; montant: boolean; pourquoi: boolean }
+function screenOptions(search: string, integrer: boolean, embed: boolean): ScreenOptions {
+  if (!embed) return { presentation: true, montant: true, pourquoi: true }
+  if (!integrer) return { presentation: false, montant: false, pourquoi: false }
+  const q = new URLSearchParams(search)
+  const on = (k: string) => q.get(k) === '1'
+  return { presentation: on('presentation'), montant: on('presentation') && on('montant'), pourquoi: on('pourquoi') }
+}
+
+/**
+ * Taille de l'écran pour la mise en page. Grand écran : la fenêtre. Intégré : une taille de télé (VIRTUAL_W px de large,
+ * hauteur selon la forme du cadre), réduite ensuite d'un facteur k à la taille du cadre, pour que la mise en page soit
+ * celle du grand écran quel que soit le cadre. Cadre étroit (/integrer, moins de STACKED_BELOW px) : la bande des
+ * donateurs passe sous la scène (« empilé »), sur une largeur virtuelle de STACKED_W px.
+ */
+const VIRTUAL_W = 1500
+const STACKED_BELOW = 500
+const STACKED_W = 440
+type Frame = { w: number; h: number; k: number; stacked: boolean }
+function screenFrame(): Frame {
+  const iw = Math.max(1, window.innerWidth)
+  const ih = Math.max(1, window.innerHeight)
+  if (!isEmbed()) return { w: iw, h: ih, k: 1, stacked: false }
+  const stacked = isIntegrer() && iw < STACKED_BELOW
+  const k = iw / (stacked ? STACKED_W : VIRTUAL_W)
+  return { w: iw / k, h: ih / k, k, stacked }
+}
+/** Empilé : la scène occupe le haut, la bande des donateurs le bas (à partir de cette fraction de la hauteur). */
+const STACK_SPLIT = 0.56
 const GOLD = '#F0B24A'
 // Le code QR posé sur un éclat de verre : un quadrilatère un peu de travers, liseré des cinq verres de la palette, fond
 // crème (le blanc pur faisait tache sur l'écran sombre). Le code (79 % de l'éclat, en 12 % / 10 %) tient entièrement dans
@@ -123,7 +160,21 @@ interface Card {
 }
 
 export default function Ecran() {
-  const embed = useSearchParams().has('embed')
+  const params = useSearchParams()
+  const pathname = usePathname()
+  const integrer = pathname.replace(/\/+$/, '') === '/integrer'
+  const embed = params.has('embed') || integrer
+  const opts = useMemo(() => screenOptions(params.toString(), integrer, embed), [params, integrer, embed])
+  // Intégré : la taille virtuelle et le facteur de réduction (une télé par défaut, avant la première mesure)
+  const [frame, setFrame] = useState<Frame>({ w: VIRTUAL_W, h: 1000, k: 1, stacked: false })
+  useEffect(() => {
+    if (!embed) return
+    const measure = () => setFrame(screenFrame())
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [embed])
+  const stacked = frame.stacked
   const t = useTranslations('ecran')
   const tf = useTranslations('vitrail.fiche')
   const org = useOrg()
@@ -140,7 +191,7 @@ export default function Ecran() {
   const [card, setCard] = useState<Card | null>(null)
   const [cardOut, setCardOut] = useState(false)
   /** Le temps en cours (au départ, le vitrail : l'écran s'ouvre sur sa présentation ; l'aperçu, sur les donateurs, son seul temps). */
-  const [phase, setPhase] = useState<Phase>(embed ? 'donateurs' : 'vitrail')
+  const [phase, setPhase] = useState<Phase>(opts.presentation ? 'vitrail' : 'donateurs')
   const whyLength = useRef(0)
   useEffect(() => {
     whyLength.current = org.why.length
@@ -175,6 +226,11 @@ export default function Ecran() {
     let spotAt = 0
     /** Grand écran, temps des donateurs : la scène se cadre à droite de la bande (sinon : centrée). */
     let besideBand = isEmbed()
+    /** Cadre étroit : la scène en haut, la bande dessous ; facteur de réduction de l'intégré. */
+    let stackedFrame = false
+    let scaleK = 1
+    const engineOpts = screenOptions(window.location.search, isIntegrer(), isEmbed())
+    const pauses = engineOpts.presentation || engineOpts.pourquoi
     let ready = false
     // Moteur arrêté (démontage, double montage en développement) : plus aucune action, sinon deux visites
     // se disputeraient la carte et on verrait le nom d'un autre morceau pendant le vol
@@ -209,13 +265,17 @@ export default function Ecran() {
     let raf = 0
 
     // La scène : tout l'écran ; au temps des donateurs du grand écran, la partie à droite de la bande
-    const screenEm = () => Math.min(W * 0.011, H * 0.0195) // taille de police de l'écran (classe .tv)
+    // taille de police de l'écran (classe .tv ; empilé : proportionnelle à la largeur)
+    const screenEm = () => (stackedFrame ? W * 0.04 : Math.min(W * 0.011, H * 0.0195))
     /** Bords gauche et droit de la scène, en px. */
-    const sceneX = (): [number, number] => (besideBand ? [screenEm() * BAND_W_EM, W] : [0, W])
+    const sceneX = (): [number, number] => (besideBand && !stackedFrame ? [screenEm() * BAND_W_EM, W] : [0, W])
+    /** Haut et bas de la scène, en px (empilé : au-dessus de la bande). */
+    const sceneY = (): [number, number] => (stackedFrame ? [0, H * STACK_SPLIT] : [0, H])
     const homeCam = (): Cam => {
       const [l, r] = sceneX()
-      const zoom = Math.min(H * 0.88, (r - l) * (besideBand ? 0.86 : 0.62)) / 2 / UNIVERSE_RADIUS
-      return { x: -((l + r) / 2 - W / 2) / zoom, y: 0, zoom }
+      const [t, b] = sceneY()
+      const zoom = Math.min((b - t) * (stackedFrame ? 0.9 : 0.88), (r - l) * (besideBand || stackedFrame ? 0.86 : 0.62)) / 2 / UNIVERSE_RADIUS
+      return { x: -((l + r) / 2 - W / 2) / zoom, y: -((t + b) / 2 - H / 2) / zoom, zoom }
     }
     const atHome = () => {
       const home = homeCam()
@@ -223,9 +283,13 @@ export default function Ecran() {
     }
 
     const resize = () => {
-      W = window.innerWidth
-      H = window.innerHeight
-      dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const f = screenFrame()
+      W = f.w
+      H = f.h
+      stackedFrame = f.stacked
+      scaleK = f.k
+      // Intégré : la page est dessinée à sa taille virtuelle puis réduite ; le canevas garde la finesse des vrais pixels
+      dpr = Math.min(window.devicePixelRatio || 1, 2) * scaleK
       canvas.width = Math.round(W * dpr)
       canvas.height = Math.round(H * dpr)
       margin = Math.round(Math.max(W, H) * 0.15)
@@ -298,17 +362,19 @@ export default function Ecran() {
      */
     const stageLayout = (tile: Tile): Cam => {
       const em = screenEm()
-      const regionL = sceneX()[0] + em * 3
-      const regionR = W - em * 4
+      const regionL = sceneX()[0] + em * (stackedFrame ? 1.2 : 3)
+      const regionR = W - em * (stackedFrame ? 1.2 : 4)
       const sx = (regionL + regionR) / 2
       const halfW = Math.max(W * 0.08, (regionR - regionL) / 2)
-      const halfH = H * 0.34
+      const [top, bottom] = sceneY()
+      const sy = (top + bottom) / 2
+      const halfH = stackedFrame ? (bottom - top) * 0.36 : H * 0.34
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
       const ex = Math.max(lx - x0, x1 - lx, 1e-6)
       const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
-      return { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
+      return { x: lx - (sx - W / 2) / zoom, y: ly - (sy - H / 2) / zoom, zoom }
     }
 
     // Visite sans répétition : chaque morceau admissible passe une fois par tour, et jamais un morceau vu parmi les
@@ -380,9 +446,9 @@ export default function Ecran() {
       const pending = priority.some(id => tiles.has(id))
       const nothing = !pending && !unseen && eligibleCount() === 0
       const due = performance.now() - lastCtaAt >= CTA_EVERY_MS || nothing
-      // Aperçu de l'accueil : jamais de pause, les donateurs seulement ; quand tout a été vu, un nouveau tour commence
-      // (rien à montrer : le vitrail entier, puis on réessaie)
-      if (isEmbed()) {
+      // Sans pause (aperçu de l'accueil, /integrer sans présentation ni « pourquoi donner ») : les donateurs seulement ;
+      // quand tout a été vu, un nouveau tour commence (rien à montrer : le vitrail entier, puis on réessaie)
+      if (!pauses) {
         if (nothing) {
           hideCard()
           stage = null
@@ -398,23 +464,28 @@ export default function Ecran() {
       } else if ((due || (hops > 0 && !unseen)) && !pending) {
         hops = 0
         cycleSeen.clear()
-        // Fin de la série : la bande s'en va, la scène revient au centre ; temps 1 (le vitrail) puis temps 2 (pourquoi)
+        // Fin de la série : la bande s'en va, la scène revient au centre ; temps 1 (le vitrail) puis temps 2 (pourquoi),
+        // chacun s'il est montré (/integrer : au choix de l'organisme)
         hideCard()
         stage = null
         frameBesideBand(false)
-        setPhase('vitrail')
+        const toDonors = () => {
+          if (disposed) return
+          lastCtaAt = performance.now()
+          frameBesideBand(true)
+          setPhase('donateurs')
+          next()
+        }
+        const toWhy = () => {
+          if (disposed) return
+          if (!engineOpts.pourquoi) return toDonors()
+          setPhase('pourquoi')
+          timer = setTimeout(toDonors, whyMs(whyLength.current))
+        }
+        setPhase(engineOpts.presentation ? 'vitrail' : 'pourquoi')
         flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
-          timer = setTimeout(() => {
-            if (disposed) return
-            setPhase('pourquoi')
-            timer = setTimeout(() => {
-              if (disposed) return
-              lastCtaAt = performance.now()
-              frameBesideBand(true)
-              setPhase('donateurs')
-              next()
-            }, whyMs(whyLength.current))
-          }, PRES_MS)
+          if (engineOpts.presentation) timer = setTimeout(toWhy, PRES_MS)
+          else toWhy()
         })
         return
       }
@@ -790,12 +861,21 @@ export default function Ecran() {
   const big = phase === 'pourquoi'
   const band = phase === 'donateurs'
   const empty = !!snap && count === 0
+  // Le montant (et la barre de l'objectif) : jamais si l'organisme l'a masqué ; /integrer : seulement s'il l'a choisi
+  const showMoney = opts.montant && snap?.showTotal !== false
+  // Empilé (cadre étroit) : les textes vont dans le bas, sous la scène, à la moitié de leur taille de grand écran (les
+  // tailles sont en em : il suffit de réduire la police du conteneur)
+  const stackArea: CSSProperties = { position: 'absolute', left: 0, right: 0, top: `${STACK_SPLIT * 100}%`, bottom: 0, padding: '0.4em 1.2em 3.2em', background: 'linear-gradient(180deg, rgba(11,10,18,0) 0%, #0B0A12 1.6em)', fontSize: '0.5em' }
+  // Intégré : la page se dessine à sa taille virtuelle, puis se réduit à la taille du cadre
+  const mainStyle: CSSProperties = embed
+    ? { background: '#0B0A12', position: 'fixed', left: 0, top: 0, width: frame.w, height: frame.h, transform: `scale(${frame.k})`, transformOrigin: '0 0', fontSize: stacked ? frame.w * 0.04 : Math.min(frame.w * 0.011, frame.h * 0.0195) }
+    : { background: '#0B0A12' }
 
   return (
     <main
-      className={`tv fixed inset-0 overflow-hidden ${idle && !embed ? 'tv-hide-cursor' : ''}`}
+      className={`tv overflow-hidden ${embed ? '' : 'fixed inset-0'} ${idle && !embed ? 'tv-hide-cursor' : ''}`}
       onClick={toggleFullscreen}
-      style={{ background: '#0B0A12' }}
+      style={mainStyle}
     >
       {/* Temps 2 : le vitrail flouté et assombri derrière « pourquoi donner » */}
       <canvas
@@ -815,14 +895,14 @@ export default function Ecran() {
           dessous). Vitrail vide : le titre dit qu'il attend son premier don, en permanence. */}
       {(phase === 'vitrail' || empty) && (
         <div className="tv-banner-in pointer-events-none absolute inset-0">
-          <div className="absolute left-0 top-0" style={{ width: '48em', height: '36em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.95) 0%, rgba(11,10,18,0.8) 45%, rgba(11,10,18,0) 75%)' }} />
-          <div className="absolute" style={{ left: '2.4em', top: '2em', width: '24em' }}>
+          {!stacked && <div className="absolute left-0 top-0" style={{ width: '48em', height: '36em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.95) 0%, rgba(11,10,18,0.8) 45%, rgba(11,10,18,0) 75%)' }} />}
+          <div style={stacked ? stackArea : { position: 'absolute', left: '2.4em', top: '2em', width: '24em' }}>
             <OrgLogo style={{ width: '12em', display: 'block' }} nameStyle={{ fontSize: '1.6em' }} />
             <div className="font-display" style={{ fontSize: '2.6em', marginTop: '0.4em', lineHeight: 1.05 }}>{org.vitrailTitle}</div>
             {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) ; montant masqué par l'organisme : le nombre de donateurs seul */}
             {count > 0 && (
               <div style={{ marginTop: '0.9em', fontFamily: MONO, fontSize: '1.2em', color: 'rgba(255,255,255,0.7)' }}>
-                {snap?.showTotal !== false && (
+                {showMoney && (
                   <>
                     <span style={{ fontWeight: 700, color: GOLD }}>{money(raised)}</span> {event && event.goalCents > 0 ? t('sur', { montant: money(event.goalCents) }) : t('amasses')} ·{' '}
                   </>
@@ -830,7 +910,7 @@ export default function Ecran() {
                 {t('donateurs', { count })}
               </div>
             )}
-            {pct > 0 && (
+            {showMoney && pct > 0 && (
               <div style={{ height: '0.35em', borderRadius: '1em', background: 'rgba(255,255,255,0.12)', marginTop: '0.6em', overflow: 'hidden', width: '18em' }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: GOLD, transition: 'width 1.5s ease' }} />
               </div>
@@ -844,7 +924,7 @@ export default function Ecran() {
 
       {/* Temps 2 : « pourquoi donner », seul et en grand ; l'appel pointe vers le QR, agrandi */}
       {big && !empty && (
-        <div className="tv-banner-in absolute" style={{ left: '5em', right: '24em', top: '50%', transform: 'translateY(-50%)' }}>
+        <div className="tv-banner-in" style={stacked ? stackArea : { position: 'absolute', left: '5em', right: embed ? '5em' : '24em', top: '50%', transform: 'translateY(-50%)' }}>
           <div style={{ fontSize: '1.15em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('pourquoiSurtitre', { nom: org.name })}</div>
           <div style={{ fontSize: org.why.length > 420 ? '1.6em' : org.why.length > 260 ? '1.95em' : '2.35em', lineHeight: 1.38, marginTop: '0.6em', fontWeight: 500, color: '#F4EFE6', whiteSpace: 'pre-line' }}>{org.why}</div>
           {/* L'appel pointe vers le QR : pas dans l'aperçu de l'accueil, qui n'en a pas */}
@@ -856,10 +936,18 @@ export default function Ecran() {
           change (il s'efface au passage par le vitrail entier, le suivant apparaît à l'arrivée sur son fragment).
           Jamais de montant ; la photo entière, en grand (dans le verre, elle est rognée par la forme). */}
       {band && (
-        <div className="tv-banner-in absolute left-0 top-0 bottom-0" style={{ width: `${BAND_W_EM}em`, background: 'linear-gradient(90deg, #0B0A12 86%, rgba(11,10,18,0))', padding: '2.4em 3.6em 2.4em 2.8em', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div
+          className="tv-banner-in"
+          style={
+            stacked
+              ? stackArea
+              : { position: 'absolute', left: 0, top: 0, bottom: 0, width: `${BAND_W_EM}em`, background: 'linear-gradient(90deg, #0B0A12 86%, rgba(11,10,18,0))', padding: '2.4em 3.6em 2.4em 2.8em', display: 'flex', flexDirection: 'column', justifyContent: 'center' }
+          }
+        >
           {card && (
             <div key={card.key} className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}>
-              {card.photoUrl && (
+              {/* Empilé : pas de photo dans la bande, le fragment juste au-dessus la montre déjà */}
+              {card.photoUrl && !stacked && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={card.photoUrl}
@@ -871,7 +959,7 @@ export default function Ecran() {
               {(card.fresh || card.name) && (
                 <div style={{ fontSize: '1em', letterSpacing: '0.2em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.6)', marginBottom: '0.25em' }}>{card.fresh ? t('vientDeDonner') : t('merciA')}</div>
               )}
-              <div style={{ fontFamily: donorNameFamily(), fontSize: card.name ? '3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, ...(card.photoUrl ? {} : { borderLeft: `0.12em solid ${card.color}`, paddingLeft: '0.35em' }) }}>
+              <div style={{ fontFamily: donorNameFamily(), fontSize: card.name ? '3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, ...(card.photoUrl && !stacked ? {} : { borderLeft: `0.12em solid ${card.color}`, paddingLeft: '0.35em' }) }}>
                 {card.name ?? t('donAnonyme')}
               </div>
               {card.message ? (
@@ -927,6 +1015,30 @@ export default function Ecran() {
         </div>
         <Signature height="1.4em" link={false} opacity={0.55} />
       </div>
+        </>
+      )}
+      {/* /integrer : pas de QR (un clic suffit), un bouton « Faire un don » pour le signaler et la signature, toujours
+          (Mika, 25 nov.). Empilé : sur une ligne, en bas. Toute la page est un lien : elle ouvre le don dans un nouvel
+          onglet, avec la provenance « integration » (D'où viennent les dons). */}
+      {integrer && (
+        <>
+          {!stacked && <div className="pointer-events-none absolute right-0 bottom-0" style={{ width: '30em', height: '16em', background: 'radial-gradient(ellipse at 80% 100%, rgba(11,10,18,0.85) 0%, rgba(11,10,18,0.55) 40%, rgba(11,10,18,0) 72%)' }} />}
+          <div
+            aria-hidden="true"
+            className="absolute"
+            style={
+              stacked
+                ? { left: '1.2em', right: '1.2em', bottom: '0.9em', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1em' }
+                : { right: '2.4em', bottom: '1.8em', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8em' }
+            }
+          >
+            {stacked && <Signature height="1.1em" link={false} opacity={0.6} />}
+            <div style={{ background: GOLD, color: '#1A1208', fontWeight: 600, borderRadius: '0.6em', padding: '0.45em 0.85em', fontSize: stacked ? '0.8em' : '1.8em', whiteSpace: 'nowrap', boxShadow: '0 0.4em 1.2em rgba(0,0,0,0.4)' }}>
+              {t('integrerDon')} →
+            </div>
+            {!stacked && <Signature height="2.1em" link={false} opacity={0.65} />}
+          </div>
+          <a href={`/vitrail?don&src=integration&lang=${locale}`} target="_blank" rel="noopener" aria-label={t('integrerLien', { nom: org.name })} className="absolute inset-0" style={{ zIndex: 5 }} />
         </>
       )}
       {!embed && <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />}

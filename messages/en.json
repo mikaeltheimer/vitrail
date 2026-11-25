@@ -481,7 +481,9 @@
     "pourquoiSurtitre": "Why give · {nom}",
     "pourquoiAppel": "Scan the code and add your fragment",
     "pourquoiAppelDemo": "Try it: scan the code and add your fragment",
-    "donAnonyme": "An anonymous donation"
+    "donAnonyme": "An anonymous donation",
+    "integrerDon": "Donate",
+    "integrerLien": "Donate to {nom} (opens in a new tab)"
   },
   "meta": {
     "titre": "Donivers — {org}",
@@ -736,7 +738,7 @@
       "accueil": "How the campaign is going and what needs your attention.",
       "dons": "Every donation received and every donor. Choose a period to balance the books for an evening.",
       "moderation": "Photos, testimonials and reports waiting for a decision.",
-      "diffuser": "The link to share, QR codes, screens and where donations come from.",
+      "diffuser": "The link to share, QR codes, screens, embedding on your website and where donations come from.",
       "plus": "Your stained glass, your organization, your team and payments."
     },
     "enAttente": "{count, plural, one {# item waiting} other {# items waiting}}",
@@ -1124,6 +1126,29 @@
       "ecransAide": "Open the screen on the computer connected to the projector, in full screen. Two languages, two screens if you like.",
       "ecranFr": "Screen in French",
       "ecranEn": "Screen in English",
+      "integrer": {
+        "titre": "Embed on your website",
+        "intro": "Your living stained glass, on your own website. One click opens the donation, in a new tab.",
+        "donateurs": "Donors",
+        "donateursAide": "Always shown: name, photo, testimonial, one fragment at a time.",
+        "presentation": "Fundraiser introduction",
+        "presentationAide": "The whole stained glass with its title, between two series of donors.",
+        "montant": "Show the amount raised",
+        "montantAide": "In the fundraiser introduction.",
+        "montantMasque": "The amount is hidden on your stained glass (Settings › Amount raised).",
+        "pourquoi": "Why give",
+        "pourquoiAide": "Your “Why give” text, large.",
+        "langue": "Language",
+        "format": "Format",
+        "paysage": "Landscape 3:2",
+        "panoramique": "Widescreen 16:9",
+        "titreCadre": "{org} stained glass of donors",
+        "apercu": "Embed preview",
+        "copier": "Copy code",
+        "copie": "Code copied",
+        "ouvrir": "Open preview ↗",
+        "aide": "Paste this code into your website (WordPress, Wix, Squarespace: “HTML” or “Embed” block). On a phone, the donor appears below their fragment."
+      },
       "provenance": "Where donations come from",
       "provenanceVide": "No visits yet.",
       "colEmplacement": "Location",
@@ -1135,7 +1160,8 @@
         "ecran": "Screen QR code",
         "vitrail": "Stained-glass page",
         "partage": "Shared link",
-        "qr": "QR code"
+        "qr": "QR code",
+        "integration": "Embed on your website"
       },
       "provenanceAide": "Cash and seed donations aren’t counted here."
     },
