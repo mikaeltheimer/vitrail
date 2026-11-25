@@ -4,10 +4,16 @@
 // La caméra va d'un morceau à l'autre (au hasard, sans répétition avant que tous soient passés), le met en lumière,
 // et une carte montre son contenu : photo, nom, message. Jamais de montant : la taille du verre en dit assez.
 // Seuls les morceaux qui ont quelque chose à montrer (nom, photo ou message) entrent dans la visite (lib/stageDeck.ts).
-// Un nouveau don passe en premier, quel que soit son contenu (un don anonyme sans rien d'autre : cette fois seulement) ; toutes les quelques visites, retour au vitrail entier avec un appel à donner.
+// Un nouveau don passe en premier, quel que soit son contenu (un don anonyme sans rien d'autre : cette fois seulement).
+// Grand écran (Mika, 25 nov. 2026) : un seul élément permanent, le code QR et la signature en bas à droite ; le reste
+// alterne en trois temps, qui ne parlent chacun que d'une chose :
+//   1. le vitrail entier et sa présentation (organisme, collecte, « chaque fragment est une personne qui a donné ») ;
+//   2. « pourquoi donner » : le texte de l'organisme seul, en grand, le vitrail flouté derrière, le QR agrandi ;
+//   3. les donateurs : une bande à gauche (grande photo, nom, témoignage) reste en place pendant toute la série, la
+//      scène vit dans la partie droite ; d'un fragment au suivant, la caméra repasse par le vitrail entier sans s'y arrêter.
 // Robuste pour un événement : dernier état gardé en mémoire, reprise après coupure, écran toujours allumé,
 // rechargement périodique, plein écran au clic ou avec F, curseur caché.
-// ?embed (la démo dans la vitrine) : le même cycle dans un cadre, sans encart d'appel, sans QR ni en-tête, texte agrandi
+// ?embed (la démo dans la vitrine) : l'ancien cycle dans un cadre (légende à côté du fragment, reliée par un fil), sans QR ni en-tête, texte agrandi
 // pour un petit cadre, interrogation lente, rien en mémoire locale ni plein écran.
 
 import { publicLink } from '@/lib/links'
@@ -21,7 +27,7 @@ import Signature from '@/components/Signature'
 import EmptyVitrail from '@/components/vitrail/EmptyVitrail'
 import { QUOTES, type Locale } from '@/i18n/config'
 import { useOrg } from '@/lib/useOrg'
-import { useMoney, useSceneText } from '@/lib/useI18n'
+import { useMoney, useOrdinal, useSceneText } from '@/lib/useI18n'
 import { donorNameFamily, donorNamesSerif } from '@/lib/fonts'
 import { ensureFonts } from '@/lib/fonts'
 import { Ambience, drawGlassTile, glassColors, type GlassColors } from '@/lib/glass'
@@ -33,6 +39,8 @@ import { newScreenCode, SCREEN_CODE_RE, withDemoPieces, type ScreenPiece } from 
 import { buildTour, stageTier } from '@/lib/stageDeck'
 import ScaleBadge from '@/components/ScaleBadge'
 import { OrgLogo } from '@/components/OrgBrand'
+import { useSinceDate } from '@/components/vitrail/Arrival'
+import { isMilestone } from '@/lib/arrival'
 
 const CACHE_KEY = 'vitrail:last-snapshot'
 const RELOAD_MS = 6 * 60 * 60 * 1000
@@ -44,18 +52,22 @@ const READ_MAX_MS = 20000
 const LONG_TEXT = 140 // au-delà, la carte s'élargit et le texte passe en mise en page « témoignage »
 const CARD_EM = 28 // légende du morceau en scène (nom, témoignage)
 const CARD_WIDE_EM = 34 // … pour un long témoignage
-/** Hauteur réservée en bas au bandeau d'appel (marge du bas comprise) : le vitrail et la mise en scène se centrent au-dessus. */
-const BAND_EM = 9.6
+/** Grand écran : largeur de la bande des donateurs (temps 3) ; la scène se cadre dans le reste, à droite. */
+const BAND_W_EM = 36
 const isLong = (message: string | null | undefined) => (message?.length ?? 0) > LONG_TEXT
-// Pause « Faites partie du vitrail » : à l'ouverture de l'écran, puis dès que CTA_EVERY_MS se sont écoulées depuis la
-// dernière (mesuré en temps, pas en morceaux : un morceau dure de 5 à 30 s selon son témoignage), ou plus tôt quand un
-// petit vitrail a déjà montré tous ses morceaux.
-const CTA_EVERY_MS = 50_000
-const CTA_MS = 11000
-// D'un morceau au suivant, la caméra repasse TOUJOURS par le vitrail entier : recul, court arrêt, puis plongée
+// Pause du grand écran (temps 1 et 2 ; l'écran intégré n'en a pas) : à l'ouverture de l'écran, puis dès que
+// CTA_EVERY_MS se sont écoulées depuis la dernière (mesuré en temps, pas en morceaux : un morceau dure de 5 à 30 s selon
+// son témoignage), ou plus tôt quand un petit vitrail a déjà montré tous ses morceaux.
+const CTA_EVERY_MS = 60_000
+const PRES_MS = 9000 // grand écran, temps 1 : le vitrail et sa présentation
+/** Grand écran, temps 2 : le temps de lire « pourquoi donner », 12 à 24 s selon sa longueur. */
+const whyMs = (length: number) => Math.min(24_000, Math.max(12_000, 6000 + length * READ_MS_PER_CHAR))
+// D'un morceau au suivant, la caméra repasse TOUJOURS par le vitrail entier. Écran intégré : recul, court arrêt, puis
+// plongée. Grand écran : un seul mouvement continu qui traverse le vitrail entier sans s'y arrêter (Mika, 25 nov.).
 const OUT_MS = 1900
 const HOME_PAUSE_MS = 700
 const IN_MS = 2600
+const HOP_MS = 4400
 const MAX_ZOOM = 40
 // Mode intégré : texte agrandi (le cadre est petit), interrogation espacée (rien ne change dans une démo)
 const EMBED_SCALE = 1.6
@@ -92,6 +104,7 @@ async function screenPieces(code: string): Promise<ScreenPiece[]> {
 const MONO = "'DM Sans', sans-serif"
 
 type Cam = { x: number; y: number; zoom: number }
+type Phase = 'vitrail' | 'pourquoi' | 'donateurs'
 interface Card {
   key: string
   id: string
@@ -105,12 +118,16 @@ interface Card {
   /** Bord gauche de la légende, en px : juste à droite du morceau, qu'un fil relie à elle. */
   left: number
   wide: boolean
+  /** Numéro et date d'arrivée : ce que la bande montre d'un donateur sans témoignage. */
+  arrival: number | null
+  since: string | null
 }
 
 export default function Ecran() {
   const embed = useSearchParams().has('embed')
   const t = useTranslations('ecran')
   const tc = useTranslations('commun')
+  const tf = useTranslations('vitrail.fiche')
   const org = useOrg()
   const money = useMoney()
   const locale = useLocale() as Locale
@@ -124,7 +141,12 @@ export default function Ecran() {
   const showcase = !!snap?.showcase
   const [card, setCard] = useState<Card | null>(null)
   const [cardOut, setCardOut] = useState(false)
-  const [cta, setCta] = useState(false)
+  /** Grand écran : le temps en cours (au départ, le vitrail : l'écran s'ouvre sur sa présentation). */
+  const [phase, setPhase] = useState<Phase>('vitrail')
+  const whyLength = useRef(0)
+  useEffect(() => {
+    whyLength.current = org.why.length
+  }, [org.why])
   const [online, setOnline] = useState(true)
   const [qr, setQr] = useState<string | null>(null)
   const [target, setTarget] = useState('')
@@ -153,6 +175,10 @@ export default function Ecran() {
     let stage: string | null = null
     /** Fil de lumière entre le morceau et sa légende, en px à l'écran (à la hauteur du centre de l'écran). */
     let link: { from: number; to: number; color: string; at: number; center: number } | null = null
+    /** Arrivée sur le morceau en scène (performance.now) : il sort alors doucement du vitrail. */
+    let spotAt = 0
+    /** Grand écran, temps des donateurs : la scène se cadre à droite de la bande (sinon : centrée). */
+    let besideBand = false
     let liveScale = 1
     let ready = false
     // Moteur arrêté (démontage, double montage en développement) : plus aucune action, sinon deux visites
@@ -187,18 +213,18 @@ export default function Ecran() {
     let lastFrame = 0
     let raf = 0
 
-    // La scène : tout l'écran en mode intégré ; sinon la partie au-dessus du bandeau d'appel, toujours affiché en bas
+    // La scène : tout l'écran ; au temps des donateurs du grand écran, la partie à droite de la bande
     const screenEm = () => Math.min(W * 0.011, H * 0.0195) * (isEmbed() ? EMBED_SCALE : 1) // taille de police de l'écran (classe .tv)
-    const sceneH = () => (isEmbed() ? H : H - screenEm() * BAND_EM)
-    /** De combien (en pixels) le centre de la scène est au-dessus du centre de l'écran. */
-    const lift = () => (H - sceneH()) / 2
+    /** Bords gauche et droit de la scène, en px. */
+    const sceneX = (): [number, number] => (besideBand ? [screenEm() * BAND_W_EM, W] : [0, W])
     const homeCam = (): Cam => {
-      const zoom = Math.min(sceneH() * 0.9, H * 0.88, W * 0.62) / 2 / UNIVERSE_RADIUS
-      return { x: 0, y: lift() / zoom, zoom }
+      const [l, r] = sceneX()
+      const zoom = Math.min(H * 0.88, (r - l) * (besideBand ? 0.86 : 0.62)) / 2 / UNIVERSE_RADIUS
+      return { x: -((l + r) / 2 - W / 2) / zoom, y: 0, zoom }
     }
     const atHome = () => {
       const home = homeCam()
-      return Math.abs(cam.zoom - base) < base * 1e-3 && Math.hypot(cam.x - home.x, cam.y - home.y) * cam.zoom < 1
+      return Math.abs(cam.zoom - home.zoom) < home.zoom * 1e-3 && Math.hypot(cam.x - home.x, cam.y - home.y) * cam.zoom < 1
     }
 
     const resize = () => {
@@ -215,6 +241,43 @@ export default function Ecran() {
       base = homeCam().zoom
       if (wasHome || !ready) cam = homeCam()
       needs = true
+    }
+
+    /** Grand écran : la scène passe à côté de la bande des donateurs, ou revient au centre. */
+    const frameBesideBand = (on: boolean) => {
+      besideBand = on && !isEmbed()
+      base = homeCam().zoom
+    }
+
+    /**
+     * D'un morceau à l'autre en un seul mouvement qui traverse le vitrail entier (`via`) sans s'y arrêter : position et
+     * zoom (en logarithme) suivent chacun une courbe qui passe par le vitrail entier à mi-parcours ; la vitesse y est au
+     * plus haut, jamais nulle. `onMid` : au passage.
+     */
+    const flyVia = (via: Cam, to: Cam, ms: number, onMid: () => void, onEnd: () => void) => {
+      cancelAnimationFrame(anim)
+      const from = { ...cam }
+      // Point de contrôle d'une courbe de Bézier quadratique qui passe exactement par `via` à mi-parcours
+      const ctl = (a: number, m: number, b: number) => 2 * m - (a + b) / 2
+      const lz = [Math.log(from.zoom), Math.log(via.zoom), Math.log(to.zoom)]
+      const c = { x: ctl(from.x, via.x, to.x), y: ctl(from.y, via.y, to.y), z: ctl(lz[0], lz[1], lz[2]) }
+      const bez = (a: number, m: number, b: number, e: number) => (1 - e) * (1 - e) * a + 2 * (1 - e) * e * m + e * e * b
+      const t0 = performance.now()
+      let midDone = false
+      const step = (now: number) => {
+        if (disposed) return
+        const k = Math.min(1, (now - t0) / ms)
+        const e = 0.5 - Math.cos(Math.PI * k) / 2
+        cam = { x: bez(from.x, c.x, to.x, e), y: bez(from.y, c.y, to.y, e), zoom: Math.exp(bez(lz[0], c.z, lz[2], e)) }
+        needs = true
+        if (!midDone && k >= 0.5) {
+          midDone = true
+          onMid()
+        }
+        if (k < 1) anim = requestAnimationFrame(step)
+        else onEnd()
+      }
+      anim = requestAnimationFrame(step)
     }
 
     const flyTo = (to: Cam, ms: number, dip: number, onEnd: () => void) => {
@@ -242,20 +305,21 @@ export default function Ecran() {
     const stageLayout = (tile: Tile, wide: boolean): { cam: Cam; cardLeft: number; linkFrom: number; center: number } => {
       const embedded = isEmbed()
       const em = screenEm()
-      const qrLeft = W - em * (2.4 + 14)
-      const cardRight = embedded ? W - em * 1.6 : qrLeft - em * 1.5
-      const cardLeft = cardRight - em * (wide ? CARD_WIDE_EM : CARD_EM)
-      const regionL = em * 2.4
-      const regionR = cardLeft - em * 4.5 // la place du fil
+      // Écran intégré : la légende à droite, le morceau à gauche, un fil entre les deux. Grand écran : le morceau au milieu
+      // de la scène, à droite de la bande (le coin du QR reste libre en bas, le morceau se centre en hauteur)
+      const cardLeft = W - em * 1.6 - em * (wide ? CARD_WIDE_EM : CARD_EM)
+      const regionL = embedded ? em * 2.4 : sceneX()[0] + em * 3
+      const regionR = embedded ? cardLeft - em * 4.5 : W - em * 4
       const sx = (regionL + regionR) / 2
       const halfW = Math.max(W * 0.08, (regionR - regionL) / 2)
-      const halfH = sceneH() * 0.4
+      // Grand écran : un peu moins haut, pour laisser respirer le coin du QR
+      const halfH = H * (embedded ? 0.4 : 0.34)
       const [x0, y0, x1, y1] = tile.bbox
       const [lx, ly] = tile.labelCenter
       const ex = Math.max(lx - x0, x1 - lx, 1e-6)
       const ey = Math.max(ly - y0, y1 - ly, 1e-6)
       const zoom = Math.min(base * MAX_ZOOM, Math.max(base * 1.2, Math.min((halfW * 0.92) / ex, (halfH * 0.92) / ey)))
-      const cam = { x: lx - (sx - W / 2) / zoom, y: ly + lift() / zoom, zoom }
+      const cam = { x: lx - (sx - W / 2) / zoom, y: ly, zoom }
       // Le fil part du bord droit du morceau, à la hauteur de son centre (là où il croise l'horizontale)
       let xi = -Infinity
       const poly = tile.poly
@@ -312,6 +376,7 @@ export default function Ecran() {
 
     const hideCard = () => {
       link = null
+      spotAt = 0
       needs = true
       setCardOut(true)
       setTimeout(() => !disposed && setCard(null), 600)
@@ -324,9 +389,11 @@ export default function Ecran() {
         timer = setTimeout(next, 2000)
         return
       }
-      hideCard()
+      // Grand écran : la légende reste jusqu'au passage par le vitrail entier (la bande ne se vide pas d'un coup)
+      if (isEmbed() || !besideBand) hideCard()
       spot = null
-      stage = null
+      spotAt = 0
+      if (isEmbed()) stage = null
       needs = true
       // Pause d'appel : retour au vitrail entier (les nouveaux dons passent avant). Elle vient après CTA_EVERY morceaux,
       // ou plus tôt quand tous les morceaux ont déjà été montrés dans ce cycle (petit vitrail)
@@ -349,13 +416,23 @@ export default function Ecran() {
       } else if (!isEmbed() && (due || (hops > 0 && !unseen)) && !pending) {
         hops = 0
         cycleSeen.clear()
+        // Fin de la série : la bande s'en va, la scène revient au centre ; temps 1 (le vitrail) puis temps 2 (pourquoi)
+        hideCard()
+        stage = null
+        frameBesideBand(false)
+        setPhase('vitrail')
         flyTo(homeCam(), atHome() ? 1 : FLY_MS, 0, () => {
-          setCta(true)
           timer = setTimeout(() => {
-            setCta(false)
-            lastCtaAt = performance.now()
-            next()
-          }, CTA_MS)
+            if (disposed) return
+            setPhase('pourquoi')
+            timer = setTimeout(() => {
+              if (disposed) return
+              lastCtaAt = performance.now()
+              frameBesideBand(true)
+              setPhase('donateurs')
+              next()
+            }, whyMs(whyLength.current))
+          }, PRES_MS)
         })
         return
       }
@@ -380,15 +457,25 @@ export default function Ecran() {
         needs = true
         flyTo(lay.cam, IN_MS, 0, after)
       }
-      // Recul jusqu'au vitrail entier, court arrêt (on le voit en entier), puis plongée
-      const go = (after: () => void) =>
-        atHome() ? dive(after) : flyTo(homeCam(), OUT_MS, 0, () => { timer = setTimeout(() => !disposed && dive(after), HOME_PAUSE_MS) })
+      // Écran intégré : recul jusqu'au vitrail entier, court arrêt (on le voit en entier), puis plongée. Grand écran : un
+      // seul mouvement à travers le vitrail entier ; au passage, l'ancienne légende s'efface et le morceau visé perd ses
+      // étiquettes
+      const go = (after: () => void) => {
+        if (atHome()) return dive(after)
+        if (isEmbed()) return flyTo(homeCam(), OUT_MS, 0, () => { timer = setTimeout(() => !disposed && dive(after), HOME_PAUSE_MS) })
+        stage = null
+        flyVia(homeCam(), lay.cam, HOP_MS, () => {
+          hideCard()
+          stage = id
+        }, after)
+      }
       go(() => {
         spot = id
+        spotAt = performance.now()
         needs = true
         setCardOut(false)
-        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, question: message ? p?.question ?? null : null, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide })
-        link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now(), center: lay.center }
+        setCard({ key: `${id}-${Date.now()}`, id, fresh: isFresh, name: p?.name ?? null, message, question: message ? p?.question ?? null : null, color, photoUrl: p?.photoUrl ?? null, left: lay.cardLeft, wide, arrival: p?.arrival ?? null, since: p?.since ?? null })
+        if (isEmbed()) link = { from: lay.linkFrom, to: lay.cardLeft, color, at: performance.now(), center: lay.center }
         const rich = !!(p?.name || p?.photoUrl || message)
         // Le temps de lire le témoignage en entier (et sa question)
         const question = message ? p?.question ?? '' : ''
@@ -534,7 +621,7 @@ export default function Ecran() {
         const pulse = Math.sin(now / 420) * 0.5 + 0.5
         // Le morceau sort légèrement du vitrail et respire : il grandit et s'éclaire, puis revient, en boucle
         const breath = Math.sin(now / 700) * 0.5 + 0.5
-        const lift = link ? 0.5 - Math.cos(Math.PI * Math.min(1, (now - link.at) / 900)) / 2 : 0
+        const lift = spotAt ? 0.5 - Math.cos(Math.PI * Math.min(1, (now - spotAt) / 900)) / 2 : 0
         const sc = 1 + lift * (0.045 + 0.04 * breath)
         const [gx, gy] = tile.labelCenter
         ctx.save()
@@ -585,7 +672,7 @@ export default function Ecran() {
       // Le fil : du bord du morceau jusqu'à sa légende, dans la couleur du verre
       if (link && tile) {
         const a = Math.min(1, (now - link.at) / 700)
-        const y = H / 2 - lift()
+        const y = H / 2
         // Le fil suit le bord du morceau qui respire (agrandi autour de son centre, placé à l'écran en sx)
         const centerX = link.center
         const x0 = centerX + (link.from - centerX) * liveScale + 6
@@ -743,7 +830,13 @@ export default function Ecran() {
   const pct = event && event.goalCents > 0 ? Math.min(100, (event.totalCents / event.goalCents) * 100) : 0
   const count = snap?.pieces.length ?? 0
 
-  const staged = !!card && !cta && !cardOut
+  const ordinal = useOrdinal()
+  const sinceDate = useSinceDate()
+  /** Ce que la bande montre d'un donateur sans témoignage : « 142e fragment », « Dans le vitrail depuis le … ». */
+  const arrivalText = (n: number) => (n === 1 ? tf('arriveePremier') : tf(isMilestone(n) ? 'arriveePalier' : 'arrivee', { rang: ordinal(n) }))
+  const big = !embed && phase === 'pourquoi'
+  const band = !embed && phase === 'donateurs'
+  const empty = !!snap && count === 0
 
   return (
     <main
@@ -751,55 +844,143 @@ export default function Ecran() {
       onClick={toggleFullscreen}
       style={{ background: '#0B0A12', ...(embed ? { fontSize: `min(${1.1 * EMBED_SCALE}vw, ${1.95 * EMBED_SCALE}vh)` } : {}) }}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      {/* Temps 2 : le vitrail flouté et assombri derrière « pourquoi donner » */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 h-full w-full"
+        style={{ filter: big ? 'blur(10px) brightness(0.38)' : 'none', transform: big ? 'scale(1.03)' : 'none', transition: 'filter 1.4s ease, transform 1.4s ease' }}
+      />
 
+      {/* Vitrail vide : le même disque que la page (verre clair, fragment lumineux) ; grand écran : le texte est dans la
+          présentation, en haut à gauche ; intégré : sous le disque */}
+      {empty && (
+        <div className="absolute" style={{ inset: '2em 0', zIndex: 0 }}>
+          <EmptyVitrail disc={embed ? 0.62 : 0.86}>
+            {embed && (
+              <>
+                <div style={{ fontSize: '1.9em', fontWeight: 600, textShadow: '0 2px 24px rgba(0,0,0,0.9)' }}>{t('vide')}</div>
+                <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.4em', textShadow: '0 1px 14px rgba(0,0,0,0.9)' }}>{t('videTexte')}</div>
+              </>
+            )}
+          </EmptyVitrail>
+        </div>
+      )}
       {!embed && (
         <>
-{/* Voile sombre derrière l'en-tête : il reste lisible même quand le verre clair passe dessous */}
-      <div className="pointer-events-none absolute left-0 top-0" style={{ opacity: staged ? 0.35 : 1, transition: 'opacity 1.2s ease', width: '40em', height: '24em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.92) 0%, rgba(11,10,18,0.75) 40%, rgba(11,10,18,0) 72%)' }} />
-
-      {/* École et collecte, en haut à gauche */}
-      {/* Pendant une mise en scène, l'en-tête s'efface : le morceau peut passer dessous */}
-      <div className="absolute" style={{ left: '2.4em', top: '2em', width: '22em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
-        <OrgLogo style={{ width: '12em', display: 'block' }} nameStyle={{ fontSize: '1.6em' }} />
-        <div className="font-display" style={{ fontSize: '2.3em', marginTop: '0.45em', lineHeight: 1.05 }}>{org.vitrailTitle}</div>
-        {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) */}
-        {count > 0 && (
-        <>
-        {/* Montant masqué par l'organisme (réglage du vitrail) : le nombre de donateurs prend sa place */}
-        {snap?.showTotal !== false ? (
-        <div style={{ marginTop: '0.9em', fontFamily: MONO }}>
-          <span style={{ fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{money(raised)}</span>
-          <span style={{ fontSize: '1em', color: 'rgba(255,255,255,0.6)', marginLeft: '0.5em' }}>{event && event.goalCents > 0 ? t('sur', { montant: money(event.goalCents) }) : t('amasses')}</span>
-        </div>
-        ) : (
-        <div style={{ marginTop: '0.9em', fontFamily: MONO, fontSize: '1.7em', fontWeight: 700, color: GOLD }}>{t('donateurs', { count })}</div>
-        )}
-        {pct > 0 && (
-          <div style={{ height: '0.35em', borderRadius: '1em', background: 'rgba(255,255,255,0.12)', marginTop: '0.5em', overflow: 'hidden', width: '18em' }}>
-            <div style={{ width: `${pct}%`, height: '100%', background: GOLD, transition: 'width 1.5s ease' }} />
+      {/* Temps 1 : le vitrail et sa présentation, en haut à gauche, sur un voile sombre (le verre clair peut passer
+          dessous). Vitrail vide : le titre dit qu'il attend son premier don, en permanence. */}
+      {(phase === 'vitrail' || empty) && (
+        <div className="tv-banner-in pointer-events-none absolute inset-0">
+          <div className="absolute left-0 top-0" style={{ width: '48em', height: '36em', background: 'radial-gradient(ellipse at top left, rgba(11,10,18,0.95) 0%, rgba(11,10,18,0.8) 45%, rgba(11,10,18,0) 75%)' }} />
+          <div className="absolute" style={{ left: '2.4em', top: '2em', width: '24em' }}>
+            <OrgLogo style={{ width: '12em', display: 'block' }} nameStyle={{ fontSize: '1.6em' }} />
+            <div className="font-display" style={{ fontSize: '2.6em', marginTop: '0.4em', lineHeight: 1.05 }}>{org.vitrailTitle}</div>
+            {/* Compteur masqué tant qu'il n'y a aucun don (Mika, 17 nov.) ; montant masqué par l'organisme : le nombre de donateurs seul */}
+            {count > 0 && (
+              <div style={{ marginTop: '0.9em', fontFamily: MONO, fontSize: '1.2em', color: 'rgba(255,255,255,0.7)' }}>
+                {snap?.showTotal !== false && (
+                  <>
+                    <span style={{ fontWeight: 700, color: GOLD }}>{money(raised)}</span> {event && event.goalCents > 0 ? t('sur', { montant: money(event.goalCents) }) : t('amasses')} ·{' '}
+                  </>
+                )}
+                {t('donateurs', { count })}
+              </div>
+            )}
+            {pct > 0 && (
+              <div style={{ height: '0.35em', borderRadius: '1em', background: 'rgba(255,255,255,0.12)', marginTop: '0.6em', overflow: 'hidden', width: '18em' }}>
+                <div style={{ width: `${pct}%`, height: '100%', background: GOLD, transition: 'width 1.5s ease' }} />
+              </div>
+            )}
+            {/* Vitrail vide : « chaque fragment est une personne qui a donné » serait faux */}
+            <div className="font-display" style={{ fontSize: '1.7em', lineHeight: 1.2, marginTop: '1.3em', color: 'rgba(244,239,230,0.92)' }}>{empty ? t('vide') : t('bandeauTitre')}</div>
+            {empty && <div style={{ fontSize: '1.25em', lineHeight: 1.4, marginTop: '0.5em', color: GOLD, fontWeight: 600 }}>{t('videTexte')}</div>}
           </div>
-        )}
-        {snap?.showTotal !== false && (
-        <div style={{ fontFamily: MONO, fontSize: '0.95em', color: 'rgba(255,255,255,0.55)', marginTop: '0.5em' }}>
-          {t('donateurs', { count })}
         </div>
-        )}
-        </>
-        )}
-      </div>
+      )}
 
-      {/* Signature de Donivers : en bas à gauche, en face du QR, sous le bloc de l'organisme (toujours plus petite que
-          lui). Pas de lien : c'est un écran. S'efface comme l'en-tête pendant une mise en scène. */}
-      <div className="absolute" style={{ left: '2.4em', bottom: '2.2em', opacity: staged ? 0.25 : 1, transition: 'opacity 1.2s ease' }}>
-        <Signature height="1.6em" link={false} opacity={0.55} />
+      {/* Temps 2 : « pourquoi donner », seul et en grand ; l'appel pointe vers le QR, agrandi */}
+      {big && !empty && (
+        <div className="tv-banner-in absolute" style={{ left: '5em', right: '24em', top: '50%', transform: 'translateY(-50%)' }}>
+          <div style={{ fontSize: '1.15em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('pourquoiSurtitre', { nom: org.name })}</div>
+          <div style={{ fontSize: org.why.length > 420 ? '1.6em' : org.why.length > 260 ? '1.95em' : '2.35em', lineHeight: 1.38, marginTop: '0.6em', fontWeight: 500, color: '#F4EFE6', whiteSpace: 'pre-line' }}>{org.why}</div>
+          <div style={{ fontSize: '1.8em', fontWeight: 600, marginTop: '1em', color: GOLD }}>{showcase ? t('pourquoiAppelDemo') : t('pourquoiAppel')} →</div>
+        </div>
+      )}
+
+      {/* Temps 3 : la bande des donateurs, en place pendant toute la série ; d'un donateur à l'autre, seul son contenu
+          change (il s'efface au passage par le vitrail entier, le suivant apparaît à l'arrivée sur son fragment).
+          Jamais de montant ; la photo entière, en grand (dans le verre, elle est rognée par la forme). */}
+      {band && (
+        <div className="tv-banner-in absolute left-0 top-0 bottom-0" style={{ width: `${BAND_W_EM}em`, background: 'linear-gradient(90deg, #0B0A12 86%, rgba(11,10,18,0))', padding: '2.4em 3.6em 2.4em 2.8em', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {card && (
+            <div key={card.key} className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}>
+              {card.photoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={card.photoUrl}
+                  alt=""
+                  style={{ width: (card.message?.length ?? 0) > 200 ? '13em' : '21em', aspectRatio: '1', objectFit: 'cover', borderRadius: '1em', display: 'block', marginBottom: '1.4em', boxShadow: `0 0 0 0.18em ${card.color}aa, 0 1em 2.4em rgba(0,0,0,0.55)` }}
+                />
+              )}
+              {/* « Merci à » seulement devant un nom ; un don anonyme se présente seul (« Un don anonyme ») */}
+              {(card.fresh || card.name) && (
+                <div style={{ fontSize: '1em', letterSpacing: '0.2em', textTransform: 'uppercase', color: card.fresh ? GOLD : 'rgba(244,239,230,0.6)', marginBottom: '0.25em' }}>{card.fresh ? t('vientDeDonner') : t('merciA')}</div>
+              )}
+              <div style={{ fontFamily: donorNameFamily(), fontSize: card.name ? '3em' : '2.6em', fontWeight: donorNamesSerif() ? 500 : 600, lineHeight: 1.08, ...(card.photoUrl ? {} : { borderLeft: `0.12em solid ${card.color}`, paddingLeft: '0.35em' }) }}>
+                {card.name ?? t('donAnonyme')}
+              </div>
+              {card.message ? (
+                <>
+                  {card.question && <div style={{ marginTop: '1.3em', fontSize: '1em', letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.35, color: 'rgba(244,239,230,0.6)', textWrap: 'balance' }}>{card.question}</div>}
+                  <div style={{ marginTop: card.question ? '0.4em' : '1.1em', fontSize: card.message.length > 340 ? '1.3em' : card.message.length > 140 ? '1.65em' : '2.1em', lineHeight: 1.36, color: 'rgba(244,239,230,0.96)' }}>
+                    {`${QUOTES[locale][0]}${card.message}${QUOTES[locale][1]}`}
+                  </div>
+                </>
+              ) : (
+                // Sans témoignage (don anonyme, nom seul) : son numéro et sa date d'arrivée, comme sur sa fiche
+                card.arrival && (
+                  <div style={{ marginTop: '1.2em', fontSize: '1.4em', lineHeight: 1.45, color: 'rgba(244,239,230,0.75)' }}>
+                    <div style={{ color: isMilestone(card.arrival) ? GOLD : undefined, fontWeight: isMilestone(card.arrival) ? 600 : 400 }}>
+                      {isMilestone(card.arrival) && <span aria-hidden="true">✦ </span>}
+                      {arrivalText(card.arrival)}
+                    </div>
+                    {card.since && <div>{tf('depuis', { date: sinceDate(card.since) })}</div>}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Le seul élément permanent, en bas à droite : le code QR (agrandi au temps 2), l'adresse, la signature de
+          Donivers dessous (toujours plus petite que l'organisme ; pas de lien : c'est un écran). L'état (démonstration,
+          connexion perdue) se range au-dessus, dans le même coin. */}
+      <div className="absolute" style={{ right: '2.4em', bottom: '1.8em', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.8em' }}>
+        {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '16em', textAlign: 'center' }}>{t('demonstration')}</div>}
+        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '16em', textAlign: 'center' }}>{t('demo')}</div>}
+        {!online && <div className="muted" style={{ fontSize: '0.85em', maxWidth: '16em', textAlign: 'right' }}>{t('horsLigne')}</div>}
+        <div className="text-center" style={{ width: big ? '16em' : '12.5em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '0.8em', boxShadow: big ? '0 0 0 0.45em rgba(240,178,74,0.7), 0 0 4em rgba(240,178,74,0.35)' : '0 1em 3em rgba(0,0,0,0.5)', transition: 'width 1s ease, box-shadow 1s ease' }}>
+          {qr ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qr} alt={t('qrAlt')} style={{ width: '100%', display: 'block' }} />
+          ) : (
+            <div style={{ aspectRatio: '1', background: '#eee' }} />
+          )}
+          <div style={{ fontWeight: 700, fontSize: big ? '1.25em' : '1.05em', marginTop: '0.4em', lineHeight: 1.2, transition: 'font-size 1s ease' }}>{snap?.showcase ? t('qrLegendeDemo') : t('qrLegende')}</div>
+          <div style={{ fontSize: '0.8em', opacity: 0.6, marginTop: '0.2em', wordBreak: 'break-all' }}>{target}</div>
+        </div>
+        <div style={{ alignSelf: 'center' }}>
+          <Signature height="1.4em" link={false} opacity={0.55} />
+        </div>
       </div>
+      <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
         </>
       )}
 
-      {/* La légende du morceau en scène : nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
-      {card && !cta && (
-        <div key={card.key} style={{ position: 'absolute', left: card.left, top: embed ? '50%' : `calc((100% - ${BAND_EM}em) / 2)`, transform: 'translateY(-50%)', width: `${card.wide ? CARD_WIDE_EM : CARD_EM}em`, maxHeight: embed ? '86vh' : `calc(100% - ${BAND_EM}em - 2em)` }}>
+      {/* Écran intégré : la légende du morceau en scène, nom et témoignage, jamais de montant ; le morceau, lui, porte la photo */}
+      {embed && card && (
+        <div key={card.key} style={{ position: 'absolute', left: card.left, top: '50%', transform: 'translateY(-50%)', width: `${card.wide ? CARD_WIDE_EM : CARD_EM}em`, maxHeight: '86vh' }}>
           <div
             className={cardOut ? 'tv-banner-out' : 'tv-banner-in'}
             style={{ padding: '1.7em 1.9em', borderRadius: '1.1em', background: 'rgba(11,10,18,0.94)', border: `1px solid ${card.color}55`, borderLeft: `0.3em solid ${card.color}`, boxShadow: `0 0 4em ${card.color}26, 0 1.5em 4em rgba(0,0,0,0.6)`, backdropFilter: 'blur(12px)' }}
@@ -835,79 +1016,7 @@ export default function Ecran() {
         </div>
       )}
 
-      {!embed && (
-        <>
-<ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
-        </>
-      )}
 
-      {/* Pause, écran intégré (sans bandeau) : appel à donner, au centre, le vitrail entier derrière */}
-      {cta && embed && (
-        <div className="absolute" style={{ left: '50%', bottom: '3em', transform: 'translateX(-50%)', width: '40em', textAlign: 'center' }}>
-          <div className="tv-banner-in" style={{ padding: '1.6em 2em', borderRadius: '1.4em', background: 'rgba(12,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 0 4em rgba(240,178,74,0.15)' }}>
-            <div style={{ fontFamily: MONO, fontSize: '0.95em', letterSpacing: '0.2em', textTransform: 'uppercase', color: GOLD }}>{t('ctaSurtitre')}</div>
-            <div className="font-display" style={{ fontSize: '2.5em', lineHeight: 1.1, marginTop: '0.35em' }}>{t('ctaTitre')}</div>
-            {/* Le « pourquoi donner » de l'organisme, en entier : c'est lui qui prime (le même texte que sur le vitrail) */}
-            <div style={{ fontSize: org.why.length > 240 ? '1.05em' : '1.25em', lineHeight: 1.45, marginTop: '0.6em', color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-line' }}>{org.why}</div>
-            <div style={{ fontSize: '1.3em', fontWeight: 600, marginTop: '0.7em', color: GOLD }}>{t('ctaScan')}</div>
-          </div>
-        </div>
-      )}
-
-      {!embed && (
-        <>
-{/* Bandeau d'appel, toujours visible (même pendant une mise en scène) : ce qu'on regarde, et comment s'y ajouter.
-          Entre la signature et le code QR, vers lequel pointe la flèche. Pendant la pause d'appel, il s'agrandit vers le
-          haut avec le « pourquoi donner » de l'organisme, en entier (c'est lui qui prime), et le code QR s'illumine. */}
-      <div className="absolute" style={{ left: '17em', right: '18em', bottom: '2.4em', display: 'flex', justifyContent: 'flex-end', pointerEvents: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.4em', padding: '1.1em 1.5em 1.1em 1.8em', borderRadius: '1.2em', background: 'rgba(11,10,18,0.92)', border: '1px solid rgba(240,178,74,0.5)', boxShadow: '0 1em 3em rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
-          <div>
-            {cta && (
-              <div className="tv-banner-in" style={{ fontSize: org.why.length > 240 ? '1.05em' : '1.2em', lineHeight: 1.45, color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-line', maxWidth: '42em', paddingBottom: '0.8em', marginBottom: '0.8em', borderBottom: '1px solid rgba(240,178,74,0.3)' }}>{org.why}</div>
-            )}
-            {/* Vitrail vide : « chaque fragment est une personne qui a donné » serait faux ; le bandeau dit qu'il attend */}
-            <div className="font-display" style={{ fontSize: '1.75em', lineHeight: 1.15 }}>{count === 0 ? t('vide') : t('bandeauTitre')}</div>
-            <div style={{ fontSize: '1.35em', fontWeight: 600, marginTop: '0.35em', color: GOLD }}>{count === 0 ? t('videTexte') : snap?.showcase ? t('bandeauAppelDemo') : t('bandeauAppel')}</div>
-          </div>
-          <div aria-hidden="true" style={{ fontSize: '3em', lineHeight: 1, color: GOLD }}>→</div>
-        </div>
-      </div>
-
-      {/* Code QR, en bas à droite */}
-      <div className="absolute text-center" style={{ right: '2.4em', bottom: '2.4em', width: '14em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '1em', boxShadow: cta ? '0 0 0 0.4em rgba(240,178,74,0.6)' : 'none', transition: 'box-shadow 0.6s' }}>
-        {qr ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={qr} alt={t('qrAlt')} style={{ width: '100%', display: 'block' }} />
-        ) : (
-          <div style={{ aspectRatio: '1', background: '#eee' }} />
-        )}
-        <div style={{ fontWeight: 700, fontSize: '1.1em', marginTop: '0.5em', lineHeight: 1.2 }}>{snap?.showcase ? t('qrLegendeDemo') : t('qrLegende')}</div>
-        <div style={{ fontSize: '0.8em', opacity: 0.6, marginTop: '0.2em', wordBreak: 'break-all' }}>{target}</div>
-      </div>
-
-      {/* État */}
-      <div className="absolute text-right" style={{ right: '2.4em', top: '2em', fontSize: '0.95em' }}>
-        {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>{t('demonstration')}</div>}
-        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', display: 'inline-block' }}>{t('demo')}</div>}
-        {!online && <div className="muted" style={{ marginTop: '0.5em' }}>{t('horsLigne')}</div>}
-      </div>
-        </>
-      )}
-
-      {/* Vitrail vide : le même disque que la page (verre clair, fragment lumineux), au-dessus du bandeau d'appel, qui
-          porte le texte (intégré : pas de bandeau, le texte va sous le disque) */}
-      {snap && count === 0 && (
-        <div className="absolute" style={{ inset: embed ? '2em 0' : `2em 0 ${BAND_EM}em`, zIndex: 0 }}>
-          <EmptyVitrail disc={embed ? 0.62 : 0.86}>
-            {embed && (
-              <>
-                <div style={{ fontSize: '1.9em', fontWeight: 600, textShadow: '0 2px 24px rgba(0,0,0,0.9)' }}>{t('vide')}</div>
-                <div className="muted" style={{ fontSize: '1.2em', marginTop: '0.4em', textShadow: '0 1px 14px rgba(0,0,0,0.9)' }}>{t('videTexte')}</div>
-              </>
-            )}
-          </EmptyVitrail>
-        </div>
-      )}
     </main>
   )
 }

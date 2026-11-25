@@ -470,7 +470,6 @@
     "merciA": "Merci à",
     "ctaSurtitre": "Faites partie du vitrail",
     "ctaTitre": "Chaque don devient un fragment de verre",
-    "ctaScan": "Scannez le code →",
     "qrAlt": "Code QR pour donner",
     "qrLegende": "Scannez pour donner",
     "demo": "MODE DÉMO — aucun paiement réel",
@@ -480,8 +479,10 @@
     "vide": "Le vitrail attend son premier don",
     "videTexte": "Scannez le code pour donner et voir votre fragment de verre apparaître.",
     "bandeauTitre": "Chaque fragment de ce vitrail est une personne qui a donné.",
-    "bandeauAppel": "Faites un don : scannez le code et ajoutez le vôtre",
-    "bandeauAppelDemo": "Essayez : scannez le code et ajoutez le vôtre"
+    "pourquoiSurtitre": "Pourquoi donner · {nom}",
+    "pourquoiAppel": "Scannez le code et ajoutez votre fragment",
+    "pourquoiAppelDemo": "Essayez : scannez le code et ajoutez votre fragment",
+    "donAnonyme": "Un don anonyme"
   },
   "meta": {
     "titre": "Donivers — {org}",

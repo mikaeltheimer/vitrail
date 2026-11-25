@@ -470,7 +470,6 @@
     "merciA": "Thanks to",
     "ctaSurtitre": "Be part of the stained glass",
     "ctaTitre": "Every donation becomes a glass fragment",
-    "ctaScan": "Scan the code →",
     "qrAlt": "QR code to donate",
     "qrLegende": "Scan to donate",
     "demo": "DEMO MODE — no real payments",
@@ -480,8 +479,10 @@
     "vide": "The stained glass is waiting for its first donation",
     "videTexte": "Scan the code to donate and watch your glass fragment appear.",
     "bandeauTitre": "Every fragment of this stained glass is someone who gave.",
-    "bandeauAppel": "Donate: scan the code and add yours",
-    "bandeauAppelDemo": "Try it: scan the code and add yours"
+    "pourquoiSurtitre": "Why give · {nom}",
+    "pourquoiAppel": "Scan the code and add your fragment",
+    "pourquoiAppelDemo": "Try it: scan the code and add your fragment",
+    "donAnonyme": "An anonymous donation"
   },
   "meta": {
     "titre": "Donivers — {org}",
