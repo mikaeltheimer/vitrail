@@ -22,7 +22,7 @@ import { useSearchParams } from 'next/navigation'
 import QRCode from 'qrcode'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONFIG } from '@/lib/config'
-import { FALLBACK_GLASS } from '@/lib/theme'
+import { DEFAULT_GLASSES, FALLBACK_GLASS } from '@/lib/theme'
 import Signature from '@/components/Signature'
 import EmptyVitrail from '@/components/vitrail/EmptyVitrail'
 import { QUOTES, type Locale } from '@/i18n/config'
@@ -75,6 +75,12 @@ const EMBED_POLL_MS = 60_000
 /** Lu une fois côté navigateur, pour le moteur (hors rendu React). */
 const isEmbed = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed')
 const GOLD = '#F0B24A'
+// Le code QR posé sur un éclat de verre : un quadrilatère un peu de travers, liseré des cinq verres de la palette, fond
+// crème (le blanc pur faisait tache sur l'écran sombre). Le code tient entièrement dans l'éclat, avec sa marge.
+const QR_LIGHT = '#F4EFE6'
+const QR_DARK = '#17141F'
+const QR_SHARD = 'polygon(8% 0%, 100% 5%, 96% 100%, 0% 93%)'
+const QR_RIM = `conic-gradient(from 210deg, ${['rose', 'ambre', 'jade', 'ciel', 'violet', 'rose'].map(id => DEFAULT_GLASSES.find(g => g.id === id)!.value).join(', ')})`
 // Démonstration : code de séance de cet écran (écran jumelé, lib/demo-screen.ts). Les dons d'essai faits par son QR
 // n'apparaissent que sur lui ; gardé dans l'onglet, il survit au rechargement périodique.
 const SCREEN_KEY = 'vitrail:ecran-seance'
@@ -779,7 +785,7 @@ export default function Ecran() {
     // Démonstration : le QR porte le code de séance de cet écran, pour que les dons d'essai y apparaissent
     const code = showcase ? screenCode() : null
     const url = publicLink(`/vitrail?don&src=ecran${code ? `&ecran=${code}` : ''}`, new URLSearchParams(window.location.search).get('url'))
-    QRCode.toDataURL(url, { margin: 1, width: 640, errorCorrectionLevel: 'M', color: { dark: '#0b0a10', light: '#ffffff' } })
+    QRCode.toDataURL(url, { margin: 2, width: 640, errorCorrectionLevel: 'M', color: { dark: QR_DARK, light: QR_LIGHT } })
       .then(d => {
         setQr(d)
         setTarget(base.replace(/^https?:\/\//, ''))
@@ -953,26 +959,30 @@ export default function Ecran() {
         </div>
       )}
 
-      {/* Le seul élément permanent, en bas à droite : le code QR (agrandi au temps 2), l'adresse, la signature de
-          Donivers dessous (toujours plus petite que l'organisme ; pas de lien : c'est un écran). L'état (démonstration,
-          connexion perdue) se range au-dessus, dans le même coin. */}
-      <div className="absolute" style={{ right: '2.4em', bottom: '1.8em', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.8em' }}>
-        {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '16em', textAlign: 'center' }}>{t('demonstration')}</div>}
-        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '16em', textAlign: 'center' }}>{t('demo')}</div>}
-        {!online && <div className="muted" style={{ fontSize: '0.85em', maxWidth: '16em', textAlign: 'right' }}>{t('horsLigne')}</div>}
-        <div className="text-center" style={{ width: big ? '16em' : '12.5em', background: '#fff', color: '#0b0a10', borderRadius: '1.2em', padding: '0.8em', boxShadow: big ? '0 0 0 0.45em rgba(240,178,74,0.7), 0 0 4em rgba(240,178,74,0.35)' : '0 1em 3em rgba(0,0,0,0.5)', transition: 'width 1s ease, box-shadow 1s ease' }}>
+      {/* Le seul élément permanent, en bas à droite : le code QR posé sur un éclat de verre (agrandi et illuminé au temps
+          2), sa légende, l'adresse et la signature de Donivers, centrées dessous (toujours plus petite que l'organisme ; pas
+          de lien : c'est un écran). L'état (démonstration, connexion perdue) se range au-dessus, dans le même coin.
+          Le code reste en carrés foncés sur fond clair, avec sa marge : les points ronds et le code inversé (clair sur
+          sombre) se lisaient mal à l'essai (Mika, 25 nov.). */}
+      {/* Voile sombre derrière le coin : la légende reste lisible quand du verre clair et des noms passent dessous */}
+      <div className="pointer-events-none absolute right-0 bottom-0" style={{ width: '30em', height: '24em', background: 'radial-gradient(ellipse at 75% 100%, rgba(11,10,18,0.9) 0%, rgba(11,10,18,0.7) 40%, rgba(11,10,18,0) 72%)' }} />
+      <div className="absolute" style={{ right: '2.4em', bottom: '1.8em', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.7em', textAlign: 'center' }}>
+        {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demonstration')}</div>}
+        {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demo')}</div>}
+        {!online && <div className="muted" style={{ fontSize: '0.85em', maxWidth: '17em' }}>{t('horsLigne')}</div>}
+        <div style={{ position: 'relative', width: big ? '17.5em' : '14em', aspectRatio: '1', transition: 'width 1s ease', filter: big ? 'drop-shadow(0 0 1.6em rgba(240,178,74,0.55))' : 'drop-shadow(0 0 1em rgba(240,178,74,0.22)) drop-shadow(0 1em 2em rgba(0,0,0,0.5))' }}>
+          <div style={{ position: 'absolute', inset: 0, clipPath: QR_SHARD, background: QR_RIM }} />
+          <div style={{ position: 'absolute', inset: '2.5%', clipPath: QR_SHARD, background: QR_LIGHT }} />
           {qr ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={qr} alt={t('qrAlt')} style={{ width: '100%', display: 'block' }} />
-          ) : (
-            <div style={{ aspectRatio: '1', background: '#eee' }} />
-          )}
-          <div style={{ fontWeight: 700, fontSize: big ? '1.25em' : '1.05em', marginTop: '0.4em', lineHeight: 1.2, transition: 'font-size 1s ease' }}>{snap?.showcase ? t('qrLegendeDemo') : t('qrLegende')}</div>
-          <div style={{ fontSize: '0.8em', opacity: 0.6, marginTop: '0.2em', wordBreak: 'break-all' }}>{target}</div>
+            <img src={qr} alt={t('qrAlt')} style={{ position: 'absolute', left: '8.6%', top: '7.9%', width: '82.9%', display: 'block' }} />
+          ) : null}
         </div>
-        <div style={{ alignSelf: 'center' }}>
-          <Signature height="1.4em" link={false} opacity={0.55} />
+        <div>
+          <div style={{ fontWeight: 600, fontSize: big ? '1.35em' : '1.15em', lineHeight: 1.2, color: '#F4EFE6', transition: 'font-size 1s ease' }}>{t('qrLegende')}</div>
+          <div style={{ fontSize: '0.8em', opacity: 0.55, marginTop: '0.25em', wordBreak: 'break-all' }}>{target}</div>
         </div>
+        <Signature height="1.4em" link={false} opacity={0.55} />
       </div>
       <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />
         </>
