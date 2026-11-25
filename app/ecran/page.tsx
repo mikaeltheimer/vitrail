@@ -903,12 +903,13 @@ export default function Ecran() {
           de lien : c'est un écran). L'état (démonstration, connexion perdue) se range au-dessus, dans le même coin.
           Le code reste en carrés foncés sur fond clair, avec sa marge : les points ronds et le code inversé (clair sur
           sombre) se lisaient mal à l'essai (Mika, 25 nov.). */}
+      {/* Aperçu de l'accueil : rien dans ce coin, ni QR, ni voile, ni signature (Mika, 25 nov. ; un clic sur l'aperçu
+          ouvre la démo) */}
+      {!embed && (
+        <>
       {/* Voile sombre derrière le coin : la légende reste lisible quand du verre clair et des noms passent dessous */}
       <div className="pointer-events-none absolute right-0 bottom-0" style={{ width: '30em', height: '24em', background: 'radial-gradient(ellipse at 75% 100%, rgba(11,10,18,0.9) 0%, rgba(11,10,18,0.7) 40%, rgba(11,10,18,0) 72%)' }} />
       <div className="absolute" style={{ right: '2.4em', bottom: '1.8em', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.7em', textAlign: 'center' }}>
-        {/* Aperçu de l'accueil : sans QR ni état, la signature seule (un clic sur l'aperçu ouvre la démo) */}
-        {!embed && (
-          <>
         {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demonstration')}</div>}
         {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demo')}</div>}
         {!online && <div className="muted" style={{ fontSize: '0.85em', maxWidth: '17em' }}>{t('horsLigne')}</div>}
@@ -924,10 +925,10 @@ export default function Ecran() {
           <div style={{ fontWeight: 600, fontSize: big ? '1.35em' : '1.15em', lineHeight: 1.2, color: '#F4EFE6', transition: 'font-size 1s ease' }}>{t('qrLegende')}</div>
           <div style={{ fontSize: '0.8em', opacity: 0.55, marginTop: '0.25em', wordBreak: 'break-all' }}>{target}</div>
         </div>
-          </>
-        )}
         <Signature height="1.4em" link={false} opacity={0.55} />
       </div>
+        </>
+      )}
       {!embed && <ScaleBadge style={{ left: '50%', top: 16, transform: 'translateX(-50%)' }} />}
     </main>
   )
