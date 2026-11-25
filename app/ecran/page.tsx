@@ -76,10 +76,11 @@ const EMBED_POLL_MS = 60_000
 const isEmbed = () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed')
 const GOLD = '#F0B24A'
 // Le code QR posé sur un éclat de verre : un quadrilatère un peu de travers, liseré des cinq verres de la palette, fond
-// crème (le blanc pur faisait tache sur l'écran sombre). Le code tient entièrement dans l'éclat, avec sa marge.
+// crème (le blanc pur faisait tache sur l'écran sombre). Le code (79 % de l'éclat, en 12 % / 10 %) tient entièrement dans
+// le verre crème, à 3 % au moins de chaque bord du liseré : vérifié par le calcul, coin par coin (Mika, 25 nov.).
 const QR_LIGHT = '#F4EFE6'
 const QR_DARK = '#17141F'
-const QR_SHARD = 'polygon(8% 0%, 100% 5%, 96% 100%, 0% 93%)'
+const QR_SHARD = 'polygon(7% 0%, 100% 4.5%, 96.5% 100%, 0% 94%)'
 const QR_RIM = `conic-gradient(from 210deg, ${['rose', 'ambre', 'jade', 'ciel', 'violet', 'rose'].map(id => DEFAULT_GLASSES.find(g => g.id === id)!.value).join(', ')})`
 // Démonstration : code de séance de cet écran (écran jumelé, lib/demo-screen.ts). Les dons d'essai faits par son QR
 // n'apparaissent que sur lui ; gardé dans l'onglet, il survit au rechargement périodique.
@@ -970,12 +971,12 @@ export default function Ecran() {
         {snap?.showcase && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demonstration')}</div>}
         {snap?.mode === 'demo' && <div style={{ background: GOLD, color: '#1A1208', fontWeight: 700, padding: '0.3em 0.8em', borderRadius: '0.6em', fontSize: '0.85em', maxWidth: '17em' }}>{t('demo')}</div>}
         {!online && <div className="muted" style={{ fontSize: '0.85em', maxWidth: '17em' }}>{t('horsLigne')}</div>}
-        <div style={{ position: 'relative', width: big ? '17.5em' : '14em', aspectRatio: '1', transition: 'width 1s ease', filter: big ? 'drop-shadow(0 0 1.6em rgba(240,178,74,0.55))' : 'drop-shadow(0 0 1em rgba(240,178,74,0.22)) drop-shadow(0 1em 2em rgba(0,0,0,0.5))' }}>
+        <div style={{ position: 'relative', width: big ? '18.4em' : '14.7em', aspectRatio: '1', transition: 'width 1s ease', filter: big ? 'drop-shadow(0 0 1.6em rgba(240,178,74,0.55))' : 'drop-shadow(0 0 1em rgba(240,178,74,0.22)) drop-shadow(0 1em 2em rgba(0,0,0,0.5))' }}>
           <div style={{ position: 'absolute', inset: 0, clipPath: QR_SHARD, background: QR_RIM }} />
           <div style={{ position: 'absolute', inset: '2.5%', clipPath: QR_SHARD, background: QR_LIGHT }} />
           {qr ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={qr} alt={t('qrAlt')} style={{ position: 'absolute', left: '8.6%', top: '7.9%', width: '82.9%', display: 'block' }} />
+            <img src={qr} alt={t('qrAlt')} style={{ position: 'absolute', left: '12%', top: '10%', width: '79%', display: 'block' }} />
           ) : null}
         </div>
         <div>
