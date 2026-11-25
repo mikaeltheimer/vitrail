@@ -30,7 +30,7 @@ export const CAMPAIGN_SLUG_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/
 export const RESERVED_CAMPAIGN_SLUGS = [
   'admin', 'affiche', 'api', 'conditions', 'confidentialite', 'don', 'ecran', 'm', 'merci', 'screen', 'vitrail', 'privacy', 'en', 'fr',
   'login', 'auth', 'console', 'static', 'assets', '_next', 'favicon', 'robots', 'sitemap',
-  'plateforme', 'inscription', 'studio', 'connexion', 'entrainement',
+  'plateforme', 'inscription', 'studio', 'connexion', 'entrainement', 'integrer',
 ] as const
 
 export interface OrgRow {

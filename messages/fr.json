@@ -481,7 +481,9 @@
     "pourquoiSurtitre": "Pourquoi donner · {nom}",
     "pourquoiAppel": "Scannez le code et ajoutez votre fragment",
     "pourquoiAppelDemo": "Essayez : scannez le code et ajoutez votre fragment",
-    "donAnonyme": "Un don anonyme"
+    "donAnonyme": "Un don anonyme",
+    "integrerDon": "Faire un don",
+    "integrerLien": "Faire un don à {nom} (s’ouvre dans un nouvel onglet)"
   },
   "meta": {
     "titre": "Donivers — {org}",
@@ -736,7 +738,7 @@
       "accueil": "Où en est la collecte et ce qui demande votre attention.",
       "dons": "Chaque don reçu et chaque donateur. Choisissez une période pour faire les comptes d’une soirée.",
       "moderation": "Les photos, les témoignages et les signalements qui attendent une décision.",
-      "diffuser": "Le lien à partager, les codes QR, les écrans et d’où viennent les dons.",
+      "diffuser": "Le lien à partager, les codes QR, les écrans, l’intégration à votre site et d’où viennent les dons.",
       "plus": "Le vitrail, l’organisme, l’équipe et les paiements."
     },
     "enAttente": "{count, plural, one {# élément en attente} other {# éléments en attente}}",
@@ -1124,6 +1126,29 @@
       "ecransAide": "Ouvrez l’écran sur l’ordinateur relié au projecteur, en plein écran. Deux langues, deux écrans possibles.",
       "ecranFr": "Écran en français",
       "ecranEn": "Écran en anglais",
+      "integrer": {
+        "titre": "Intégrer à votre site",
+        "intro": "Votre vitrail, vivant, sur votre propre site. Un clic ouvre le don, dans un nouvel onglet.",
+        "donateurs": "Les donateurs",
+        "donateursAide": "Toujours affichés : nom, photo, témoignage, un fragment à la fois.",
+        "presentation": "Présentation de la collecte",
+        "presentationAide": "Le vitrail entier avec son titre, entre deux séries de donateurs.",
+        "montant": "Afficher le montant amassé",
+        "montantAide": "Dans la présentation de la collecte.",
+        "montantMasque": "Le montant est masqué sur votre vitrail (Réglages › Montant collecté).",
+        "pourquoi": "Pourquoi donner",
+        "pourquoiAide": "Votre texte « Pourquoi donner », en grand.",
+        "langue": "Langue",
+        "format": "Format",
+        "paysage": "Paysage 3:2",
+        "panoramique": "Panoramique 16:9",
+        "titreCadre": "Vitrail des donateurs de {org}",
+        "apercu": "Aperçu de l’intégration",
+        "copier": "Copier le code",
+        "copie": "Code copié",
+        "ouvrir": "Ouvrir l’aperçu ↗",
+        "aide": "Collez ce code dans votre site (WordPress, Wix, Squarespace : bloc « HTML » ou « Intégration »). Sur un téléphone, le donateur passe sous son fragment."
+      },
       "provenance": "D’où viennent les dons",
       "provenanceVide": "Pas encore de visite.",
       "colEmplacement": "Emplacement",
@@ -1135,7 +1160,8 @@
         "ecran": "Code QR de l’écran",
         "vitrail": "Page du vitrail",
         "partage": "Lien partagé",
-        "qr": "Code QR"
+        "qr": "Code QR",
+        "integration": "Intégration sur votre site"
       },
       "provenanceAide": "Les dons comptants et d’amorçage ne sont pas comptés ici."
     },

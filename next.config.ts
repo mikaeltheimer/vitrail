@@ -12,7 +12,7 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 // chez un organisme (EMBEDDABLE) s'ouvrent à tous les sites.
 const platform = (process.env.PLATFORM_DOMAIN || '').trim().toLowerCase().replace(/^\.+/, '')
 const ancestors = ["'self'", ...(platform ? [`https://${platform}`, `https://*.${platform}`] : [])].join(' ')
-const EMBEDDABLE: string[] = []
+const EMBEDDABLE: string[] = ['/integrer']
 
 const nextConfig: NextConfig = {
   async headers() {
